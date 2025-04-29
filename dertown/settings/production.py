@@ -5,7 +5,7 @@ ALLOWED_HOSTS = ['.onrender.com']
 
 # Set SECRET_KEY from environment variable
 import os
-SECRET_KEY = os.environ.get('SECRET_KEY', 'unsafe-default')
+SECRET_KEY = os.environ['SECRET_KEY']  # Will raise error if not set
 
 # Static files
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
