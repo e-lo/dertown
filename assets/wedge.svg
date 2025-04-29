@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="black" stroke-width="3">
+  <!-- Mountain base -->
+  <polyline points="10,60 40,20 60,40 80,30 90,40" fill="none" />
+
+  <!-- Wedge Mountain peak -->
+  <polyline points="10,60 40,20 60,60" fill="none" />
+</svg>

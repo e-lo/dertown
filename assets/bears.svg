@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="500" height="500">
+  <!-- Mother Bear -->
+  <path d="M 350 100 
+           C 360 80 370 70 380 80  /* Left ear */
+           C 390 90 400 85 410 95  /* Head top */
+           C 420 105 425 100 430 110  /* Right ear */
+           C 435 120 440 115 445 125  /* Snout top */
+           C 450 135 455 130 460 140  /* Snout bottom */
+           C 465 150 460 180 450 200  /* Neck */
+           C 440 220 420 230 400 225  /* Shoulder */
+           C 380 220 370 200 360 180  /* Back */
+           C 350 160 340 120 350 100 Z" 
+        fill="none" 
+        stroke="black" 
+        stroke-width="4" />
+        
+  <!-- Baby Bear -->
+  <path d="M 100 300 
+           C 110 280 120 270 130 280  /* Left ear */
+           C 140 290 150 285 160 295  /* Head top */
+           C 170 305 175 300 180 310  /* Right ear */
+           C 185 320 190 315 195 325  /* Snout top */
+           C 200 335 205 330 210 340  /* Snout bottom */
+           C 215 350 210 380 200 400  /* Neck */
+           C 190 420 170 430 150 425  /* Shoulder */
+           C 130 420 120 400 110 380  /* Back */
+           C 100 360 90 320 100 300 Z" 
+        fill="none" 
+        stroke="black" 
+        stroke-width="4" />
+</svg> 
