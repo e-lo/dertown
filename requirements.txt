@@ -1,5 +1,0 @@
-Django>=5.1,<5.2
-gunicorn
-wagtail>=6.4,<6.5
-dj-database-url
-psycopg2-binary

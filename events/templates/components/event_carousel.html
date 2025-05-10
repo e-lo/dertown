@@ -1,0 +1,30 @@
+{% load static wagtailcore_tags wagtailimages_tags component_tags %}
+
+<script src="{% static 'events/js/event_carousel.js' %}" defer></script>
+
+<div class="event-carousel">
+  {% if title %}
+  <h2 class="mb-4">{{ title }}</h2>
+  {% endif %}
+  <div
+    id="{{ carousel_id }}"
+    class="event-carousel__inner flex-nowrap"
+    style="display: flex; overflow-x: auto"
+  >
+    {% for event in events %}
+    <div class="event-carousel__item">
+      {% component "event_card" event=event %}{% endcomponent %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if events|length > 3 %}
+  <button class="event-carousel__control event-carousel__control--prev" type="button">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="event-carousel__control event-carousel__control--next" type="button">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+  {% endif %}
+</div>

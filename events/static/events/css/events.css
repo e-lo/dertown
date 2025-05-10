@@ -1,0 +1,260 @@
+/* Event Calendar Styling */
+
+/* Featured event styling */
+.featured-event {
+  border: 3px solid var(--event-featured) !important;
+  font-weight: bold !important;
+}
+
+/* Event styling */
+.fc-event {
+  transition: all 0.2s ease-in-out !important;
+  background-color: var(--event-color, var(--event-default-bg)) !important;
+  border-color: var(--event-color, var(--event-calendar-blue-border)) !important;
+}
+
+.fc-event:hover {
+  transform: scale(1.02);
+  z-index: 5 !important;
+  filter: brightness(1.1);
+}
+
+/* Make sure the event colors are respected */
+.fc-event-main {
+  padding: 2px 4px !important;
+  color: white !important;
+}
+
+/* Ensure text is readable on any background */
+.fc-event-title {
+  text-shadow: 0 0 2px rgb(0 0 0 / 50%);
+  font-weight: 500;
+}
+
+/* Tag styling - can be used in both calendar and detail views */
+.event-tag[data-event-type] {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  background-color: var(--event-color, var(--event-default));
+  color: #fff;
+  text-shadow: 0 0 2px rgb(0 0 0 / 50%);
+  margin: 0.25rem;
+}
+
+/* Event detail page styling */
+.event-header[data-event-type] {
+  position: relative;
+  padding: 2rem;
+  background-color: var(--event-header-bg); /* Light gray background */
+  border-left: 4px solid var(--event-color, var(--event-calendar-blue-border));
+}
+
+.event-header h1 {
+  color: var(--text-title); /* Dark gray for better readability */
+}
+
+.event-header p {
+  color: var(--text-subtitle); /* Medium gray for subtitle */
+}
+
+.event-featured-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: var(--event-featured);
+  background-color: var(--event-featured-bg);
+  border: 1px solid var(--event-featured-border);
+}
+
+/* Tag button styling */
+.tag-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  margin: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid var(--tag-color);
+  color: var(--tag-color);
+  background-color: color-mix(in srgb, var(--tag-color) 10%, white);
+  opacity: 0.6; /* Start with lower opacity for unselected state */
+}
+
+.tag-button.active,
+.tag-button.active:hover {
+  /* No-op to allow calendar.css to control active state */
+}
+
+.tag-button:hover {
+  transform: scale(1.05);
+  opacity: 0.8; /* Increase opacity on hover for unselected tags */
+  background-color: color-mix(in srgb, var(--tag-color) 20%, white);
+}
+
+/* Remove community announcements marquee styles from this file. */
+
+/* Category section backgrounds for homepage */
+.category-section[data-event-type] {
+  background: var(--event-color);
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  border: none;
+  box-shadow: none;
+  transition: background 0.2s;
+}
+
+.category-section .event-carousel {
+  background: transparent;
+}
+
+.category-section__title {
+  color: #fff !important;
+  font-size: var(--text-6xl) !important;
+  margin-left: 2rem;
+  margin-right: 2rem;
+}
+
+.category-section > .container {
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 100vw;
+  width: 100vw;
+}
+
+.category-section__icon {
+  font-family: 'Font Awesome 6 Free', sans-serif;
+  font-weight: 900;
+  margin-right: 0.75em;
+  font-size: 1.1em;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+:root {
+  --icon-nature: '\f1e5'; /* fa-binoculars */
+  --icon-outdoors: '\e52f'; /* fa-mountain-sun */
+  --icon-family: '\e59d'; /* fa-child-reaching */
+  --icon-civic: '\e4da'; /* fa-building-user */
+  --icon-festival: '\f0fc'; /* fa-beer-mug-empty */
+  --icon-arts: '\f001'; /* fa-music */
+  --icon-sports: '\f1e3'; /* fa-futbol */
+}
+
+[data-event-type='nature'] .category-icon::before {
+  content: var(--icon-nature);
+}
+
+[data-event-type='outdoors'] .category-icon::before {
+  content: var(--icon-outdoors);
+}
+
+[data-event-type='family'] .category-icon::before {
+  content: var(--icon-family);
+}
+
+[data-event-type='civic'] .category-icon::before {
+  content: var(--icon-civic);
+}
+
+[data-event-type='festival'] .category-icon::before {
+  content: var(--icon-festival);
+}
+
+[data-event-type='arts'] .category-icon::before {
+  content: var(--icon-arts);
+}
+
+[data-event-type='sports'] .category-icon::before {
+  content: var(--icon-sports);
+}
+
+.event-list-card {
+  background: var(--event-color, var(--bg-dark));
+  color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.5rem 0;
+  margin: 0;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  transition: background 0.2s;
+  border-bottom: 2px solid #fff2; /* subtle divider */
+}
+
+.event-list-card__date {
+  color: #fff;
+  opacity: 0.85;
+}
+
+.event-list-card__icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  margin-right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.event-list-card__icon-center-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.event-list-card__tag {
+  background: var(--event-tag-bg, #f8f8f8);
+  color: var(--text-primary, #0f0326);
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-weight: 500;
+  text-shadow: none;
+}
+
+.event-list-card__arrow {
+  font-size: 1.2em;
+  opacity: 0.8;
+}
+
+.event-list-cards {
+  gap: 0 !important;
+}
+
+.link-animate {
+  transition:
+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    text-decoration 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.link-animate:hover,
+.link-animate:focus {
+  transform: translateY(-2px) scale(1.03);
+  text-decoration: underline;
+}
+
+.link-animate i.fa-arrow-right {
+  color: #fff !important;
+}

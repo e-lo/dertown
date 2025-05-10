@@ -1,0 +1,17 @@
+<div class="announcement-marquee flex-grow-1 d-flex flex-column justify-content-end">
+  <div class="announcement-marquee__track">
+    {% for announcement in announcements %}
+    <div class="announcement-marquee__item">
+      <strong>{{ announcement.title }}</strong>
+      <span class="mx-2">|</span>
+      {{ announcement.message }} {% if announcement.link %}
+      <a href="{{ announcement.link }}" class="announcement-marquee__link" target="_blank"
+        >Learn more</a
+      >
+      {% elif announcement.email %}
+      <a href="mailto:{{ announcement.email }}" class="announcement-marquee__link">Email</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>

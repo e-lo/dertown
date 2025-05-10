@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: stylelint
+        name: stylelint (CSS)
+        entry: npm run lint:css -- --fix
+        language: system
+        files: "\\.css$"
+      - id: eslint
+        name: eslint (JS)
+        entry: npm run lint:js -- --fix
+        language: system
+        files: "\\.(js|jsx|ts|tsx)$"
+      - id: prettier
+        name: prettier (format CSS/JS/HTML/MD)
+        entry: npm run format -- --fix
+        language: system
+        files: "\\.(css|js|jsx|ts|tsx|html|md)$"

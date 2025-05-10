@@ -1,0 +1,103 @@
+.event-carousel {
+  position: relative;
+  z-index: 100;
+  overflow-x: auto;
+  padding-top: 5px;
+}
+
+/* Hero section specific carousel styles */
+.hero-section .event-carousel {
+  padding: 0;
+}
+
+/* Carousel controls */
+.event-carousel__control {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  background: var(--carousel-control-bg);
+  border-radius: 50%;
+  opacity: 0.8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.event-carousel__control--prev {
+  left: 1rem;
+}
+
+.event-carousel__control--next {
+  right: 1rem;
+}
+
+.event-carousel__control:hover {
+  opacity: 1;
+  background: var(--carousel-control-bg-hover);
+}
+
+/* Basic carousel structure */
+.event-carousel__inner {
+  overflow: visible;
+  display: flex;
+  flex-wrap: nowrap;
+  margin: 0;
+  transition: transform 0.5s ease-in-out;
+}
+
+.event-carousel__item {
+  margin-right: 0;
+  padding: 0 12px;
+  width: 400px;
+  flex: 0 0 400px;
+  transition: transform 0.2s ease-in-out;
+}
+
+.event-carousel__item--active {
+  display: block;
+}
+
+/* Card link styles */
+.event-carousel__card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  height: 100%;
+}
+
+.event-carousel__card-link:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.event-carousel__card-link:focus {
+  outline: none;
+}
+
+.event-carousel__card-link:focus .event-card {
+  box-shadow: var(--event-calendar-box-shadow);
+}
+
+/* Responsive card widths */
+@media (width <= 1200px) {
+  .event-carousel__item {
+    width: 350px;
+    flex: 0 0 350px;
+  }
+}
+
+@media (width <= 768px) {
+  .event-carousel__item {
+    width: 300px;
+    flex: 0 0 300px;
+  }
+
+  .event-carousel__control {
+    width: 40px;
+    height: 40px;
+  }
+}

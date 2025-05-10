@@ -12,10 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from pathlib import Path
 
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = os.path.dirname(PROJECT_DIR)
+from dotenv import load_dotenv
 
+PROJECT_DIR = Path(__file__).parent.parent
+BASE_DIR = PROJECT_DIR.parent
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -24,8 +29,11 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 # Application definition
 
 INSTALLED_APPS = [
-    "home",
     "search",
+    "events",
+    "django_components",
+    "django_recaptcha",
+    "widget_tweaks",
     "wagtail.contrib.forms",
     "wagtail.contrib.redirects",
     "wagtail.embeds",
@@ -37,6 +45,7 @@ INSTALLED_APPS = [
     "wagtail.search",
     "wagtail.admin",
     "wagtail",
+    "wagtail.contrib.routable_page",
     "modelcluster",
     "taggit",
     "django.contrib.admin",
@@ -45,6 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
 ]
 
 MIDDLEWARE = [
@@ -73,6 +83,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "events.context_processors.google_calendar_ids",
             ],
         },
     },
@@ -87,7 +98,7 @@ WSGI_APPLICATION = "dertown.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -135,10 +146,10 @@ STATICFILES_DIRS = [
     os.path.join(PROJECT_DIR, "static"),
 ]
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = BASE_DIR / "static"
 STATIC_URL = "/static/"
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
 # Default storage settings, with the staticfiles storage updated.
@@ -162,7 +173,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 
 
 # Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Wagtail settings
 
@@ -196,3 +207,19 @@ WAGTAILDOCS_EXTENSIONS = [
     "xlsx",
     "zip",
 ]
+
+# Path to your service account key file
+GOOGLE_CREDENTIALS_FILE = BASE_DIR / os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+
+GOOGLE_CALENDAR_IDS = {
+    "arts": os.environ.get("GOOGLE_CALENDAR_ID_ARTS"),
+    "civic": os.environ.get("GOOGLE_CALENDAR_ID_CIVIC"),
+    "family": os.environ.get("GOOGLE_CALENDAR_ID_FAMILY"),
+    "nature": os.environ.get("GOOGLE_CALENDAR_ID_NATURE"),
+    "outdoors": os.environ.get("GOOGLE_CALENDAR_ID_OUTDOORS"),
+    "sports": os.environ.get("GOOGLE_CALENDAR_ID_SPORTS"),
+    "town": os.environ.get("GOOGLE_CALENDAR_ID_TOWN"),
+}
+
+RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY")
+RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY")

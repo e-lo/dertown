@@ -1,0 +1,33 @@
+{% extends "wagtailadmin/base.html" %} {% load i18n wagtailadmin_tags %} {% block content %}
+<div class="nice-padding">
+  <h1>Import Events from ICS File</h1>
+
+  <form action="{% url 'admin_import_ics' %}" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="field">
+      <label for="id_ics_file">ICS File:</label>
+      <input type="file" name="ics_file" id="id_ics_file" required />
+    </div>
+
+    <div class="field">
+      <label for="id_organization">Default Organization:</label>
+      <input type="text" name="organization" id="id_organization" />
+    </div>
+
+    <div class="field">
+      <label for="id_location">Default Location:</label>
+      <input type="text" name="location" id="id_location" />
+    </div>
+
+    <div class="field">
+      <label for="id_default_tags">Default Tags (comma-separated):</label>
+      <input type="text" name="default_tags" id="id_default_tags" />
+    </div>
+
+    <div class="submit">
+      <input type="submit" value="Import Events" class="button" />
+    </div>
+  </form>
+</div>
+{% endblock %}

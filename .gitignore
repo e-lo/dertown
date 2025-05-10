@@ -1,3 +1,12 @@
+# Ignore node modules
+node_modules/
+
+# Ignore SQLite database files
+db.sqlite3
+db.sqlite3.*
+
+google-service-account.json
+google-service-account-dev.json
 # Python
 *.py[cod]
 __pycache__/

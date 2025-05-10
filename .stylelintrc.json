@@ -1,0 +1,18 @@
+{
+  "extends": "stylelint-config-standard",
+  "ignoreFiles": [
+    "static/**",
+    "staticfiles/**",
+    "media/**",
+    "node_modules/**"
+  ],
+  "rules": {
+    "selector-class-pattern": [
+      ".*",
+      {
+        "message": "Expected class selector to be BEM (block__element--modifier)",
+        "severity": "warning"
+      }
+    ]
+  }
+} 

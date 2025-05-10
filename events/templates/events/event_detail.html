@@ -1,0 +1,198 @@
+{% extends "base.html" %} {% load static %} {% load component_tags %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/theme.css' %}" />
+<link rel="stylesheet" href="{% static 'css/dertown.css' %}" />
+<link rel="stylesheet" href="{% static 'events/css/events.css' %}" />
+<link rel="stylesheet" href="{% static 'events/css/event_detail.css' %}" />
+{% endblock %} {% block content %}
+<div class="container py-4">
+  <div class="mx-auto bg-white rounded shadow overflow-hidden" style="max-width: 700px">
+    <!-- Event Header -->
+    <div class="p-4 event-header">
+      <div class="d-flex align-items-center justify-content-between">
+        <h1 class="display-4 fw-bold">{{ event.title }}</h1>
+        {% if event.featured %}
+        <div class="event-featured-badge">Featured Event</div>
+        {% endif %}
+      </div>
+      {% if event.hosting_organization %}
+      <p class="mt-2 fs-5">Hosted by {{ event.hosting_organization }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Event Details -->
+    <div class="p-4">
+      <!-- Tags -->
+      <div class="d-flex align-items-center gap-2 mb-3">
+        {% if event.primary_tag %} {% component "event_tag" tag=event.primary_tag primary=True %}{%
+        endcomponent %} {% endif %} {% if event.secondary_tag %} {% component "event_tag"
+        tag=event.secondary_tag %}{% endcomponent %} {% endif %} {% if event.featured %}
+        <span class="event-tag" data-event-type="featured">Featured</span>
+        {% endif %} {% if event.is_today %}
+        <span class="event-tag" data-event-type="today">Today</span>
+        {% endif %}
+      </div>
+
+      <!-- Parent Event -->
+      {% if event.parent_event %}
+      <div class="mb-4">
+        <p class="text-secondary">
+          This event is part of
+          <a
+            href="{% url 'events:event_detail' event.parent_event.id %}"
+            class="text-primary fw-semibold"
+          >
+            {{ event.parent_event.title }}
+          </a>
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Date and Time -->
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">When</h2>
+        <div class="text-secondary">
+          {% if event.end_date %} {% if event.start_date == event.end_date %} {{
+          event.start_date|date:"F j, Y" }} {% else %} {{ event.start_date|date:"F j" }} - {{
+          event.end_date|date:"F j, Y" }} {% endif %} {% else %} {{ event.start_date|date:"F j, Y"
+          }} {% endif %} {% if event.start_time %}<br />
+          {{ event.start_time|time:"g:i A" }} {% if event.end_time %} - {{ event.end_time|time:"g:i
+          A" }}{% endif %} {% endif %}
+        </div>
+      </div>
+
+      <!-- Location -->
+      {% if event.location %}
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">Where</h2>
+        <p class="text-secondary">{{ event.location }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Description -->
+      {% if event.description %}
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">Description</h2>
+        <div class="text-secondary">{{ event.description|linebreaks|urlize }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Additional Information -->
+      {% if event.website or event.registration_link or event.email %}
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">Additional Information</h2>
+        <div class="mb-2 text-secondary">
+          {% if event.website %}
+          <p>
+            <strong>Website:</strong>
+            <a href="{{ event.website }}" class="text-primary" target="_blank"
+              >{{ event.website }}</a
+            >
+          </p>
+          {% endif %} {% if event.registration_link %}
+          <p>
+            <strong>Registration:</strong>
+            <a href="{{ event.registration_link }}" class="text-primary" target="_blank"
+              >Register Here</a
+            >
+          </p>
+          {% endif %} {% if event.email %}
+          <p>
+            <strong>Contact:</strong>
+            <a href="mailto:{{ event.email }}" class="text-primary">{{ event.email }}</a>
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Add to Calendar -->
+      <div class="mb-4">
+        <h3 class="fw-bold mb-2">
+          <i class="fa-solid fa-calendar"></i> Add event to your calendar
+        </h3>
+        <div class="d-flex flex-wrap gap-2">
+          <a
+            href="{% url 'events:add_to_calendar' event.id 'google' %}"
+            class="btn btn-light border shadow-sm d-flex align-items-center gap-2"
+            aria-label="Add event to Google Calendar"
+          >
+            <i class="fa-brands fa-google"></i>
+            <span class="visually-hidden">Google Calendar</span>
+          </a>
+          <a
+            href="{% url 'events:add_to_calendar' event.id 'outlook' %}"
+            class="btn btn-light border shadow-sm d-flex align-items-center gap-2"
+            aria-label="Add event to Outlook Calendar"
+          >
+            <i class="fa-brands fa-microsoft"></i>
+            <span class="visually-hidden">Outlook</span>
+          </a>
+          <a
+            href="{% url 'events:add_to_calendar' event.id 'ical' %}"
+            class="btn btn-light border shadow-sm d-flex align-items-center gap-2"
+            aria-label="Download iCal file"
+          >
+            <i class="fa-brands fa-apple"></i>
+            <span class="visually-hidden">iCal</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Parent Event -->
+      {% if event.parent_event %}
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">Part of</h2>
+        <p class="text-secondary">
+          <a
+            href="{% url 'events:event_detail' event.parent_event.id %}"
+            class="text-primary fw-semibold"
+          >
+            {{ event.parent_event.title }}
+          </a>
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Sub-events -->
+      {% if event.sub_events.exists %}
+      <div class="mb-4">
+        <h2 class="h5 fw-bold mb-2">Related Events</h2>
+        <ul class="mb-2">
+          {% for sub_event in event.sub_events.all %}
+          <li>
+            <a href="{% url 'events:event_detail' sub_event.id %}" class="text-primary">
+              {{ sub_event.title }}
+            </a>
+            <span class="text-secondary"> ({{ sub_event.start_date|date:"F j, Y" }}) </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="mb-4">
+        <h3 class="fw-bold mb-2">
+          <i class="fa-solid fa-calendar"></i> Add all related events to your calendar
+        </h3>
+        <a
+          href="{% url 'events:add_all_to_calendar' event.id 'ical' %}"
+          class="btn btn-light border shadow-sm d-flex align-items-center gap-2"
+          aria-label="Download iCal file for all events"
+        >
+          <i class="fa-brands fa-apple"></i> - <i class="fa-brands fa-google"></i> -
+          <i class="fa-brands fa-microsoft"></i>
+        </a>
+        <p class="text-muted mt-2" style="font-size: 0.9rem">
+          To add all events to Google or Outlook, download and import this iCal file.
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Back to Calendar -->
+      <div class="mt-4">
+        <a href="{% url 'events:calendar' %}" class="btn btn-outline-secondary">
+          &larr; Back to Calendar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

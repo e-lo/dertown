@@ -1,0 +1,44 @@
+[project]
+name = "dertown"
+version = "0.1.0"
+description = "Der Town: A Django/Wagtail-based community events site with a modern calendar and design system."
+authors = [
+    { name = "Elizabeth", email = "dertownleavenworth@gmail.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["django", "events", "calendar", "community"]
+requires-python = ">=3.10"
+dependencies = [
+    "Django>=5.1,<5.2",
+    "django-components",
+    "django-widget-tweaks",
+    "google-auth",
+    "google-api-python-client",
+    "gunicorn",
+    "wagtail>=6.4,<6.5",
+    "dj-database-url",
+    "psycopg2-binary",
+    "icalendar==5.0.11",
+    "dotenv>=0.9.9",
+    "django-recaptcha"
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/dertown"
+
+[tool.uv]
+# UV-specific settings can go here if needed 
+
+[project.optional-dependencies]
+dev = [
+    "ruff"
+]
+
+[tool.ruff]
+line-length = 100
+exclude = ["get-pip.py", "node_modules/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = []

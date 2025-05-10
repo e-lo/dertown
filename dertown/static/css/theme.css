@@ -1,0 +1,183 @@
+:root {
+  /* Custom Brand Palette */
+  --dark-purple: #0f0326; /* Brand dark background, headings */
+  --blue-green: #219ebc; /* Brand primary, buttons, links */
+  --gold: #ffd700; /* Brand accent, featured, highlights */
+  --shamrock-green: #4da167; /* Success, positive, tags */
+  --davys-gray: #575761; /* Neutral, muted text */
+  --indian-red: #db5461; /* Accent, error, callout */
+  --pale-dogwood: #f5d0c5; /* Soft background, tag, badge */
+  --hunter-green: #355834; /* Secondary, dark accent */
+  --off-white: #f8f8f8;
+
+  /* Primary palette (site-wide usage) */
+  --primary: var(--blue-green); /* Main primary color */
+  --primary-light: #56c3e0; /* Lighter blue-green */
+  --primary-dark: #17607e; /* Darker blue-green */
+  --accent: var(--indian-red); /* Main accent color */
+
+  /* Backgrounds */
+  --bg-primary: var(--off-white); /* Main background */
+  --bg-secondary: #f1f5f9; /* Card/section background */
+  --bg-tertiary: #f1f5f9; /* Filter/soft background */
+  --bg-medium: var(--davys-gray);
+  --bg-dark: var(--dark-purple);
+
+  /* Text */
+  --text-primary: var(--dark-purple); /* Main text */
+  --text-secondary: var(--davys-gray); /* Subdued text */
+  --text-tertiary: #94a3b8; /* Muted text, headers */
+  --text-dark: var(--dark-purple); /* Used in dertown.css for nav, headings */
+  --text-light: var(--off-white); /* Used in dertown.css for body */
+  --text-medium: var(--davys-gray); /* Used in dertown.css for body */
+  --text-title: var(--dark-purple); /* Event header title */
+  --text-subtitle: var(--davys-gray); /* Event header subtitle */
+
+  /* Programmatic Background Colors */
+  --bg-opacity-light: 0.08; /* Light background opacity */
+  --bg-opacity-medium: 0.15; /* Medium background opacity */
+  --bg-opacity-heavy: 0.25; /* Heavy background opacity */
+
+  /* Event/Tag/Badge/Calendar colors */
+  --event-default: var(--blue-green);
+  --event-featured: var(--gold);
+  --event-today: var(--shamrock-green);
+  --event-now: var(--shamrock-green);
+  --event-festival: var(--gold);
+  --event-community: var(--gold);
+  --event-sports: var(--blue-green);
+  --event-civic: var(--indian-red);
+  --event-arts: var(--dark-purple);
+  --event-town: var(--davys-gray);
+  --event-family: var(--hunter-green);
+  --event-business: var(--blue-green);
+  --event-nature: var(--shamrock-green);
+  --event-outdoors: var(--hunter-green);
+
+  /* Tag/Badge/Calendar/Border colors */
+  --event-tag-bg: var(--bg-primary); /* Tag button background (unselected) */
+  --event-tag-border: var(--primary); /* Tag button border (unselected) */
+  --event-tag-hover: var(--bg-secondary); /* Tag button hover */
+  --event-tag-active: var(--primary); /* Tag button active border */
+  --event-header-bg: var(--bg-primary); /* Event header background */
+  --event-calendar-border: var(--davys-gray); /* Calendar border */
+  --event-calendar-box-shadow: 0 0 0 0.25rem
+    color-mix(in srgb, var(--blue-green) var(--bg-opacity-heavy), transparent); /* Focus shadow */
+
+  /* Event Card */
+  --event-card-bg: rgb(255 255 255 / 90%); /* Carousel card background */
+  --event-card-shadow: 0 4px 15px rgb(15 3 38 / 10%); /* Card hover shadow (dark purple) */
+  --event-control-bg: color-mix(
+    in srgb,
+    var(--blue-green) 0.6,
+    transparent
+  ); /* Carousel control background */
+
+  --event-control-bg-hover: color-mix(
+    in srgb,
+    var(--blue-green) 0.8,
+    transparent
+  ); /* Carousel control hover */
+
+  --event-card-img-bg: #f8f8f8; /* Placeholder image background for event cards */
+  --event-badge-placeholder: #e0e0e0; /* Placeholder icon color for event cards */
+  --event-badge-date: #94a3b8; /* Date text color for event cards */
+  --event-badge-desc: #575761; /* Description text color for event cards */
+
+  /* Typography System */
+  --font-sans:
+    -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif; /* System font stack */
+
+  --font-heading: var(--font-sans); /* Headings font */
+  --font-body: var(--font-sans); /* Body text font */
+  --font-ui: var(--font-sans); /* UI elements font */
+
+  /* Font Sizes */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-4xl: 2.25rem; /* 36px */
+  --text-5xl: 3rem; /* 48px */
+  --text-6xl: 3.75rem; /* 60px */
+
+  /* Font Weights */
+  --font-medium: 500;
+  --font-bold: 700;
+
+  /* Line Heights */
+  --line-height-base: 1.25;
+  --leading-tight: 1.25;
+  --leading-relaxed: 1.625;
+}
+
+/*
+  Global Event Type Color Mapping (DRY)
+  ------------------------------------
+  Any element with data-event-type="..." will get the correct --event-color.
+  Example: <div class="fc-event" data-event-type="business">...</div>
+           <button class="tag-button" data-event-type="business">Business</button>
+*/
+[data-event-type='featured'] {
+  --event-color: var(--event-featured);
+}
+
+[data-event-type='today'] {
+  --event-color: var(--event-today);
+}
+
+[data-event-type='now'] {
+  --event-color: var(--event-now);
+}
+
+[data-event-type='festival'] {
+  --event-color: var(--event-festival);
+}
+
+[data-event-type='community'] {
+  --event-color: var(--event-community);
+}
+
+[data-event-type='sports'] {
+  --event-color: var(--event-sports);
+}
+
+[data-event-type='civic'] {
+  --event-color: var(--event-civic);
+}
+
+[data-event-type='town'] {
+  --event-color: var(--event-town);
+}
+
+[data-event-type='family'] {
+  --event-color: var(--event-family);
+}
+
+[data-event-type='business'] {
+  --event-color: var(--event-business);
+}
+
+[data-event-type='arts'] {
+  --event-color: var(--event-arts);
+}
+
+[data-event-type='nature'] {
+  --event-color: var(--event-nature);
+}
+
+[data-event-type='outdoors'] {
+  --event-color: var(--event-outdoors);
+}
+
+/* Navbar Brand Styling */
+.main-navbar__brand {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.main-navbar__brand > span {
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: #232323 !important;
+  text-decoration: none !important;
+}
