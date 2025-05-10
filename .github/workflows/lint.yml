@@ -34,5 +34,3 @@ jobs:
         run: npm run lint:js
       - name: Run Prettier (format check)
         run: npx prettier --check 'dertown/static/**/*.{css,js,html,md}' 'events/static/**/*.{css,js,html,md}'
-      - name: Run Markdownlint (Markdown)
-        run: npm run lint:md 

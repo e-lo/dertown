@@ -22,7 +22,8 @@ jobs:
     - name: Install uv and project dependencies
       run: |
         pip install uv
-        uv pip install -e .
+        uv venv
+        uv pip install .
 
     - name: Create Required Directories
       run: |
