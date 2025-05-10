@@ -6,7 +6,7 @@ authors = [
     { name = "Elizabeth", email = "dertownleavenworth@gmail.com" }
 ]
 readme = "README.md"
-license = { text = "MIT" }
+license = "Apache-2.0"
 keywords = ["django", "events", "calendar", "community"]
 requires-python = ">=3.10"
 dependencies = [
