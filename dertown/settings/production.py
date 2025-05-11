@@ -7,7 +7,7 @@ from .base import *
 
 # TEMPORARY FOR DEBUGGING - REMOVE AFTER FIXING THE ISSUE
 DEBUG = False
-ALLOWED_HOSTS = [".onrender.com"]
+ALLOWED_HOSTS = [".onrender.com", "dertown.org", "www.dertown.org", "localhost", "127.0.0.1"]
 
 # Set SECRET_KEY from environment variable
 SECRET_KEY = os.environ["SECRET_KEY"]
@@ -22,18 +22,13 @@ DATABASES = {
     )
 }
 
-# Static files
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATIC_URL = "/static/"
-
-# Media files
-MEDIA_ROOT = BASE_DIR / "media"
-MEDIA_URL = "/media/"
 
 # Wagtail settings
-WAGTAILADMIN_BASE_URL = "https://dertown.onrender.com"
+WAGTAILADMIN_BASE_URL = "https://dertown.org"
 
 # Google Calendar settings
 GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get(
     "GOOGLE_SERVICE_ACCOUNT_FILE", BASE_DIR / "google-service-account.json"
 )
+
+SITE_ID = 1

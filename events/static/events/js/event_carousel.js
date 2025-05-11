@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
   const carousels = document.querySelectorAll('.event-carousel');
 
+  if (!carousels.length) return; // No carousels present, exit early
+
   carousels.forEach((carousel) => {
     const container = carousel.querySelector('.carousel-inner');
+    if (!container) return; // Defensive: skip if no container
     let isScrolling = false;
     let startX;
     let scrollLeft;
@@ -10,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Keyboard navigation
     document.addEventListener('keydown', function (e) {
-      if (!isScrolling) {
+      if (!isScrolling && carousel.querySelector('.col-lg-4')) {
         const cardWidth = carousel.querySelector('.col-lg-4').offsetWidth;
         if (e.key === 'ArrowLeft') {
           smoothScroll(container, -cardWidth);
@@ -65,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const prevBtn = carousel.querySelector('.carousel-control-prev');
     const nextBtn = carousel.querySelector('.carousel-control-next');
 
-    if (prevBtn && nextBtn) {
+    if (prevBtn && nextBtn && carousel.querySelector('.col-lg-4')) {
       prevBtn.addEventListener('click', () => {
         const cardWidth = carousel.querySelector('.col-lg-4').offsetWidth;
         smoothScroll(container, -cardWidth);

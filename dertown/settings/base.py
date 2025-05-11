@@ -30,6 +30,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 INSTALLED_APPS = [
     "search",
+    "dertown",
     "events",
     "django_components",
     "django_recaptcha",
@@ -142,11 +143,11 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
-STATICFILES_DIRS = [
-    os.path.join(PROJECT_DIR, "static"),
-]
+# STATICFILES_DIRS = [
+#    os.path.join(PROJECT_DIR, "static"),
+# ]
 
-STATIC_ROOT = BASE_DIR / "static"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
 
 MEDIA_ROOT = BASE_DIR / "media"
