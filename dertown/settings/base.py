@@ -223,3 +223,7 @@ GOOGLE_CALENDAR_IDS = {
 
 RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY")
+if not isinstance(RECAPTCHA_PRIVATE_KEY, str) or not RECAPTCHA_PRIVATE_KEY:
+    raise ValueError("RECAPTCHA_PRIVATE_KEY must be set as a string in the environment.")
+if not isinstance(RECAPTCHA_PUBLIC_KEY, str) or not RECAPTCHA_PUBLIC_KEY:
+    raise ValueError("RECAPTCHA_PUBLIC_KEY must be set as a string in the environment.")
