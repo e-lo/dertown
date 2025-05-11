@@ -28,6 +28,8 @@ media/
 .venv/
 venv/
 
+build/
+
 # IDE
 .idea/
 .vscode/*

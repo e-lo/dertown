@@ -32,8 +32,11 @@ dependencies = [
 Homepage = "https://github.com/your-org/dertown"
 
 [tool.setuptools.packages.find]
-where = ["dertown", "events", "search"]
-exclude = ["assets"]
+include = ["dertown", "dertown.*", "events", "events.*", "search", "search.*"]
+exclude = ["assets", "events.static", "events.static.*"]
+
+[tool.setuptools]
+exclude-package-data = { "*" = ["static/*", "static/events/*", "static/events/css/*"] }
 
 [tool.uv]
 # UV-specific settings can go here if needed 
