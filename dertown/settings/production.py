@@ -26,9 +26,5 @@ DATABASES = {
 # Wagtail settings
 WAGTAILADMIN_BASE_URL = "https://dertown.org"
 
-# Google Calendar settings
-GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get(
-    "GOOGLE_SERVICE_ACCOUNT_FILE", BASE_DIR / "google-service-account.json"
-)
 
 SITE_ID = 1

@@ -27,11 +27,6 @@ DATABASES = {
     }
 }
 
-# Path to your service account file
-GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get(
-    "GOOGLE_SERVICE_ACCOUNT_FILE", BASE_DIR / "google-service-account-dev.json"
-)
-
 GOOGLE_CALENDAR_IDS = {
     "arts": "f47affb9fedd8a8d106d69f049fff890867e74ac6d68003c60cab8bb77a5408d\
         @group.calendar.google.com",

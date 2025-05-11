@@ -209,8 +209,7 @@ WAGTAILDOCS_EXTENSIONS = [
     "zip",
 ]
 
-# Path to your service account key file
-GOOGLE_CREDENTIALS_FILE = BASE_DIR / os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
 
 GOOGLE_CALENDAR_IDS = {
     "arts": os.environ.get("GOOGLE_CALENDAR_ID_ARTS"),
