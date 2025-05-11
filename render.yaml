@@ -2,7 +2,7 @@ services:
   - type: web
     name: dertown
     env: python
-    buildCommand: buildCommand: pip install uv && uv pip install . && python manage.py collectstatic --noinput && python manage.py migrate
+    buildCommand: pip install -r requirements.txt && pip install . && python manage.py collectstatic --noinput && python manage.py migrate
     startCommand: gunicorn dertown.wsgi:application
     migrateCommand: python manage.py migrate
     envVars:
