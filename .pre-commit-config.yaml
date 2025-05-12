@@ -23,3 +23,4 @@ repos:
         entry: npm run format -- --fix
         language: system
         files: "\\.(css|js|jsx|ts|tsx|html|md)$"
+        exclude: ^events/migrations/.*\\.md$

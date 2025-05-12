@@ -3,4 +3,27 @@
 <h1>Internal server error</h1>
 
 <h2>Sorry, there seems to be an error. Please try again soon.</h2>
-{% endblock %}
+
+{% if exception %}
+<h3>Exception Information</h3>
+<pre>{{ exception_type }}: {{ exception_value }}</pre>
+{% endif %} {% if request %}
+<h3>Request Information</h3>
+<table>
+  <tr>
+    <td>URL:</td>
+    <td>{{ request.path }}</td>
+  </tr>
+  <tr>
+    <td>Method:</td>
+    <td>{{ request.method }}</td>
+  </tr>
+  <tr>
+    <td>User Agent:</td>
+    <td>{{ request.META.HTTP_USER_AGENT }}</td>
+  </tr>
+</table>
+{% endif %} {% if traceback %}
+<h3>Traceback</h3>
+<pre>{{ traceback }}</pre>
+{% endif %} {% endblock %}

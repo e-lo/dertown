@@ -52,7 +52,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-exclude = ["get-pip.py", "node_modules/*"]
+exclude = ["get-pip.py", "node_modules/*", "events/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

@@ -7,6 +7,8 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 import events.views as views
 
+handler500 = "events.views.server_error"
+
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),

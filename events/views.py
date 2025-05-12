@@ -1,14 +1,12 @@
 import logging
-import sys
 import traceback
 from datetime import datetime, timedelta
 
 import pytz
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseServerError, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template import loader
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.feedgenerator import Rss201rev2Feed
@@ -425,20 +423,21 @@ def debug_check(request):
 
 
 def server_error(request, exception=None):
-    """
-    500 error handler with debugging information.
-    """
+    import sys
+    import traceback
 
-    template = loader.get_template("500.html")
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
 
-    exc_info = sys.exc_info()
-
-    context = {
-        "request": request,
-        "exception": exc_info[1],
-        "exception_type": exc_info[0].__name__ if exc_info[0] else None,
-        "exception_value": str(exc_info[1]) if exc_info[1] else None,
-        "traceback": "".join(traceback.format_exception(*exc_info)) if exc_info[0] else None,
-    }
-
-    return HttpResponseServerError(template.render(context, request))
+    return render(
+        request,
+        "500.html",
+        {
+            "exception": exception,
+            "exception_type": exc_type,
+            "exception_value": exc_value,
+            "traceback": tb_str,
+            "request": request,
+        },
+        status=500,
+    )
