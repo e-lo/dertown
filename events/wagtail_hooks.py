@@ -11,7 +11,6 @@ from wagtail.admin.menu import MenuItem
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet
 
-from .management.commands.import_ics_events import Command as ImportICSCommand
 from .models import CommunityAnnouncement, Event, Location, Organization, Tag
 
 
@@ -20,7 +19,7 @@ class EventViewSet(SnippetViewSet):
     icon = "date"
     list_display = ["title", "status", "start_date", "organization", "location"]
     list_filter = ["start_date", "organization", "location", "primary_tag", "secondary_tag"]
-    ordering = ["-status", "start_date", "start_time"]  # Pending first, then by date/t
+    ordering = ["-status", "start_date", "start_time"]
     search_fields = ["title", "description"]
     add_to_admin_menu = True
     menu_order = 200
@@ -45,9 +44,11 @@ class EventViewSet(SnippetViewSet):
         return buttons
 
     def import_ics_view(self, request):
+        # Import here to avoid circular/app registry issues
+        from .management.commands.import_ics_events import Command as ImportICSCommand
+
         if request.method == "POST":
             try:
-                # Handle file upload
                 ics_file = request.FILES.get("ics_file")
                 if not ics_file:
                     messages.error(request, _("No file was uploaded."))
@@ -56,19 +57,14 @@ class EventViewSet(SnippetViewSet):
                         self.model._meta.app_label,
                         self.model._meta.model_name,
                     )
-
-                # Create a temporary file with the uploaded content
                 temp_dir = "temp_ics"
                 if not os.path.exists(temp_dir):
                     os.makedirs(temp_dir)
-
                 temp_path = os.path.join(temp_dir, ics_file.name)
                 with open(temp_path, "wb+") as destination:
                     for chunk in ics_file.chunks():
                         destination.write(chunk)
-
                 try:
-                    # Create command instance and run import
                     command = ImportICSCommand()
                     command.handle(
                         ics_file=temp_path,
@@ -76,7 +72,6 @@ class EventViewSet(SnippetViewSet):
                         location=request.POST.get("location", ""),
                         default_tags=request.POST.get("default_tags", ""),
                     )
-
                     messages.success(request, "ICS file imported successfully!")
                     return redirect("wagtailsnippets_events_event:list")
                 except Exception as e:
@@ -87,20 +82,17 @@ class EventViewSet(SnippetViewSet):
                         self.model._meta.model_name,
                     )
                 finally:
-                    # Clean up the temporary file
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                     try:
                         os.rmdir(temp_dir)
                     except Exception:
                         pass
-
             except Exception as e:
                 messages.error(request, _("Error processing file: %s") % str(e))
                 return redirect(
                     "wagtailsnippets:list", self.model._meta.app_label, self.model._meta.model_name
                 )
-
         return TemplateResponse(
             request,
             "events/import_ics.html",
@@ -138,6 +130,13 @@ class CommunityAnnouncementViewSet(SnippetViewSet):
     list_filter = ["active", "organization"]
 
 
+register_snippet(Event, viewset=EventViewSet)
+register_snippet(Tag, viewset=TagViewSet)
+register_snippet(Organization, viewset=OrganizationViewSet)
+register_snippet(Location, viewset=LocationViewSet)
+register_snippet(CommunityAnnouncement, viewset=CommunityAnnouncementViewSet)
+
+
 class ImportICSView(View):
     template_name = "events/import_ics.html"
 
@@ -145,6 +144,9 @@ class ImportICSView(View):
         return render(request, self.template_name)
 
     def post(self, request):
+        # Import here to avoid circular/app registry issues
+        from .management.commands.import_ics_events import Command as ImportICSCommand
+
         try:
             ics_file = request.FILES.get("ics_file")
             if not ics_file:
@@ -188,13 +190,6 @@ class ImportICSView(View):
         except Exception as e:
             messages.error(request, _("Error processing file: %s") % str(e))
             return redirect("admin_import_ics")
-
-
-register_snippet(Event, viewset=EventViewSet)
-register_snippet(Tag, viewset=TagViewSet)
-register_snippet(Organization, viewset=OrganizationViewSet)
-register_snippet(Location, viewset=LocationViewSet)
-register_snippet(CommunityAnnouncement, viewset=CommunityAnnouncementViewSet)
 
 
 @hooks.register("register_admin_urls")

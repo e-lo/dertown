@@ -1,6 +1,8 @@
 anyascii==0.3.2
 asgiref==3.8.1
 beautifulsoup4==4.13.4
+brotli==1.1.0
+build==1.2.2.post1
 cachetools==5.5.2
 certifi==2025.4.26
 charset-normalizer==3.4.2
@@ -43,6 +45,7 @@ psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pyasn1-modules==0.4.2
 pyparsing==3.2.3
+pyproject-hooks==1.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 pytz==2025.2
@@ -56,4 +59,5 @@ typing-extensions==4.13.2
 uritemplate==4.1.1
 urllib3==2.4.0
 wagtail==6.4.1
+whitenoise==6.9.0
 willow==1.10.0

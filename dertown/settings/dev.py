@@ -27,6 +27,8 @@ DATABASES = {
     }
 }
 
+WAGTAILADMIN_BASE_URL = "http://127.0.0.1:8000"
+
 GOOGLE_CALENDAR_IDS = {
     "arts": "f47affb9fedd8a8d106d69f049fff890867e74ac6d68003c60cab8bb77a5408d\
         @group.calendar.google.com",

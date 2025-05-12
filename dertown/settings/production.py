@@ -16,14 +16,22 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # Use DATABASE_URL environment variable for database configuration
 DATABASES = {
     "default": dj_database_url.config(
-        default="sqlite:///db.sqlite3",
+        default="postgresql://dertown_db_0s1g_user:M5KsORvJxezvEHlfZdshbbb3pEuKQvEJ@dpg-d0giu53uibrs73flv6h0-a/dertown_db_0s1g",
         conn_max_age=600,
         conn_health_checks=True,
     )
 }
 
+# Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+# and renames the files with unique names for each version to support long-term caching
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # Wagtail settings
+
 WAGTAILADMIN_BASE_URL = "https://dertown.org"
 
 
