@@ -8,6 +8,8 @@ from django.utils import timezone
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+from .models import Tag
+
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
@@ -18,11 +20,14 @@ if not settings.GOOGLE_CREDENTIALS_JSON:
 
 
 def get_calendar_id(event_type):
-    """Return the Google Calendar ID for the given event type."""
-    calendar_id = settings.GOOGLE_CALENDAR_IDS.get(event_type)
-    if calendar_id is None:
-        raise ValueError(f"No calendar ID found for event type: {event_type}")
-    return calendar_id
+    """Return the Google Calendar ID for the given event type (tag name)."""
+    try:
+        tag = Tag.objects.get(name=event_type)
+        if not tag.google_calendar_id:
+            raise ValueError(f"No Google Calendar ID set for tag: {event_type}")
+        return tag.google_calendar_id
+    except Tag.DoesNotExist:
+        raise ValueError(f"No tag found for event type: {event_type}")
 
 
 def get_calendar_service():

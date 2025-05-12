@@ -1,5 +1,7 @@
-from django.conf import settings
+from .models import Tag
 
 
-def google_calendar_ids(request):
-    return {"GOOGLE_CALENDAR_IDS": getattr(settings, "GOOGLE_CALENDAR_IDS", {})}
+def event_tags(request):
+    return {
+        "event_tags": Tag.objects.exclude(calendar_id__isnull=True).exclude(calendar_id__exact="")
+    }

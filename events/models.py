@@ -1,3 +1,4 @@
+import urllib.parse
 from itertools import zip_longest
 
 from django.db import models
@@ -39,13 +40,68 @@ class HomePage(Page):
 
 class Tag(models.Model):
     name = models.CharField(max_length=100)
+    calendar_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Google Calendar ID for this tag/category \
+            (for subscriptions, embeds, and iCal feeds)",
+    )
+    share_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Special id for sharing the google calendar.",
+    )
 
     panels = [
         FieldPanel("name"),
+        FieldPanel("calendar_id"),
+        FieldPanel("share_id"),
     ]
 
     def __str__(self):
         return self.name
+
+    @property
+    def google_calendar_id(self):
+        """Full Google Calendar ID."""
+        if self.calendar_id:
+            full_id = f"{self.calendar_id}@group.calendar.google.com"
+            return urllib.parse.quote(full_id)
+        return None
+
+    @property
+    def google_subscribe_url(self):
+        """Google Calendar subscribe (add) link."""
+        if self.google_calendar_id:
+            share_id = urllib.parse.quote(self.share_id)
+            return f"https://calendar.google.com/calendar/u/1?cid={share_id}"
+        return None
+
+    @property
+    def google_calendar_embed_url(self):
+        """Google Calendar embed link."""
+        if self.google_calendar_id:
+            encoded_id = urllib.parse.quote(self.google_calendar_id)
+            return f"https://calendar.google.com/calendar/embed?src={encoded_id}"
+        return None
+
+    @property
+    def google_calendar_ical_url(self):
+        """Google Calendar iCal feed link."""
+        if self.google_calendar_id:
+            encoded_id = urllib.parse.quote(self.google_calendar_id)
+            return f"webcal://calendar.google.com/calendar/ical/{encoded_id}%40group.calendar.google.com/public/basic.ics"
+        return None
+
+    @property
+    def outlook_calendar_url(self):
+        """Outlook Calendar URL."""
+        if self.google_calendar_id:
+            encoded_id = urllib.parse.quote(self.google_calendar_id)
+            return f"https://outlook.live.com/owa/?path=/calendar/action/compose&rru=addsubscription&url=https://calendar.google.com/calendar/ical/{encoded_id}/public/basic.ics"
+        return None
 
     class Meta:
         verbose_name = "Tag"

@@ -31,9 +31,9 @@
             <i class="fa-brands fa-google" data-bs-toggle="tooltip" title="Google Calendar"></i><span class="visually-hidden">Google Calendar</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="subscribeGoogleDropdown" style="z-index: 2000; background: #f8f9fa; min-width: 8rem;">
-            {% for event_type, calendar_id in GOOGLE_CALENDAR_IDS.items %}
-              {% if calendar_id %}
-                <li><a class="dropdown-item" href="https://calendar.google.com/calendar/u/0/r?cid={{ calendar_id }}" target="_blank" rel="noopener">{{ event_type|title }}</a></li>
+            {% for tag in event_tags %}
+              {% if tag.google_subscribe_url %}
+                <li><a class="dropdown-item" href="{{ tag.google_subscribe_url }}" target="_blank" rel="noopener">{{ tag.name|title }}</a></li>
               {% endif %}
             {% endfor %}
           </ul>
@@ -43,9 +43,9 @@
             <i class="fa-brands fa-apple" data-bs-toggle="tooltip" title="Apple Calendar (iCal)"></i><span class="visually-hidden">Apple Calendar (iCal)</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="subscribeICalDropdown" style="z-index: 2000; background: #f8f9fa; min-width: 8rem;">
-            {% for event_type, calendar_id in GOOGLE_CALENDAR_IDS.items %}
-              {% if calendar_id %}
-                <li><a class="dropdown-item" href="webcal://calendar.google.com/calendar/ical/{{ calendar_id }}/public/basic.ics" target="_blank" rel="noopener">{{ event_type|title }}</a></li>
+            {% for tag in event_tags %}
+              {% if tag.google_calendar_ical_url %}
+                <li><a class="dropdown-item" href="{{ tag.google_calendar_ical_url }}" target="_blank" rel="noopener">{{ tag.name|title }}</a></li>
               {% endif %}
             {% endfor %}
           </ul>
@@ -55,9 +55,9 @@
             <i class="fa-brands fa-microsoft" data-bs-toggle="tooltip" title="Outlook Calendar"></i><span class="visually-hidden">Outlook</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="subscribeOutlookDropdown" style="z-index: 2000; background: #f8f9fa; min-width: 8rem;">
-            {% for event_type, calendar_id in GOOGLE_CALENDAR_IDS.items %}
-              {% if calendar_id %}
-                <li><a class="dropdown-item" href="https://outlook.live.com/owa/?path=/calendar/action/compose&rru=addsubscription&url=https://calendar.google.com/calendar/ical/{{ calendar_id }}/public/basic.ics" target="_blank" rel="noopener">{{ event_type|title }}</a></li>
+            {% for tag in event_tags %}
+              {% if tag.outlook_calendar_url %}
+                <li><a class="dropdown-item" href="{{ tag.outlook_calendar_url }}" target="_blank" rel="noopener">{{ tag.name|title }}</a></li>
               {% endif %}
             {% endfor %}
           </ul>
@@ -86,9 +86,9 @@
   <div class="offcanvas-body">
     <!-- Main menu: Event types -->
     <ul class="main-navbar__offcanvas-menu list-group" id="subscribeMainMenu">
-      {% for event_type, calendar_id in GOOGLE_CALENDAR_IDS.items %}
-        {% if calendar_id %}
-          <li class="main-navbar__offcanvas-item list-group-item list-group-item-action subscribe-event-type" data-event-type="{{ event_type }}">{{ event_type|title }}</li>
+      {% for tag in event_tags %}
+        {% if tag.google_subscribe_url %}
+          <li class="main-navbar__offcanvas-item list-group-item list-group-item-action subscribe-event-type" data-event-type="{{ tag.name }}">{{ tag.name|title }}</li>
         {% endif %}
       {% endfor %}
     </ul>
@@ -101,5 +101,4 @@
       <li class="list-group-item"><a class="dropdown-item" id="sub-rss" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-rss me-2" style="color: orange;"></i>RSS</a></li>
     </ul>
   </div>
-</div>
-{{ GOOGLE_CALENDAR_IDS|json_script:'calendar-ids-data' }} 
+</div> 
