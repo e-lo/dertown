@@ -5,12 +5,15 @@ from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
+import events.views as views
+
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("events/", include("events.urls")),
     path("", include(wagtail_urls)),
+    path("debug/check/", views.debug_check, name="debug_check"),
 ]
 
 if settings.DEBUG:

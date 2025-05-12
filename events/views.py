@@ -1,11 +1,14 @@
 import logging
+import sys
+import traceback
 from datetime import datetime, timedelta
 
 import pytz
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template import loader
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.feedgenerator import Rss201rev2Feed
@@ -387,3 +390,55 @@ def submit_event(request):
 
 def submit_event_thank_you(request):
     return render(request, "events/submit_event_thank_you.html")
+
+
+def debug_check(request):
+    try:
+        # Test database
+        from django.db import connection
+
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        db_ok = cursor.fetchone()[0] == 1
+
+        # Test Wagtail
+        from wagtail.models import Site
+
+        sites = list(Site.objects.all())
+        site_count = len(sites)
+
+        # Check context processors
+        from context_processors import your_processor
+
+        processor_result = your_processor(request)
+
+        result = {
+            "db_connection": db_ok,
+            "site_count": site_count,
+            "processor_keys": list(processor_result.keys()),
+        }
+        return JsonResponse({"status": "ok", "checks": result})
+    except Exception as e:
+        return JsonResponse(
+            {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+        )
+
+
+def server_error(request, exception=None):
+    """
+    500 error handler with debugging information.
+    """
+
+    template = loader.get_template("500.html")
+
+    exc_info = sys.exc_info()
+
+    context = {
+        "request": request,
+        "exception": exc_info[1],
+        "exception_type": exc_info[0].__name__ if exc_info[0] else None,
+        "exception_value": str(exc_info[1]) if exc_info[1] else None,
+        "traceback": "".join(traceback.format_exception(*exc_info)) if exc_info[0] else None,
+    }
+
+    return HttpResponseServerError(template.render(context, request))

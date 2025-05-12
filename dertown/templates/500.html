@@ -3,4 +3,74 @@
 <h1>Internal server error</h1>
 
 <h2>Sorry, there seems to be an error. Please try again soon.</h2>
+{% endblock %} {% block title %}Server Error (500){% endblock %} {% block body_class
+%}template-500{% endblock %} {% block content %}
+<div class="container error-page">
+  <h1>Server Error (500)</h1>
+
+  <div class="diagnostic-info">
+    <h2>Diagnostic Information</h2>
+
+    <div class="error-details">
+      {% if exception %}
+      <h3>Exception Information</h3>
+      <pre>{{ exception_type }}: {{ exception_value }}</pre>
+      {% endif %} {% if request %}
+      <h3>Request Information</h3>
+      <table>
+        <tr>
+          <td>URL:</td>
+          <td>{{ request.path }}</td>
+        </tr>
+        <tr>
+          <td>Method:</td>
+          <td>{{ request.method }}</td>
+        </tr>
+        <tr>
+          <td>User Agent:</td>
+          <td>{{ request.META.HTTP_USER_AGENT }}</td>
+        </tr>
+      </table>
+      {% endif %} {% if traceback %}
+      <h3>Traceback</h3>
+      <pre>{{ traceback }}</pre>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="contact-info">
+    <p>If you are the site administrator, please check the logs for more information.</p>
+  </div>
+</div>
+
+<style>
+  .error-page {
+    padding: 2rem;
+  }
+  .diagnostic-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 2rem 0;
+  }
+  .error-details pre {
+    background: #eee;
+    padding: 1rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+  table td:first-child {
+    font-weight: bold;
+    width: 30%;
+  }
+</style>
 {% endblock %}
