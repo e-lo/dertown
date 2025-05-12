@@ -1,14 +1,19 @@
+databases:
+  - name: mysitedb
+    plan: free
+    databaseName: mysite
+    user: mysite
 services:
   - type: web
     name: dertown
     env: python
-    buildCommand: pip install -r requirements.txt && pip install . && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: gunicorn dertown.wsgi:application
+    buildCommand: './build.sh'
+    startCommand: 'gunicorn dertown.wsgi:application' 
     migrateCommand: python manage.py migrate
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: dertown.settings.production
       - key: SECRET_KEY
         generateValue: true
-      - key: ALLOWED_HOSTS
-        value: .onrender.com, dertown.org, www.dertown.org
+
+
