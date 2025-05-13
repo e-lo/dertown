@@ -35,12 +35,11 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Configure Google Cloud Storage for media files
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-GS_MEDIA_BUCKET_NAME = os.environ["GS_BUCKET_NAME"]
 
 GS_MEDIA_CREDENTIALS_FILE = service_account.Credentials.from_service_account_file(
     os.environ["GS_MEDIA_CREDENTIALS_FILE"]
 )
-MEDIA_URL = f"https://storage.googleapis.com/{GS_MEDIA_BUCKET_NAME}/"
+MEDIA_URL = f"https://storage.googleapis.com/{os.environ["GS_MEDIA_BUCKET_NAME"]}/"
 
 # Wagtail settings
 WAGTAILADMIN_BASE_URL = "https://dertown.org"
