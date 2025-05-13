@@ -17,6 +17,7 @@ dependencies = [
     "brotli==1.1.0",
     "Django>=5.1,<5.2",
     "django-components",
+    "django-crontab",
     "django-widget-tweaks",
     "google-auth",
     "google-api-python-client",
