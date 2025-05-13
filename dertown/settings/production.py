@@ -31,12 +31,17 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
-    }
+        "OPTIONS": {
+            "bucket_name": "der-town-media",
+            "project_id": "der-town",
+            "credentials": "/etc/secrets/gcp-der-town-media.json",
+            "location": "",
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
 }
-GS_BUCKET_NAME = "der-town-media"
-GS_PROJECT_ID = "der-town"
-GS_CREDENTIALS = "/etc/secrets/gcp-der-town-media.json"
-GS_LOCATION = ""
 
 # Wagtail settings
 WAGTAILADMIN_BASE_URL = "https://dertown.org"
