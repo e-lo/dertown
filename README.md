@@ -47,6 +47,7 @@ A modern, community-driven events site built with Django and Wagtail. Der Town f
    ```
 
 4. **Set up your `.env` file:**
+
    - Copy `.env.example` to `.env` and fill in secrets (or set environment variables directly).
 
 5. **Apply migrations and create a superuser:**
@@ -78,6 +79,7 @@ A modern, community-driven events site built with Django and Wagtail. Der Town f
    - `SECRET_KEY`, `DATABASE_URL`, etc.
    - `DEBUG=False`
 3. **Set Render build and start commands:**
+
    - **Build Command:**
 
      ```sh
