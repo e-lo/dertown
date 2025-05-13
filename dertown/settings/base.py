@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "ingest",
     "django_components",
     "django_recaptcha",
+    "django_crontab",
     "widget_tweaks",
     "modelcluster",
     "taggit",
