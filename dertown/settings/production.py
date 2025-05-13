@@ -37,7 +37,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_BUCKET_NAME = os.environ["GS_BUCKET_NAME"]
 
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+GOOGLE_APPLICATION_CREDENTIALS = service_account.Credentials.from_service_account_file(
     os.environ["GS_CREDENTIALS_FILE"]
 )
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
