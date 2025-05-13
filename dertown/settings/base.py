@@ -210,17 +210,7 @@ WAGTAILDOCS_EXTENSIONS = [
     "zip",
 ]
 
-GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-
-GOOGLE_CALENDAR_IDS = {
-    "arts": os.environ.get("GOOGLE_CALENDAR_ID_ARTS"),
-    "civic": os.environ.get("GOOGLE_CALENDAR_ID_CIVIC"),
-    "family": os.environ.get("GOOGLE_CALENDAR_ID_FAMILY"),
-    "nature": os.environ.get("GOOGLE_CALENDAR_ID_NATURE"),
-    "outdoors": os.environ.get("GOOGLE_CALENDAR_ID_OUTDOORS"),
-    "sports": os.environ.get("GOOGLE_CALENDAR_ID_SPORTS"),
-    "town": os.environ.get("GOOGLE_CALENDAR_ID_TOWN"),
-}
+GS_CALENDAR_CREDENTIALS_FILE = os.environ.get("GS_CALENDAR_CREDENTIALS_FILE")
 
 RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY")

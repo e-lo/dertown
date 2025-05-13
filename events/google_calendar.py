@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 
 from django.conf import settings
@@ -13,9 +12,16 @@ from .models import Tag
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
-if not settings.GOOGLE_CREDENTIALS_JSON:
+if not settings.GS_CALENDAR_CREDENTIALS_FILE:
     raise RuntimeError(
-        "Google service account credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS_JSON."
+        "Google service account credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS_FILE \
+            environment variable."
+    )
+
+if not settings.GS_CALENDAR_CREDENTIALS_FILE.exists():
+    raise RuntimeError(
+        f"Google service account credentials not found at {settings.GS_CALENDAR_CREDENTIALS_FILE}. \
+            Set GOOGLE_APPLICATION_CREDENTIALS_FILE to a valid path."
     )
 
 
@@ -32,8 +38,9 @@ def get_calendar_id(event_type):
 
 def get_calendar_service():
     """Authenticate and return a Google Calendar API service object."""
-    creds_info = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
-    credentials = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
+    credentials = service_account.Credentials.from_service_account_file(
+        settings.GS_CALENDAR_CREDENTIALS_FILE, scopes=SCOPES
+    )
     service = build("calendar", "v3", credentials=credentials)
     return service
 
