@@ -42,6 +42,15 @@
     </style>
     {# Override this in templates to add extra stylesheets #} {% endblock %}
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}" />
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9Z4DYJ75S"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-T9Z4DYJ75S');
+    </script>
   </head>
 
   <body class="{% block body_class %}{% endblock %}">
