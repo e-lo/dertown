@@ -18,12 +18,6 @@ if not settings.GS_CALENDAR_CREDENTIALS_FILE:
             environment variable."
     )
 
-if not settings.GS_CALENDAR_CREDENTIALS_FILE.exists():
-    raise RuntimeError(
-        f"Google service account credentials not found at {settings.GS_CALENDAR_CREDENTIALS_FILE}. \
-            Set GOOGLE_APPLICATION_CREDENTIALS_FILE to a valid path."
-    )
-
 
 def get_calendar_id(event_type):
     """Return the Google Calendar ID for the given event type (tag name)."""
