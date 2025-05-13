@@ -244,6 +244,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "django-crontab" },
     { name = "ruff" },
 ]
 
@@ -253,6 +254,7 @@ requires-dist = [
     { name = "dj-database-url" },
     { name = "django", specifier = ">=5.1,<5.2" },
     { name = "django-components" },
+    { name = "django-crontab", marker = "extra == 'dev'" },
     { name = "django-recaptcha" },
     { name = "django-widget-tweaks" },
     { name = "dotenv", specifier = ">=0.9.9" },
@@ -309,6 +311,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/e8/99/915972d3994fc6e0a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/69/52/a9a929c5b1fcd46b74f8a85e4b29d07cc1efb8a7a736cead00a50f551519/django_components-0.139.1-py3-none-any.whl", hash = "sha256:9f86824094c5bed189018ec61fe3d81ad04d161320ef1bf51e24e49b004dccbe", size = 189048, upload-time = "2025-04-20T10:02:14.022Z" },
 ]
+
+[[package]]
+name = "django-crontab"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/bd/a122ba96167f5dfab70a58ca22fa046b7ef1ebad9ff026f7831bd6c2a49c/django-crontab-0.7.1.tar.gz", hash = "sha256:1201810a212460aaaa48eb6a766738740daf42c1a4f6aafecfb1525036929236", size = 7089, upload-time = "2016-03-07T19:35:54.714Z" }
 
 [[package]]
 name = "django-filter"

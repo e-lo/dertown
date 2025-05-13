@@ -69,7 +69,11 @@
           return new bootstrap.Tooltip(tooltipTriggerEl);
         });
         // Offcanvas drilldown logic
-        var eventTypeToId = JSON.parse(document.getElementById('calendar-ids-data').textContent);
+        var calendarIdsDataEl = document.getElementById('calendar-ids-data');
+        var eventTypeToId = {};
+        if (calendarIdsDataEl) {
+          eventTypeToId = JSON.parse(calendarIdsDataEl.textContent);
+        }
         var subscribeMainMenu = document.getElementById('subscribeMainMenu');
         var subscribeSubMenu = document.getElementById('subscribeSubMenu');
         var backBtn = document.querySelector('.subscribe-back-btn');

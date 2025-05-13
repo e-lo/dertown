@@ -18,7 +18,6 @@ from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).parent.parent
 BASE_DIR = PROJECT_DIR.parent
-
 # Load environment variables from .env file
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
@@ -46,6 +45,7 @@ INSTALLED_APPS = [
     "search",
     "dertown",
     "events",
+    "ingest",
     "django_components",
     "django_recaptcha",
     "widget_tweaks",

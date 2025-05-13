@@ -77,7 +77,8 @@
       {% endif %}
 
       <!-- Additional Information -->
-      {% if event.website or event.registration_link or event.email %}
+      {% if event.website or event.registration_link or event.registration_required or event.fee or
+      event.email %}
       <div class="mb-4">
         <h2 class="h5 fw-bold mb-2">Additional Information</h2>
         <div class="mb-2 text-secondary">
@@ -95,6 +96,10 @@
               >Register Here</a
             >
           </p>
+          {% endif %} {% if event.registration_required %}
+          <p><strong>Registration Required:</strong> Yes</p>
+          {% endif %} {% if event.fee %}
+          <p><strong>Fee:</strong> {{ event.fee }}</p>
           {% endif %} {% if event.email %}
           <p>
             <strong>Contact:</strong>

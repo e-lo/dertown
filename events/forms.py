@@ -73,14 +73,10 @@ class PublicEventSubmissionForm(forms.ModelForm):
         cleaned_data = super().clean()
         image = cleaned_data.get("image")
         external_image_url = cleaned_data.get("external_image_url")
-        if not image and not external_image_url:
-            raise forms.ValidationError(
-                "You must provide either an image file or an external image URL."
-            )
         if image and external_image_url:
             raise forms.ValidationError(
-                "Please provide only one: either upload an image file or enter an external \
-                    image URL, not both."
+                "Please provide only one: either upload an \
+                    image file or enter an external image URL, not both."
             )
 
         # Handle new location

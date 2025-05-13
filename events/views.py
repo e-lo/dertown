@@ -374,7 +374,7 @@ def events_rss(request):
 
 def submit_event(request):
     if request.method == "POST":
-        form = PublicEventSubmissionForm(request.POST)
+        form = PublicEventSubmissionForm(request.POST or None)
         if form.is_valid():
             event = form.save(commit=False)
             event.status = "pending"  # Ensure status is pending

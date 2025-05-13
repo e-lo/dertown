@@ -30,6 +30,9 @@ dependencies = [
     "whitenoise==6.9.0",
     "uvicorn==0.34.0",
     "gunicorn==23",
+    "pre-commit",
+    "rapidfuzz",
+    "django-crontab",
 ]
 
 [project.urls]
@@ -47,7 +50,8 @@ exclude-package-data = { "*" = ["static/*", "static/events/*", "static/events/cs
 
 [project.optional-dependencies]
 dev = [
-    "ruff"
+    "ruff",
+    "django-crontab"
 ]
 
 [tool.ruff]

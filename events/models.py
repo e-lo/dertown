@@ -123,6 +123,17 @@ class Location(models.Model):
         related_name="sub_locations",
         help_text="Optional parent location (e.g., a city that contains multiple neighborhoods)",
     )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending Review"),
+            ("approved", "Approved/Published"),
+            ("duplicate", "Duplicate"),
+            ("archived", "Archived"),
+        ],
+        default="pending",
+        help_text="Moderation status: pending, approved, duplicate, or archived.",
+    )
     panels = [
         FieldPanel("name"),
         FieldPanel("website"),
@@ -131,6 +142,7 @@ class Location(models.Model):
         FieldPanel("latitude"),
         FieldPanel("longitude"),
         FieldPanel("parent_location"),
+        FieldPanel("status"),
     ]
 
     def __str__(self):
@@ -155,6 +167,17 @@ class Organization(models.Model):
         blank=True,
         related_name="sub_organizations",
     )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending Review"),
+            ("approved", "Approved/Published"),
+            ("duplicate", "Duplicate"),
+            ("archived", "Archived"),
+        ],
+        default="pending",
+        help_text="Moderation status: pending, approved, duplicate, or archived.",
+    )
 
     panels = [
         FieldPanel("name"),
@@ -164,6 +187,7 @@ class Organization(models.Model):
         FieldPanel("email"),
         FieldPanel("location"),
         FieldPanel("parent_organization"),
+        FieldPanel("status"),
     ]
 
     def __str__(self):
@@ -218,17 +242,26 @@ class Event(models.Model):
         blank=True,
         help_text="Google Calendar event ID for syncing. Leave blank to create new event.",
     )
+    registration_required = models.BooleanField(
+        default=False, help_text="Is registration or ticket purchase required?"
+    )
+    fee = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Event fee, e.g. '$10', 'Free', 'Donation', or a range",
+    )
     STATUS_CHOICES = [
         ("pending", "Pending Review"),
         ("approved", "Approved/Published"),
-        ("rejected", "Rejected"),
+        ("duplicate", "Duplicate"),
         ("archived", "Archived"),
     ]
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default="pending",
-        help_text="Moderation status: pending, approved, rejected, or archived.",
+        help_text="Moderation status: pending, approved, duplicate, or archived.",
     )
 
     panels = [
@@ -245,6 +278,8 @@ class Event(models.Model):
         FieldPanel("email"),
         FieldPanel("website"),
         FieldPanel("registration_link"),
+        FieldPanel("registration_required"),
+        FieldPanel("fee"),
         FieldPanel("image"),
         FieldPanel("external_image_url"),
         FieldPanel("google_calendar_event_id"),
