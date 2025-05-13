@@ -2,7 +2,6 @@
 import os
 
 import dj_database_url
-from google.oauth2 import service_account
 
 from .base import *
 
@@ -28,18 +27,16 @@ DATABASES = {
 # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
-# and renames the files with unique names for each version to support long-term caching
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-
-# Configure Google Cloud Storage for media files
-DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-
-GS_MEDIA_CREDENTIALS_FILE = service_account.Credentials.from_service_account_file(
-    os.environ["GS_MEDIA_CREDENTIALS_FILE"]
-)
-MEDIA_URL = f"https://storage.googleapis.com/{os.environ['GS_MEDIA_BUCKET_NAME']}/"
+# https://django-storages.readthedocs.io/en/latest/backends/gcloud.html
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+    }
+}
+GS_BUCKET_NAME = "der-town-media"
+GS_PROJECT_ID = "der-town"
+GS_CREDENTIALS = "/etc/secrets/gcp-der-town-media.json"
+GS_LOCATION = ""
 
 # Wagtail settings
 WAGTAILADMIN_BASE_URL = "https://dertown.org"
