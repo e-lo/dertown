@@ -2,12 +2,15 @@
 import os
 
 import dj_database_url
+from google.oauth2 import service_account
 
 from .base import *
 
 # TEMPORARY FOR DEBUGGING - REMOVE AFTER FIXING THE ISSUE
 DEBUG = False
 ALLOWED_HOSTS = [".onrender.com", "dertown.org", "www.dertown.org", "localhost", "127.0.0.1"]
+
+INSTALLED_APPS += ["storages"]
 
 # Set SECRET_KEY from environment variable
 SECRET_KEY = os.environ["SECRET_KEY"]
@@ -29,6 +32,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # and renames the files with unique names for each version to support long-term caching
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+
+# Configure Google Cloud Storage for media files
+DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+GS_BUCKET_NAME = os.environ["GS_BUCKET_NAME"]
+
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+    os.environ["GS_APPLICATION_CREDENTIALS_FILE"]
+)
+MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
 # Wagtail settings
 
