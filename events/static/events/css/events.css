@@ -40,7 +40,7 @@
   background-color: var(--event-color, var(--event-default));
   color: #fff;
   text-shadow: 0 0 2px rgb(0 0 0 / 50%);
-  margin: 0.25rem;
+  margin: 0.5rem;
 }
 
 /* Event detail page styling */

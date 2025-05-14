@@ -65,7 +65,7 @@
     color-mix(in srgb, var(--blue-green) var(--bg-opacity-heavy), transparent); /* Focus shadow */
 
   /* Event Card */
-  --event-card-bg: rgb(255 255 255 / 90%); /* Carousel card background */
+  --event-card-bg: rgb(255 255 255); /* Carousel card background */
   --event-card-shadow: 0 4px 15px rgb(15 3 38 / 10%); /* Card hover shadow (dark purple) */
   --event-control-bg: color-mix(
     in srgb,

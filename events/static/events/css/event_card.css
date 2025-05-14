@@ -4,6 +4,8 @@
   border-radius: 12px;
   box-shadow: var(--event-card-shadow);
   overflow: hidden;
+  max-width: 350px; /* or your preferred value */
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -22,7 +24,6 @@
 /* General card body and content selectors first */
 .event-card__body {
   padding: 1.5rem;
-  background: var(--event-card-bg);
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -62,8 +63,10 @@
   -webkit-line-clamp: var(--event-card-description-lines);
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
   margin-bottom: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
 }
 
 .event-card__tags {
@@ -110,7 +113,6 @@
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 500;
-  background: rgb(255 255 255 / 90%);
   backdrop-filter: blur(4px);
 }
 
@@ -131,15 +133,30 @@
 }
 
 /* Fixed height image section */
+.event-card__img-container {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  padding: 0;
+  margin: 0;
+}
+
 .event-card__img {
-  height: 300px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center;
+  display: block;
+  margin: 0;
   border-radius: 12px 12px 0 0;
 }
 
 /* Centered placeholder icon */
 .event-card__img--placeholder {
-  background-color: var(--event-card-img-bg);
   height: 300px;
   display: flex !important;
   align-items: center;
