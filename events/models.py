@@ -1,5 +1,5 @@
 import urllib.parse
-from itertools import zip_longest
+from datetime import datetime
 
 from django.db import models
 from django.db.models import Q
@@ -8,7 +8,9 @@ from wagtail.admin.panels import FieldPanel
 from wagtail.fields import RichTextField
 from wagtail.models import Page
 
-from .utils import get_homepage_events
+DEFAULT_EVENTS_PER_CATEGORY = 10
+HOMEPAGE_UPCOMING_EVENTS = 8
+HOMEPAGE_FEATURED_EVENTS = 4
 
 
 class SimplePage(Page):
@@ -27,12 +29,15 @@ class HomePage(Page):
     ]
 
     def get_context(self, request, *args, **kwargs):
-        context = super().get_context(request, *args, **kwargs)
-        context["events"] = get_homepage_events()
         from .models import CommunityAnnouncement, Event
 
+        context = super().get_context(request, *args, **kwargs)
+        context["events"] = Event.get_homepage_events(
+            num_upcoming_events=HOMEPAGE_UPCOMING_EVENTS,
+            num_featured_events=HOMEPAGE_FEATURED_EVENTS,
+        )
         context["announcements"] = CommunityAnnouncement.objects.filter(active=True)
-        num_events = int(request.GET.get("num_events", 10))
+        num_events = int(request.GET.get("num_events", DEFAULT_EVENTS_PER_CATEGORY))
         context["category_events"] = Event.get_upcoming_by_category(num_events=num_events)
         context["num_events"] = num_events
         return context
@@ -73,10 +78,12 @@ class Tag(models.Model):
 
     @property
     def google_subscribe_url(self):
-        """Google Calendar subscribe (add) link."""
-        if self.google_calendar_id:
+        """Google Calendar subscribe (add) link. Uses share_id, otherwise uses calendar_id."""
+        if self.share_id:
             share_id = urllib.parse.quote(self.share_id)
             return f"https://calendar.google.com/calendar/u/1?cid={share_id}"
+        elif self.google_calendar_id:
+            return f"https://calendar.google.com/calendar/u/1?cid={self.google_calendar_id}"
         return None
 
     @property
@@ -292,37 +299,130 @@ class Event(models.Model):
     def __str__(self):
         return self.title
 
-    @staticmethod
-    def group_events(events, group_size=3):
-        """Group events into lists of specified size."""
-        args = [iter(events)] * group_size
-        return list(zip_longest(*args, fillvalue=None))
+    @property
+    def start_datetime(self):
+        """Get the start datetime of the event. Defaults to midnight if no start_time."""
+        if self.start_time:
+            return datetime.combine(self.start_date, self.start_time)
+        return datetime.combine(self.start_date, datetime.min.time())
+
+    @property
+    def end_datetime(self):
+        """Get the end datetime of the event. Defaults to end of day if no end_time."""
+        end_date = self.end_date or self.start_date
+        if self.end_time:
+            return datetime.combine(end_date, self.end_time)
+        return datetime.combine(end_date, datetime.max.time())
+
+    @property
+    def is_today(self):
+        """Check if the event is today.
+
+        Event is today if:
+        1. The start date is today or
+        2. The start date is in the past and the end date is today or in the future
+        """
+        today = timezone.now().date()
+        if not self.start_date <= today:
+            return False
+        if self.start_date == today:
+            return True
+        if self.end_date and today <= self.end_date:
+            return True
+        return False
+
+    @property
+    def is_happening_now(self):
+        """Check if the event is happening now.
+
+        Event is happening now if:
+
+        1. The event is today AND
+        2. The start time is the past and either:
+          a. the end time is in the future or
+          b. there is no end time.
+        """
+        if not self.is_today:
+            return False
+        now = timezone.now()
+        if self.start_datetime <= now <= self.end_datetime:
+            return True
+        if self.start_datetime <= now and not self.end_time:
+            return True
+        return False
 
     @classmethod
-    def get_upcoming_events(cls, limit=None):
-        """Get upcoming events ordered by start date."""
-        events = cls.objects.filter(
-            start_date__gte=timezone.now().date(), status="approved"
-        ).order_by("start_date", "start_time")
+    def filter_visible(cls, queryset):
+        """Filter events to only those that are visible & approved."""
+        return queryset.filter(exclude_from_calendar=False, status="approved")
+
+    @classmethod
+    def get_visible_events(cls, limit=None):
+        """Get visible & approved events ordered by start date."""
+        events = cls.filter_visible(cls.objects).order_by("start_date", "start_time")
         if limit:
             events = events[:limit]
         return events
 
     @classmethod
+    def filter_upcoming(cls, queryset):
+        """Filter visible events to only those that are upcoming."""
+        today = timezone.now().date()
+        visible_events = cls.filter_visible(queryset)
+        return visible_events.filter(Q(start_date__gte=today) | Q(end_date__gte=today))
+
+    @classmethod
+    def get_upcoming_events(cls, limit=None):
+        """Get vsible upcoming events ordered by start date."""
+        events = cls.filter_upcoming(cls.objects).order_by("start_date", "start_time")
+        if limit:
+            events = events[:limit]
+        return events
+
+    @classmethod
+    def filter_featured(cls, queryset):
+        """Filter visible upcoming events to only those that are featured."""
+        visible_upcoming = cls.filter_upcoming(queryset)
+        return visible_upcoming.filter(featured=True)
+
+    @classmethod
+    def get_featured_events(cls, limit=None):
+        """Get featured events ordered by start date."""
+        events = cls.filter_featured(cls.objects).order_by("start_date", "start_time")
+        if limit:
+            events = events[:limit]
+        return events
+
+    @classmethod
+    def filter_tags(cls, queryset, tags: list[Tag]):
+        """Filter visible upcoming events to only those that have any of the given tags."""
+        visible_upcoming = cls.filter_upcoming(queryset)
+        return visible_upcoming.filter(Q(primary_tag__in=tags) | Q(secondary_tag__in=tags))
+
+    @classmethod
     def get_upcoming_by_category(cls, num_events=10):
-        """Return a list of (tag, events) for all categories with upcoming events."""
+        """Return a list of (tag, events) for all categories with upcoming visible events."""
         from .models import Tag
 
         tags = Tag.objects.all()
         result = []
-        today = timezone.now().date()
         for tag in tags:
-            events = cls.objects.filter(
-                Q(primary_tag=tag) | Q(secondary_tag=tag), start_date__gte=today, status="approved"
-            ).order_by("start_date", "start_time")[:num_events]
+            # Filter first, then slice
+            events = cls.filter_tags(cls.get_upcoming_events(), [tag])[:num_events]
             if events:
                 result.append({"tag": tag, "events": events})
         return result
+
+    @classmethod
+    def get_homepage_events(cls, num_upcoming_events=8, num_featured_events=4):
+        """Get the events for the homepage."""
+        from .utils import mix_lists
+
+        featured_events_qs = cls.get_featured_events(num_featured_events)
+        non_featured_upcoming = cls.get_upcoming_events().filter(featured=False)[
+            :num_upcoming_events
+        ]
+        return mix_lists(featured_events_qs, non_featured_upcoming)
 
     class Meta:
         ordering = ["start_date", "start_time"]
