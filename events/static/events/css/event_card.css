@@ -177,7 +177,7 @@
   font-weight: 500;
   background-color: var(--event-color, var(--event-default));
   color: #fff;
-  text-shadow: 0 0 2px rgb(0 0 0 / 50%);
+  text-shadow: var(--event-card-shadow);
   margin: 0.25rem;
   border: none;
   letter-spacing: 0.01em;

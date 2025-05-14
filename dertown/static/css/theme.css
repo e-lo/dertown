@@ -54,35 +54,35 @@
   --event-nature: var(--shamrock-green);
   --event-outdoors: var(--hunter-green);
 
-  /* Tag/Badge/Calendar/Border colors */
+  /* Tag colors */
   --event-tag-bg: var(--bg-primary); /* Tag button background (unselected) */
   --event-tag-border: var(--primary); /* Tag button border (unselected) */
   --event-tag-hover: var(--bg-secondary); /* Tag button hover */
   --event-tag-active: var(--primary); /* Tag button active border */
   --event-header-bg: var(--bg-primary); /* Event header background */
+
+  /* Calendar */
   --event-calendar-border: var(--davys-gray); /* Calendar border */
   --event-calendar-box-shadow: 0 0 0 0.25rem
     color-mix(in srgb, var(--blue-green) var(--bg-opacity-heavy), transparent); /* Focus shadow */
 
   /* Event Card */
-  --event-card-bg: rgb(255 255 255); /* Carousel card background */
+  --event-card-bg: #fff; /* Carousel card background */
   --event-card-shadow: 0 4px 15px rgb(15 3 38 / 10%); /* Card hover shadow (dark purple) */
-  --event-control-bg: color-mix(
+  --event-badge-placeholder: #e0e0e0; /* Placeholder icon color for event cards */
+  --event-badge-date: #94a3b8; /* Date text color for event cards */
+  --event-badge-desc: var(--text-secondary); /* Description text color for event cards */
+  --carousel-control-bg: color-mix(
     in srgb,
     var(--blue-green) 0.6,
     transparent
   ); /* Carousel control background */
 
-  --event-control-bg-hover: color-mix(
+  --carousel-control-bg-hover: color-mix(
     in srgb,
     var(--blue-green) 0.8,
     transparent
   ); /* Carousel control hover */
-
-  --event-card-img-bg: #f8f8f8; /* Placeholder image background for event cards */
-  --event-badge-placeholder: #e0e0e0; /* Placeholder icon color for event cards */
-  --event-badge-date: #94a3b8; /* Date text color for event cards */
-  --event-badge-desc: #575761; /* Description text color for event cards */
 
   /* Typography System */
   --font-sans:
