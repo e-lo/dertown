@@ -49,17 +49,40 @@ def manual_import_view(request):
             source = form.cleaned_data["source"]
             out = io.StringIO()
             err = io.StringIO()
+            import logging
+
+            log_handler = logging.StreamHandler(err)
+            log_handler.setLevel(logging.INFO)
+            logging.getLogger().addHandler(log_handler)
             try:
                 with redirect_stdout(out), redirect_stderr(err):
                     call_command("import_events_from_web", f"--source-id={source.id}")
                 output = out.getvalue()
                 error_output = err.getvalue()
+                # Show error messages
                 if error_output:
-                    messages.error(request, f"Import error: {error_output}")
-                else:
-                    messages.success(request, f"Import triggered for {source.name}. {output}")
+                    for line in error_output.splitlines():
+                        if "error" in line.lower():
+                            messages.error(request, line)
+                        elif "warning" in line.lower():
+                            messages.warning(request, line)
+                        else:
+                            messages.info(request, line)
+                # Show info/warning messages from stdout
+                if output:
+                    for line in output.splitlines():
+                        if "error" in line.lower():
+                            messages.error(request, line)
+                        elif "warning" in line.lower():
+                            messages.warning(request, line)
+                        else:
+                            messages.info(request, line)
+                # Always show a completion message
+                messages.success(request, f"Import completed for {source.name}.")
             except Exception as e:
                 messages.error(request, f"Error triggering import: {e}")
+            finally:
+                logging.getLogger().removeHandler(log_handler)
             return redirect(request.path)
     else:
         form = ManualImportForm()
