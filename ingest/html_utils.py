@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -13,6 +14,8 @@ USER_AGENT_HEADERS = {
     "Referer": "https://www.google.com/",
 }
 
+logger = logging.getLogger(__name__)
+
 
 def extract_skileavenworth_events(html, base_url):
     soup = BeautifulSoup(html, "html.parser")
@@ -24,9 +27,11 @@ def extract_skileavenworth_events(html, base_url):
 
         # Find the closest previous eventdatemonth div for times
         eventdatemonth_div = event_div.find_previous("div", class_="eventdatemonth")
+
         time_tags = eventdatemonth_div.find_all("time") if eventdatemonth_div else []
-        start_time = time_tags[0]["datetime"] if len(time_tags) > 0 else None
-        end_time = time_tags[1]["datetime"] if len(time_tags) > 1 else None
+        # <time datetime="2025-05-21T20:00:00Z">May</time>
+        start_datetime = time_tags[0]["datetime"] if len(time_tags) > 0 else None
+        end_datetime = time_tags[1]["datetime"] if len(time_tags) > 1 else None
 
         location_a = event_div.select_one(".event-dates a")
         location = location_a.get_text(strip=True) if location_a else None
@@ -37,129 +42,13 @@ def extract_skileavenworth_events(html, base_url):
         events.append(
             {
                 "title": title,
-                "start_date": start_time[:10] if start_time else None,
-                "start_time": start_time[11:16] if start_time else None,
-                "end_date": end_time[:10] if end_time else None,
-                "end_time": end_time[11:16] if end_time else None,
+                "start_date": start_datetime[:10] if start_datetime else None,
+                "start_time": start_datetime[11:16] if start_datetime else None,
+                "end_date": end_datetime[:10] if end_datetime else None,
+                "end_time": end_datetime[11:16] if end_datetime else None,
                 "location": location,
                 "description": description,
-                "link": link,
-            }
-        )
-    return events
-
-
-def extract_iciclebrewing_events(html, base_url):
-    soup = BeautifulSoup(html, "html.parser")
-    events = []
-    for event_article in soup.select(".mec-event-list-classic article.mec-past-event"):
-        # Title and link
-        title_a = event_article.select_one("h4.mec-event-title a")
-        title = title_a.get_text(strip=True) if title_a else None
-        link = title_a["href"] if title_a and title_a.has_attr("href") else None
-        if link:
-            link = urljoin(base_url, link)
-        # Date
-        date_span = event_article.select_one(".mec-event-date .mec-start-date-label")
-        date_str = date_span.get_text(strip=True) if date_span else None
-        # Time (may be empty)
-        time_div = event_article.select_one(".mec-event-time")
-        time_str = time_div.get_text(strip=True) if time_div else None
-        # Location
-        loc_div = event_article.select_one(".mec-event-loc-place")
-        location = loc_div.get_text(strip=True) if loc_div else None
-        # Description (not always present)
-        desc_div = event_article.select_one(".mec-event-detail")
-        description = desc_div.get_text(strip=True) if desc_div else None
-        # Parse date and time
-        from dateutil import parser as dateparser
-
-        start_date = None
-        start_time = None
-        end_date = None
-        end_time = None
-        if date_str:
-            try:
-                start_date = dateparser.parse(date_str).date().isoformat()
-            except Exception:
-                start_date = None
-        if time_str:
-            import re
-
-            match = re.match(
-                r"(\d{1,2}:\d{2}\s*[ap]m)(?:\s*-\s*(\d{1,2}:\d{2}\s*[ap]m))?", time_str, re.I
-            )
-            if match:
-                start_time = match.group(1)
-                end_time = match.group(2)
-        events.append(
-            {
-                "title": title,
-                "start_date": start_date,
-                "start_time": start_time,
-                "end_date": end_date,
-                "end_time": end_time,
-                "location": location,
-                "description": description,
-                "link": link,
-            }
-        )
-    return events
-
-
-def extract_cityofleavenworth_events(html, base_url):
-    soup = BeautifulSoup(html, "html.parser")
-    events = []
-    for event_article in soup.select(".mec-event-list-classic article.mec-past-event"):
-        # Title and link
-        title_a = event_article.select_one("h4.mec-event-title a")
-        title = title_a.get_text(strip=True) if title_a else None
-        link = title_a["href"] if title_a and title_a.has_attr("href") else None
-        if link:
-            link = urljoin(base_url, link)
-        # Date
-        date_span = event_article.select_one(".mec-event-date .mec-start-date-label")
-        date_str = date_span.get_text(strip=True) if date_span else None
-        # Time (may be empty)
-        time_div = event_article.select_one(".mec-event-time")
-        time_str = time_div.get_text(strip=True) if time_div else None
-        # Location
-        loc_div = event_article.select_one(".mec-event-loc-place")
-        location = loc_div.get_text(strip=True) if loc_div else None
-        # Description (not always present)
-        desc_div = event_article.select_one(".mec-event-detail")
-        description = desc_div.get_text(strip=True) if desc_div else None
-        # Parse date and time
-        from dateutil import parser as dateparser
-
-        start_date = None
-        start_time = None
-        end_date = None
-        end_time = None
-        if date_str:
-            try:
-                start_date = dateparser.parse(date_str).date().isoformat()
-            except Exception:
-                start_date = None
-        if time_str:
-            import re
-
-            match = re.match(
-                r"(\d{1,2}:\d{2}\s*[ap]m)(?:\s*-\s*(\d{1,2}:\d{2}\s*[ap]m))?", time_str, re.I
-            )
-            if match:
-                start_time = match.group(1)
-                end_time = match.group(2)
-        events.append(
-            {
-                "title": title,
-                "start_date": start_date,
-                "start_time": start_time,
-                "end_date": end_date,
-                "end_time": end_time,
-                "location": location,
-                "description": description,
-                "link": link,
+                "website": link,
             }
         )
     return events
@@ -170,9 +59,66 @@ def extract_llm_events(html, base_url):
     return []
 
 
-def extract_wenatcheeriverinstitute_events(html, base_url, months_ahead=3, stdout=None):
+def extract_firespring_event(td, base_url: str) -> dict:
+    a = td.select_one("a.calendar-grid-event")
+    if not a:
+        return None
+
+    title = a.get("title") or (
+        a.select_one(".calendar-grid-event__title").get_text(strip=True)
+        if a.select_one(".calendar-grid-event__title")
+        else None
+    )
+    if not title:
+        logger.warning(f"No title found for {base_url}{a['href']}. Skipping event.")
+        return None
+
+    event_url = urljoin(base_url, a["href"])
+    start_date = event_url.split(".html/event/")[1][:10]
+    time = a.select_one(".calendar-grid-event__time")
+    time_text = time.get_text(strip=True) if time else ""
+
+    event_detail = requests.get(event_url, headers=USER_AGENT_HEADERS, timeout=20)
+    detail_soup = BeautifulSoup(event_detail.text, "html.parser")
+    image_url = (
+        detail_soup.select_one(".event-image img")["src"]
+        if detail_soup.select_one(".event-image img")
+        else None
+    )
+    description = (
+        detail_soup.select_one(".event-details__description").get_text(strip=True)
+        if detail_soup.select_one(".event-details__description")
+        else None
+    )
+
+    return {
+        "title": title,
+        "start_date": start_date,
+        "start_time": time_text,
+        "website": event_url,
+        "image_url": image_url,
+        "description": description,
+    }
+
+
+def extract_firespring_month(page_html: str, base_url: str) -> list[dict]:
+    events = []
+    soup = BeautifulSoup(page_html, "html.parser")
+    containers = soup.select("td.calendar-grid-event-container")
+    logger.debug(f"Found {len(containers)} events ")
+
+    for td in containers:
+        event = extract_firespring_event(td, base_url)
+        if not event:
+            continue
+        events.append(event)
+
+    return events
+
+
+def extract_firespring_events(html, base_url, months_ahead=3):
     """
-    Scrape events from Wenatchee River Institute's calendar for the next X months.
+    Scrape events from Firespring platform including WRI for the next X months.
     Returns a list of event dicts.
     """
     events = []
@@ -180,47 +126,16 @@ def extract_wenatcheeriverinstitute_events(html, base_url, months_ahead=3, stdou
     for i in range(months_ahead):
         year = today.year + ((today.month + i - 1) // 12)
         month = ((today.month + i - 1) % 12) + 1
-        if i == 0:
-            page_html = html  # Use the provided HTML for the first month
-            if stdout:
-                stdout(f"processing {base_url}")
+
+        if months_ahead == 0:
+            page_html = html
+            url = base_url
         else:
             url = f"{base_url}/calendar/{year}/{month}"
-            if stdout:
-                stdout(f"Requesting calendar page: {url}")
             resp = requests.get(url, headers=USER_AGENT_HEADERS, timeout=20)
-            if stdout:
-                stdout(f"Received response for: {url}")
             page_html = resp.text
-        soup = BeautifulSoup(page_html, "html.parser")
-        for td in soup.select("td.calendar-grid-event-container"):
-            a = td.select_one("a.calendar-grid-event")
-            if not a:
-                continue
-            event_url = urljoin(base_url, a["href"])
-            title = a.get("title") or (
-                a.select_one(".calendar-grid-event__title").get_text(strip=True)
-                if a.select_one(".calendar-grid-event__title")
-                else None
-            )
-            time = a.select_one(".calendar-grid-event__time")
-            time_text = time.get_text(strip=True) if time else ""
-            # Optionally, fetch event detail page for more info
-            if stdout:
-                stdout(f"Requesting event detail page: {event_url}")
-            # event_detail = requests.get(event_url, headers=USER_AGENT_HEADERS, timeout=20)
-            if stdout:
-                stdout(f"Received response for event detail: {event_url}")
-            # detail_soup = BeautifulSoup(event_detail.text, "html.parser")
-            # You can extract more fields from detail_soup as needed
-            events.append(
-                {
-                    "title": title,
-                    "time": time_text,
-                    "url": event_url,
-                    # Add more fields as needed from detail_soup
-                }
-            )
+        logger.debug(f"Extracting events for {month}/{year}")
+        events += extract_firespring_month(page_html, base_url)
     return events
 
 
@@ -300,7 +215,7 @@ def extract_cascadekodiakathletics_events(html, base_url):
                 "start_time": start_time,
                 "location": None,  # Do not set location for Kodiak
                 "description": description,
-                "link": details_link,
+                "website": details_link,
                 "opponents": opponents,
             }
         )
@@ -308,7 +223,8 @@ def extract_cascadekodiakathletics_events(html, base_url):
 
 
 # New function for Icicle Creek Center for the Arts
-def extract_iciclecreek_events(html, base_url, stdout=None):
+def extract_salesforce_events(html, base_url):
+    """Extaction function for events using Salesforce event ticketing including Icicle.org"""
     from dateutil import parser as dateparser
 
     soup = BeautifulSoup(html, "html.parser")
@@ -335,28 +251,25 @@ def extract_iciclecreek_events(html, base_url, stdout=None):
                 start_date = dt.date().isoformat()
                 start_time = dt.strftime("%H:%M")
             except Exception as e:
-                if stdout:
-                    stdout(f"Could not parse date/time: {date_time_str} ({e})")
+                logger.error(f"Could not parse date/time: {date_time_str} ({e})")
         # Image
         img = event_div.select_one(".event-img img")
         image_url = urljoin(base_url, img["src"]) if img and img.has_attr("src") else None
         # Info and buy/register links
         info_a = event_div.select_one(".event-info a")
-        info_link = (
-            urljoin(base_url, info_a["href"]) if info_a and info_a.has_attr("href") else None
-        )
-        ticket_link = None
+        website = urljoin(base_url, info_a["href"]) if info_a and info_a.has_attr("href") else None
+        registration_link = None
         purchase_div = event_div.select_one(".event-purchase")
         if purchase_div:
             ticket_a = purchase_div.select_one("a")
             if ticket_a and ticket_a.has_attr("href"):
-                ticket_link = urljoin(base_url, ticket_a["href"])
+                registration_link = urljoin(base_url, ticket_a["href"])
             else:
                 select = purchase_div.select_one("select")
                 if select:
                     for option in select.find_all("option"):
                         if option.get("value") and option["value"] != "Buy Tickets":
-                            ticket_link = option["value"]
+                            registration_link = option["value"]
                             break
         # Price
         price_div = event_div.select_one(".event-price")
@@ -371,14 +284,13 @@ def extract_iciclecreek_events(html, base_url, stdout=None):
                 "start_date": start_date,
                 "start_time": start_time,
                 "image_url": image_url,
-                "info_link": info_link,
-                "ticket_link": ticket_link,
+                "website": website,
+                "registration_link": registration_link,
                 "price": price,
                 "description": description,
             }
         )
-    if stdout:
-        stdout(f"Extracted {len(events)} events from Icicle Creek Center for the Arts")
+    logger.info(f"Extracted {len(events)} events from Icicle Creek Center for the Arts")
     return events
 
 
@@ -411,9 +323,9 @@ def wrap_future_only(fn):
     return wrapper
 
 
-def extract_leavenworthorg_events(html, base_url):
+def extract_wordpress_events(html, base_url):
     """
-    Extract events from leavenworth.org/calendar/events.
+    Extract events from wordpress events including leavenworth.org/calendar/events.
     Returns a list of dicts with keys: title, start_date, start_time, end_date,
         end_time, location, description, link, image_url.
     """
@@ -475,7 +387,83 @@ def extract_leavenworthorg_events(html, base_url):
                 "end_time": end_time,
                 "location": location,
                 "description": description,
-                "link": link,
+                "website": link,
+                "image_url": image_url,
+            }
+        )
+    return events
+
+
+def extract_joomla_dpcalendar_events(html, base_url):
+    """
+    Extract events from Joomla dp calendar event lists.
+
+    e.g. https://www.wnps.org/wv-events/calendar?view=list
+
+    Returns:
+        list of dicts with keys: title, start_date, start_time, end_date,
+            end_time, location, description, link.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    events = []
+    # WNPS dpCalendar: each event is a <li class="dp-list-unordered__item dp-event ...">
+    for event_li in soup.select("li.dp-list-unordered__item.dp-event"):
+        # Title and link
+        title = None
+        link = None
+        h2 = event_li.find("h2", class_="dp-event__title")
+        if h2:
+            a = h2.find("a", class_="dp-event__link")
+            if a:
+                title = a.get_text(strip=True)
+                link = urljoin(base_url, a["href"]) if a.has_attr("href") else None
+        # Date and time
+        start_date = None
+        start_time = None
+        end_time = None
+        date_details = event_li.find("div", class_="dp-event__date")
+        if date_details:
+            date_span = date_details.find("span", class_="dp-date__start")
+            time_start_span = date_details.find("span", class_="dp-time__start")
+            time_end_span = date_details.find("span", class_="dp-time__end")
+            if date_span:
+                from dateutil import parser as dateparser
+
+                try:
+                    start_date = dateparser.parse(date_span.get_text(strip=True)).date().isoformat()
+                except Exception:
+                    start_date = None
+            if time_start_span:
+                start_time = time_start_span.get_text(strip=True)
+            if time_end_span:
+                end_time = time_end_span.get_text(strip=True)
+        # Location
+        location = None
+        loc_div = event_li.find("div", class_="dp-event__locations")
+        if loc_div:
+            loc_title = loc_div.find("span", class_="dp-location__title")
+            if loc_title:
+                location = loc_title.get_text(strip=True)
+        # Description
+        description = None
+        desc_div = event_li.find("div", class_="dp-event__description")
+        if desc_div:
+            description = desc_div.get_text(" ", strip=True)
+        # Image (optional)
+        image_url = None
+        img = event_li.find("img", class_="dp-image")
+        if img and img.has_attr("src"):
+            image_url = urljoin(base_url, img["src"])
+        events.append(
+            {
+                "title": title,
+                "start_date": start_date,
+                "start_time": start_time,
+                "end_date": start_date,  # Only one date per event
+                "end_time": end_time,
+                "location": location,
+                "description": description,
+                "website": link,
                 "image_url": image_url,
             }
         )
@@ -484,12 +472,11 @@ def extract_leavenworthorg_events(html, base_url):
 
 EXTRACTION_FUNCTIONS = {
     "skileavenworth": wrap_future_only(extract_skileavenworth_events),
-    "iciclebrewing": wrap_future_only(extract_iciclebrewing_events),
-    "cityofleavenworth": wrap_future_only(extract_cityofleavenworth_events),
     "llm": extract_llm_events,
     "default": extract_llm_events,
-    "wenatcheeriverinstitute": wrap_future_only(extract_wenatcheeriverinstitute_events),
+    "Firespring Events": wrap_future_only(extract_firespring_events),
     "cascadekodiakathletics": wrap_future_only(extract_cascadekodiakathletics_events),
-    "iciclecreek": wrap_future_only(extract_iciclecreek_events),
-    "WordpressTheEventsCalendar": wrap_future_only(extract_leavenworthorg_events),
+    "Salesforce Tickets": wrap_future_only(extract_salesforce_events),
+    "Wordpress: TheEventsCalendar": wrap_future_only(extract_wordpress_events),
+    "Joomla: dpCalendar": wrap_future_only(extract_joomla_dpcalendar_events),
 }

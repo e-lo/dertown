@@ -24,6 +24,7 @@ dependencies = [
     "google-api-python-client",
     "google-cloud-storage",
     "gunicorn",
+    "pydantic",
     "wagtail>=7.0",
     "dj-database-url",
     "psycopg2-binary",

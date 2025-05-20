@@ -1,12 +1,17 @@
+import logging
 import urllib.parse
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 
+import requests
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 from wagtail.admin.panels import FieldPanel
 from wagtail.fields import RichTextField
 from wagtail.models import Page
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_EVENTS_PER_CATEGORY = 10
 HOMEPAGE_UPCOMING_EVENTS = 8
@@ -270,6 +275,9 @@ class Event(models.Model):
         default="pending",
         help_text="Moderation status: pending, approved, duplicate, or archived.",
     )
+    updated_at = models.DateTimeField(auto_now=True)
+    details_outdated_cached = models.BooleanField(default=False)
+    details_outdated_checked_at = models.DateTimeField(null=True, blank=True)
 
     panels = [
         FieldPanel("title"),
@@ -351,10 +359,65 @@ class Event(models.Model):
             return True
         return False
 
+    @property
+    def details_outdated(self):
+        """Check if the event site's Last-Modified is newer than our updated_at, with 12h cache."""
+        from django.utils import timezone
+
+        now = timezone.now()
+        # Use cache if checked within last 12 hours
+        if (
+            self.details_outdated_checked_at
+            and (now - self.details_outdated_checked_at).total_seconds() < 12 * 3600
+        ):
+            return self.details_outdated_cached
+        # Otherwise, refresh
+        return self.refresh_details_outdated()
+
+    def refresh_details_outdated(self, force=False):
+        """Force refresh the details_outdated check, or refresh if not checked in 12h."""
+        from django.utils import timezone
+
+        now = timezone.now()
+        if (
+            not force
+            and self.details_outdated_checked_at
+            and (now - self.details_outdated_checked_at).total_seconds() < 12 * 3600
+        ):
+            return self.details_outdated_cached
+        if not self.website:
+            self.details_outdated_cached = False
+            self.details_outdated_checked_at = now
+            self.save(update_fields=["details_outdated_cached", "details_outdated_checked_at"])
+            return False
+        try:
+            resp = requests.head(self.website, timeout=5)
+            last_modified = resp.headers.get("Last-Modified")
+            if last_modified:
+                last_mod_dt = parsedate_to_datetime(last_modified)
+                if last_mod_dt.tzinfo is None:
+                    last_mod_dt = timezone.make_aware(last_mod_dt)
+                is_outdated = last_mod_dt > self.updated_at
+                self.details_outdated_cached = is_outdated
+                self.details_outdated_checked_at = now
+                self.save(update_fields=["details_outdated_cached", "details_outdated_checked_at"])
+                return is_outdated
+        except Exception:
+            self.details_outdated_cached = False
+            self.details_outdated_checked_at = now
+            self.save(update_fields=["details_outdated_cached", "details_outdated_checked_at"])
+            return False
+        self.details_outdated_cached = False
+        self.details_outdated_checked_at = now
+        self.save(update_fields=["details_outdated_cached", "details_outdated_checked_at"])
+        return False
+
     @classmethod
     def filter_visible(cls, queryset):
         """Filter events to only those that are visible & approved."""
-        return queryset.filter(exclude_from_calendar=False, status="approved")
+        vis = queryset.filter(exclude_from_calendar=False, status="approved")
+        logger.debug(f"[DEBUG] Filtered {queryset.count()} events to {vis.count()} visible events")
+        return vis
 
     @classmethod
     def get_visible_events(cls, limit=None):
@@ -365,16 +428,39 @@ class Event(models.Model):
         return events
 
     @classmethod
-    def filter_upcoming(cls, queryset):
+    def filter_all_upcoming(cls, queryset):
+        """Filter all events to only those that are upcoming."""
+        today = timezone.now().date()
+        upcoming = queryset.filter(Q(start_date__gte=today) | Q(end_date__gte=today))
+        logger.debug(
+            f"[DEBUG] Filtered {queryset.count()} events to {upcoming.count()} upcoming events"
+        )
+        return upcoming
+
+    @classmethod
+    def get_all_upcoming_events(cls, limit=None):
+        """Get all upcoming events ordered by start date."""
+        events = cls.filter_all_upcoming(cls.objects).order_by("start_date", "start_time")
+        if limit:
+            events = events[:limit]
+        return events
+
+    @classmethod
+    def filter_visible_upcoming(cls, queryset):
         """Filter visible events to only those that are upcoming."""
         today = timezone.now().date()
         visible_events = cls.filter_visible(queryset)
-        return visible_events.filter(Q(start_date__gte=today) | Q(end_date__gte=today))
+        upcoming = visible_events.filter(Q(start_date__gte=today) | Q(end_date__gte=today))
+        logger.debug(
+            f"Filtered {visible_events.count()} visible events \
+                to {upcoming.count()} upcoming events"
+        )
+        return upcoming
 
     @classmethod
-    def get_upcoming_events(cls, limit=None):
+    def get_visible_upcoming_events(cls, limit=None):
         """Get vsible upcoming events ordered by start date."""
-        events = cls.filter_upcoming(cls.objects).order_by("start_date", "start_time")
+        events = cls.filter_visible_upcoming(cls.objects).order_by("start_date", "start_time")
         if limit:
             events = events[:limit]
         return events
@@ -382,8 +468,13 @@ class Event(models.Model):
     @classmethod
     def filter_featured(cls, queryset):
         """Filter visible upcoming events to only those that are featured."""
-        visible_upcoming = cls.filter_upcoming(queryset)
-        return visible_upcoming.filter(featured=True)
+        visible_upcoming = cls.filter_visible_upcoming(queryset)
+        featured = visible_upcoming.filter(featured=True)
+        logger.debug(
+            f"Filtered {visible_upcoming.count()} visible upcoming \
+                events to {featured.count()} featured events"
+        )
+        return featured
 
     @classmethod
     def get_featured_events(cls, limit=None):
@@ -396,8 +487,13 @@ class Event(models.Model):
     @classmethod
     def filter_tags(cls, queryset, tags: list[Tag]):
         """Filter visible upcoming events to only those that have any of the given tags."""
-        visible_upcoming = cls.filter_upcoming(queryset)
-        return visible_upcoming.filter(Q(primary_tag__in=tags) | Q(secondary_tag__in=tags))
+        visible_upcoming = cls.filter_visible_upcoming(queryset)
+        tagged = visible_upcoming.filter(Q(primary_tag__in=tags) | Q(secondary_tag__in=tags))
+        logger.debug(
+            f"Filtered {visible_upcoming.count()} visible upcoming \
+                events to {tagged.count()} tagged events"
+        )
+        return tagged
 
     @classmethod
     def get_upcoming_by_category(cls, num_events=10):
@@ -408,7 +504,7 @@ class Event(models.Model):
         result = []
         for tag in tags:
             # Filter first, then slice
-            events = cls.filter_tags(cls.get_upcoming_events(), [tag])[:num_events]
+            events = cls.filter_tags(cls.get_visible_upcoming_events(), [tag])[:num_events]
             if events:
                 result.append({"tag": tag, "events": events})
         return result
@@ -419,7 +515,7 @@ class Event(models.Model):
         from .utils import mix_lists
 
         featured_events_qs = cls.get_featured_events(num_featured_events)
-        non_featured_upcoming = cls.get_upcoming_events().filter(featured=False)[
+        non_featured_upcoming = cls.get_visible_upcoming_events().filter(featured=False)[
             :num_upcoming_events
         ]
         return mix_lists(featured_events_qs, non_featured_upcoming)

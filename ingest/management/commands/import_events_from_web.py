@@ -1,23 +1,36 @@
-import inspect
+import logging
 import re
 import traceback
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+from typing import Annotated, Optional
 
 import requests
-from bs4 import BeautifulSoup
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    SkipValidation,
+    ValidationError,
+    field_validator,
+)
 from rapidfuzz import fuzz
 
-from events.models import Event, Location, Organization
+from events.models import Event, Location, Organization, Tag
 from ingest.html_utils import EXTRACTION_FUNCTIONS, USER_AGENT_HEADERS
-from ingest.models import ScrapeLog, SourceSite
+from ingest.models import SourceSite
 
-FIELDS_TO_NOT_UPDATE = ["title"]
+# Fields that are not updated
+FIELDS_TO_NOT_UPDATE = ["status"]
+
+# Fields that are used to uniquely identify an event and will not be updated
+KEY_FIELDS = ["title", "start_date"]
+
+
+logger = logging.getLogger(__name__)
+
 
 # Fuzzy match helpers
-
-
 def find_existing_location(name, threshold=85):
     candidates = Location.objects.all()
     best_score = 0
@@ -87,6 +100,260 @@ def find_existing_event(title, start_date, threshold=85):
     return None
 
 
+def parse_time(time_input: str | None | datetime | time) -> time | None:
+    if not time_input:
+        return None
+    if isinstance(time_input, time):
+        return time_input
+    if isinstance(time_input, datetime):
+        return time_input.time()
+
+    s = str(time_input).strip().upper().replace(" ", "")
+    # Remove any unicode quotes or non-ascii
+    s = re.sub(r"[^\x00-\x7F]+", "", s)
+    # Try AM/PM with or without space
+    for fmt in ("%I:%M%p", "%I:%M %p"):
+        try:
+            return datetime.strptime(s, fmt).time()
+        except ValueError:
+            continue
+    # Try 24-hour
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            return datetime.strptime(s, fmt).time()
+        except ValueError:
+            continue
+    logger.error(f"[ERROR] Could not parse time: {time_input!r}")
+    return None
+
+
+def get_location_obj(location_name: str | None) -> Location | None:
+    """Find or create a location object.
+
+    If the location already exists, return it.
+    If the location does not exist, create a new one and return it.
+    If the location name is None, return None.
+    """
+    if not location_name:
+        return None
+    existing_location_obj = find_existing_location(location_name)
+    if existing_location_obj:
+        return existing_location_obj
+    return Location.objects.create(name=location_name, status="pending")
+
+
+def get_organization_obj(org_name: str | None, source: SourceSite) -> Organization | None:
+    if not org_name:
+        return getattr(source, "default_organization", None)
+    existing_org_obj = find_existing_organization(org_name)
+    if existing_org_obj:
+        return existing_org_obj
+    return Organization.objects.create(name=org_name, status="pending")
+
+
+def get_description(description: str | None) -> str | None:
+    if not description:
+        return None
+    return re.sub(r"[\x00-\x1f\x7f]", "", description)
+
+
+def clean_title(title: str | None) -> str | None:
+    if not title:
+        return None
+    # Remove specific leading titles that are not needed like "Event:" or "Calendar:"
+    title = re.sub(r"^Event: ", "", title)
+    title = re.sub(r"^Calendar: ", "", title)
+    title = re.sub(r"^Wenatchee Valley:", "", title)
+
+    # Remove specific trailing titles that are not needed like "Calendar" or "Events"
+    title = re.sub(r"\s*\(Has reached capacity\)$", "", title)
+    title = re.sub(r"\s*\(Full\)$", "", title)
+    title = re.sub(r"\s*\(Sold out\)$", "", title)
+    # Remove ASCII control characters
+    title = re.sub(r"[\x00-\x1F\x7F]", "", title)
+    # Remove non-ASCII unicode characters (including curly quotes etc.)
+    title = re.sub(r"[^\x00-\x7F]+", "", title)
+    # Trim whitespace
+    title = title.strip()
+    # Remove common trailing punctuation: colon, parenthesis, dash, period, comma
+    title = re.sub(r"[:\-.,]+$", "", title)
+
+    return title
+
+
+LocationField = Annotated[Optional[Location], BeforeValidator(lambda v: get_location_obj(v))]
+
+OrganizationField = Annotated[
+    Optional[Organization], BeforeValidator(lambda v: get_organization_obj(v, source=None))
+]
+
+
+class EventData(BaseModel):
+    title: str
+    start_date: datetime.date
+    start_time: Optional[time] = None
+    end_date: Optional[datetime.date] = None
+    end_time: Optional[time] = None
+    registration_link: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    location: LocationField = None
+    organization: OrganizationField = None
+    primary_tag: SkipValidation[Tag] = None
+    fee: Optional[str] = None
+    registration_required: Optional[bool] = False
+    status: str = "pending"
+
+    def as_create_or_update_dict(self):
+        """Format for Event.objects.update_or_create_with_create_only
+
+        Example:
+
+            ```python
+            update_or_create_with_create_only(
+                lookup = {
+                    "title": "Event Title",
+                    "start_date": datetime.date(2024, 1, 1),
+                },
+                defaults={
+                    "description": "Event Description",
+                },
+                create_only={
+                    "status": "pending",
+                }
+            )
+            ```
+        """
+        d = {
+            "lookup": {k: v for k, v in self.model_dump().items() if k in KEY_FIELDS},
+            "defaults": self.model_dump(exclude=FIELDS_TO_NOT_UPDATE + KEY_FIELDS),
+            "create_only": {
+                k: v for k, v in self.model_dump().items() if k in FIELDS_TO_NOT_UPDATE
+            },
+        }
+        return d
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def clean_title(cls, v):
+        return clean_title(v)
+
+    @field_validator("start_time", "end_time", mode="before")
+    @classmethod
+    def validate_time(cls, v):
+        return parse_time(v)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def clean_description(cls, v):
+        return get_description(v)
+
+    @field_validator("registration_required", mode="before")
+    @classmethod
+    def boolify_registration_required(cls, v):
+        if v is None:
+            return False
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.lower() in ("yes", "true", "1")
+        return bool(v)
+
+    # Leave organization alone — handled outside the model
+
+    model_config = dict(arbitrary_types_allowed=True)
+
+
+def update_or_create_with_create_only(model_cls, lookup, defaults, create_only):
+    obj, created = model_cls.objects.update_or_create(**lookup, defaults=defaults)
+    if created:
+        for field, value in create_only.items():
+            setattr(obj, field, value)
+        obj.save()
+    return obj, created
+
+
+def parse_data_for_event(event_dict: dict, source: SourceSite) -> EventData | None:
+    """Process event data and return validated EventData instance."""
+    data = event_dict.copy()
+    # Set primary_tag from source
+    data["primary_tag"] = getattr(source, "event_tag", None)
+    # Do NOT call get_location_obj here; let the validator handle it
+    data["organization"] = get_organization_obj(event_dict.get("organization"), source)
+    try:
+        return EventData(**data)
+    except ValidationError as e:
+        logger.error(f"Validation failed for event: {event_dict.get('title', '<no title>')}\n{e}")
+        return None
+
+
+class InvalidExtractionFunctionError(Exception):
+    pass
+
+
+class EventParseError(Exception):
+    pass
+
+
+def parse_events_for_source(
+    source: SourceSite, force_update=False
+) -> tuple[list[EventData], list[str]]:
+    """Parse all events from the given HTML, only if the source \
+        has changed since last scrape unless force_update is True."""
+    event_objs = []
+    errors = []
+    extraction_func = EXTRACTION_FUNCTIONS.get(source.extraction_function)
+    if not extraction_func:
+        logger.warning(f"No extraction function found for source: {source}")
+        errors += InvalidExtractionFunctionError(
+            f"No extraction function found for source: {source}"
+        )
+        return event_objs, errors
+    logger.info(f"Requesting source URL: {source.url}")
+    resp = requests.get(source.url, headers=USER_AGENT_HEADERS, timeout=10)
+    logger.info(f"Received response for: {source.url}")
+    # Check Last-Modified header
+    last_modified = resp.headers.get("Last-Modified")
+    if last_modified and source.last_scraped and not force_update:
+        try:
+            from email.utils import parsedate_to_datetime
+
+            last_mod_dt = parsedate_to_datetime(last_modified)
+            if last_mod_dt.tzinfo is None:
+                last_mod_dt = timezone.make_aware(last_mod_dt)
+            if source.last_scraped >= last_mod_dt:
+                logger.info(
+                    f"Skipping {source.url}: not modified since last \
+                        scrape ({source.last_scraped} >= {last_mod_dt})"
+                )
+                return [], []
+        except Exception as e:
+            logger.warning(f"Could not parse Last-Modified header: {last_modified} ({e})")
+    resp.raise_for_status()
+    extracted_events = extraction_func(resp.text, source.url)
+    logger.info(f"Extracted {len(extracted_events)} events")
+    for event_data_dict in extracted_events:
+        try:
+            event_obj = parse_data_for_event(event_data_dict, source)
+            logger.info(f"Parsed event: {event_obj.title}")
+        except Exception as e:
+            tb = traceback.format_exc()
+            error_msg = f"""Failed to parse event:
+                '{event_data_dict.get('title', '<no title>')}': {e}\n
+                Event data: {event_data_dict}
+                Traceback:\n{tb}"""
+            err = EventParseError(error_msg)
+            logger.error(error_msg)
+            errors.append(err)
+            continue
+        event_objs.append(event_obj)
+    return event_objs, errors
+
+
+class EventImportError(Exception):
+    pass
+
+
 class Command(BaseCommand):
     help = "Import events from web sources using custom extraction functions"
 
@@ -101,10 +368,16 @@ class Command(BaseCommand):
             type=int,
             help="Import from a specific SourceSite by id (for manual/admin trigger).",
         )
+        parser.add_argument(
+            "--force-update",
+            action="store_true",
+            help="Force update even if the source has not changed since last import.",
+        )
 
     def handle(self, *args, **options):
         due_only = options.get("due_only")
         source_id = options.get("source_id")
+        force_update = options.get("force_update", False)
         if source_id:
             sources = SourceSite.objects.filter(id=source_id)
         elif due_only:
@@ -112,219 +385,38 @@ class Command(BaseCommand):
         else:
             sources = SourceSite.objects.all()
         for source in sources:
-            extraction_func = EXTRACTION_FUNCTIONS.get(source.extraction_function)
-            if not extraction_func:
-                continue
-            try:
-                self.stdout.write(f"Requesting source URL: {source.url}")
-                resp = requests.get(source.url, headers=USER_AGENT_HEADERS, timeout=10)
-                self.stdout.write(f"Received response for: {source.url}")
-                resp.raise_for_status()
-                if "stdout" in inspect.signature(extraction_func).parameters:
-                    events = extraction_func(resp.text, source.url, stdout=self.stdout.write)
-                else:
-                    events = extraction_func(resp.text, source.url)
-                num_found = len(events)
-                num_created = 0
-                num_updated = 0
-                errors = []
-                for event_data in events:
-                    title = event_data.get("title")
-                    start_date = event_data.get("start_date")
-                    if not title or not start_date:
-                        continue
-                    # Map ticket_link to registration_link, info_link to website
-                    registration_link = event_data.get("ticket_link")
-                    website = event_data.get("info_link")
-                    # Sanitize all fields: only allow str or None
-                    sanitized_data = {}
-                    for k, v in event_data.items():
-                        sanitized_data[k] = (
-                            str(v) if v is not None and not isinstance(v, str) else v
-                        )
-                    # Sanitize description field
-                    desc = sanitized_data.get("description")
-                    if desc and isinstance(desc, str):
-                        new_desc = re.sub(r"[\x00-\x1f\x7f]", "", desc)
-                        if new_desc != desc:
-                            self.stdout.write(
-                                f"[DEBUG] Sanitized description for '{title}': {repr(new_desc)}"
-                            )
-                        sanitized_data["description"] = new_desc
-                    # Add mapped fields
-                    sanitized_data["registration_link"] = (
-                        registration_link
-                        if isinstance(registration_link, (str, type(None)))
-                        else str(registration_link)
+            events, errors = parse_events_for_source(source, force_update=force_update)
+            logger.info(f"Finished parsing events for source: {source.url}")
+            logger.info(f"Importing {len(events)} events...")
+            num_events_created = 0
+            num_events_updated = 0
+            for event_obj in events:
+                try:
+                    _, created = update_or_create_with_create_only(
+                        Event, **event_obj.as_create_or_update_dict()
                     )
-                    sanitized_data["website"] = (
-                        website if isinstance(website, (str, type(None))) else str(website)
-                    )
-                    # Debug log the sanitized event data
-                    self.stdout.write(f"[DEBUG] Event data for '{title}':")
-                    for k, v in sanitized_data.items():
-                        self.stdout.write(f"    {k} ({type(v)}): {repr(v)}")
-                    location_name = sanitized_data.get("location")
-                    if location_name:
-                        location_obj = find_existing_location(location_name)
-                        if not location_obj:
-                            location_obj = Location.objects.create(
-                                name=location_name, status="pending"
-                            )
+                    if created:
+                        num_events_created += 1
+                        logger.info(f"Added Event '{event_obj.title}'")
                     else:
-                        location_obj = None
-                    # Set default organization for Icicle.org
-                    org_name = sanitized_data.get("organization")
-                    if "icicle.org" in source.url:
-                        org_obj, _ = Organization.objects.get_or_create(
-                            name="Icicle Creek Center for the Arts", defaults={"status": "approved"}
-                        )
-                    elif org_name:
-                        org_obj = find_existing_organization(org_name)
-                        if not org_obj:
-                            org_obj = Organization.objects.create(name=org_name, status="pending")
-                    else:
-                        org_obj = getattr(source, "default_organization", None)
-                    existing_event = find_existing_event(title, start_date)
-                    try:
-                        if existing_event:
-                            for field, value in sanitized_data.items():
-                                if field in FIELDS_TO_NOT_UPDATE:
-                                    continue
-                                if (
-                                    hasattr(existing_event, field)
-                                    and value is not None
-                                    and field != "location"
-                                ):
-                                    setattr(existing_event, field, value)
-                            existing_event.location = location_obj
-                            existing_event.organization = org_obj
-                            existing_event.status = "pending"
-                            existing_event.save()
-                            num_updated += 1
-                            action = "updated"
-                            self.stdout.write(f"Event '{title}' on {start_date}: {action}.")
-                        else:
-                            Event.objects.create(
-                                title=title,
-                                start_date=start_date,
-                                description=sanitized_data.get("description"),
-                                registration_link=sanitized_data.get("registration_link"),
-                                fee=sanitized_data.get("fee"),
-                                registration_required=sanitized_data.get(
-                                    "registration_required", False
-                                ),
-                                status="pending",
-                                location=location_obj,
-                                organization=org_obj,
-                                website=sanitized_data.get("website"),
-                                # Add more fields as needed
-                            )
-                            num_created += 1
-                            action = "created"
-                            self.stdout.write(f"Event '{title}' on {start_date}: {action}.")
-                    except Exception as e:
-                        tb = traceback.format_exc()
-                        error_msg = f"Failed to sync event '{title}': {e}\n\
-                            Event data: {sanitized_data}\nTraceback:\n{tb}"
-                        self.stderr.write(error_msg)
-                        errors.append(error_msg)
-                        continue
-                # Summary reporting
-                if num_found == 0:
-                    self.stdout.write(self.style.WARNING("No events found for this source."))
-                else:
-                    self.stdout.write(
-                        self.style.SUCCESS(
-                            f"Found {num_found} events. Created: {num_created}, \
-                                Updated: {num_updated}."
-                        )
-                    )
-                if errors:
-                    self.stderr.write(
-                        self.style.ERROR(f"{len(errors)} errors occurred during import.")
-                    )
-                    for err in errors:
-                        self.stderr.write(self.style.ERROR(err))
-            except Exception as e:
-                self.stderr.write(f"Error processing {source.url}: {e}")
-
-    def process_source(self, source):
-        try:
-            events_imported = self.scrape_events(source)
-            self.log_success(source, events_imported)
-        except Exception as e:
-            self.log_error(source, e)
-
-    def scrape_events(self, source):
-        self.stdout.write(f"Requesting source URL: {source.url}")
-        resp = requests.get(source.url, headers=USER_AGENT_HEADERS, timeout=30)
-        self.stdout.write(f"Received response for: {source.url}")
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Example: find all event links (customize selector as needed)
-        event_links = [a["href"] for a in soup.select("a.event-link") if a.get("href")]
-
-        events_imported = 0
-        for link in event_links:
-            events_imported += self.process_event_link(source, link)
-        return events_imported
-
-    def process_event_link(self, source, link):
-        # If link is relative, make it absolute
-        if link.startswith("/"):
-            link = requests.compat.urljoin(source.url, link)
-
-        self.stdout.write(f"Requesting event detail URL: {link}")
-        detail_resp = requests.get(link, headers=USER_AGENT_HEADERS, timeout=30)
-        self.stdout.write(f"Received response for event detail: {link}")
-        detail_resp.raise_for_status()
-        event_html = detail_resp.text
-
-        events_imported = 0
-        event_dicts = extract_events_from_html(event_html)
-        for event_data in event_dicts:
-            if self.create_or_update_event(source, event_data):
-                events_imported += 1
-        return events_imported
-
-    def create_or_update_event(self, source, event_data):
-        # Validate required fields
-        if not event_data.get("title") or not event_data.get("start_date"):
-            return False
-
-        # Use title+start_date+location as unique key
-        Event.objects.update_or_create(
-            title=event_data["title"],
-            start_date=event_data["start_date"],
-            location=event_data.get("location"),
-            defaults={
-                "description": event_data.get("description", ""),
-                "end_date": event_data.get("end_date"),
-                "start_time": event_data.get("start_time"),
-                "end_time": event_data.get("end_time"),
-                "website": event_data.get("link"),
-            },
-        )
-        return True
-
-    def log_success(self, source, events_imported):
-        source.last_scraped = timezone.now()
-        source.last_status = f"success ({events_imported} events imported)"
-        source.last_error = ""
-        source.save()
-
-        ScrapeLog.objects.create(source=source, status="success", error_message="")
-        self.stdout.write(
-            self.style.SUCCESS(f"Imported {events_imported} events from {source.name}")
-        )
-
-    def log_error(self, source, error):
-        source.last_scraped = timezone.now()
-        source.last_status = "error"
-        source.last_error = str(error)
-        source.save()
-
-        ScrapeLog.objects.create(source=source, status="error", error_message=str(error))
-        self.stderr.write(self.style.ERROR(f"Error importing from {source.name}: {error}"))
+                        num_events_updated += 1
+                        logger.info(f"Updated Event '{event_obj.title}'")
+                except Exception as e:
+                    tb = traceback.format_exc()
+                    error_msg = f"""
+                    Failed to add event to database: '{event_obj.title}': {e}\n
+                    Event data: {event_obj.__dict__}\n
+                    Traceback:\n{tb}"""
+                    logger.error(error_msg)
+                    err = EventImportError(error_msg)
+                    errors.append(err)
+                    continue
+            # Summary reporting
+            if num_events_created + num_events_updated == 0:
+                logger.info("No events found for this source.")
+            else:
+                logger.info(f"Created: {num_events_created}, Updated: {num_events_updated}.")
+            if errors:
+                logger.error(f"{len(errors)} errors occurred during import.")
+                for err in errors:
+                    logger.error(err)

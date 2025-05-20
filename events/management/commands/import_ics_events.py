@@ -1,3 +1,10 @@
+"""Import events from ICS files.
+
+Usage:
+python manage.py import_ics_events <ics_file>
+"""
+
+import logging
 import os
 import re
 from datetime import datetime
@@ -6,6 +13,8 @@ from django.core.management.base import BaseCommand
 from icalendar import Calendar
 
 from events.models import Event, Location, Organization, Tag
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -168,14 +177,14 @@ class Command(BaseCommand):
         )
 
         if not os.path.exists(ics_file):
-            self.stdout.write(self.style.ERROR(f"ICS file not found: {ics_file}"))
+            logger.error(f"ICS file not found: {ics_file}")
             return
 
         try:
             with open(ics_file, "rb") as f:
                 cal = Calendar.from_ical(f.read())
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Error reading ICS file: {str(e)}"))
+            logger.error(f"Error reading ICS file: {str(e)}")
             return
 
         events_created = 0
@@ -262,14 +271,10 @@ class Command(BaseCommand):
 
             if created:
                 events_created += 1
-                self.stdout.write(self.style.SUCCESS(f"Created event: {title}"))
+                logger.info(f"Created event: {title}")
             else:
                 events_updated += 1
-                self.stdout.write(self.style.SUCCESS(f"Updated event: {title}"))
+                logger.info(f"Updated event: {title}")
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Import complete. Created {events_created} events, updated {events_updated} \
-                    events."
-            )
-        )
+        logger.info(f"Import complete. Created {events_created} events, updated {events_updated} \
+                    events.")

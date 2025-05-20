@@ -32,3 +32,25 @@ WAGTAILADMIN_BASE_URL = "http://127.0.0.1:8000"
 # Remove 'django.contrib.sites' from INSTALLED_APPS here since it's now in base.py
 
 SITE_ID = 1
+
+# Enable detailed error reporting and DEBUG-level logging to stdout
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
+}

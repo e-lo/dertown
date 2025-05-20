@@ -1,6 +1,7 @@
 import os
 
 from django.contrib import messages
+from django.db import models
 from django.shortcuts import redirect, render
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -14,15 +15,34 @@ from wagtail.snippets.views.snippets import SnippetViewSet
 from .models import CommunityAnnouncement, Event, Location, Organization, Tag
 
 
-class EventViewSet(SnippetViewSet):
+class EventReviewViewSet(SnippetViewSet):
     model = Event
     icon = "date"
-    list_display = ["title", "status", "start_date", "organization", "location"]
+    list_display = ["title", "status", "start_date", "primary_tag", "secondary_tag"]
     list_filter = ["start_date", "organization", "location", "primary_tag", "secondary_tag"]
-    ordering = ["-status", "start_date", "start_time"]
+    ordering = ["-status", "-primary_tag", "start_date", "start_time"]
     search_fields = ["title", "description"]
     add_to_admin_menu = True
     menu_order = 200
+
+    def get_queryset(self, request):
+        # Upcoming events only
+        qs = Event.get_all_upcoming_events()
+        # Priority 1: approved, no primary_tag
+        approved_no_tag = qs.filter(status="approved", primary_tag__isnull=True)
+        # Priority 2: pending, any tag
+        pending = qs.filter(status="pending")
+        # Combine and order: approved (no tag) first, then pending, both by soonest date
+        combined = list(approved_no_tag.order_by("start_date", "start_time")) + list(
+            pending.order_by("start_date", "start_time")
+        )
+        # Return as a queryset-like object (IDs in this order)
+        if combined:
+            preserved = models.Case(
+                *[models.When(pk=ev.pk, then=pos) for pos, ev in enumerate(combined)]
+            )
+            return Event.objects.filter(pk__in=[ev.pk for ev in combined]).order_by(preserved)
+        return qs.none()
 
     def get_admin_urls_for_registration(self):
         urls = super().get_admin_urls_for_registration()
@@ -130,7 +150,7 @@ class CommunityAnnouncementViewSet(SnippetViewSet):
     list_filter = ["active", "organization"]
 
 
-register_snippet(Event, viewset=EventViewSet)
+register_snippet(Event, viewset=EventReviewViewSet)
 register_snippet(Tag, viewset=TagViewSet)
 register_snippet(Organization, viewset=OrganizationViewSet)
 register_snippet(Location, viewset=LocationViewSet)
@@ -202,3 +222,52 @@ def register_admin_urls():
 @hooks.register("register_admin_menu_item")
 def register_import_menu_item():
     return MenuItem(_("Import ICS"), reverse("admin_import_ics"), icon_name="upload", order=10000)
+
+
+class EventViewSet(SnippetViewSet):
+    model = Event
+    icon = "date"
+    list_display = [
+        "title",
+        "status",
+        "start_date",
+        "primary_tag",
+        "secondary_tag",
+        "details_outdated_display",
+    ]
+    list_filter = [
+        "start_date",
+        "organization",
+        "location",
+        "primary_tag",
+        "secondary_tag",
+        "DetailsOutdatedFilter",
+    ]
+    ordering = ["-status", "-primary_tag", "start_date", "start_time"]
+    search_fields = ["title", "description"]
+    add_to_admin_menu = True
+    menu_order = 200
+
+    def details_outdated_display(self, obj):
+        return obj.details_outdated
+
+    details_outdated_display.short_description = "Details Outdated?"
+    details_outdated_display.admin_order_field = None
+
+    class DetailsOutdatedFilter:
+        title = "Details Outdated"
+        parameter_name = "details_outdated"
+
+        def lookups(self, request, model_admin):
+            return (
+                ("yes", "Yes"),
+                ("no", "No"),
+            )
+
+        def queryset(self, request, queryset):
+            value = request.GET.get(self.parameter_name)
+            if value == "yes":
+                return [obj for obj in queryset if obj.details_outdated]
+            elif value == "no":
+                return [obj for obj in queryset if not obj.details_outdated]
+            return queryset
