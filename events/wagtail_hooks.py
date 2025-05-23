@@ -1,273 +1,50 @@
-import os
-
-from django.contrib import messages
-from django.db import models
-from django.shortcuts import redirect, render
-from django.template.response import TemplateResponse
-from django.urls import path, reverse
-from django.utils.translation import gettext_lazy as _
-from django.views.generic import View
 from wagtail import hooks
-from wagtail.admin.menu import MenuItem
+from wagtail.admin.menu import Menu, MenuItem, SubmenuMenuItem
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet
 
-from .models import CommunityAnnouncement, Event, Location, Organization, Tag
+from .views import EventSnippetViewSet, SnippetAdminViewSetGroup
 
-
-class EventReviewViewSet(SnippetViewSet):
-    model = Event
-    icon = "date"
-    list_display = ["title", "status", "start_date", "primary_tag", "secondary_tag"]
-    list_filter = ["start_date", "organization", "location", "primary_tag", "secondary_tag"]
-    ordering = ["-status", "-primary_tag", "start_date", "start_time"]
-    search_fields = ["title", "description"]
-    add_to_admin_menu = True
-    menu_order = 200
-
-    def get_queryset(self, request):
-        # Upcoming events only
-        qs = Event.get_all_upcoming_events()
-        # Priority 1: approved, no primary_tag
-        approved_no_tag = qs.filter(status="approved", primary_tag__isnull=True)
-        # Priority 2: pending, any tag
-        pending = qs.filter(status="pending")
-        # Combine and order: approved (no tag) first, then pending, both by soonest date
-        combined = list(approved_no_tag.order_by("start_date", "start_time")) + list(
-            pending.order_by("start_date", "start_time")
-        )
-        # Return as a queryset-like object (IDs in this order)
-        if combined:
-            preserved = models.Case(
-                *[models.When(pk=ev.pk, then=pos) for pos, ev in enumerate(combined)]
-            )
-            return Event.objects.filter(pk__in=[ev.pk for ev in combined]).order_by(preserved)
-        return qs.none()
-
-    def get_admin_urls_for_registration(self):
-        urls = super().get_admin_urls_for_registration()
-        urls += (path("import-ics/", self.import_ics_view, name="import_ics"),)
-        return urls
-
-    def get_listing_buttons(self):
-        buttons = super().get_listing_buttons()
-        buttons.append(
-            {
-                "label": _("Import ICS"),
-                "url": reverse(
-                    f"wagtailsnippets_{self.model._meta.app_label}_{self.model._meta.model_name}:import_ics"
-                ),
-                "classname": "button button-secondary",
-                "icon_name": "upload",
-            }
-        )
-        return buttons
-
-    def import_ics_view(self, request):
-        # Import here to avoid circular/app registry issues
-        from .management.commands.import_ics_events import Command as ImportICSCommand
-
-        if request.method == "POST":
-            try:
-                ics_file = request.FILES.get("ics_file")
-                if not ics_file:
-                    messages.error(request, _("No file was uploaded."))
-                    return redirect(
-                        "wagtailsnippets:list",
-                        self.model._meta.app_label,
-                        self.model._meta.model_name,
-                    )
-                temp_dir = "temp_ics"
-                if not os.path.exists(temp_dir):
-                    os.makedirs(temp_dir)
-                temp_path = os.path.join(temp_dir, ics_file.name)
-                with open(temp_path, "wb+") as destination:
-                    for chunk in ics_file.chunks():
-                        destination.write(chunk)
-                try:
-                    command = ImportICSCommand()
-                    command.handle(
-                        ics_file=temp_path,
-                        organization=request.POST.get("organization", ""),
-                        location=request.POST.get("location", ""),
-                        default_tags=request.POST.get("default_tags", ""),
-                    )
-                    messages.success(request, "ICS file imported successfully!")
-                    return redirect("wagtailsnippets_events_event:list")
-                except Exception as e:
-                    messages.error(request, _("Error importing events: %s") % str(e))
-                    return redirect(
-                        "wagtailsnippets:list",
-                        self.model._meta.app_label,
-                        self.model._meta.model_name,
-                    )
-                finally:
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-                    try:
-                        os.rmdir(temp_dir)
-                    except Exception:
-                        pass
-            except Exception as e:
-                messages.error(request, _("Error processing file: %s") % str(e))
-                return redirect(
-                    "wagtailsnippets:list", self.model._meta.app_label, self.model._meta.model_name
-                )
-        return TemplateResponse(
-            request,
-            "events/import_ics.html",
-            {
-                "view": self,
-            },
-        )
+register_snippet(EventSnippetViewSet, EventSnippetViewSet)
 
 
-class TagViewSet(SnippetViewSet):
-    model = Tag
-    icon = "tag"
-    list_display = ["name"]
-    search_fields = ["name", "description"]
-
-
-class OrganizationViewSet(SnippetViewSet):
-    model = Organization
-    icon = "group"
-    list_display = ["name", "website", "email"]
-    search_fields = ["name", "website"]
-
-
-class LocationViewSet(SnippetViewSet):
-    model = Location
-    icon = "site"
-    list_display = ["name", "address"]
-    search_fields = ["name", "address", "description"]
-
-
-class CommunityAnnouncementViewSet(SnippetViewSet):
-    model = CommunityAnnouncement
-    list_display = ["title", "active", "organization", "author", "created_at", "expires_at"]
-    search_fields = ["title", "message", "author"]
-    list_filter = ["active", "organization"]
-
-
-register_snippet(Event, viewset=EventReviewViewSet)
-register_snippet(Tag, viewset=TagViewSet)
-register_snippet(Organization, viewset=OrganizationViewSet)
-register_snippet(Location, viewset=LocationViewSet)
-register_snippet(CommunityAnnouncement, viewset=CommunityAnnouncementViewSet)
-
-
-class ImportICSView(View):
-    template_name = "events/import_ics.html"
-
-    def get(self, request):
-        return render(request, self.template_name)
-
-    def post(self, request):
-        # Import here to avoid circular/app registry issues
-        from .management.commands.import_ics_events import Command as ImportICSCommand
-
-        try:
-            ics_file = request.FILES.get("ics_file")
-            if not ics_file:
-                messages.error(request, _("No file was uploaded."))
-                return redirect("admin_import_ics")
-
-            # Create a temporary file with the uploaded content
-            temp_dir = "temp_ics"
-            if not os.path.exists(temp_dir):
-                os.makedirs(temp_dir)
-
-            temp_path = os.path.join(temp_dir, ics_file.name)
-            with open(temp_path, "wb+") as destination:
-                for chunk in ics_file.chunks():
-                    destination.write(chunk)
-
-            try:
-                # Create command instance and run import
-                command = ImportICSCommand()
-                command.handle(
-                    ics_file=temp_path,
-                    organization=request.POST.get("organization", ""),
-                    location=request.POST.get("location", ""),
-                    default_tags=request.POST.get("default_tags", ""),
-                )
-
-                messages.success(request, "ICS file imported successfully!")
-                return redirect("wagtailsnippets_events_event:list")
-            except Exception as e:
-                messages.error(request, _("Error importing events: %s") % str(e))
-                return redirect("admin_import_ics")
-            finally:
-                # Clean up the temporary file
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                try:
-                    os.rmdir(temp_dir)
-                except Exception:
-                    pass
-
-        except Exception as e:
-            messages.error(request, _("Error processing file: %s") % str(e))
-            return redirect("admin_import_ics")
-
-
-@hooks.register("register_admin_urls")
-def register_admin_urls():
-    return [
-        path("import-ics/", ImportICSView.as_view(), name="admin_import_ics"),
-    ]
+@hooks.register("register_admin_viewset")
+def register_snippet_viewset():
+    return SnippetAdminViewSetGroup()
 
 
 @hooks.register("register_admin_menu_item")
-def register_import_menu_item():
-    return MenuItem(_("Import ICS"), reverse("admin_import_ics"), icon_name="upload", order=10000)
+def register_events_menu():
+    events_menu = Menu(
+        items=[
+            MenuItem("All Events", "/admin/snippets/events/event/", icon_name="list-ul"),
+            MenuItem(
+                "Needs Review",
+                "/admin/snippets/events/event/?needs_review=true",
+                icon_name="warning",
+            ),
+            MenuItem(
+                "Upcoming", "/admin/snippets/events/event/?is_upcoming=true", icon_name="calendar"
+            ),
+        ]
+    )
+    return SubmenuMenuItem("Events", events_menu, icon_name="calendar", order=110)
 
 
-class EventViewSet(SnippetViewSet):
-    model = Event
-    icon = "date"
-    list_display = [
-        "title",
-        "status",
-        "start_date",
-        "primary_tag",
-        "secondary_tag",
-        "details_outdated_display",
-    ]
-    list_filter = [
-        "start_date",
-        "organization",
-        "location",
-        "primary_tag",
-        "secondary_tag",
-        "DetailsOutdatedFilter",
-    ]
-    ordering = ["-status", "-primary_tag", "start_date", "start_time"]
-    search_fields = ["title", "description"]
-    add_to_admin_menu = True
-    menu_order = 200
-
-    def details_outdated_display(self, obj):
-        return obj.details_outdated
-
-    details_outdated_display.short_description = "Details Outdated?"
-    details_outdated_display.admin_order_field = None
-
-    class DetailsOutdatedFilter:
-        title = "Details Outdated"
-        parameter_name = "details_outdated"
-
-        def lookups(self, request, model_admin):
-            return (
-                ("yes", "Yes"),
-                ("no", "No"),
-            )
-
-        def queryset(self, request, queryset):
-            value = request.GET.get(self.parameter_name)
-            if value == "yes":
-                return [obj for obj in queryset if obj.details_outdated]
-            elif value == "no":
-                return [obj for obj in queryset if not obj.details_outdated]
-            return queryset
+@hooks.register("register_admin_menu_item")
+def register_review_menu():
+    review_menu = Menu(
+        items=[
+            MenuItem(
+                "Events", "/admin/snippets/events/event/?needs_review=true", icon_name="calendar"
+            ),
+            MenuItem(
+                "Organizations",
+                "/admin/snippets/events/organization/?status=pending",
+                icon_name="group",
+            ),
+            MenuItem(
+                "Locations", "/admin/snippets/events/location/?status=pending", icon_name="site"
+            ),
+        ]
+    )
+    return SubmenuMenuItem("Review", review_menu, icon_name="warning", order=100)

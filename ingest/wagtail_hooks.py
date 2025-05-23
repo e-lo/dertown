@@ -1,4 +1,5 @@
 import io
+import os
 from contextlib import redirect_stderr, redirect_stdout
 
 from django import forms
@@ -6,6 +7,8 @@ from django.contrib import messages
 from django.core.management import call_command
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
+from django.utils.translation import gettext_lazy as _
+from django.views import View
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.admin.panels import FieldPanel
@@ -89,6 +92,68 @@ def manual_import_view(request):
     return render(request, "ingest/manual_import.html", {"form": form})
 
 
+class ImportICSView(View):
+    template_name = "events/import_ics.html"
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        # Import here to avoid circular/app registry issues
+        from .management.commands.import_ics_events import Command as ImportICSCommand
+
+        try:
+            ics_file = request.FILES.get("ics_file")
+            if not ics_file:
+                messages.error(request, _("No file was uploaded."))
+                return redirect("admin_import_ics")
+
+            # Create a temporary file with the uploaded content
+            temp_dir = "temp_ics"
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+
+            temp_path = os.path.join(temp_dir, ics_file.name)
+            with open(temp_path, "wb+") as destination:
+                for chunk in ics_file.chunks():
+                    destination.write(chunk)
+
+            try:
+                # Create command instance and run import
+                command = ImportICSCommand()
+                command.handle(
+                    ics_file=temp_path,
+                    organization=request.POST.get("organization", ""),
+                    location=request.POST.get("location", ""),
+                    default_tags=request.POST.get("default_tags", ""),
+                )
+
+                messages.success(request, "ICS file imported successfully!")
+                return redirect("wagtailsnippets_events_event:list")
+            except Exception as e:
+                messages.error(request, _("Error importing events: %s") % str(e))
+                return redirect("admin_import_ics")
+            finally:
+                # Clean up the temporary file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                try:
+                    os.rmdir(temp_dir)
+                except Exception:
+                    pass
+
+        except Exception as e:
+            messages.error(request, _("Error processing file: %s") % str(e))
+            return redirect("admin_import_ics")
+
+
+@hooks.register("register_admin_urls")
+def register_admin_urls():
+    return [
+        path("import-ics/", ImportICSView.as_view(), name="admin_import_ics"),
+    ]
+
+
 @hooks.register("register_admin_urls")
 def register_manual_import_url():
     return [
@@ -97,5 +162,10 @@ def register_manual_import_url():
 
 
 @hooks.register("register_admin_menu_item")
+def register_import_menu_item():
+    return MenuItem(_("Import ICS"), reverse("admin_import_ics"), icon_name="upload", order=10000)
+
+
+@hooks.register("register_admin_menu_item")
 def register_manual_import_menu_item():
-    return MenuItem("Manual Import", reverse("manual_import"), icon_name="download", order=10001)
+    return MenuItem("Manual Import", reverse("manual_import"), icon_name="upload", order=10001)

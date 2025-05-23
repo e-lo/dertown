@@ -2,6 +2,7 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 
+import django_filters
 import pytz
 from django.contrib import messages
 from django.db.models import Q
@@ -13,11 +14,109 @@ from django.utils.feedgenerator import Rss201rev2Feed
 from django.utils.http import urlencode
 from icalendar import Calendar
 from icalendar import Event as ICalEvent
+from wagtail.admin.filters import WagtailFilterSet
+from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
 from .forms import PublicEventSubmissionForm
-from .models import Event, Location, Organization, Tag
+from .models import CommunityAnnouncement, Event, Location, Organization, Tag
 
 logger = logging.getLogger(__name__)
+
+
+class TagViewSet(SnippetViewSet):
+    model = Tag
+    icon = "tag"
+    list_display = ["name"]
+    search_fields = ["name", "description"]
+
+
+class OrganizationViewSet(SnippetViewSet):
+    model = Organization
+    icon = "group"
+    list_display = ["name", "status", "website", "email"]
+    search_fields = ["name", "website"]
+    list_filter = ["status"]
+
+
+class LocationViewSet(SnippetViewSet):
+    model = Location
+    icon = "site"
+    list_display = ["name", "status", "address", "parent_location"]
+    search_fields = ["name", "address", "description"]
+    list_filter = ["status"]
+
+
+class CommunityAnnouncementViewSet(SnippetViewSet):
+    model = CommunityAnnouncement
+    list_display = ["title", "active", "organization", "author", "created_at", "expires_at"]
+    search_fields = ["title", "message", "author"]
+    list_filter = ["active", "organization"]
+
+
+class SnippetAdminViewSetGroup(SnippetViewSetGroup):
+    items = (OrganizationViewSet, LocationViewSet, CommunityAnnouncementViewSet, TagViewSet)
+    menu_icon = "table"
+    menu_label = "Data"
+    menu_name = "data"
+
+
+class EventFilterSet(WagtailFilterSet):
+    is_upcoming = django_filters.BooleanFilter(method="filter_is_upcoming", label="Upcoming")
+    needs_review = django_filters.BooleanFilter(method="filter_needs_review", label="Needs Review")
+
+    class Meta:
+        model = Event
+        fields = ["is_upcoming", "needs_review"]
+
+    def filter_is_upcoming(self, queryset, name, value):
+        if value:
+            today = timezone.now().date()
+            return queryset.filter(Q(start_date__gt=today) | Q(end_date__gt=today))
+        return queryset
+
+    def filter_needs_review(self, queryset, name, value):
+        if value:
+            today = timezone.now().date()
+            return queryset.filter(
+                Q(status="pending", start_date__gt=today)
+                | Q(primary_tag__isnull=True, start_date__gt=today)
+            )
+        return queryset
+
+
+class EventSnippetViewSet(SnippetViewSet):
+    model = Event
+    list_display = ["title", "status", "start_date", "primary_tag", "parent_event"]
+    search_fields = [
+        "title",
+        "description",
+        "organization__name",
+        "location__name",
+        "parent_event__name",
+    ]
+    filterset_class = EventFilterSet
+    icon = "list-ul"
+    menu_label = "Events"
+    menu_name = "events"
+    ordering = ["-start_date", "-start_time"]
+
+
+class NeedsReviewEventsViewSet(EventSnippetViewSet):
+    menu_label = "Needs Review"
+    menu_name = "needs_review_events"
+    icon = "warning"
+
+    # Override menu_url to point to the filtered view
+    @property
+    def menu_url(self):
+        return "/admin/snippets/events/event/?needs_review=true"
+
+
+class EventSnippetViewSetGroup(SnippetViewSetGroup):
+    menu_label = "Events"
+    menu_icon = "calendar"
+    menu_name = "events_group"
+    items = (EventSnippetViewSet, NeedsReviewEventsViewSet)
 
 
 def event_list(request):

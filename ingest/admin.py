@@ -1,1 +1,1 @@
-# Register your models here.
+# Admin models registered at wagtail_hooks.py

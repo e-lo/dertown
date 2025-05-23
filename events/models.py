@@ -323,6 +323,39 @@ class Event(models.Model):
         return datetime.combine(end_date, datetime.max.time())
 
     @property
+    def is_upcoming(self):
+        """Check if the event is upcoming.
+
+        Event is upcoming if:
+        1. The start date is in the future OR
+        2. The end dateis in the future
+        """
+        today = timezone.now().date()
+        if not self.start_date:
+            return True
+        if self.start_date > today:
+            return True
+        if self.end_date and self.end_date > today:
+            return True
+        return False
+
+    @property
+    def needs_review(self):
+        """Check if the event needs review.
+
+        Event needs review if:
+        1. The event is pending and is upcoming
+        2. The event doesn't have a primary tag and is upcoming
+        """
+        if self.status != "pending":
+            return False
+        if self.is_upcoming:
+            return True
+        if not self.primary_tag:
+            return True
+        return False
+
+    @property
     def is_today(self):
         """Check if the event is today.
 
