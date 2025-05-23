@@ -22,7 +22,11 @@
       <a
         href="{% url 'events:event_detail' event.id %}"
         class="event-title-link link-animate h5 mb-0 flex-grow-1"
-        >{{ event.title }}</a
+        >{{ event.title }}{% if event.featured %}<span
+          class="event-list-card__featured-star-inline ms-2"
+          title="Featured Event"
+          ><i class="fa-solid fa-star"></i></span
+        >{% endif %}</a
       >
       <a href="{% url 'events:event_detail' event.id %}" class="ms-2 link-animate"
         ><i class="event-list-card__arrow fa-solid fa-arrow-right"></i

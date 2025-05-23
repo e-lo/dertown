@@ -3,7 +3,11 @@
   <div
     class="event-card h-100{% if not event.image and not event.external_image_url %} event-card--no-image{% endif %}"
   >
-    {% if event.image %} {% load wagtailimages_tags %}
+    {% if event.featured %}
+    <span class="event-card__featured-star" title="Featured Event">
+      <i class="fa-solid fa-star"></i>
+    </span>
+    {% endif %} {% if event.image %} {% load wagtailimages_tags %}
     <div class="event-card__img-container">
       {% image event.image fill-300x400 class="event-card__img" %}
     </div>

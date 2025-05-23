@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!carousels.length) return; // No carousels present, exit early
 
   carousels.forEach((carousel) => {
-    const container = carousel.querySelector('.carousel-inner');
+    const container = carousel.querySelector('.event-carousel__inner');
     if (!container) return; // Defensive: skip if no container
     let isScrolling = false;
     let startX;
@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Keyboard navigation
     document.addEventListener('keydown', function (e) {
-      if (!isScrolling && carousel.querySelector('.col-lg-4')) {
-        const cardWidth = carousel.querySelector('.col-lg-4').offsetWidth;
+      if (!isScrolling && carousel.querySelector('.event-carousel__item')) {
+        const cardWidth = carousel.querySelector('.event-carousel__item').offsetWidth;
         if (e.key === 'ArrowLeft') {
           smoothScroll(container, -cardWidth);
         } else if (e.key === 'ArrowRight') {
@@ -65,17 +65,21 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Arrow controls
-    const prevBtn = carousel.querySelector('.carousel-control-prev');
-    const nextBtn = carousel.querySelector('.carousel-control-next');
+    const prevBtn = carousel.querySelector('.event-carousel__control--prev');
+    const nextBtn = carousel.querySelector('.event-carousel__control--next');
 
-    if (prevBtn && nextBtn && carousel.querySelector('.col-lg-4')) {
-      prevBtn.addEventListener('click', () => {
-        const cardWidth = carousel.querySelector('.col-lg-4').offsetWidth;
+    if (prevBtn && nextBtn && carousel.querySelector('.event-carousel__item')) {
+      prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const cardWidth = carousel.querySelector('.event-carousel__item').offsetWidth;
         smoothScroll(container, -cardWidth);
       });
 
-      nextBtn.addEventListener('click', () => {
-        const cardWidth = carousel.querySelector('.col-lg-4').offsetWidth;
+      nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const cardWidth = carousel.querySelector('.event-carousel__item').offsetWidth;
         smoothScroll(container, cardWidth);
       });
     }

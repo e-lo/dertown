@@ -6,8 +6,8 @@ body {
 }
 
 .hero-section {
-  background-color: #f4b942;
-  padding: 4rem 0;
+  background-color: var(--event-featured);
+  padding: 2rem 0;
   min-height: 80vh;
   display: flex;
   align-items: center;
@@ -81,7 +81,7 @@ body {
 
   .events-section {
     padding-right: 15px;
-    margin-top: 2rem;
+    margin-top: 1rem;
   }
 }
 
