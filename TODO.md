@@ -35,13 +35,13 @@ This document outlines a phased approach to implementing the Der Town community 
 - [ ] **TODO**: Test public insert to `events_staged` in remote Supabase
 
 #### 1.3 Core Dependencies
-- [ ] Install and configure FullCalendar.js
-- [ ] Set up Pydantic models for data validation
-- [ ] Configure environment variables and secrets
-- [ ] Set up development and production environments
-- [ ] Document dependency management procedures in `DEVELOPING.md`
-- [ ] **VALIDATION**: Run `npm run test`, `python -m pytest`, verify all imports work
-- [ ] **TESTING**: Test FullCalendar integration, Pydantic model validation
+- [x] Install and configure FullCalendar.js (client-only, browser-safe)
+- [ ] Set up Pydantic models for data validation *(pending)*
+- [x] Configure environment variables and secrets
+- [x] Set up development and production environments
+- [x] Document dependency management procedures in `DEVELOPING.md`
+- [x] **VALIDATION**: Run `npm run test`, `python -m pytest`, verify all imports work *(Pydantic pending)*
+- [x] **TESTING**: Test FullCalendar integration, Pydantic model validation *(Pydantic pending)*
 
 #### 1.4 Preview Environment Setup
 - [ ] Configure staging environment (staging.dertown.org)

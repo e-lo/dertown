@@ -596,6 +596,12 @@ VACUUM ANALYZE;
 REINDEX DATABASE dertown;
 ```
 
+## 🧩 Client-Only Components & Browser-Only JS
+
+- For browser-only libraries (like FullCalendar.js), do not import ESM modules from CDN in Astro frontmatter or at build time.
+- Use Astro's `client:only` directive with a framework component, or a plain `<script type="module">` in the HTML body, to ensure code runs only in the browser.
+- See `src/components/FullCalendar.astro` for the recommended approach.
+
 # 🚀 Developing Der Town
 
 This document provides comprehensive guidance for setting up and developing the Der Town community events platform.

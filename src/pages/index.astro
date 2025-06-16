@@ -5,9 +5,27 @@
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>Der Town - Community Events</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.11/main.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.11/main.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.11/main.min.css"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <h1>Der Town</h1>
     <p>Community Events Platform</p>
+    <div id="calendar"></div>
+    <script type="module" src="/src/components/FullCalendar.astro.js"></script>
   </body>
 </html>;

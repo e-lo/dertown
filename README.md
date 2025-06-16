@@ -94,3 +94,7 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## Client-Only Components in Astro
+
+For browser-only libraries (like FullCalendar.js), use Astro's `client:only` directive or a plain `<script>` tag to ensure code runs only in the browser and not at build time. See the calendar integration in `src/components/FullCalendar.astro` for an example.
