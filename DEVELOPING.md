@@ -595,3 +595,393 @@ feat: initialize astro project with typescript and tailwind
 VACUUM ANALYZE;
 REINDEX DATABASE dertown;
 ```
+
+# 🚀 Developing Der Town
+
+This document provides comprehensive guidance for setting up and developing the Der Town community events platform.
+
+## 📋 Prerequisites
+
+- Node.js 18+ and npm
+- Python 3.8+ and pip
+- Git
+- Supabase CLI (optional, for local development)
+
+## 🛠️ Initial Setup
+
+### 1. Clone and Install Dependencies
+
+```bash
+git clone <repository-url>
+cd dertown
+npm install
+```
+
+### 2. Environment Configuration
+
+Copy the environment template and configure your local environment:
+
+```bash
+cp env.example .env
+```
+
+Edit `.env` with your specific configuration values.
+
+### 3. Supabase Setup
+
+#### Option A: Local Development (Recommended)
+
+1. **Install Supabase CLI** (if not already installed):
+   ```bash
+   npm install -g supabase
+   ```
+
+2. **Start local Supabase services**:
+   ```bash
+   npx supabase start
+   ```
+
+3. **Apply database migrations**:
+   ```bash
+   npx supabase db reset
+   ```
+
+4. **Get your local credentials**:
+   ```bash
+   npx supabase status
+   ```
+
+5. **Update your `.env` file** with the local credentials from the status output.
+
+#### Option B: Remote Supabase Project
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Get your project credentials** from the project settings
+3. **Update your `.env` file** with the remote credentials
+4. **Apply migrations to remote**:
+   ```bash
+   npx supabase db push
+   ```
+
+### 4. Start Development Server
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:4321`
+
+## 🗄️ Database Management
+
+### Schema Overview
+
+The Der Town platform uses the following core database tables:
+
+- **`events`** - Main event data with relationships to locations, organizations, and tags
+- **`locations`** - Physical locations where events occur
+- **`organizations`** - Organizations hosting events
+- **`tags`** - Event categories and classifications
+- **`announcements`** - Community announcements and notifications
+- **`source_sites`** - External data sources for event ingestion
+- **`scrape_logs`** - Logging for data ingestion processes
+
+### Database Operations
+
+#### Local Development
+
+```bash
+# Start local database
+npx supabase start
+
+# Stop local database
+npx supabase stop
+
+# Reset database (applies all migrations and seed data)
+npx supabase db reset
+
+# Apply new migrations only
+npx supabase db push
+
+# Generate new migration from schema changes
+npx supabase db diff -f migration_name
+
+# View database status
+npx supabase status
+```
+
+#### Production Database
+
+```bash
+# Apply migrations to production
+npx supabase db push --db-url $PRODUCTION_DATABASE_URL
+
+# Create backup
+npx supabase db dump --db-url $PRODUCTION_DATABASE_URL > backup.sql
+
+# Restore from backup
+npx supabase db reset --db-url $PRODUCTION_DATABASE_URL < backup.sql
+```
+
+### Row Level Security (RLS)
+
+The database implements Row Level Security with the following policies:
+
+- **Public Read Access**: Approved events, locations, organizations, and published announcements
+- **Admin Full Access**: Authenticated users can perform all operations
+- **Public Event Submissions**: Anyone can submit new events (pending approval)
+
+### Storage Buckets
+
+- **`event-assets`**: Public bucket for event images and media files
+- **Access Control**: Public read access, authenticated users can upload/update/delete
+
+### Backup and Recovery
+
+#### Automated Backups
+
+Set up automated database backups using Supabase's built-in backup system or implement custom backup scripts.
+
+#### Manual Backup Process
+
+1. **Create backup**:
+   ```bash
+   npx supabase db dump --db-url $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+   ```
+
+2. **Restore backup**:
+   ```bash
+   npx supabase db reset --db-url $DATABASE_URL < backup_file.sql
+   ```
+
+#### Backup Verification
+
+```bash
+# Verify backup integrity
+pg_restore --list backup_file.sql
+
+# Test restore to temporary database
+createdb test_restore
+psql test_restore < backup_file.sql
+```
+
+### Data Migration Procedures
+
+#### From Django/Wagtail to Supabase
+
+1. **Export Django data**:
+   ```bash
+   python manage.py dumpdata --natural-foreign --natural-primary > django_export.json
+   ```
+
+2. **Transform data** (use provided migration scripts):
+   ```bash
+   python scripts/migrate_django_data.py django_export.json
+   ```
+
+3. **Import to Supabase**:
+   ```bash
+   npx supabase db reset
+   psql $DATABASE_URL < transformed_data.sql
+   ```
+
+#### Schema Updates
+
+1. **Create migration**:
+   ```bash
+   npx supabase db diff -f descriptive_migration_name
+   ```
+
+2. **Review migration** in `supabase/migrations/`
+
+3. **Apply migration**:
+   ```bash
+   npx supabase db push
+   ```
+
+4. **Update seed data** if needed:
+   ```bash
+   npx supabase db reset
+   ```
+
+### Performance Optimization
+
+#### Indexing Strategy
+
+The database includes indexes on:
+- Event start dates and status
+- Location and organization relationships
+- Announcement visibility dates
+- Import frequency for source sites
+
+#### Query Optimization
+
+- Use appropriate WHERE clauses to leverage indexes
+- Implement pagination for large result sets
+- Consider materialized views for complex aggregations
+
+### Monitoring and Maintenance
+
+#### Health Checks
+
+```bash
+# Check database connectivity
+npx supabase status
+
+# Verify RLS policies
+psql $DATABASE_URL -c "SELECT schemaname, tablename, policyname FROM pg_policies;"
+
+# Check storage bucket access
+curl -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  "$SUPABASE_URL/storage/v1/object/list/event-assets"
+```
+
+#### Regular Maintenance Tasks
+
+1. **Weekly**:
+   - Review and clean up duplicate events
+   - Check for outdated announcements
+   - Verify source site import status
+
+2. **Monthly**:
+   - Archive old events and announcements
+   - Update organization and location information
+   - Review and optimize database performance
+
+3. **Quarterly**:
+   - Full database backup and recovery test
+   - Review and update RLS policies
+   - Audit user permissions and access
+
+## 🔧 Development Workflow
+
+### Code Quality
+
+```bash
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Run tests
+npm run test
+```
+
+### Git Workflow
+
+1. **Create feature branch**:
+   ```bash
+   git checkout -b feature/descriptive-name
+   ```
+
+2. **Make changes** and commit with descriptive messages
+
+3. **Run validation**:
+   ```bash
+   npm run lint && npm run format:check && npm run build
+   ```
+
+4. **Push and create pull request**
+
+### Database Changes
+
+1. **Create migration** for schema changes
+2. **Update seed data** if needed
+3. **Test locally** with `npx supabase db reset`
+4. **Document changes** in this file
+
+## 🚀 Deployment
+
+### Staging Environment
+
+1. **Deploy to staging**:
+   ```bash
+   npm run build
+   # Deploy to staging platform (Vercel/Netlify)
+   ```
+
+2. **Apply staging database changes**:
+   ```bash
+   npx supabase db push --db-url $STAGING_DATABASE_URL
+   ```
+
+### Production Environment
+
+1. **Deploy to production**:
+   ```bash
+   npm run build
+   # Deploy to production platform
+   ```
+
+2. **Apply production database changes**:
+   ```bash
+   npx supabase db push --db-url $PRODUCTION_DATABASE_URL
+   ```
+
+3. **Verify deployment**:
+   - Check all API endpoints
+   - Verify database connectivity
+   - Test authentication flows
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Database Connection Issues
+
+```bash
+# Check Supabase status
+npx supabase status
+
+# Verify environment variables
+echo $SUPABASE_URL
+echo $SUPABASE_ANON_KEY
+
+# Test connection
+psql $DATABASE_URL -c "SELECT version();"
+```
+
+#### RLS Policy Issues
+
+```bash
+# Check current policies
+psql $DATABASE_URL -c "SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual FROM pg_policies;"
+
+# Test policy enforcement
+psql $DATABASE_URL -c "SELECT * FROM events LIMIT 1;"
+```
+
+#### Storage Issues
+
+```bash
+# Check bucket configuration
+curl -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  "$SUPABASE_URL/storage/v1/bucket/list"
+
+# Test file upload
+curl -X POST \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -F "file=@test.jpg" \
+  "$SUPABASE_URL/storage/v1/object/event-assets/test.jpg"
+```
+
+### Getting Help
+
+1. **Check logs**:
+   ```bash
+   npx supabase logs
+   ```
+
+2. **Review documentation** in this file and project README
+
+3. **Create issue** with detailed error information
+
+## 📚 Additional Resources
+
+- [Supabase Documentation](https://supabase.com/docs)
+- [Astro Documentation](https://docs.astro.build)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [FullCalendar Documentation](https://fullcalendar.io/docs)

@@ -32,6 +32,7 @@ A previous implementation of this site was implemented as a Django site which ca
   * Importing `.ics` files
   * Scraping pages for event data
   * Summarizing long content into previews
+  * **Reviewing and promoting events from `events_staged` to `events`**
 
 ### ✅ Event Updates and Syncing
 
@@ -48,8 +49,8 @@ A previous implementation of this site was implemented as a Django site which ca
 
 * Astro-based web form for community event suggestions fuzzy automatching to existing organizations and locations or drop-downs - or the ability to add new ones if they don't exist yet
 * Spam protected via honeypot/CAPTCHA
-* Submissions inserted into DB with `status = 'pending'`
-* Admins can review and publish
+* Submissions inserted into DB via a dedicated `events_staged` table (not directly into `events`)
+* Admins can review, edit, and publish (move to `events`)
 
 ---
 
@@ -185,8 +186,6 @@ A previous implementation of this site was implemented as a Django site which ca
 | `show_at`     | Timestamp | When to start showing                    |
 | `expires_at`  | Timestamp | Optional expiration                      |
 
-### Ingestion Models
-
 #### `source_sites` table (SourceSite model)
 
 | Column                | Type      | Notes                                    |
@@ -211,8 +210,6 @@ A previous implementation of this site was implemented as a Django site which ca
 | `timestamp`   | Timestamp | Log timestamp                            |
 | `status`      | Text      | Scrape status                            |
 | `error_message` | Text   | Error details                            |
-
-### Wagtail CMS Models
 
 #### `simple_pages` table (SimplePage model)
 
@@ -266,6 +263,38 @@ A previous implementation of this site was implemented as a Django site which ca
 | `last_published_at` | Timestamp | Last publication time                    |
 | `live_revision_id` | UUID (FK) | → `wagtailcore_revision.id`              |
 
+#### `events_staged` table (for public submissions)
+
+| Column                    | Type      | Notes                                    |
+| ------------------------- | --------- | ---------------------------------------- |
+| `id`                      | UUID      | Primary key                              |
+| `title`                   | Text      | Event title                              |
+| `description`             | Text      | Long description                         |
+| `start_date`              | Date      | Start date                               |
+| `end_date`                | Date      | Optional end date                        |
+| `start_time`              | Time      | Optional start time                      |
+| `end_time`                | Time      | Optional end time                        |
+| `location_id`             | UUID (FK) | → `locations.id`                         |
+| `organization_id`         | UUID (FK) | → `organizations.id`                     |
+| `email`                   | Text      | Contact email                            |
+| `website`                 | Text      | Event website URL                        |
+| `registration_link`       | Text      | Registration page URL                    |
+| `primary_tag_id`          | UUID (FK) | → `tags.id`                              |
+| `secondary_tag_id`        | UUID (FK) | → `tags.id`                              |
+| `image_id`                | UUID (FK) | → `wagtailimages_image.id`               |
+| `external_image_url`      | Text      | External image URL                       |
+| `featured`                | Bool      | Featured event flag                      |
+| `parent_event_id`         | UUID (FK) | → `events_staged.id` (self-referencing)  |
+| `exclude_from_calendar`   | Bool      | Hide from calendar display               |
+| `google_calendar_event_id`| Text      | Google Calendar sync ID                  |
+| `registration`            | Bool      | Registration required flag               |
+| `cost`                    | Text      | Event cost/fee                           |
+| `status`                  | Text      | 'pending', 'approved', 'duplicate', 'archived' |
+| `updated_at`              | Timestamp | Auto-updated timestamp                   |
+| `details_outdated_checked_at` | Timestamp | Last outdated check time             |
+| `source_id`               | UUID (FK) | → `source_site.id`                       |
+| `submitted_at`            | Timestamp | Submission timestamp                     |
+
 ### Key Relationships
 
 - **Events** → **Locations** (many-to-one)
@@ -295,6 +324,10 @@ A previous implementation of this site was implemented as a Django site which ca
 
   * Admins can read/write all
   * Others read-only (or scoped)
+
+* RLS on `events_staged`:
+  * Public can insert
+  * Admins can read/write all
 
 ---
 

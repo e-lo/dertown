@@ -17,6 +17,7 @@
     "astro": "^5.9.3"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.50.0",
     "@typescript-eslint/eslint-plugin": "^8.34.1",
     "@typescript-eslint/parser": "^8.34.1",
     "astro-eslint-parser": "^1.2.2",

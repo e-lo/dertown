@@ -22,16 +22,17 @@ This document outlines a phased approach to implementing the Der Town community 
 - [ ] **TESTING**: Verify development server starts, Tailwind works, linting passes
 
 #### 1.2 Supabase Setup
-- [ ] Create Supabase project
-- [ ] Implement database schema (all tables from requirements)
-- [ ] Set up Row Level Security (RLS) policies
-- [ ] Configure authentication with email/password
-- [ ] Set up storage buckets (`event-assets`)
-- [ ] Create database migration scripts
-- [ ] Document database setup and maintenance procedures in `DEVELOPING.md`
-- [ ] Create backup and recovery documentation
-- [ ] **VALIDATION**: Run `supabase db reset`, verify schema, test RLS policies
-- [ ] **TESTING**: Test authentication, storage uploads, database connections
+- [x] Create Supabase project
+- [x] Implement database schema (all tables from requirements)
+- [x] Set up Row Level Security (RLS) policies
+- [x] Configure authentication with email/password
+- [x] Set up storage buckets (`event-assets`) *(API works, UI listing is a known local issue)*
+- [x] Create database migration scripts
+- [x] Document database setup and maintenance procedures in `DEVELOPING.md`
+- [x] Create backup and recovery documentation
+- [x] **VALIDATION**: Run `supabase db reset`, verify schema, test RLS policies
+- [x] **TESTING**: Test authentication, storage uploads (API), database connections
+- [ ] **TODO**: Test public insert to `events_staged` in remote Supabase
 
 #### 1.3 Core Dependencies
 - [ ] Install and configure FullCalendar.js
@@ -51,6 +52,10 @@ This document outlines a phased approach to implementing the Der Town community 
 - [ ] **VALIDATION**: Test preview deployment workflow, verify environment isolation
 - [ ] **TESTING**: Test staging environment, preview deployments, feature flags
 
+### Additional TODOs
+- [ ] Revisit public insert RLS for `events_staged` in remote/staging Supabase
+- [ ] Monitor Supabase local for storage bucket UI listing improvements
+
 ### Phase 2: Core Data Models & API (Week 3-4)
 **Goal**: Implement the foundational data layer and API endpoints
 
@@ -63,7 +68,8 @@ This document outlines a phased approach to implementing the Der Town community 
 - [ ] **TESTING**: Test model serialization/deserialization, database seeding
 
 #### 2.2 Astro API Routes
-- [ ] `/api/events` - CRUD operations for events
+- [ ] `/api/events` - CRUD operations for events (admin only)
+- [ ] `/api/events-staged` - Public event submission endpoint (public insert)
 - [ ] `/api/locations` - Location management
 - [ ] `/api/organizations` - Organization management
 - [ ] `/api/tags` - Tag/category management
@@ -81,6 +87,13 @@ This document outlines a phased approach to implementing the Der Town community 
 - [ ] Implement protected API routes
 - [ ] **VALIDATION**: Test authentication flows, verify middleware protection
 - [ ] **TESTING**: Test login/logout, role-based access, protected routes
+
+#### 2.4 Public Event Submission & Moderation
+- [ ] Create `events_staged` table for public submissions
+- [ ] Allow public insert to `events_staged` (RLS)
+- [ ] Admin review and promotion workflow: move from `events_staged` to `events`
+- [ ] **VALIDATION**: Test public submission, admin review, and promotion
+- [ ] **TESTING**: Test spam protection, moderation, and event publishing
 
 ### Phase 3: Public-Facing UI Components (Week 5-6)
 **Goal**: Build the core user interface components
