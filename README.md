@@ -1,118 +1,96 @@
 # Der Town
 
-A modern, community-driven events site built with Django and Wagtail. Der Town features a beautiful calendar, custom CSS/JS, a strong design system, and a modular component-based architecture for maintainability and scalability.
-
-## Features
-
-- Community event calendar with category filtering
-- Modular, reusable UI components (django-components)
-- Custom BEM-based CSS, Bootstrap layout
-- Wagtail CMS for content management
-- Google Calendar integration
-- Recaptcha and spam protection
-- Automated linting, formatting, and pre-commit hooks
+A modern, community-driven events site built with Astro, TypeScript, and Supabase. Der Town features a beautiful calendar, custom design system, and a modular component-based architecture for maintainability and scalability.
 
 ## Tech Stack
 
-- Python 3.12+
-- Django 5.x
-- Wagtail 6.x
-- django-components
-- Bootstrap 5
-- Pre-commit, Ruff, Stylelint, ESLint
-- Dependency management via `pyproject.toml` and [`uv`](https://github.com/astral-sh/uv)
-
----
+- [Astro](https://astro.build/) (static-first, minimal JS)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/) (custom theme)
+- [Shoelace](https://shoelace.style/) (accessible web components)
+- [Supabase](https://supabase.com/) (PostgreSQL, Auth, Storage)
+- [FullCalendar.js](https://fullcalendar.io/) (calendar UI)
+- [Prettier](https://prettier.io/) (code formatting)
+- [ESLint](https://eslint.org/) (linting)
 
 ## Local Development
 
-1. **Clone the repo:**
-
-   ```sh
-   git clone https://github.com/yourusername/dertown.git
-   cd dertown
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+2. **Start local dev server:**
+   ```bash
+   npm run dev
+   ```
+3. **Lint and format code:**
+   ```bash
+   npm run lint
+   npm run format
    ```
 
-2. **Create and activate a virtual environment:**
+## Project Structure
 
-   ```sh
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+- `src/` — Astro pages, components, and styles
+- `public/` — Static assets
+- `astro.config.mjs` — Astro configuration
+- `tailwind.config.js` — Tailwind CSS configuration
+- `tsconfig.json` — TypeScript configuration
 
-3. **Install dependencies:**
+## Scripts
 
-   ```sh
-   uv pip install -e .
-   ```
+- `npm run dev` — Start local dev server
+- `npm run build` — Build for production
+- `npm run lint` — Run ESLint
+- `npm run format` — Run Prettier
 
-4. **Set up your `.env` file:**
+## Documentation
 
-   - Copy `.env.example` to `.env` and fill in secrets (or set environment variables directly).
+- See [DEVELOPING.md](./DEVELOPING.md) for full developer setup and workflow
+- See [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md) for requirements and design
 
-5. **Apply migrations and create a superuser:**
+```sh
+npm create astro@latest -- --template minimal
+```
 
-   ```sh
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/minimal)
+[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/minimal)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/minimal/devcontainer.json)
 
-6. **Run the development server:**
+> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
 
-   ```sh
-   python manage.py runserver
-   ```
+## 🚀 Project Structure
 
-7. **Run linting and formatting checks:**
+Inside of your Astro project, you'll see the following folders and files:
 
-   ```sh
-   pre-commit run --all-files
-   ```
+```text
+/
+├── public/
+├── src/
+│   └── pages/
+│       └── index.astro
+└── package.json
+```
 
----
+Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
 
-## Deployment on Render
+There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
 
-1. **Connect your GitHub repo to Render.**
-2. **Set environment variables** in the Render dashboard (these override `.env`).
-   - `DJANGO_SETTINGS_MODULE=dertown.settings.production`
-   - `SECRET_KEY`, `DATABASE_URL`, etc.
-   - `DEBUG=False`
-3. **Set Render build and start commands:**
+Any static assets, like images, can be placed in the `public/` directory.
 
-   - **Build Command:**
+## 🧞 Commands
 
-     ```sh
-     uv pip install -e . && python manage.py collectstatic --noinput
-     ```
+All commands are run from the root of the project, from a terminal:
 
-   - **Start Command:**
+| Command                   | Action                                           |
+| :------------------------ | :----------------------------------------------- |
+| `npm install`             | Installs dependencies                            |
+| `npm run dev`             | Starts local dev server at `localhost:4321`      |
+| `npm run build`           | Build your production site to `./dist/`          |
+| `npm run preview`         | Preview your build locally, before deploying     |
+| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
+| `npm run astro -- --help` | Get help using the Astro CLI                     |
 
-     ```sh
-     gunicorn dertown.wsgi
-     ```
+## 👀 Want to learn more?
 
-   - **Migrate Command (optional, or add as a shell command):**
-
-     ```sh
-     python manage.py migrate
-     ```
-
-4. **ALLOWED_HOSTS** in your production settings should include your Render domain (e.g., `your-app.onrender.com`).
-5. **Push to your main branch** to trigger a deploy.
-6. **(Optional) Set up a static site on Render** to serve `/static` via their CDN for best performance.
-
----
-
-## Maintenance & Best Practices
-
-- Use pre-commit hooks to enforce code quality.
-- Keep dependencies up to date in `pyproject.toml`.
-- Use `python manage.py check --deploy` to verify production security settings.
-- Review logs and test all integrations after each deploy.
-
----
-
-## License
-
-MIT (or your chosen license)
+Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

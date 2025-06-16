@@ -1,0 +1,50 @@
+# Ignore node modules
+node_modules/
+
+# Ignore SQLite database files
+db.sqlite3
+db.sqlite3.*
+
+google-service-account.json
+google-service-account-dev.json
+# Python
+*.py[cod]
+__pycache__/
+*.so
+.Python
+*.egg
+*.egg-info/
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+
+# Environment
+.env
+.env.*
+.venv/
+venv/
+
+build/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Static files
+/static/
+/staticfiles/
+/media/
+
+# Local development
+local_settings.py

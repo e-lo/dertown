@@ -1,50 +1,24 @@
-# Ignore node modules
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
 node_modules/
 
-# Ignore SQLite database files
-db.sqlite3
-db.sqlite3.*
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-google-service-account.json
-google-service-account-dev.json
-# Python
-*.py[cod]
-__pycache__/
-*.so
-.Python
-*.egg
-*.egg-info/
 
-# Django
-*.log
-*.pot
-*.pyc
-db.sqlite3
-media/
-
-# Environment
+# environment variables
 .env
-.env.*
-.venv/
-venv/
+.env.production
 
-build/
-
-# IDE
-.idea/
-.vscode/*
-!.vscode/settings.json
-*.swp
-*.swo
-
-# OS
+# macOS-specific files
 .DS_Store
-Thumbs.db
 
-# Static files
-/static/
-/staticfiles/
-/media/
-
-# Local development
-local_settings.py
+# jetbrains setting folder
+.idea/
