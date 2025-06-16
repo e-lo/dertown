@@ -44,7 +44,7 @@ This document outlines a phased approach to implementing the Der Town community 
 - [x] **TESTING**: Test FullCalendar integration, Pydantic model validation *(Pydantic pending)*
 
 #### 1.4 Preview Environment Setup
-- [ ] Configure staging environment (staging.dertown.org)
+- [ ] Configure staging environment (staging.dertown.org) *(manual: user must set up DNS/hosting)*
 - [ ] Set up preview deployments for pull requests
 - [ ] Create environment-specific configuration files
 - [ ] Set up staging database and storage buckets
