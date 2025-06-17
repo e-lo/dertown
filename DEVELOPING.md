@@ -3,12 +3,100 @@
 ## Quickstart
 
 - Install dependencies: `npm install`
-- Start local dev server: `npm run dev`
-- Lint code: `npm run lint`
-- Format code: `npm run format`
-- Run tests: `npm run test`
+- Start local dev server: `npm run dev` or `make dev`
+- Build for production: `make build`
+- Preview production locally: `make preview`
+- Lint code: `npm run lint` or `make lint`
+- Format code: `npm run format` or `make format`
+- Run tests: `npm run test` or `make test`
+- Reset database: `make db-reset`
+- Seed test data: `make db-seed`
 
 See below for full setup and workflow details.
+
+## 🛠️ Makefile Commands
+
+The project includes a Makefile with essential development commands for rapid iteration:
+
+### Core Development Commands
+```bash
+make dev              # Start development server
+make build            # Build for production
+make preview          # Build and preview production locally
+make clean            # Clean build artifacts
+```
+
+### Code Quality Commands
+```bash
+make format           # Format code with Prettier
+make lint             # Run ESLint
+make test             # Run tests
+```
+
+### Database Commands
+```bash
+make db-reset         # Reset local database with sample data
+make db-seed          # Seed with test data
+```
+
+### Help
+```bash
+make help             # Show all available commands
+```
+
+### Usage Examples
+```bash
+# Start development
+make dev
+
+# Check code quality
+make lint && make format
+
+# Preview production build
+make preview
+
+# Reset database for fresh start
+make db-reset
+```
+
+## 🐍 Python Development Utilities
+
+The project includes Python utilities in `scripts/dev_utils.py` for database management and development tasks:
+
+### Database Management
+```python
+# Reset database with sample data
+python scripts/dev_utils.py reset_db
+
+# Seed database with test data
+python scripts/dev_utils.py seed_db
+
+# Validate CSV data before upload
+python scripts/dev_utils.py validate_csv events.csv
+```
+
+### Environment Setup
+```python
+# Check environment configuration
+python scripts/dev_utils.py check_env
+
+# Generate test data
+python scripts/dev_utils.py generate_test_data
+```
+
+### Usage Examples
+```bash
+# Reset database and seed with sample data
+python scripts/dev_utils.py reset_db
+
+# Validate CSV before upload
+python scripts/dev_utils.py validate_csv --file events.csv
+
+# Generate realistic test data
+python scripts/dev_utils.py generate_test_data --count 50
+```
+
+**Note**: These utilities require Supabase environment variables to be configured in your `.env` file.
 
 This document contains all instructions and procedures for developers working on the Der Town community events platform.
 
@@ -61,11 +149,11 @@ This document contains all instructions and procedures for developers working on
 
 6. **Set up database**
    ```bash
-   # Run database migrations
-   supabase db reset
+   # Reset database and seed with static data
+   make db-reset
    
-   # Seed initial data
-   npm run db:seed
+   # Upload CSV data (optional)
+   make db-upload local --events events.csv --organizations organizations.csv
    ```
 
 7. **Start development server**
@@ -127,17 +215,23 @@ npm run format
 
 #### Database Management (Local)
 ```bash
-# Reset local database
-supabase db reset
+# Reset local database with static data
+make db-reset
 
-# Apply migrations
+# Apply migrations only
 supabase db push
 
 # Generate types from database
 supabase gen types typescript --local > src/types/database.ts
 
-# Seed local database
-npm run db:seed
+# Upload CSV data to local database
+make db-upload local --events events.csv --organizations organizations.csv
+
+# Validate CSV data without uploading
+make db-validate --events events.csv --organizations organizations.csv
+
+# Check for potential duplicates
+make db-check-duplicates --events events.csv --organizations organizations.csv
 ```
 
 ### Preview Environment Setup
@@ -335,10 +429,11 @@ supabase db dump --db-url production_url > production_backup.sql
 #### Data Import/Export
 **Frequency**: As needed
 **Procedure**:
-1. Export data: `npm run export:data`
-2. Import data: `npm run import:data`
-3. Validate data integrity
-4. Update import/export logs
+1. **Export data**: Use Supabase dashboard or API for data export
+2. **Import data**: Use `make db-upload` for CSV data imports
+3. **Validate data**: Use `make db-validate` before imports
+4. **Check duplicates**: Use `make db-check-duplicates` to identify conflicts
+5. **Update logs**: Document all import/export operations
 
 ### Backup & Recovery
 
@@ -395,6 +490,70 @@ supabase db dump --db-url production_url > production_backup.sql
 3. Identify root causes
 4. Implement fixes
 5. Document lessons learned
+
+### Database Management System
+
+The project uses a Makefile-based system for consistent database operations across all environments.
+
+#### Core Database Commands
+```bash
+# Reset local database (schema + static data)
+make db-reset
+
+# Upload CSV data to specified environment
+make db-upload [local|staging|production] --events events.csv --organizations organizations.csv
+
+# Validate CSV data without uploading
+make db-validate --events events.csv --organizations organizations.csv
+
+# Check for potential duplicates
+make db-check-duplicates --events events.csv --organizations organizations.csv
+```
+
+#### Database Reset Process
+The `make db-reset` command performs a complete database reset:
+1. **Schema Reset**: Runs `supabase db reset` to apply all migrations
+2. **Static Data Seeding**: Inserts core reference data (tags, core organizations, core locations)
+3. **Data Validation**: Validates all inserted data against Pydantic models
+4. **Status Report**: Provides summary of what was inserted/updated
+
+#### Data Upload Process
+The `make db-upload` command handles CSV data uploads:
+1. **Environment Selection**: Targets local, staging, or production database
+2. **CSV Validation**: Validates CSV format and data types
+3. **Duplicate Detection**: Fuzzy matching on names (and dates for events)
+4. **Conflict Resolution**: Flags potential duplicates for manual review
+5. **Data Transformation**: Converts CSV data to database format
+6. **Bulk Upload**: Efficient batch insertion with error handling
+7. **Verification**: Confirms successful upload with record counts
+
+#### Duplicate Detection Logic
+- **Events**: Fuzzy matching on title + start_date + location
+- **Organizations**: Fuzzy matching on name + website
+- **Locations**: Fuzzy matching on name + address
+- **Tags**: Exact matching on name (tags should be unique)
+
+#### Static vs Dynamic Data
+- **Static Data** (seeded on reset): tags, core organizations, core locations
+- **Dynamic Data** (uploaded via CSV): events, announcements, additional organizations/locations
+
+#### Environment-Specific Procedures
+```bash
+# Development: Full reset with sample data
+make db-reset
+
+# Staging: Upload production-like data
+make db-upload staging --events events.csv --organizations organizations.csv
+
+# Production: Incremental updates only
+make db-upload production --events events.csv --organizations organizations.csv
+```
+
+#### Data Validation and Safety
+- **Pre-upload Validation**: Always run `make db-validate` before uploads
+- **Duplicate Checking**: Use `make db-check-duplicates` to identify conflicts
+- **Backup Procedures**: Automatic backups before production uploads
+- **Rollback Capability**: Database restore procedures for failed uploads
 
 ---
 

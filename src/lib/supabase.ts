@@ -1,333 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../types/database';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key-here';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Database types based on our schema
-export interface Database {
-  public: {
-    Tables: {
-      events: {
-        Row: {
-          id: string;
-          title: string;
-          description: string | null;
-          start_date: string;
-          end_date: string | null;
-          start_time: string | null;
-          end_time: string | null;
-          location_id: string | null;
-          organization_id: string | null;
-          email: string | null;
-          website: string | null;
-          registration_link: string | null;
-          primary_tag_id: string | null;
-          secondary_tag_id: string | null;
-          image_id: string | null;
-          external_image_url: string | null;
-          featured: boolean;
-          parent_event_id: string | null;
-          exclude_from_calendar: boolean;
-          google_calendar_event_id: string | null;
-          registration: boolean;
-          cost: string | null;
-          status: 'pending' | 'approved' | 'duplicate' | 'archived';
-          source_id: string | null;
-          created_at: string;
-          updated_at: string;
-          details_outdated_checked_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          description?: string | null;
-          start_date: string;
-          end_date?: string | null;
-          start_time?: string | null;
-          end_time?: string | null;
-          location_id?: string | null;
-          organization_id?: string | null;
-          email?: string | null;
-          website?: string | null;
-          registration_link?: string | null;
-          primary_tag_id?: string | null;
-          secondary_tag_id?: string | null;
-          image_id?: string | null;
-          external_image_url?: string | null;
-          featured?: boolean;
-          parent_event_id?: string | null;
-          exclude_from_calendar?: boolean;
-          google_calendar_event_id?: string | null;
-          registration?: boolean;
-          cost?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          source_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          details_outdated_checked_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          title?: string;
-          description?: string | null;
-          start_date?: string;
-          end_date?: string | null;
-          start_time?: string | null;
-          end_time?: string | null;
-          location_id?: string | null;
-          organization_id?: string | null;
-          email?: string | null;
-          website?: string | null;
-          registration_link?: string | null;
-          primary_tag_id?: string | null;
-          secondary_tag_id?: string | null;
-          image_id?: string | null;
-          external_image_url?: string | null;
-          featured?: boolean;
-          parent_event_id?: string | null;
-          exclude_from_calendar?: boolean;
-          google_calendar_event_id?: string | null;
-          registration?: boolean;
-          cost?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          source_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          details_outdated_checked_at?: string | null;
-        };
-      };
-      locations: {
-        Row: {
-          id: string;
-          name: string;
-          address: string | null;
-          website: string | null;
-          phone: string | null;
-          latitude: number | null;
-          longitude: number | null;
-          parent_location_id: string | null;
-          status: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          address?: string | null;
-          website?: string | null;
-          phone?: string | null;
-          latitude?: number | null;
-          longitude?: number | null;
-          parent_location_id?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          address?: string | null;
-          website?: string | null;
-          phone?: string | null;
-          latitude?: number | null;
-          longitude?: number | null;
-          parent_location_id?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      organizations: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          website: string | null;
-          phone: string | null;
-          email: string | null;
-          location_id: string | null;
-          parent_organization_id: string | null;
-          status: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          website?: string | null;
-          phone?: string | null;
-          email?: string | null;
-          location_id?: string | null;
-          parent_organization_id?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          description?: string | null;
-          website?: string | null;
-          phone?: string | null;
-          email?: string | null;
-          location_id?: string | null;
-          parent_organization_id?: string | null;
-          status?: 'pending' | 'approved' | 'duplicate' | 'archived';
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      tags: {
-        Row: {
-          id: string;
-          name: string;
-          calendar_id: string | null;
-          share_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          calendar_id?: string | null;
-          share_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          calendar_id?: string | null;
-          share_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      announcements: {
-        Row: {
-          id: string;
-          title: string;
-          message: string;
-          link: string | null;
-          email: string | null;
-          organization_id: string | null;
-          author: string | null;
-          status: 'pending' | 'published' | 'archived';
-          created_at: string;
-          show_at: string;
-          expires_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          message: string;
-          link?: string | null;
-          email?: string | null;
-          organization_id?: string | null;
-          author?: string | null;
-          status?: 'pending' | 'published' | 'archived';
-          created_at?: string;
-          show_at?: string;
-          expires_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          title?: string;
-          message?: string;
-          link?: string | null;
-          email?: string | null;
-          organization_id?: string | null;
-          author?: string | null;
-          status?: 'pending' | 'published' | 'archived';
-          created_at?: string;
-          show_at?: string;
-          expires_at?: string | null;
-        };
-      };
-      source_sites: {
-        Row: {
-          id: string;
-          name: string;
-          url: string;
-          organization_id: string | null;
-          event_tag_id: string | null;
-          last_scraped: string | null;
-          last_status: string | null;
-          last_error: string | null;
-          import_frequency: 'hourly' | 'daily' | 'weekly' | 'manual';
-          extraction_function: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          url: string;
-          organization_id?: string | null;
-          event_tag_id?: string | null;
-          last_scraped?: string | null;
-          last_status?: string | null;
-          last_error?: string | null;
-          import_frequency?: 'hourly' | 'daily' | 'weekly' | 'manual';
-          extraction_function?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          url?: string;
-          organization_id?: string | null;
-          event_tag_id?: string | null;
-          last_scraped?: string | null;
-          last_status?: string | null;
-          last_error?: string | null;
-          import_frequency?: 'hourly' | 'daily' | 'weekly' | 'manual';
-          extraction_function?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      scrape_logs: {
-        Row: {
-          id: string;
-          source_id: string;
-          timestamp: string;
-          status: string;
-          error_message: string | null;
-        };
-        Insert: {
-          id?: string;
-          source_id: string;
-          timestamp?: string;
-          status: string;
-          error_message?: string | null;
-        };
-        Update: {
-          id?: string;
-          source_id?: string;
-          timestamp?: string;
-          status?: string;
-          error_message?: string | null;
-        };
-      };
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      event_status: 'pending' | 'approved' | 'duplicate' | 'archived';
-      import_frequency: 'hourly' | 'daily' | 'weekly' | 'manual';
-      announcement_status: 'pending' | 'published' | 'archived';
-    };
-  };
-}
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Helper functions for common database operations
 export const db = {
@@ -347,6 +24,17 @@ export const db = {
     update: (id: string, data: Database['public']['Tables']['events']['Update']) =>
       supabase.from('events').update(data).eq('id', id),
     delete: (id: string) => supabase.from('events').delete().eq('id', id),
+  },
+
+  // Events Staged
+  eventsStaged: {
+    create: (data: Database['public']['Tables']['events_staged']['Insert']) =>
+      supabase.from('events_staged').insert(data),
+    getAll: () => supabase.from('events_staged').select('*'),
+    getById: (id: string) => supabase.from('events_staged').select('*').eq('id', id).single(),
+    update: (id: string, data: Database['public']['Tables']['events_staged']['Update']) =>
+      supabase.from('events_staged').update(data).eq('id', id),
+    delete: (id: string) => supabase.from('events_staged').delete().eq('id', id),
   },
 
   // Locations
@@ -398,4 +86,36 @@ export const db = {
       supabase.from('announcements').update(data).eq('id', id),
     delete: (id: string) => supabase.from('announcements').delete().eq('id', id),
   },
+
+  // Source Sites
+  sourceSites: {
+    getAll: () => supabase.from('source_sites').select('*'),
+    getById: (id: string) => supabase.from('source_sites').select('*').eq('id', id).single(),
+    create: (data: Database['public']['Tables']['source_sites']['Insert']) =>
+      supabase.from('source_sites').insert(data),
+    update: (id: string, data: Database['public']['Tables']['source_sites']['Update']) =>
+      supabase.from('source_sites').update(data).eq('id', id),
+    delete: (id: string) => supabase.from('source_sites').delete().eq('id', id),
+  },
+
+  // Scrape Logs
+  scrapeLogs: {
+    getAll: () => supabase.from('scrape_logs').select('*'),
+    getById: (id: string) => supabase.from('scrape_logs').select('*').eq('id', id).single(),
+    create: (data: Database['public']['Tables']['scrape_logs']['Insert']) =>
+      supabase.from('scrape_logs').insert(data),
+    update: (id: string, data: Database['public']['Tables']['scrape_logs']['Update']) =>
+      supabase.from('scrape_logs').update(data).eq('id', id),
+    delete: (id: string) => supabase.from('scrape_logs').delete().eq('id', id),
+  },
 };
+
+// Export types for convenience
+export type { Database } from '../types/database';
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+export type TablesInsert<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
+export type TablesUpdate<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Update'];
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T];

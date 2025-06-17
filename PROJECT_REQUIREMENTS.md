@@ -342,19 +342,155 @@ A previous implementation of this site was implemented as a Django site which ca
 
 ## 8. 🧪 Python Tooling
 
-### Scripts
+### Development-First Approach
 
-* `parse_ics.py`: Convert `.ics` files to `Event` Pydantic model → POST to Supabase
-* `summarize_events.py`: Call OpenAI to summarize missing descriptions
-* `scrape_events.py`: Parse web HTML or email feeds for new events
+The Python tooling follows a pragmatic, phased approach that prioritizes development velocity and essential QoL improvements over complex infrastructure:
 
-### Scheduled via:
+#### Phase 1: Essential Development Tools (Week 1-2)
+**Goal**: Enable rapid development iteration with minimal overhead
 
-```yaml
-on:
-  schedule:
-    - cron: "0 2 * * *"  # Run nightly
+**Core Makefile Commands:**
+```bash
+make dev              # Start development server
+make db-reset         # Reset local database with sample data
+make db-seed          # Seed with test data
+make build            # Build for production
+make deploy-staging   # Deploy to staging
 ```
+
+**Minimal Python Scripts:**
+- **Development Utilities** (`scripts/dev_utils.py`):
+  - Database reset with sample data
+  - Basic CSV validation (required fields only)
+  - Test data generation
+  - Simple environment setup
+
+**Why These Help Immediately:**
+- Faster iteration cycles (reset DB in seconds)
+- Consistent test data across team members
+- Simple validation to catch obvious errors
+- One-command deployment to reduce friction
+
+#### Phase 2: DRY Foundation (Week 3-4)
+**Goal**: Establish shared patterns and components as the codebase grows
+
+**Shared Components & Utilities:**
+- Centralized database client (`lib/supabase.js`)
+- Shared validation schemas (`lib/validation.js`)
+- Reusable UI components (`components/EventCard.astro`)
+- TypeScript interfaces (`types/database.ts`)
+
+**Why These Help During Development:**
+- Consistent UI across the application
+- Type safety to catch errors at compile time
+- Shared validation rules across forms
+- Easier refactoring (change once, updates everywhere)
+
+#### Phase 3: Iteration Tools (Week 5-6)
+**Goal**: Add tools when development friction is encountered
+
+**Enhanced Development Tools:**
+```bash
+make db-migrate       # Run database migrations
+make db-backup        # Backup current state
+make test-data        # Generate realistic test data
+make validate-all     # Run all validations
+```
+
+**Better Python Scripts:**
+- **Data Manager** (`scripts/data_manager.py`):
+  - CSV validation with error reporting
+  - Realistic test data generation
+  - Safe backup/restore operations
+  - Basic duplicate detection (exact matches only)
+
+#### Phase 4: Production Tools (Post-Launch)
+**Goal**: Build sophisticated tools based on real usage patterns
+
+**Advanced Data Management:**
+```bash
+make ingest-ics       # Import calendar files
+make process-deduplicate  # Remove duplicates
+make admin-backup     # Production backups
+make health-check     # System diagnostics
+```
+
+**Comprehensive Python Infrastructure:**
+- Fuzzy matching for duplicates
+- Advanced data validation
+- Automated ingestion pipelines
+- Health monitoring and audit logging
+
+### Key Principles
+
+1. **Build tools when you need them** - Don't anticipate problems
+2. **Start simple, iterate fast** - Complex tools can wait
+3. **Focus on developer experience** - What slows you down daily?
+4. **DRY for shared patterns** - Components, validation, types
+5. **Automate repetitive tasks** - Database resets, deployments
+
+### What to Avoid Early
+
+- **Complex duplicate detection** - Start with exact matches only
+- **Advanced data validation** - Basic field validation is enough
+- **Comprehensive testing** - Manual testing is fine for MVP
+- **Production monitoring** - Can add after launch
+- **Advanced admin features** - Supabase dashboard is sufficient
+
+### Makefile Integration
+
+All Python modules are called through Makefile commands for consistent interface:
+
+#### Essential Development Commands (Week 1-2)
+```bash
+# Start with these - they pay immediate dividends
+make dev              # Development server
+make db-reset         # Quick database reset
+make seed             # Sample data
+make build            # Production build
+```
+
+#### Iteration Commands (Week 3-6)
+```bash
+# Add these when you hit friction
+make db-migrate       # When schema changes
+make test-data        # When you need more realistic data
+make validate         # When CSV uploads get complex
+```
+
+#### Production Commands (Post-Launch)
+```bash
+# Build these based on real usage patterns
+make ingest-*         # Based on actual data sources
+make process-*        # Based on real data quality issues
+make admin-*          # Based on actual admin workflows
+```
+
+### Pydantic Models
+
+All data operations use Pydantic models for validation and type safety:
+
+- **Event Models**: `Event`, `EventStaged` (for public submissions)
+- **Organization Models**: `Organization`
+- **Location Models**: `Location`
+- **Tag Models**: `Tag`
+- **Announcement Models**: `Announcement`
+- **Source Models**: `SourceSite`, `ScrapeLog`
+
+Each model includes:
+
+- **Field validation**: Data types, required fields, format validation
+- **Custom validators**: URL validation, date/time parsing, status enums
+- **Database mapping**: Direct mapping to Supabase table columns
+- **CSV compatibility**: Handle CSV-specific data formats (empty strings, \N values)
+
+### Error Handling and Logging
+
+- **Comprehensive Logging**: All operations logged with structured data
+- **Error Recovery**: Automatic retry mechanisms and rollback procedures
+- **Notification System**: Email/Slack notifications for critical failures
+- **Audit Trail**: Complete audit trail for all data operations
+- **Performance Monitoring**: Track operation performance and resource usage
 
 ---
 
@@ -368,6 +504,7 @@ on:
 ## 9.5 🚀 Development & Preview Environments
 
 ### Local Development Environment
+
 * **Astro Dev Server**: `npx astro dev` for local development
 * **Supabase Local**: `supabase start` for local database and auth
 * **Hot Reload**: Automatic browser refresh on file changes
@@ -375,6 +512,7 @@ on:
 * **Database Seeding**: Local data for development and testing
 
 ### Remote Preview Environments
+
 * **Staging Environment**: Deployed to staging subdomain (e.g., `staging.dertown.org`)
 * **Preview Deployments**: Automatic preview deployments for pull requests
 * **Environment Isolation**: Separate databases and storage for staging
@@ -382,6 +520,7 @@ on:
 * **Performance Testing**: Load testing and performance validation
 
 ### Environment Management
+
 * **Environment-Specific Configs**: Separate configs for dev/staging/prod
 * **Database Migrations**: Safe migration testing in staging
 * **Feature Flags**: Environment-specific feature toggles
@@ -389,15 +528,120 @@ on:
 * **Backup & Recovery**: Staging environment backup procedures
 
 ### Preview Deployment Workflow
+
 1. **Pull Request**: Creates automatic preview deployment
 2. **Staging Testing**: Full testing in staging environment
 3. **Integration Validation**: Test with real external services
 4. **Performance Validation**: Load testing and performance checks
 5. **Approval Process**: Manual approval before production deployment
 
+## 9.6 🗄️ Database Management & Seeding
+
+### Makefile-Based Database Operations
+
+The project uses a Makefile to provide clear, consistent database management commands:
+
+#### Core Database Commands
+
+```bash
+# Reset local database (schema + static data)
+make db-reset
+
+# Upload CSV data to specified environment also performs validation and checks for duplicates
+make db-upload [staging|production] --events events.csv --organizations organizations.csv
+
+# Validate CSV data without uploading
+make db-validate --events events.csv --organizations organizations.csv
+
+# Check for potential duplicates
+make db-check-duplicates --events events.csv --organizations organizations.csv
+
+# Database backup and restore
+make db-backup [local|staging|production]
+make db-restore [local|staging|production] [backup-file]
+```
+
+#### Administrative Commands
+```bash
+# Data ingestion and processing
+make ingest-ics [file]           # Import ICS file
+make ingest-scrape [source]      # Scrape events from source
+make ingest-summarize [content]  # Summarize events that don't have a short description with AI to produce a two sentence summary
+make ingest-sync-gcal            # Sync with Google Calendar, making sure updates to db events are updated in google calendar
+
+# Data processing and quality
+make process-deduplicate         # Run deduplication on database
+make process-clean [specify-files]# Clean and standardize data
+make process-validate            # Run quality assurance checks
+make process-audit               # Generate audit report
+
+# System administration
+make admin-backup [env]          # Create system backup
+make admin-health-check          # Run system health checks
+make admin-optimize              # Optimize database performance
+make admin-cleanup               # Run maintenance tasks
+make admin-users [action]        # Manage admin users
+
+# Development and testing
+make dev-models                  # Generate/update Pydantic models from database schema
+make dev-test-models             # Test Pydantic models with sample data
+make dev-validate-csv [file]     # Validate CSV file against Pydantic models
+make dev-test-db-connection      # Test database connection and basic operations
+make dev-setup-env [env]         # Set up development environment (local/staging)
+```
+
+### Scheduled Operations
+
+GitHub Actions workflows call Makefile commands for scheduled operations:
+
+```yaml
+# Nightly health checks
+- name: Health Check
+  run: make admin-health-check
+
+# Weekly website checks for various sources
+- name: Update icile.org events
+  run: make ingest-source icicle.org
+- name: Update leavenworth.org events
+  run: make ingest-source leavenworth.org
+
+# Monthly maintenance
+- name: System maintenance
+  run: make admin-cleanup
+```
+
+### Pydantic Models
+
+All data operations use Pydantic models for validation and type safety:
+
+- **Event Models**: `Event`, `EventStaged` (for public submissions)
+- **Organization Models**: `Organization`
+- **Location Models**: `Location`
+- **Tag Models**: `Tag`
+- **Announcement Models**: `Announcement`
+- **Source Models**: `SourceSite`, `ScrapeLog`
+
+Each model includes:
+
+- **Field validation**: Data types, required fields, format validation
+- **Custom validators**: URL validation, date/time parsing, status enums
+- **Database mapping**: Direct mapping to Supabase table columns
+- **CSV compatibility**: Handle CSV-specific data formats (empty strings, \N values)
+
+### Error Handling and Logging
+
+- **Comprehensive Logging**: All operations logged with structured data
+- **Error Recovery**: Automatic retry mechanisms and rollback procedures
+- **Notification System**: Email/Slack notifications for critical failures
+- **Audit Trail**: Complete audit trail for all data operations
+- **Performance Monitoring**: Track operation performance and resource usage
+
+---
+
 ## 10. 📚 Documentation & Administrative Processes
 
 ### Development Documentation
+
 * `DEVELOPING.md` - Complete developer guide including:
   * Initial setup and environment configuration
   * Development workflow and coding standards
@@ -416,6 +660,12 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 
 #### Ongoing Administrative Tasks
 * Database migrations and schema updates
+* **Database seeding and data management via Makefile commands**
+* **CSV data validation and duplicate detection**
+* **Environment-specific data uploads (staging/production)**
+* **Automated data ingestion (ICS, web scraping, content summarization)**
+* **Data processing and quality assurance**
+* **System health monitoring and maintenance**
 * Environment variable management and rotation
 * Dependency updates and security patch management
 * Backup and recovery procedures
@@ -432,6 +682,35 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * Content moderation and spam prevention
 * Data import/export procedures
 * System health monitoring and diagnostics
+
+#### Database Management Procedures
+* **Local Development**: `make db-reset` for clean development environment
+* **Staging Updates**: `make db-upload staging --events events.csv` for staging data updates
+* **Production Updates**: `make db-upload production --events events.csv` for production data updates
+* **Data Validation**: `make db-validate` to check CSV data before upload
+* **Duplicate Detection**: `make db-check-duplicates` to identify potential conflicts
+* **Backup Procedures**: `make db-backup [env]` for automated database backups
+* **Restore Procedures**: `make db-restore [env] [backup]` for database restoration
+
+#### Data Ingestion Procedures
+* **ICS Import**: `make ingest-ics [file]` for calendar file imports
+* **Web Scraping**: `make ingest-scrape [source]` for automated event collection
+* **Content Summarization**: `make ingest-summarize [content]` for AI-powered descriptions
+* **Google Calendar Sync**: `make ingest-sync-gcal` for bidirectional calendar sync
+* **Scheduled Ingestion**: GitHub Actions workflows for automated data collection
+
+#### Data Processing Procedures
+* **Deduplication**: `make process-deduplicate` for removing duplicate events
+* **Data Cleaning**: `make process-clean` for standardizing data formats
+* **Quality Assurance**: `make process-validate` for comprehensive data quality checks
+* **Audit Reporting**: `make process-audit` for compliance and debugging reports
+
+#### System Administration Procedures
+* **System Backups**: `make admin-backup [env]` for complete system backups
+* **Health Monitoring**: `make admin-health-check` for system diagnostics
+* **Performance Optimization**: `make admin-optimize` for database and system optimization
+* **Maintenance Tasks**: `make admin-cleanup` for routine maintenance operations
+* **User Management**: `make admin-users [action]` for admin user administration
 
 #### Documentation Standards
 Each administrative process must include:

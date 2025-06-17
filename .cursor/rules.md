@@ -46,6 +46,7 @@ Should contain all instructions/help for developers including:
 - Deployment procedures
 
 **Administrative Processes & Chores:**
+
 - Database migrations and schema updates
 - Environment variable management across environments
 - Dependency updates and security patches
@@ -68,6 +69,7 @@ Should contain all instructions/help for developers including:
 - System health checks and diagnostics
 
 **Getting Involved:**
+
 - How to contribute to the project
 - Issue reporting and bug tracking
 - Feature request process
@@ -132,12 +134,19 @@ At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST:
    - Check that the feature meets requirements
    - Ensure no regressions in existing functionality
 
+4. **TODO Completion Tracking**:
+   - After successful validation and testing, update `TODO.md` to check off completed items
+   - Verify that all validation and testing tasks for the sub-phase are marked as complete
+   - Ensure that any new dependencies or setup requirements discovered during implementation are documented
+   - Update any related documentation (DEVELOPING.md, README.md) if needed
+
 ### Summary Reporting
 After completing each sub-phase and resolving all issues, provide:
 
 1. **Implementation Summary**: What was implemented and how
 2. **Review Points**: What the user should review and test
 3. **Suggested Commit Message**: A concise, descriptive commit message
+4. **TODO Status Update**: Confirmation that all completed items have been checked off
 
 **Format**:
 ```
@@ -148,6 +157,11 @@ After completing each sub-phase and resolving all issues, provide:
 
 ### What to Review
 - [Specific areas for user review and testing]
+
+### TODO Status
+- [X] Item 1 - Completed and validated
+- [X] Item 2 - Completed and validated
+- [ ] Item 3 - Still pending
 
 ### Suggested Commit Message
 ```
@@ -168,6 +182,12 @@ feat: [concise description of changes]
 - Check that `npm run dev` starts the development server
 - Verify Tailwind CSS classes are working in the browser
 - Test that linting and formatting work: `npm run lint` and `npm run format`
+
+### TODO Status
+- [x] Initialize Astro project with TypeScript - Completed
+- [x] Configure Tailwind CSS with custom theme - Completed
+- [x] Configure ESLint, Prettier, and TypeScript - Completed
+- [ ] Set up Shoelace Web Components - Still pending
 
 ### Suggested Commit Message
 ```
