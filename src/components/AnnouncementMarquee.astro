@@ -1,0 +1,178 @@
+import type { Tables } from '../lib/supabase';
+
+export interface Props {
+  announcements: Tables<'announcements'>[];
+  autoRotate?: boolean;
+  rotationInterval?: number;
+  className?: string;
+}
+
+const {
+  announcements,
+  autoRotate = true,
+  rotationInterval = 5000,
+  className = '',
+} = Astro.props;
+
+// Filter to only show published announcements that should be visible now
+const now = new Date();
+const visibleAnnouncements = announcements.filter(announcement => {
+  if (announcement.status !== 'published') return false;
+  
+  const showAt = announcement.show_at ? new Date(announcement.show_at) : null;
+  const expiresAt = announcement.expires_at ? new Date(announcement.expires_at) : null;
+  
+  if (showAt && showAt > now) return false;
+  if (expiresAt && expiresAt < now) return false;
+  
+  return true;
+});
+
+{visibleAnnouncements.length > 0 && (
+  <div class={`bg-blue-600 text-white ${className}`}>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="relative overflow-hidden">
+        <div class="announcement-container flex transition-transform duration-500 ease-in-out">
+          {visibleAnnouncements.map((announcement, index) => (
+            <div 
+              class="announcement-slide flex-shrink-0 w-full flex items-center justify-center py-3 px-4"
+              data-index={index}
+            >
+              <div class="flex items-center space-x-4 max-w-4xl mx-auto">
+                <div class="flex-shrink-0">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium truncate">
+                    {announcement.title}
+                  </p>
+                  {announcement.message && (
+                    <p class="text-xs opacity-90 truncate">
+                      {announcement.message}
+                    </p>
+                  )}
+                </div>
+                {announcement.link && (
+                  <div class="flex-shrink-0">
+                    <a 
+                      href={announcement.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-xs underline hover:no-underline transition-all"
+                    >
+                      Learn More →
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {visibleAnnouncements.length > 1 && (
+          <>
+            <!-- Navigation Dots -->
+            <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {visibleAnnouncements.map((_, index) => (
+                <button
+                  class="announcement-dot w-2 h-2 rounded-full bg-white opacity-50 hover:opacity-75 transition-opacity"
+                  data-index={index}
+                  aria-label={`Go to announcement ${index + 1}`}
+                >
+                </button>
+              ))}
+            </div>
+            
+            <!-- Previous/Next Buttons -->
+            <button
+              class="announcement-prev absolute left-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+              aria-label="Previous announcement"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <button
+              class="announcement-next absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all"
+              aria-label="Next announcement"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  // Announcement marquee functionality
+  const container = document.querySelector('.announcement-container') as HTMLElement;
+  const slides = document.querySelectorAll('.announcement-slide');
+  const dots = document.querySelectorAll('.announcement-dot');
+  const prevBtn = document.querySelector('.announcement-prev');
+  const nextBtn = document.querySelector('.announcement-next');
+  
+  if (!container || slides.length <= 1) return;
+  
+  let currentIndex = 0;
+  let interval: ReturnType<typeof setInterval> | null = null;
+  
+  const showSlide = (index: number) => {
+    currentIndex = index;
+    const translateX = -index * 100;
+    container.style.transform = `translateX(${translateX}%)`;
+    
+    // Update dots
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('opacity-100', i === index);
+      dot.classList.toggle('opacity-50', i !== index);
+    });
+  };
+  
+  const nextSlide = () => {
+    const nextIndex = (currentIndex + 1) % slides.length;
+    showSlide(nextIndex);
+  };
+  
+  const prevSlide = () => {
+    const prevIndex = currentIndex === 0 ? slides.length - 1 : currentIndex - 1;
+    showSlide(prevIndex);
+  };
+  
+  // Event listeners
+  dots.forEach((dot, index) => {
+    dot.addEventListener('click', () => showSlide(index));
+  });
+  
+  if (prevBtn) prevBtn.addEventListener('click', prevSlide);
+  if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+  
+  // Auto-rotate
+  const startAutoRotate = () => {
+    if (interval) clearInterval(interval);
+    interval = setInterval(nextSlide, 5000);
+  };
+  
+  const stopAutoRotate = () => {
+    if (interval) {
+      clearInterval(interval);
+      interval = null;
+    }
+  };
+  
+  // Start auto-rotation
+  startAutoRotate();
+  
+  // Pause on hover
+  container.addEventListener('mouseenter', stopAutoRotate);
+  container.addEventListener('mouseleave', startAutoRotate);
+  
+  // Initialize first slide
+  showSlide(0);
+</script> 

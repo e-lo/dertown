@@ -1,31 +1,167 @@
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Der Town - Community Events</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.11/main.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.11/main.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.11/main.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <h1>Der Town</h1>
-    <p>Community Events Platform</p>
-    <div id="calendar"></div>
-    <script type="module" src="/fullcalendar-init.js"></script>
-  </body>
-</html>;
+---
+import Layout from '../components/Layout.astro';
+import EventCard from '../components/EventCard.astro';
+import EventList from '../components/EventList.astro';
+import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
+import CalendarView from '../components/CalendarView.astro';
+import { db } from '../lib/supabase';
+
+// Fetch data for the homepage
+const [eventsResult, announcementsResult] = await Promise.all([
+  db.events.getFeatured(),
+  db.announcements.getPublished()
+]);
+
+const featuredEvents = eventsResult.data || [];
+const announcements = announcementsResult.data || [];
+
+// Get upcoming events for the calendar preview
+const upcomingEvents = featuredEvents.slice(0, 6);
+---
+
+<Layout title="Der Town - Community Events" description="Discover and share community events in Der Town">
+  <!-- Announcement Marquee -->
+  <AnnouncementMarquee announcements={announcements} />
+  
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6">
+          Welcome to Der Town
+        </h1>
+        <p class="text-xl md:text-2xl mb-8 opacity-90">
+          Discover amazing community events and connect with your neighbors
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="/events" 
+            class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Browse Events
+          </a>
+          <a 
+            href="/submit" 
+            class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+          >
+            Submit Event
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Events Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Featured Events</h2>
+        <p class="text-lg text-gray-600">Don't miss these upcoming highlights</p>
+      </div>
+      
+      {featuredEvents.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {featuredEvents.map((event) => (
+            <EventCard event={event} />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No featured events yet</h3>
+          <p class="mt-1 text-sm text-gray-500">Check back soon for upcoming events!</p>
+        </div>
+      )}
+      
+      <div class="text-center mt-8">
+        <a 
+          href="/events" 
+          class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+        >
+          View All Events
+          <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calendar Preview Section -->
+  <section class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Event Calendar</h2>
+        <p class="text-lg text-gray-600">See what's happening this month</p>
+      </div>
+      
+      <CalendarView events={upcomingEvents} height="400px" />
+      
+      <div class="text-center mt-8">
+        <a 
+          href="/calendar" 
+          class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+        >
+          View Full Calendar
+          <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Actions Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Get Involved</h2>
+        <p class="text-lg text-gray-600">Join our community and stay connected</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Submit an Event</h3>
+          <p class="text-gray-600 mb-4">Share your community event with everyone</p>
+          <a href="/submit" class="text-blue-600 hover:text-blue-800 font-medium">
+            Submit Now →
+          </a>
+        </div>
+        
+        <div class="text-center">
+          <div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Stay Updated</h3>
+          <p class="text-gray-600 mb-4">Subscribe to our RSS feed or calendar</p>
+          <div class="space-x-4">
+            <a href="/rss" class="text-green-600 hover:text-green-800 font-medium">RSS Feed</a>
+            <a href="/ical" class="text-green-600 hover:text-green-800 font-medium">iCal</a>
+          </div>
+        </div>
+        
+        <div class="text-center">
+          <div class="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Join the Community</h3>
+          <p class="text-gray-600 mb-4">Connect with organizers and attendees</p>
+          <a href="/events" class="text-purple-600 hover:text-purple-800 font-medium">
+            Browse Events →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

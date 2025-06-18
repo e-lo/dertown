@@ -3,12 +3,14 @@ import type { Tables } from '../lib/supabase';
 
 export interface Props {
   events: Tables<'events'>[];
+  initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
   height?: string;
   className?: string;
 }
 
 const {
-  events = [],
+  events,
+  initialView = 'dayGridMonth',
   height = '600px',
   className = '',
 } = Astro.props;
@@ -17,182 +19,284 @@ const {
 const calendarEvents = events.map(event => ({
   id: event.id,
   title: event.title,
-  start: event.start_time 
-    ? `${event.start_date}T${event.start_time}` 
-    : event.start_date,
-  end: event.end_date && event.end_time 
-    ? `${event.end_date}T${event.end_time}` 
-    : event.end_date,
-  allDay: !event.start_time,
+  start: event.start_time ? `${event.start_date}T${event.start_time}` : event.start_date,
+  end: event.end_time ? `${event.end_date}T${event.end_time}` : event.end_date,
+  description: event.description,
   url: `/events/${event.id}`,
   backgroundColor: event.featured ? '#fbbf24' : '#3b82f6',
   borderColor: event.featured ? '#f59e0b' : '#2563eb',
   textColor: '#ffffff',
   extendedProps: {
-    description: event.description,
+    location: event.location_id,
+    organization: event.organization_id,
     cost: event.cost,
     registration: event.registration,
-    location_id: event.location_id,
-    organization_id: event.organization_id,
+    featured: event.featured,
   }
 }));
 ---
 
-<div class={`calendar-container ${className}`} style={`height: ${height}`}>
-  <div id="calendar"></div>
+<div class={`bg-white rounded-lg shadow-sm border ${className}`}>
+  <!-- Calendar Header -->
+  <div class="p-4 border-b border-gray-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+      <h2 class="text-lg font-semibold text-gray-900">Event Calendar</h2>
+      
+      <!-- View Controls -->
+      <div class="flex items-center space-x-2">
+        <label for="calendar-view" class="text-sm text-gray-600">View:</label>
+        <select
+          id="calendar-view"
+          class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="dayGridMonth">Month</option>
+          <option value="timeGridWeek">Week</option>
+          <option value="timeGridDay">Day</option>
+          <option value="listWeek">List</option>
+        </select>
+        
+        <!-- Today Button -->
+        <button
+          id="calendar-today"
+          class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        >
+          Today
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Calendar Container -->
+  <div class="p-4">
+    <div id="calendar" style={`height: ${height}`}></div>
+  </div>
 </div>
 
 <script>
   import { Calendar } from '@fullcalendar/core';
   import dayGridPlugin from '@fullcalendar/daygrid';
   import timeGridPlugin from '@fullcalendar/timegrid';
-  import interactionPlugin from '@fullcalendar/interaction';
   import listPlugin from '@fullcalendar/list';
+  import interactionPlugin from '@fullcalendar/interaction';
 
-  // Get events data from the server
-  const events = JSON.parse(
-    document.querySelector('[data-events]')?.getAttribute('data-events') || '[]'
-  );
+  // Calendar events data
+  const calendarEvents = JSON.parse(document.querySelector('#calendar')?.getAttribute('data-events') || '[]');
   
   // Initialize FullCalendar
   const calendarEl = document.getElementById('calendar');
-  
   if (calendarEl) {
     const calendar = new Calendar(calendarEl, {
-      plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+      plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
       initialView: 'dayGridMonth',
       headerToolbar: {
-        left: 'prev,next today',
+        left: 'prev,next',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
       },
-      events: events,
-      eventClick: function (info) {
-        if (info.event.url) {
-          window.location.href = info.event.url;
-          return false;
-        }
-      },
-      eventDidMount: function (info) {
-        // Add tooltip with event details
-        const event = info.event;
-        const tooltip = document.createElement('div');
-        tooltip.className = 'event-tooltip';
-        tooltip.innerHTML = `
-          <div class="font-semibold">${event.title}</div>
-          ${event.extendedProps.description ? `<div class="text-sm mt-1">${event.extendedProps.description}</div>` : ''}
-          ${event.extendedProps.cost ? `<div class="text-sm mt-1">Cost: ${event.extendedProps.cost}</div>` : ''}
-          ${event.extendedProps.registration ? '<div class="text-sm mt-1 text-blue-600">Registration Required</div>' : ''}
-        `;
-        
-        info.el.setAttribute('title', tooltip.innerHTML);
-      },
-      dayMaxEvents: true,
+      events: calendarEvents,
       height: 'auto',
       aspectRatio: 1.35,
+      dayMaxEvents: true,
+      eventClick: function(info) {
+        if (info.event.url) {
+          window.location.href = info.event.url;
+          info.jsEvent.preventDefault();
+        }
+      },
+      eventDidMount: function(info) {
+        // Add tooltip with event details
+        const tooltip = new Tooltip(info.el, {
+          title: `
+            <strong>${info.event.title}</strong><br>
+            ${info.event.start ? new Date(info.event.start).toLocaleDateString() : ''}<br>
+            ${info.event.extendedProps.description || ''}
+          `,
+          placement: 'top',
+          trigger: 'hover',
+          container: 'body'
+        });
+      },
       eventTimeFormat: {
         hour: 'numeric',
         minute: '2-digit',
-        meridiem: 'short',
+        meridiem: 'short'
       },
       buttonText: {
         today: 'Today',
         month: 'Month',
         week: 'Week',
         day: 'Day',
-        list: 'List',
+        list: 'List'
       },
-      // Custom styling for events
-      eventClassNames: function (arg) {
-        const classes = ['cursor-pointer'];
-        if (arg.event.extendedProps.registration) {
-          classes.push('registration-required');
-        }
-        if (arg.event.backgroundColor === '#fbbf24') {
-          classes.push('featured-event');
-        }
-        return classes;
+      dayHeaderFormat: { weekday: 'short' },
+      titleFormat: { 
+        year: 'numeric', 
+        month: 'long' 
       },
+      firstDay: 0, // Sunday
+      weekends: true,
+      editable: false,
+      selectable: false,
+      selectMirror: true,
+      dayMaxEvents: true,
+      moreLinkClick: 'popover',
+      eventDisplay: 'block',
+      eventColor: '#3b82f6',
+      eventTextColor: '#ffffff',
+      eventBorderColor: '#2563eb',
+      nowIndicator: true,
+      scrollTime: '08:00:00',
+      slotMinTime: '06:00:00',
+      slotMaxTime: '22:00:00',
+      allDaySlot: true,
+      allDayText: 'All Day',
+      slotDuration: '00:30:00',
+      slotLabelFormat: {
+        hour: 'numeric',
+        minute: '2-digit',
+        meridiem: 'short'
+      }
     });
-    
+
     calendar.render();
+
+    // Handle view changes
+    const viewSelect = document.getElementById('calendar-view') as HTMLSelectElement;
+    if (viewSelect) {
+      viewSelect.addEventListener('change', function() {
+        calendar.changeView(this.value);
+      });
+    }
+
+    // Handle today button
+    const todayBtn = document.getElementById('calendar-today');
+    if (todayBtn) {
+      todayBtn.addEventListener('click', function() {
+        calendar.today();
+      });
+    }
+
+    // Set initial view
+    const initialView = 'dayGridMonth';
+    if (viewSelect) {
+      viewSelect.value = initialView;
+    }
+  }
+
+  // Simple tooltip implementation
+  class Tooltip {
+    constructor(element: HTMLElement, options: any) {
+      this.element = element;
+      this.options = options;
+      this.init();
+    }
+
+    private element: HTMLElement;
+    private options: any;
+    private tooltip: HTMLElement | null = null;
+
+    private init() {
+      this.element.addEventListener('mouseenter', () => this.show());
+      this.element.addEventListener('mouseleave', () => this.hide());
+    }
+
+    private show() {
+      this.tooltip = document.createElement('div');
+      this.tooltip.className = 'tooltip';
+      this.tooltip.innerHTML = this.options.title;
+      this.tooltip.style.cssText = `
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+        max-width: 200px;
+        word-wrap: break-word;
+      `;
+      
+      document.body.appendChild(this.tooltip);
+      this.position();
+    }
+
+    private hide() {
+      if (this.tooltip) {
+        document.body.removeChild(this.tooltip);
+        this.tooltip = null;
+      }
+    }
+
+    private position() {
+      if (!this.tooltip) return;
+      
+      const rect = this.element.getBoundingClientRect();
+      this.tooltip.style.left = rect.left + (rect.width / 2) - (this.tooltip.offsetWidth / 2) + 'px';
+      this.tooltip.style.top = rect.top - this.tooltip.offsetHeight - 8 + 'px';
+    }
   }
 </script>
 
-<!-- Hidden data element to pass events to client-side script -->
-<div data-events={JSON.stringify(calendarEvents)} style="display: none;"></div>
-
 <style>
-  .calendar-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-  }
-  
-  /* FullCalendar custom styles */
-  :global(.fc) {
+  .fc {
     font-family: inherit;
   }
   
-  :global(.fc-toolbar-title) {
-    font-size: 1.25rem;
-    font-weight: 600;
+  .fc-toolbar-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
   }
   
-  :global(.fc-button-primary) {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
+  .fc-button {
+    background-color: #3b82f6 !important;
+    border-color: #2563eb !important;
+    font-weight: 500 !important;
   }
   
-  :global(.fc-button-primary:hover) {
-    background-color: #2563eb;
-    border-color: #2563eb;
+  .fc-button:hover {
+    background-color: #2563eb !important;
+    border-color: #1d4ed8 !important;
   }
   
-  :global(.fc-button-primary:focus) {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  .fc-button:focus {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
   }
   
-  :global(.fc-event) {
+  .fc-button-active {
+    background-color: #1d4ed8 !important;
+    border-color: #1e40af !important;
+  }
+  
+  .fc-event {
+    cursor: pointer;
     border-radius: 4px;
     font-size: 0.875rem;
     font-weight: 500;
   }
   
-  :global(.fc-event:hover) {
+  .fc-event:hover {
     opacity: 0.9;
   }
   
-  :global(.registration-required) {
-    border-style: dashed;
-  }
-  
-  :global(.featured-event) {
-    font-weight: 600;
-  }
-  
-  /* Tooltip styles */
-  .event-tooltip {
-    max-width: 300px;
-    padding: 8px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
+  .fc-daygrid-event {
+    white-space: nowrap;
     border-radius: 4px;
-    font-size: 0.875rem;
-    line-height: 1.4;
   }
   
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    :global(.fc-toolbar) {
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    :global(.fc-toolbar-chunk) {
-      display: flex;
-      justify-content: center;
-    }
+  .fc-list-event {
+    border-radius: 4px;
+    margin-bottom: 2px;
+  }
+  
+  .fc-list-event:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+  }
+  
+  .fc-highlight {
+    background-color: rgba(59, 130, 246, 0.2) !important;
   }
 </style> 

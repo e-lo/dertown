@@ -175,78 +175,81 @@ This implementation follows a **pragmatic, development-first approach** that pri
 
 #### 3.2 Essential API Routes
 
-- [ ] `/api/events/submit` - Public event submission endpoint (public insert to `events_staged`)
-- [ ] `/api/calendar/events` - Calendar data for client-side rendering
-- [ ] `/api/events/search` - Event search and filtering
-- [ ] **VALIDATION**: Run API tests, verify all endpoints respond correctly
-- [ ] **TESTING**: Test form submission, calendar data, search functionality
+- [x] `/api/events/submit` - Public event submission endpoint (public insert to `events_staged`)
+- [x] `/api/calendar/events` - Calendar data for client-side rendering
+- [x] `/api/events/search` - Event search and filtering
+- [x] **VALIDATION**: Run API tests, verify all endpoints respond correctly
+- [x] **TESTING**: Test form submission, calendar data, search functionality
 
 #### 3.3 Authentication & Authorization
 
-- [ ] Implement Supabase Auth integration for admin access
-- [ ] Create admin-only middleware
-- [ ] Set up user role management via Supabase Auth
-- [ ] Implement protected API routes (minimal)
-- [ ] **VALIDATION**: Test authentication flows, verify middleware protection
-- [ ] **TESTING**: Test login/logout, role-based access, protected routes
+- [x] Implement Supabase Auth integration for admin access
+- [x] Create admin-only middleware
+- [x] Set up user role management via Supabase Auth
+- [x] Implement protected API routes (minimal)
+- [x] **VALIDATION**: Test authentication flows, verify middleware protection
+- [x] **TESTING**: Test login/logout, role-based access, protected routes
 
 #### 3.4 Public Event Submission & Moderation
 
-- [ ] Create `events_staged` table for public submissions
-- [ ] Allow public insert to `events_staged` (RLS)
-- [ ] Admin review workflow: move from `events_staged` to `events` via Supabase dashboard
-- [ ] **VALIDATION**: Test public submission, admin review, and promotion
-- [ ] **TESTING**: Test spam protection, moderation, and event publishing
+- [x] Create `events_staged` table for public submissions
+- [x] Allow public insert to `events_staged` (RLS)
+- [x] Admin review workflow: move from `events_staged` to `events` via Supabase dashboard
+- [x] **VALIDATION**: Test public submission, admin review, and promotion
+- [x] **TESTING**: Test spam protection, moderation, and event publishing
 
 ### Phase 4: Public-Facing UI Components (Week 7-8)
+
 **Goal**: Build the core user interface components
 
 #### 4.1 Layout & Navigation
-- [ ] Create responsive base layout
-- [ ] Implement navigation component
-- [ ] Design mobile-friendly navigation
-- [ ] Add breadcrumb navigation
-- [ ] **VALIDATION**: Run accessibility tests, responsive design checks
-- [ ] **TESTING**: Test navigation on mobile/desktop, verify breadcrumbs work
+
+- [x] Create responsive base layout
+- [x] Implement navigation component
+- [x] Design mobile-friendly navigation
+- [x] Add breadcrumb navigation
+- [x] **VALIDATION**: Run accessibility tests, responsive design checks
+- [x] **TESTING**: Test navigation on mobile/desktop, verify breadcrumbs work
 
 #### 4.2 Event Components
-- [ ] Event card component (carousel item)
-- [ ] Event detail page component
-- [ ] Event list component with filtering
-- [ ] Event form component (for submissions)
-- [ ] Related events component
-- [ ] **VALIDATION**: Run component tests, verify props and events
-- [ ] **TESTING**: Test component rendering, form validation, filtering
+
+- [x] Event card component (carousel item)
+- [x] Event list component with filtering
+- [x] Event form component (for submissions)
+- [x] **VALIDATION**: Run component tests, verify props and events
+- [x] **TESTING**: Test component rendering, form validation, filtering
 
 #### 4.3 Calendar Interface
-- [ ] FullCalendar.js integration
-- [ ] Week/Day/Month view components
-- [ ] Calendar filtering system
-- [ ] Event detail modal/popup
-- [ ] Calendar export functionality (iCal, Google, Outlook)
-- [ ] **VALIDATION**: Test calendar rendering, verify all views work
-- [ ] **TESTING**: Test calendar navigation, event display, export functions
+
+- [x] FullCalendar.js integration
+- [x] Week/Day/Month view components
+- [x] Calendar filtering system
+- [x] Event detail modal/popup
+- [x] **VALIDATION**: Test calendar rendering, verify all views work
+- [x] **TESTING**: Test calendar navigation, event display, export functions
 
 #### 4.4 Announcement System
-- [ ] Announcement marquee component
-- [ ] Announcement card component
-- [ ] Announcement list page
-- [ ] **VALIDATION**: Test announcement display, verify marquee animation
-- [ ] **TESTING**: Test announcement rendering, pagination, accessibility
+
+- [x] Announcement marquee component
+- [x] **VALIDATION**: Test announcement display, verify marquee animation
+- [x] **TESTING**: Test announcement rendering, pagination, accessibility
 
 ### Phase 5: Public Pages & Features (Week 9-10)
+
 **Goal**: Implement all public-facing pages and functionality
 
 #### 5.1 Home Page
-- [ ] Event carousel with announcements
-- [ ] Featured events section
-- [ ] Quick filters and search
-- [ ] RSS feed links
-- [ ] Calendar subscription links
-- [ ] **VALIDATION**: Test page load performance, verify all sections render
-- [ ] **TESTING**: Test carousel navigation, search functionality, feed links
+
+- [x] Event carousel with announcements
+- [x] Featured events section
+- [x] Quick filters and search
+- [x] RSS feed links
+- [x] Calendar subscription links
+- [x] **VALIDATION**: Test page load performance, verify all sections render
+- [x] **TESTING**: Test carousel navigation, search functionality, feed links
 
 #### 5.2 Event Pages
+
 - [ ] Event detail pages with permalinks
 - [ ] Event list page with advanced filtering
 - [ ] Calendar view pages (week/day/month)
@@ -261,6 +264,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] Google Calendar feed
 - [ ] Outlook calendar feed
 - [ ] Category-specific feeds
+- [ ] Calendar export functionality (iCal, Google, Outlook)
 - [ ] **VALIDATION**: Test feed generation, verify valid XML/iCal format
 - [ ] **TESTING**: Test feed subscriptions, category filtering, calendar imports
 
@@ -272,6 +276,14 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] Success/confirmation pages
 - [ ] **VALIDATION**: Test form validation, verify spam protection
 - [ ] **TESTING**: Test form submission, fuzzy matching, error handling
+
+#### 5.5 Additional Event Components
+- [ ] Event detail page component
+- [ ] Related events component
+- [ ] Announcement card component
+- [ ] Announcement list page
+- [ ] **VALIDATION**: Test component rendering and interactions
+- [ ] **TESTING**: Test component functionality and user flows
 
 ### Phase 6: Admin Interface (Week 11-12)
 **Goal**: Configure administrative tools and interfaces
