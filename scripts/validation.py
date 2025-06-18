@@ -8,7 +8,7 @@ ensuring data integrity and consistency across the application.
 import re
 import uuid
 from datetime import date, time, datetime
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Tuple
 from urllib.parse import urlparse
 import phonenumbers
 from pydantic import ValidationError
@@ -416,4 +416,274 @@ def sanitize_input(data: Dict[str, Any]) -> Dict[str, Any]:
             sanitized[key] = DataValidator.sanitize_string(value)
         else:
             sanitized[key] = value
-    return sanitized 
+    return sanitized
+
+
+def validate_required_string(value: str, max_length: int) -> Tuple[bool, str]:
+    """Validate required string field."""
+    if not value or not value.strip():
+        return False, "Field is required"
+    if len(value.strip()) > max_length:
+        return False, f"Field must be {max_length} characters or less"
+    return True, ""
+
+
+def validate_optional_string(value: str, max_length: int) -> Tuple[bool, str]:
+    """Validate optional string field."""
+    if not value:
+        return True, ""  # Optional field
+    if len(value.strip()) > max_length:
+        return False, f"Field must be {max_length} characters or less"
+    return True, ""
+
+
+def validate_date_range(start_date: str, end_date: str = None) -> Tuple[bool, str]:
+    """Validate date range logic."""
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d').date()
+        if start < date.today():
+            return False, "Start date must be today or in the future"
+        
+        if end_date:
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+            if end < start:
+                return False, "End date must be after start date"
+        
+        return True, ""
+    except ValueError:
+        return False, "Invalid date format (use YYYY-MM-DD)"
+
+
+def validate_time_range(start_time: str, end_time: str = None) -> Tuple[bool, str]:
+    """Validate time range logic."""
+    if not start_time and not end_time:
+        return True, ""  # Both optional
+    
+    if start_time and not end_time:
+        try:
+            datetime.strptime(start_time, '%H:%M:%S')
+            return True, ""
+        except ValueError:
+            return False, "Invalid time format (use HH:MM:SS)"
+    
+    if start_time and end_time:
+        try:
+            start = datetime.strptime(start_time, '%H:%M:%S').time()
+            end = datetime.strptime(end_time, '%H:%M:%S').time()
+            if end <= start:
+                return False, "End time must be after start time"
+            return True, ""
+        except ValueError:
+            return False, "Invalid time format (use HH:MM:SS)"
+    
+    return True, ""
+
+
+def validate_coordinates(lat: str, lon: str) -> Tuple[bool, str]:
+    """Validate latitude and longitude coordinates."""
+    if not lat and not lon:
+        return True, ""  # Both optional
+    
+    try:
+        if lat:
+            lat_val = float(lat)
+            if lat_val < -90 or lat_val > 90:
+                return False, "Latitude must be between -90 and 90"
+        
+        if lon:
+            lon_val = float(lon)
+            if lon_val < -180 or lon_val > 180:
+                return False, "Longitude must be between -180 and 180"
+        
+        return True, ""
+    except ValueError:
+        return False, "Invalid coordinate format (must be numeric)"
+
+
+def validate_event_data(data: Dict) -> Tuple[bool, List[str]]:
+    """Validate event data against database constraints."""
+    errors = []
+    
+    # Required fields
+    title_valid, title_error = validate_required_string(data.get('title', ''), 255)
+    if not title_valid:
+        errors.append(f"Title: {title_error}")
+    
+    # Optional fields
+    desc_valid, desc_error = validate_optional_string(data.get('description', ''), 2000)
+    if not desc_valid:
+        errors.append(f"Description: {desc_error}")
+    
+    # Email validation
+    if not validate_email(data.get('email', '')):
+        errors.append("Email: Invalid email format")
+    
+    # URL validations
+    if not validate_url(data.get('website', '')):
+        errors.append("Website: Invalid URL format")
+    
+    if not validate_url(data.get('registration_link', '')):
+        errors.append("Registration link: Invalid URL format")
+    
+    if not validate_url(data.get('external_image_url', '')):
+        errors.append("External image URL: Invalid URL format")
+    
+    # Cost validation
+    cost_valid, cost_error = validate_optional_string(data.get('cost', ''), 100)
+    if not cost_valid:
+        errors.append(f"Cost: {cost_error}")
+    
+    # Date validation
+    start_date = data.get('start_date', '')
+    end_date = data.get('end_date', '')
+    date_valid, date_error = validate_date_range(start_date, end_date)
+    if not date_valid:
+        errors.append(f"Date: {date_error}")
+    
+    # Time validation
+    start_time = data.get('start_time', '')
+    end_time = data.get('end_time', '')
+    time_valid, time_error = validate_time_range(start_time, end_time)
+    if not time_valid:
+        errors.append(f"Time: {time_error}")
+    
+    return len(errors) == 0, errors
+
+
+def validate_location_data(data: Dict) -> Tuple[bool, List[str]]:
+    """Validate location data against database constraints."""
+    errors = []
+    
+    # Required fields
+    name_valid, name_error = validate_required_string(data.get('name', ''), 255)
+    if not name_valid:
+        errors.append(f"Name: {name_error}")
+    
+    # Optional fields
+    addr_valid, addr_error = validate_optional_string(data.get('address', ''), 500)
+    if not addr_valid:
+        errors.append(f"Address: {addr_error}")
+    
+    phone_valid, phone_error = validate_optional_string(data.get('phone', ''), 20)
+    if not phone_valid:
+        errors.append(f"Phone: {phone_error}")
+    
+    # URL validation
+    if not validate_url(data.get('website', '')):
+        errors.append("Website: Invalid URL format")
+    
+    # Coordinate validation
+    lat = data.get('latitude', '')
+    lon = data.get('longitude', '')
+    coord_valid, coord_error = validate_coordinates(lat, lon)
+    if not coord_valid:
+        errors.append(f"Coordinates: {coord_error}")
+    
+    return len(errors) == 0, errors
+
+
+def validate_organization_data(data: Dict) -> Tuple[bool, List[str]]:
+    """Validate organization data against database constraints."""
+    errors = []
+    
+    # Required fields
+    name_valid, name_error = validate_required_string(data.get('name', ''), 255)
+    if not name_valid:
+        errors.append(f"Name: {name_error}")
+    
+    # Optional fields
+    desc_valid, desc_error = validate_optional_string(data.get('description', ''), 2000)
+    if not desc_valid:
+        errors.append(f"Description: {desc_error}")
+    
+    phone_valid, phone_error = validate_optional_string(data.get('phone', ''), 20)
+    if not phone_valid:
+        errors.append(f"Phone: {phone_error}")
+    
+    # Email validation
+    if not validate_email(data.get('email', '')):
+        errors.append("Email: Invalid email format")
+    
+    # URL validation
+    if not validate_url(data.get('website', '')):
+        errors.append("Website: Invalid URL format")
+    
+    return len(errors) == 0, errors
+
+
+def validate_announcement_data(data: Dict) -> Tuple[bool, List[str]]:
+    """Validate announcement data against database constraints."""
+    errors = []
+    
+    # Required fields
+    title_valid, title_error = validate_required_string(data.get('title', ''), 255)
+    if not title_valid:
+        errors.append(f"Title: {title_error}")
+    
+    message_valid, message_error = validate_required_string(data.get('message', ''), 2000)
+    if not message_valid:
+        errors.append(f"Message: {message_error}")
+    
+    # Optional fields
+    author_valid, author_error = validate_optional_string(data.get('author', ''), 255)
+    if not author_valid:
+        errors.append(f"Author: {author_error}")
+    
+    # Email validation
+    if not validate_email(data.get('email', '')):
+        errors.append("Email: Invalid email format")
+    
+    # URL validation
+    if not validate_url(data.get('link', '')):
+        errors.append("Link: Invalid URL format")
+    
+    # Date validation for show_at and expires_at
+    show_at = data.get('show_at', '')
+    expires_at = data.get('expires_at', '')
+    
+    if show_at:
+        try:
+            show_date = datetime.strptime(show_at, '%Y-%m-%d %H:%M:%S')
+            if show_date < datetime.now():
+                errors.append("Show at: Must be in the future")
+        except ValueError:
+            errors.append("Show at: Invalid datetime format (use YYYY-MM-DD HH:MM:SS)")
+    
+    if expires_at and show_at:
+        try:
+            show_date = datetime.strptime(show_at, '%Y-%m-%d %H:%M:%S')
+            expire_date = datetime.strptime(expires_at, '%Y-%m-%d %H:%M:%S')
+            if expire_date <= show_date:
+                errors.append("Expires at: Must be after show at")
+        except ValueError:
+            errors.append("Expires at: Invalid datetime format (use YYYY-MM-DD HH:MM:SS)")
+    
+    return len(errors) == 0, errors
+
+
+def validate_csv_data(data_list: List[Dict], data_type: str) -> Tuple[bool, List[str]]:
+    """Validate a list of CSV data records."""
+    all_errors = []
+    
+    for i, data in enumerate(data_list, 1):
+        row_errors = []
+        
+        if data_type == 'events':
+            valid, errors = validate_event_data(data)
+        elif data_type == 'locations':
+            valid, errors = validate_location_data(data)
+        elif data_type == 'organizations':
+            valid, errors = validate_organization_data(data)
+        elif data_type == 'announcements':
+            valid, errors = validate_announcement_data(data)
+        else:
+            all_errors.append(f"Row {i}: Unknown data type '{data_type}'")
+            continue
+        
+        if not valid:
+            for error in errors:
+                row_errors.append(f"Row {i}: {error}")
+        
+        all_errors.extend(row_errors)
+    
+    return len(all_errors) == 0, all_errors 

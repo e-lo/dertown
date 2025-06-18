@@ -1,0 +1,203 @@
+---
+import type { Tables } from '../lib/supabase';
+
+export interface Props {
+  event: Tables<'events'>;
+  showImage?: boolean;
+  showDescription?: boolean;
+  showLocation?: boolean;
+  showOrganization?: boolean;
+  showTags?: boolean;
+  showCost?: boolean;
+  showRegistration?: boolean;
+  className?: string;
+}
+
+const {
+  event,
+  showImage = true,
+  showDescription = true,
+  showLocation = true,
+  showOrganization = true,
+  showTags = true,
+  showCost = true,
+  showRegistration = true,
+  className = '',
+} = Astro.props;
+
+// Format date and time
+const formatDate = (date: string, time?: string | null) => {
+  const dateObj = new Date(date);
+  const options: Intl.DateTimeFormatOptions = { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  };
+  
+  if (time) {
+    options.hour = 'numeric';
+    options.minute = '2-digit';
+  }
+  
+  return dateObj.toLocaleDateString('en-US', options);
+};
+
+const formatTime = (time: string) => {
+  return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+// Get event image
+const getEventImage = () => {
+  if (event.external_image_url) {
+    return event.external_image_url;
+  }
+  // TODO: Add logic for uploaded images when storage is implemented
+  return null;
+};
+
+// Get event URL
+const getEventUrl = () => {
+  return `/events/${event.id}`;
+};
+---
+
+<article class={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${className}`}>
+  {showImage && getEventImage() && (
+    <div class="aspect-video overflow-hidden">
+      <img 
+        src={getEventImage()} 
+        alt={event.title}
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
+    </div>
+  )}
+  
+  <div class="p-4">
+    <div class="flex items-start justify-between mb-2">
+      <h3 class="text-lg font-semibold text-gray-900 line-clamp-2">
+        <a href={getEventUrl()} class="hover:text-blue-600 transition-colors">
+          {event.title}
+        </a>
+      </h3>
+      {event.featured && (
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          Featured
+        </span>
+      )}
+    </div>
+    
+    <div class="flex items-center text-sm text-gray-600 mb-2">
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <time datetime={event.start_date}>
+        {formatDate(event.start_date, event.start_time)}
+        {event.start_time && ` at ${formatTime(event.start_time)}`}
+      </time>
+    </div>
+    
+    {showDescription && event.description && (
+      <p class="text-gray-700 text-sm mb-3 line-clamp-3">
+        {event.description}
+      </p>
+    )}
+    
+    <div class="space-y-2">
+      {showLocation && event.location_id && (
+        <div class="flex items-center text-sm text-gray-600">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Location TBD</span>
+        </div>
+      )}
+      
+      {showOrganization && event.organization_id && (
+        <div class="flex items-center text-sm text-gray-600">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <span>Organization TBD</span>
+        </div>
+      )}
+      
+      {showCost && event.cost && (
+        <div class="flex items-center text-sm text-gray-600">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+          </svg>
+          <span>{event.cost}</span>
+        </div>
+      )}
+      
+      {showRegistration && event.registration && (
+        <div class="flex items-center text-sm text-blue-600">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Registration Required</span>
+        </div>
+      )}
+    </div>
+    
+    {showTags && (event.primary_tag_id || event.secondary_tag_id) && (
+      <div class="flex flex-wrap gap-1 mt-3">
+        {event.primary_tag_id && (
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            Primary Tag TBD
+          </span>
+        )}
+        {event.secondary_tag_id && (
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Secondary Tag TBD
+          </span>
+        )}
+      </div>
+    )}
+    
+    <div class="mt-4 flex justify-between items-center">
+      <a 
+        href={getEventUrl()} 
+        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+      >
+        View Details
+        <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+      
+      {event.website && (
+        <a 
+          href={event.website} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          Visit Website
+        </a>
+      )}
+    </div>
+  </div>
+</article>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style> 

@@ -376,14 +376,14 @@ make deploy-staging   # Deploy to staging
 
 **Shared Components & Utilities:**
 - Centralized database client (`lib/supabase.js`)
-- Shared validation schemas (`lib/validation.js`)
+- Simple form validation schemas (`lib/validation.js`)
 - Reusable UI components (`components/EventCard.astro`)
 - TypeScript interfaces (`types/database.ts`)
 
 **Why These Help During Development:**
 - Consistent UI across the application
 - Type safety to catch errors at compile time
-- Shared validation rules across forms
+- Basic form validation for user input
 - Easier refactoring (change once, updates everywhere)
 
 #### Phase 3: Iteration Tools (Week 5-6)
@@ -466,23 +466,19 @@ make process-*        # Based on real data quality issues
 make admin-*          # Based on actual admin workflows
 ```
 
-### Pydantic Models
+### Data Validation Strategy
 
-All data operations use Pydantic models for validation and type safety:
+**Database-First Validation:**
+- **SQL Constraints**: Primary validation at the database level
+- **RLS Policies**: Business rules and access control
+- **Simple Python Validation**: Basic field checks for CSV imports
+- **Form Validation**: Simple Zod schemas for user input
 
-- **Event Models**: `Event`, `EventStaged` (for public submissions)
-- **Organization Models**: `Organization`
-- **Location Models**: `Location`
-- **Tag Models**: `Tag`
-- **Announcement Models**: `Announcement`
-- **Source Models**: `SourceSite`, `ScrapeLog`
-
-Each model includes:
-
-- **Field validation**: Data types, required fields, format validation
-- **Custom validators**: URL validation, date/time parsing, status enums
-- **Database mapping**: Direct mapping to Supabase table columns
-- **CSV compatibility**: Handle CSV-specific data formats (empty strings, \N values)
+**No Complex Schema Generation:**
+- No auto-generated Pydantic models
+- No complex validation schemas
+- Trust the database for data integrity
+- Keep validation simple and pragmatic
 
 ### Error Handling and Logging
 

@@ -105,6 +105,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TODO**: Test public insert to `events_staged` in remote Supabase
 
 #### 1.4 Core Dependencies
+
 - [x] Install and configure FullCalendar.js (client-only, browser-safe)
 - [x] Set up basic Pydantic models for data validation
 - [x] Configure environment variables and secrets
@@ -121,37 +122,51 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [x] **TESTING**: Test staging environment functionality
 
 ### Phase 2: DRY Foundation & Shared Components (Week 3-4)
+
 **Goal**: Establish shared patterns and components as the codebase grows
 
 #### 2.1 Shared Components & Utilities
-- [ ] Create centralized database client (`lib/supabase.js`)
-- [ ] Create shared validation schemas (`lib/validation.js`)
-- [ ] Create reusable UI components:
-  - [ ] `EventCard.astro` - Reusable event display component
-  - [ ] `EventForm.astro` - Reusable event submission form
-  - [ ] `CalendarView.astro` - Calendar interface component
-- [ ] Create TypeScript interfaces (`types/database.ts`)
-- [ ] **VALIDATION**: Test all shared components and utilities
-- [ ] **TESTING**: Verify component reusability, type safety, validation
+
+- [x] Create centralized database client (`lib/supabase.js`)
+- [x] Create simple form validation schemas (`lib/validation.js`)
+- [x] Create reusable UI components:
+  - [x] `EventCard.astro` - Reusable event display component
+  - [x] `EventForm.astro` - Reusable event submission form
+  - [x] `CalendarView.astro` - Calendar interface component
+- [x] Create TypeScript interfaces (`types/database.ts`)
+- [x] **VALIDATION**: Test all shared components and utilities
+- [x] **TESTING**: Verify component reusability, type safety, validation
 
 #### 2.2 Enhanced Development Tools
-- [ ] Add iteration tools to Makefile:
-  - [ ] `make db-migrate` - Run database migrations
-  - [ ] `make db-backup` - Backup current state
-  - [ ] `make test-data` - Generate realistic test data
-  - [ ] `make validate-all` - Run all validations
-- [ ] Create better Python scripts (`scripts/data_manager.py`):
-  - [ ] CSV validation with error reporting
-  - [ ] Realistic test data generation
-  - [ ] Safe backup/restore operations
-  - [ ] Basic duplicate detection (exact matches only)
-- [ ] **VALIDATION**: Test enhanced development tools
-- [ ] **TESTING**: Verify data management, validation, backup operations
+
+- [x] Add iteration tools to Makefile:
+  - [x] `make db-migrate` - Run database migrations
+  - [x] `make db-backup` - Backup current state
+  - [x] `make test-data` - Generate realistic test data
+  - [x] `make validate-all` - Run all validations
+- [x] Create better Python scripts (`scripts/data_manager.py`):
+  - [x] CSV validation with error reporting
+  - [x] Realistic test data generation
+  - [x] Safe backup/restore operations
+  - [x] Basic duplicate detection (exact matches only)
+- [x] **VALIDATION**: Test enhanced development tools
+- [x] **TESTING**: Verify data management, validation, backup operations
+
+#### 2.3 Database-First Validation Setup
+
+- [x] Add SQL constraints for data validation (field lengths, required fields, etc.)
+- [x] Enhance RLS policies for business rule validation
+- [x] Create simple Python validation functions for CSV imports
+- [x] Update form validation to use simple Zod schemas
+- [x] **VALIDATION**: Test database constraints and RLS policies
+- [x] **TESTING**: Verify validation works at database level
 
 ### Phase 3: Core Data Models & API (Week 5-6)
+
 **Goal**: Implement the foundational data layer and essential API endpoints
 
 #### 3.1 Database Models & Types
+
 - [x] Create TypeScript interfaces for all database models
 - [x] Implement Pydantic models for Python scripts
 - [x] Create data validation utilities
@@ -159,6 +174,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [x] **TESTING**: Test model serialization/deserialization
 
 #### 3.2 Essential API Routes
+
 - [ ] `/api/events/submit` - Public event submission endpoint (public insert to `events_staged`)
 - [ ] `/api/calendar/events` - Calendar data for client-side rendering
 - [ ] `/api/events/search` - Event search and filtering
@@ -166,6 +182,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test form submission, calendar data, search functionality
 
 #### 3.3 Authentication & Authorization
+
 - [ ] Implement Supabase Auth integration for admin access
 - [ ] Create admin-only middleware
 - [ ] Set up user role management via Supabase Auth
@@ -174,6 +191,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test login/logout, role-based access, protected routes
 
 #### 3.4 Public Event Submission & Moderation
+
 - [ ] Create `events_staged` table for public submissions
 - [ ] Allow public insert to `events_staged` (RLS)
 - [ ] Admin review workflow: move from `events_staged` to `events` via Supabase dashboard

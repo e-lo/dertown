@@ -1,7 +1,7 @@
 # Der Town Development Makefile
 # Essential commands for rapid development iteration
 
-.PHONY: help dev build preview db-reset db-seed format lint test clean
+.PHONY: help dev build preview db-reset db-seed db-migrate db-backup test-data validate-all format lint test clean
 
 # Default target
 help:
@@ -11,6 +11,10 @@ help:
 	@echo "  preview          - Build and preview production locally"
 	@echo "  db-reset         - Reset local database with sample data"
 	@echo "  db-seed          - Seed with test data"
+	@echo "  db-migrate       - Run database migrations"
+	@echo "  db-backup        - Backup current database state"
+	@echo "  test-data        - Generate realistic test data"
+	@echo "  validate-all     - Run all validations"
 	@echo "  format           - Format code with Prettier"
 	@echo "  lint             - Run ESLint"
 	@echo "  test             - Run tests"
@@ -42,8 +46,41 @@ db-reset:
 # Seed database with test data
 db-seed:
 	@echo "Seeding database with test data..."
-	python scripts/dev_utils.py seed
+	python3 scripts/dev_utils.py seed
 	@echo "Database seeding complete"
+
+# Run database migrations
+db-migrate:
+	@echo "Running database migrations..."
+	supabase db push
+	@echo "Database migrations complete"
+
+# Backup current database state
+db-backup:
+	@echo "Creating database backup..."
+	@mkdir -p backups
+	@timestamp=$$(date +%Y%m%d_%H%M%S); \
+	supabase db dump --data-only > backups/db_backup_$$timestamp.sql; \
+	echo "Database backup saved to backups/db_backup_$$timestamp.sql"
+
+# Generate realistic test data
+test-data:
+	@echo "Generating realistic test data..."
+	python3 scripts/data_manager.py generate-test-data
+	@echo "Test data generation complete"
+
+# Run all validations
+validate-all:
+	@echo "Running all validations..."
+	@echo "1. TypeScript compilation..."
+	npx tsc --noEmit
+	@echo "2. ESLint (excluding Astro files)..."
+	npx eslint src/ --ext .js,.ts
+	@echo "3. Prettier check..."
+	npx prettier --check src/
+	@echo "4. Build test..."
+	npx astro build
+	@echo "All validations passed!"
 
 # Format code
 format:

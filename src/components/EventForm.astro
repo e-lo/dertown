@@ -1,0 +1,356 @@
+---
+import type { Tables } from '../lib/supabase';
+
+export interface Props {
+  event?: Partial<Tables<'events'>>;
+  locations?: Tables<'locations'>[];
+  organizations?: Tables<'organizations'>[];
+  tags?: Tables<'tags'>[];
+  action?: string;
+  method?: 'GET' | 'POST';
+  className?: string;
+}
+
+const {
+  event = {},
+  locations = [],
+  organizations = [],
+  tags = [],
+  action = '/api/events/submit',
+  method = 'POST',
+  className = '',
+} = Astro.props;
+
+// Get form field value with fallback
+const getFieldValue = (field: keyof Tables<'events'>, defaultValue = '') => {
+  return event[field] || defaultValue;
+};
+
+// Get selected value for select fields
+const isSelected = (field: keyof Tables<'events'>, value: string) => {
+  return event[field] === value ? 'selected' : '';
+};
+---
+
+<form 
+  action={action} 
+  method={method} 
+  class={`space-y-6 ${className}`}
+  id="event-form"
+>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Title -->
+    <div class="md:col-span-2">
+      <label for="title" class="block text-sm font-medium text-gray-700 mb-1">
+        Event Title *
+      </label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        value={getFieldValue('title')}
+        required
+        maxlength="200"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Enter event title"
+      />
+    </div>
+
+    <!-- Description -->
+    <div class="md:col-span-2">
+      <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+        Description
+      </label>
+      <textarea
+        id="description"
+        name="description"
+        rows="4"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Describe your event..."
+      >{getFieldValue('description')}</textarea>
+    </div>
+
+    <!-- Start Date -->
+    <div>
+      <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
+        Start Date *
+      </label>
+      <input
+        type="date"
+        id="start_date"
+        name="start_date"
+        value={getFieldValue('start_date')}
+        required
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+    </div>
+
+    <!-- Start Time -->
+    <div>
+      <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">
+        Start Time
+      </label>
+      <input
+        type="time"
+        id="start_time"
+        name="start_time"
+        value={getFieldValue('start_time')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+    </div>
+
+    <!-- End Date -->
+    <div>
+      <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
+        End Date
+      </label>
+      <input
+        type="date"
+        id="end_date"
+        name="end_date"
+        value={getFieldValue('end_date')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+    </div>
+
+    <!-- End Time -->
+    <div>
+      <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">
+        End Time
+      </label>
+      <input
+        type="time"
+        id="end_time"
+        name="end_time"
+        value={getFieldValue('end_time')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+    </div>
+
+    <!-- Cost -->
+    <div>
+      <label for="cost" class="block text-sm font-medium text-gray-700 mb-1">
+        Cost
+      </label>
+      <input
+        type="text"
+        id="cost"
+        name="cost"
+        value={getFieldValue('cost')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="e.g., Free, $10, Donation"
+      />
+    </div>
+
+    <!-- Website -->
+    <div>
+      <label for="website" class="block text-sm font-medium text-gray-700 mb-1">
+        Website
+      </label>
+      <input
+        type="url"
+        id="website"
+        name="website"
+        value={getFieldValue('website')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="https://example.com"
+      />
+    </div>
+
+    <!-- Location -->
+    <div>
+      <label for="location_id" class="block text-sm font-medium text-gray-700 mb-1">
+        Location
+      </label>
+      <select
+        id="location_id"
+        name="location_id"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select a location</option>
+        {locations.map((location) => (
+          <option value={location.id} selected={isSelected('location_id', location.id)}>
+            {location.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <!-- Organization -->
+    <div>
+      <label for="organization_id" class="block text-sm font-medium text-gray-700 mb-1">
+        Organization
+      </label>
+      <select
+        id="organization_id"
+        name="organization_id"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select an organization</option>
+        {organizations.map((org) => (
+          <option value={org.id} selected={isSelected('organization_id', org.id)}>
+            {org.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <!-- Primary Tag -->
+    <div>
+      <label for="primary_tag_id" class="block text-sm font-medium text-gray-700 mb-1">
+        Primary Category
+      </label>
+      <select
+        id="primary_tag_id"
+        name="primary_tag_id"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select a category</option>
+        {tags.map((tag) => (
+          <option value={tag.id} selected={isSelected('primary_tag_id', tag.id)}>
+            {tag.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <!-- Secondary Tag -->
+    <div>
+      <label for="secondary_tag_id" class="block text-sm font-medium text-gray-700 mb-1">
+        Secondary Category
+      </label>
+      <select
+        id="secondary_tag_id"
+        name="secondary_tag_id"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select a category (optional)</option>
+        {tags.map((tag) => (
+          <option value={tag.id} selected={isSelected('secondary_tag_id', tag.id)}>
+            {tag.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <!-- Registration -->
+    <div class="md:col-span-2">
+      <div class="flex items-center">
+        <input
+          type="checkbox"
+          id="registration"
+          name="registration"
+          value="true"
+          checked={getFieldValue('registration') === true}
+          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label for="registration" class="ml-2 block text-sm text-gray-700">
+          Registration required
+        </label>
+      </div>
+    </div>
+
+    <!-- Registration Link -->
+    <div class="md:col-span-2">
+      <label for="registration_link" class="block text-sm font-medium text-gray-700 mb-1">
+        Registration Link
+      </label>
+      <input
+        type="url"
+        id="registration_link"
+        name="registration_link"
+        value={getFieldValue('registration_link')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="https://example.com/register"
+      />
+    </div>
+
+    <!-- Email -->
+    <div class="md:col-span-2">
+      <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+        Contact Email
+      </label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        value={getFieldValue('email')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="contact@example.com"
+      />
+    </div>
+
+    <!-- External Image URL -->
+    <div class="md:col-span-2">
+      <label for="external_image_url" class="block text-sm font-medium text-gray-700 mb-1">
+        Image URL
+      </label>
+      <input
+        type="url"
+        id="external_image_url"
+        name="external_image_url"
+        value={getFieldValue('external_image_url')}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="https://example.com/image.jpg"
+      />
+    </div>
+  </div>
+
+  <!-- Submit Button -->
+  <div class="flex justify-end">
+    <button
+      type="submit"
+      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+    >
+      Submit Event
+    </button>
+  </div>
+</form>
+
+<script>
+  // Client-side validation using Zod
+  import { eventFormSchema } from '../lib/validation';
+
+  const form = document.getElementById('event-form') as HTMLFormElement;
+  
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        // Validate form data
+        const validatedData = eventFormSchema.parse(data);
+        
+        // Submit form
+        const response = await fetch(form.action, {
+          method: form.method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(validatedData),
+        });
+        
+        if (response.ok) {
+          // Show success message
+          alert('Event submitted successfully! It will be reviewed before publishing.');
+          form.reset();
+        } else {
+          // Show error message
+          const error = await response.json();
+          alert(`Error: ${error.message || 'Failed to submit event'}`);
+        }
+      } catch (error) {
+        // Show validation error
+        if (error.errors) {
+          const errorMessage = error.errors.map((err: { message: string }) => err.message).join('\n');
+          alert(`Validation errors:\n${errorMessage}`);
+        } else {
+          alert('An unexpected error occurred');
+        }
+      }
+    });
+  }
+</script> 
