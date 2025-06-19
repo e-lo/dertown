@@ -1,0 +1,36 @@
+---
+import Layout from '../components/Layout.astro';
+import EventList from '../components/EventList.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import { db } from '../lib/supabase';
+
+// Fetch all approved events
+const { data: events, error } = await db.events.getAll();
+
+if (error) {
+  console.error('Error fetching events:', error);
+}
+
+const eventsList = events || [];
+---
+
+<Layout 
+  title="Events - Der Town" 
+  description="Browse all community events in Der Town. Find local events, activities, and gatherings."
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <Breadcrumb items={[{ label: 'Events' }]} />
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">All Events</h1>
+      <p class="text-lg text-gray-600">
+        Discover community events, activities, and gatherings in Der Town
+      </p>
+    </div>
+    
+    <!-- Events List -->
+    <EventList events={eventsList} />
+  </div>
+</Layout> 

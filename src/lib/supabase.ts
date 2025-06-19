@@ -76,9 +76,7 @@ export const db = {
       supabase
         .from('announcements')
         .select('*')
-        .eq('status', 'published')
-        .lte('show_at', new Date().toISOString())
-        .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString()),
+        .or(`and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.is.null),and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.gt.${new Date().toISOString()})`),
     getById: (id: string) => supabase.from('announcements').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['announcements']['Insert']) =>
       supabase.from('announcements').insert(data),
