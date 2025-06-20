@@ -1,0 +1,136 @@
+---
+import type { Tables } from '../lib/supabase';
+
+export interface Props {
+  event: Tables<'events'>;
+  tags?: { primary: string | null, secondary: string | null };
+  className?: string;
+}
+
+const {
+  event,
+  tags,
+  className = '',
+} = Astro.props;
+
+// Format date and time
+const formatDate = (date: string) => {
+  const dateObj = new Date(date);
+  const options: Intl.DateTimeFormatOptions = { 
+    month: 'short', 
+    day: 'numeric',
+    weekday: 'short'
+  };
+  return dateObj.toLocaleDateString('en-US', options);
+};
+
+const formatTime = (time: string) => {
+  return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+// Get event URL
+const getEventUrl = () => {
+  return `/events/${event.id}`;
+};
+
+// Get background image or fallback
+const getBackgroundStyle = () => {
+  if (event.external_image_url) {
+    return `background-image: url(${event.external_image_url});`;
+  }
+  return 'background-color: rgb(31, 41, 55);'; // Dark gray fallback
+};
+---
+
+<article class={`event-carousel-card relative overflow-hidden rounded-xl shadow-lg ${className}`} style="height: 400px;">
+  <!-- Background Image or Color -->
+  <div 
+    class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+    style={getBackgroundStyle()}
+  >
+    <!-- Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20"></div>
+  </div>
+
+  <!-- Content -->
+  <a 
+    href={getEventUrl()} 
+    class="relative flex flex-col justify-end h-full p-6 text-white hover:no-underline"
+  >
+    <!-- Featured Badge -->
+    {event.featured && (
+      <div class="absolute top-4 right-4">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-400 text-yellow-900">
+          Featured Event
+        </span>
+      </div>
+    )}
+
+    <!-- Today Badge -->
+    {(() => {
+      const today = new Date();
+      const eventDate = new Date(event.start_date);
+      const isToday = today.toDateString() === eventDate.toDateString();
+      
+      if (isToday) {
+        return (
+          <div class="absolute top-4 left-4">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-400 text-green-900">
+              Today
+            </span>
+          </div>
+        );
+      }
+      return null;
+    })()}
+
+    <div class="space-y-4">
+      <!-- Date and Time -->
+      <div class="text-lg font-medium">
+        {formatDate(event.start_date)}
+        {event.start_time && (
+          <span class="opacity-90">
+            {' '} · {formatTime(event.start_time)}
+          </span>
+        )}
+      </div>
+      
+      <!-- Title -->
+      <h3 class="text-2xl sm:text-3xl font-bold">
+        {event.title}
+      </h3>
+      
+      <!-- Location -->
+      <div class="text-lg opacity-90">
+        {event.location_id ? 'Location TBD' : 'Online Event'}
+      </div>
+      
+      <!-- Description -->
+      {event.description && (
+        <p class="text-base opacity-90 line-clamp-2">
+          {event.description}
+        </p>
+      )}
+      
+      <!-- Category Pills -->
+      {(tags?.primary || tags?.secondary) && (
+        <div class="flex flex-wrap gap-2 pt-2">
+          {tags.primary && (
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm">
+              {tags.primary}
+            </span>
+          )}
+          {tags.secondary && (
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm">
+              {tags.secondary}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  </a>
+</article> 

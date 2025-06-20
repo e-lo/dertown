@@ -1,9 +1,11 @@
 ---
-import EventCard from './EventCard.astro';
+import EventListCard from './EventListCard.astro';
 import type { Tables } from '../lib/supabase';
 
 export interface Props {
   events: Tables<'events'>[];
+  eventColors?: Record<string, { bg: string, text: string }>;
+  eventTags?: Record<string, { primary: string | null, secondary: string | null }>;
   showFilters?: boolean;
   showPagination?: boolean;
   itemsPerPage?: number;
@@ -12,6 +14,8 @@ export interface Props {
 
 const {
   events,
+  eventColors = {},
+  eventTags = {},
   showFilters = true,
   showPagination = true,
   itemsPerPage = 12,
@@ -76,44 +80,37 @@ const paginatedEvents = events.slice(startIndex, endIndex);
     </div>
   )}
   
-  <!-- Results Count -->
-  <div class="flex justify-between items-center">
-    <p class="text-sm text-gray-600">
-      Showing {paginatedEvents.length} of {events.length} events
-    </p>
-    
-    <!-- Sort Options -->
-    <div class="flex items-center space-x-2">
-      <label for="sort" class="text-sm text-gray-600">Sort by:</label>
-      <select
-        id="sort"
-        name="sort"
-        class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="date">Date</option>
-        <option value="title">Title</option>
-        <option value="featured">Featured</option>
-      </select>
-    </div>
-  </div>
-  
   <!-- Events Grid -->
   {paginatedEvents.length > 0 ? (
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {paginatedEvents.map((event) => (
-        <EventCard event={event} />
-      ))}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200/10">
+      {paginatedEvents.map((event) => {
+        const primaryTag = eventTags[event.id]?.primary || '';
+        const secondaryTag = eventTags[event.id]?.secondary || '';
+        return (
+          <div 
+            class={`event-card-wrapper ${eventColors[event.id]?.bg || 'bg-gray-100'}`}
+            data-primary-tag={primaryTag}
+            data-secondary-tag={secondaryTag}
+          >
+            <EventListCard 
+              event={event}
+              tags={{ primary: primaryTag, secondary: secondaryTag }}
+              className={eventColors[event.id]?.text || 'text-gray-800'}
+            />
+          </div>
+        )
+      })}
     </div>
   ) : (
     <div class="text-center py-12">
       <h3 class="mt-2 text-sm font-medium text-gray-900">No events found</h3>
-      <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+      <p class="mt-1 text-sm text-gray-500">Try selecting a different category.</p>
     </div>
   )}
   
   <!-- Pagination -->
   {showPagination && totalPages > 1 && (
-    <div class="flex justify-center">
+    <div class="flex justify-center mt-8">
       <nav class="flex items-center space-x-2">
         <button
           class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -126,7 +123,7 @@ const paginatedEvents = events.slice(startIndex, endIndex);
           <button
             class={`px-3 py-2 text-sm font-medium rounded-md ${
               page === currentPage
-                ? 'bg-blue-600 text-white'
+                ? 'bg-gray-800 text-white'
                 : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
             }`}
           >

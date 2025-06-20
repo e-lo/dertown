@@ -251,8 +251,8 @@ This implementation follows a **pragmatic, development-first approach** that pri
 
 #### 5.2 Event Pages
 
-- [ ] Event detail pages with permalinks
-- [ ] Event list page with advanced filtering
+- [x] Event detail pages with permalinks
+- [x] Event list page with advanced filtering
 - [ ] Calendar view pages (week/day/month)
 - [ ] Related events suggestions
 - [ ] Social sharing functionality
@@ -260,6 +260,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test filtering, pagination, social sharing, related events
 
 #### 5.3 RSS & Calendar Feeds
+
 - [ ] RSS feed generation for events
 - [ ] iCal feed generation
 - [ ] Google Calendar feed
@@ -270,6 +271,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test feed subscriptions, category filtering, calendar imports
 
 #### 5.4 Public Submission Form
+
 - [ ] Event submission form
 - [ ] Fuzzy matching for organizations/locations
 - [ ] Honeypot/CAPTCHA protection
@@ -279,6 +281,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test form submission, fuzzy matching, error handling
 
 #### 5.5 Additional Event Components
+
 - [ ] Event detail page component
 - [ ] Related events component
 - [ ] Announcement card component
@@ -287,9 +290,11 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test component functionality and user flows
 
 ### Phase 6: Admin Interface (Week 11-12)
+
 **Goal**: Configure administrative tools and interfaces
 
 #### 6.1 Supabase Admin UI (Primary)
+
 - [ ] Configure Supabase dashboard for data management
 - [ ] Set up admin user roles and permissions via Supabase Auth
 - [ ] Create custom admin views and filters in Supabase dashboard
@@ -299,6 +304,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test data management operations, user role assignments
 
 #### 6.2 Astro Admin Routes (Optional - Low Priority)
+
 - [ ] Admin dashboard layout (only if Supabase UI insufficient)
 - [ ] Event management interface (only if needed)
 - [ ] Organization/location management (only if needed)
@@ -308,6 +314,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test CRUD operations, bulk actions, submission review
 
 #### 6.3 Admin API Endpoints (Minimal)
+
 - [ ] Bulk import/export functionality (via Supabase dashboard)
 - [ ] Data validation and cleanup tools (via Python scripts)
 - [ ] Analytics and reporting endpoints (basic only)
@@ -316,9 +323,11 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Test import/export, analytics generation, health checks
 
 ### Phase 7: Data Ingestion & Automation (Week 13-14)
+
 **Goal**: Implement automated data collection and processing via Makefile commands
 
 #### 7.1 Python Scripts Integration
+
 - [ ] Integrate `parse_ics.py` with `make ingest-ics` command
 - [ ] Integrate `scrape_events.py` with `make ingest-scrape` command
 - [ ] Integrate `summarize_events.py` with `make ingest-summarize` command
@@ -327,6 +336,7 @@ This implementation follows a **pragmatic, development-first approach** that pri
 - [ ] **TESTING**: Verify data parsing accuracy and error handling
 
 #### 7.2 GitHub Actions Workflows
+
 - [ ] Scheduled ICS import workflow using `make ingest-ics`
 - [ ] Web scraping workflow using `make ingest-scrape`
 - [ ] Content summarization workflow using `make ingest-summarize`
@@ -334,11 +344,13 @@ This implementation follows a **pragmatic, development-first approach** that pri
 ## Current Status: Phase 6 - Advanced Features & Polish
 
 ### ✅ Recently Completed:
+
 - **Tailwind CSS Integration**: Fixed Tailwind CSS v4 setup with proper Astro integration
 - **CSS Loading**: Resolved issue where Tailwind CSS wasn't being loaded in the application
 - **Build System**: Verified that CSS is properly compiled and linked in production builds
 
 ### Next Priority Tasks:
+
 1. **Event Detail Pages** - Create individual event pages with full details (`/events/[id]`)
 2. **Search & Filtering** - Implement advanced search with multiple filters
 3. **Related Events** - Show similar events on detail pages

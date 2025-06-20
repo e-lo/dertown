@@ -1,0 +1,33 @@
+:root {
+  /* Category Colors */
+  --color-arts-culture-bg: theme('colors.purple.600');
+  --color-civic-bg: theme('colors.rose.500');
+  --color-family-bg: theme('colors.green.800');
+  --color-food-drink-bg: theme('colors.green.600');
+  --color-sports-bg: theme('colors.cyan.600');
+  --color-town-bg: theme('colors.slate.600');
+  --color-arts-bg: theme('colors.purple.600');
+  --color-nature-bg: theme('colors.green.600');
+  --color-outdoors-bg: theme('colors.green.700');
+  --color-school-bg: theme('colors.cyan.500');
+  --color-music-bg: theme('colors.indigo.600');
+  --color-art-bg: theme('colors.fuchsia.600');
+  --color-education-bg: theme('colors.amber.600');
+  --color-performance-bg: theme('colors.violet.600');
+  --color-community-event-bg: theme('colors.emerald.600');
+  --color-artsplusculture-bg: theme('colors.purple.500');
+  --color-sports-recreation-bg: theme('colors.green.800');
+
+  /* Text colors for categories (all white for now) */
+  --color-category-text: theme('colors.white');
+}
+
+/* Category-specific utility classes */
+.bg-category-arts-culture { background-color: var(--color-arts-culture-bg); }
+.bg-category-civic { background-color: var(--color-civic-bg); }
+.bg-category-family { background-color: var(--color-family-bg); }
+.bg-category-food-drink { background-color: var(--color-food-drink-bg); }
+.bg-category-sports { background-color: var(--color-sports-bg); }
+.bg-category-town { background-color: var(--color-town-bg); }
+
+.text-category { color: theme('colors.white'); } 
