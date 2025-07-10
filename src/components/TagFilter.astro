@@ -1,0 +1,133 @@
+---
+interface Props {
+  tags: Array<{ id: string; name: string }>;
+  selectedTag?: string;
+  showAllOption?: boolean;
+  allOptionText?: string;
+  className?: string;
+}
+
+const { 
+  tags, 
+  selectedTag = 'all', 
+  showAllOption = true, 
+  allOptionText = 'All Events',
+  className = '' 
+} = Astro.props;
+
+// Helper to convert category/tag name to kebab-case for CSS classes
+function toKebabCase(str: string): string {
+  return (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+---
+
+<div id="tag-filter-controls" class={`flex flex-wrap gap-2 ${className}`}>
+  {showAllOption && (
+    <a
+      href="/events"
+      class={`tag-filter-pill inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        selectedTag === 'all' 
+          ? 'bg-theme-primary text-white' 
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+      }`}
+      data-tag="all"
+    >
+      {allOptionText}
+    </a>
+  )}
+  
+  {tags.map((tag) => (
+    <a
+      href={`/events?tag=${encodeURIComponent(tag.name)}`}
+      class={`tag-filter-pill inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-event-${toKebabCase(tag.name)} ${
+        selectedTag === tag.name 
+          ? 'opacity-100' 
+          : 'opacity-60 hover:opacity-100'
+      }`}
+      data-tag={tag.name}
+    >
+      {tag.name}
+    </a>
+  ))}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterControls = document.getElementById('tag-filter-controls');
+    if (!filterControls) {
+      return;
+    }
+
+    const filterPills = filterControls.querySelectorAll('.tag-filter-pill');
+    const eventCards = document.querySelectorAll('.event-card-wrapper');
+
+    function filterEvents(selectedTag: string) {
+      let visibleCount = 0;
+      eventCards.forEach((card) => {
+        const cardElement = card as HTMLElement;
+        const primaryTag = cardElement.dataset.primaryTag || '';
+        const secondaryTag = cardElement.dataset.secondaryTag || '';
+
+        const isMatch =
+          selectedTag === 'all' || primaryTag === selectedTag || secondaryTag === selectedTag;
+        if (isMatch) {
+          cardElement.style.display = '';
+          visibleCount++;
+        } else {
+          cardElement.style.display = 'none';
+        }
+      });
+    }
+
+    function updatePillStyles(activePill: Element) {
+      if (!activePill) {
+        return;
+      }
+
+      filterPills.forEach((pill) => {
+        pill.classList.remove('is-active', 'opacity-100');
+        pill.classList.add('opacity-60', 'hover:opacity-100');
+      });
+
+      activePill.classList.add('is-active');
+      activePill.classList.remove('opacity-60', 'hover:opacity-100');
+      activePill.classList.add('opacity-100');
+    }
+
+    filterControls.addEventListener('click', (e: Event) => {
+      e.preventDefault();
+      const target = e.target as Element;
+      const pill = target?.closest('.tag-filter-pill') as HTMLElement | null;
+
+      if (pill) {
+        const selectedTag = pill.dataset.tag || 'all';
+
+        const url = new URL(window.location.href);
+        if (selectedTag === 'all') {
+          url.searchParams.delete('tag');
+        } else {
+          url.searchParams.set('tag', selectedTag);
+        }
+        history.pushState({}, '', url);
+
+        filterEvents(selectedTag);
+        updatePillStyles(pill);
+      }
+    });
+
+    // Initialize with current selection
+    const initialTag = new URL(window.location.href).searchParams.get('tag') || 'all';
+    const initialPill = filterControls.querySelector(`[data-tag="${initialTag}"]`);
+
+    if (initialPill) {
+      filterEvents(initialTag);
+      updatePillStyles(initialPill);
+    } else {
+      filterEvents('all');
+      const allPill = filterControls.querySelector('[data-tag="all"]');
+      if (allPill) {
+        updatePillStyles(allPill);
+      }
+    }
+  });
+</script> 

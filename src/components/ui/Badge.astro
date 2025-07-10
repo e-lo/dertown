@@ -1,0 +1,42 @@
+---
+interface Props {
+  variant?: 'default' | 'success' | 'warning' | 'info' | 'white' | 'featured' | 'today' | 'arts-culture' | 'civic' | 'family' | 'nature' | 'outdoors' | 'school' | 'sports' | 'town';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const { variant = 'default', size = 'sm', className = '' } = Astro.props;
+
+// Variant styles
+const variantStyles = {
+  default: 'bg-gray-100 text-gray-800',
+  success: 'bg-green-100 text-green-800 border border-green-200',
+  warning: 'bg-yellow-100 text-yellow-800',
+  info: 'bg-blue-100 text-blue-800',
+  featured: 'bg-yellow-400 text-yellow-900',
+  today: 'bg-green-400 text-green-900',
+  white: 'bg-white text-gray-800',
+  // Category-specific variants using theme colors
+  'arts-culture': 'bg-event-arts-culture',
+  'civic': 'bg-event-civic',
+  'family': 'bg-event-family',
+  'nature': 'bg-event-nature',
+  'outdoors': 'bg-event-outdoors',
+  'school': 'bg-event-school',
+  'sports': 'bg-event-sports',
+  'town': 'bg-event-town'
+};
+
+// Size styles
+const sizeStyles = {
+  sm: 'px-2 py-1 text-xs',
+  md: 'px-3 py-1 text-sm',
+  lg: 'px-4 py-2 text-base'
+};
+
+const classes = `inline-flex items-center rounded-full font-medium ${variantStyles[variant]} ${sizeStyles[size]} ${className}`;
+---
+
+<span class={classes}>
+  <slot />
+</span> 

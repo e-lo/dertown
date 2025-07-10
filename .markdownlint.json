@@ -1,0 +1,17 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD033": false,
+  "MD041": false,
+  "MD024": false,
+  "MD025": false,
+  "MD040": false,
+  "MD051": false,
+  "MD026": { "punctuation": ".,;:!" },
+  "MD029": { "style": "ordered" },
+  "MD030": { "ul_single": 1, "ol_single": 1, "ul_multi": 1, "ol_multi": 1 },
+  "MD007": { "indent": 2 },
+  "MD012": { "maximum": 1 },
+  "MD022": true,
+  "MD046": { "style": "fenced" }
+} 

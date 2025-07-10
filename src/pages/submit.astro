@@ -1,0 +1,21 @@
+---
+export const prerender = false;
+
+import Layout from '../components/Layout.astro';
+import EventForm from '../components/EventForm.astro';
+---
+
+<Layout title="Submit Event - Der Town">
+  <main class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Submit an Event</h1>
+        <p class="text-xl text-gray-600">Share your community event with everyone in Der Town</p>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-lg p-8">
+        <EventForm />
+      </div>
+    </div>
+  </main>
+</Layout> 

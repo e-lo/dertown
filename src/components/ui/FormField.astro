@@ -1,0 +1,16 @@
+---
+interface Props {
+  label: string;
+  required?: boolean;
+  className?: string;
+}
+
+const { label, required = false, className = '' } = Astro.props;
+---
+
+<div class={`space-y-1 ${className}`}>
+  <label class="block text-sm font-medium text-gray-700">
+    {label} {required && <span class="text-red-500">*</span>}
+  </label>
+  <slot />
+</div> 

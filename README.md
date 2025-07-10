@@ -16,14 +16,19 @@ A modern, community-driven events site built with Astro, TypeScript, and Supabas
 ## Local Development
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
+
 2. **Start local dev server:**
+
    ```bash
    npm run dev
    ```
+
 3. **Lint and format code:**
+
    ```bash
    npm run lint
    npm run format

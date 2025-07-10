@@ -13,12 +13,66 @@ export const db = {
     getAll: () =>
       supabase
         .from('events')
-        .select('*')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name)
+        `
+        )
         .eq('status', 'approved')
         .eq('exclude_from_calendar', false),
-    getById: (id: string) => supabase.from('events').select('*').eq('id', id).single(),
+    getById: (id: string) =>
+      supabase
+        .from('events')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address),
+          organization:organizations!events_organization_id_fkey(name)
+        `
+        )
+        .eq('id', id)
+        .single(),
+    getRelated: (eventId: string, organizationId: string | null, locationId: string | null) => {
+      let query = supabase
+        .from('events')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address),
+          organization:organizations!events_organization_id_fkey(name)
+        `
+        )
+        .eq('status', 'approved')
+        .eq('exclude_from_calendar', false)
+        .neq('id', eventId)
+        .limit(6);
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      } else if (locationId) {
+        query = query.eq('location_id', locationId);
+      }
+
+      return query;
+    },
     getFeatured: () =>
-      supabase.from('events').select('*').eq('status', 'approved').eq('featured', true),
+      supabase
+        .from('events')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name)
+        `
+        )
+        .eq('status', 'approved')
+        .eq('featured', true),
     create: (data: Database['public']['Tables']['events']['Insert']) =>
       supabase.from('events').insert(data),
     update: (id: string, data: Database['public']['Tables']['events']['Update']) =>
@@ -76,7 +130,9 @@ export const db = {
       supabase
         .from('announcements')
         .select('*')
-        .or(`and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.is.null),and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.gt.${new Date().toISOString()})`),
+        .or(
+          `and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.is.null),and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.gt.${new Date().toISOString()})`
+        ),
     getById: (id: string) => supabase.from('announcements').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['announcements']['Insert']) =>
       supabase.from('announcements').insert(data),

@@ -19,6 +19,7 @@ See below for full setup and workflow details.
 The project includes a Makefile with essential development commands for rapid iteration:
 
 ### Core Development Commands
+
 ```bash
 make dev              # Start development server
 make build            # Build for production
@@ -27,6 +28,7 @@ make clean            # Clean build artifacts
 ```
 
 ### Code Quality Commands
+
 ```bash
 make format           # Format code with Prettier
 make lint             # Run ESLint
@@ -34,17 +36,20 @@ make test             # Run tests
 ```
 
 ### Database Commands
+
 ```bash
 make db-reset         # Reset local database with sample data
 make db-seed          # Seed with test data
 ```
 
 ### Help
+
 ```bash
 make help             # Show all available commands
 ```
 
 ### Usage Examples
+
 ```bash
 # Start development
 make dev
@@ -64,6 +69,7 @@ make db-reset
 The project includes Python utilities in `scripts/dev_utils.py` for database management and development tasks:
 
 ### Database Management
+
 ```python
 # Reset database with sample data
 python scripts/dev_utils.py reset_db
@@ -76,6 +82,7 @@ python scripts/dev_utils.py validate_csv events.csv
 ```
 
 ### Environment Setup
+
 ```python
 # Check environment configuration
 python scripts/dev_utils.py check_env
@@ -85,6 +92,7 @@ python scripts/dev_utils.py generate_test_data
 ```
 
 ### Usage Examples
+
 ```bash
 # Reset database and seed with sample data
 python scripts/dev_utils.py reset_db
@@ -112,42 +120,50 @@ This document contains all instructions and procedures for developers working on
 ## 🚀 Initial Setup
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - Python 3.10+
 - Git
 - Supabase CLI
 - Vercel CLI (for deployment)
 
 ### Development Environment Setup
+
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-org/dertown.git
    cd dertown
    ```
 
 2. **Install Node.js dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Install Python dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your local configuration
    ```
 
 5. **Initialize Supabase**
+
    ```bash
    supabase init
    supabase start
    ```
 
 6. **Set up database**
+
    ```bash
    # Reset database and seed with static data
    make db-reset
@@ -157,11 +173,13 @@ This document contains all instructions and procedures for developers working on
    ```
 
 7. **Start development server**
+
    ```bash
    npm run dev
    ```
 
 ### Environment Variables
+
 Create a `.env` file with the following variables:
 
 ```env
@@ -184,6 +202,7 @@ VERCEL_TOKEN=your_vercel_token
 ### Local Development Workflow
 
 #### Starting Local Development
+
 ```bash
 # Start local Supabase
 supabase start
@@ -196,6 +215,7 @@ npm run dev:watch
 ```
 
 #### Local Testing
+
 ```bash
 # Run all tests
 npm run test
@@ -214,6 +234,7 @@ npm run format
 ```
 
 #### Database Management (Local)
+
 ```bash
 # Reset local database with static data
 make db-reset
@@ -237,17 +258,21 @@ make db-check-duplicates --events events.csv --organizations organizations.csv
 ### Preview Environment Setup
 
 #### Staging Environment
+
 The staging environment is deployed to `staging.dertown.org` and provides a production-like environment for testing.
 
 **Access**:
-- **URL**: https://staging.dertown.org
+
+- **URL**: <https://staging.dertown.org>
 - **Database**: Separate staging database
 - **Storage**: Separate staging storage buckets
 
 #### Preview Deployments
+
 Every pull request automatically creates a preview deployment for testing.
 
 **Workflow**:
+
 1. Create pull request
 2. Automatic preview deployment is created
 3. Preview URL is added to PR comments
@@ -257,6 +282,7 @@ Every pull request automatically creates a preview deployment for testing.
 #### Environment-Specific Configuration
 
 **Development** (`.env.development`):
+
 ```env
 NODE_ENV=development
 SUPABASE_URL=http://localhost:54321
@@ -265,6 +291,7 @@ ENABLE_DEBUG=true
 ```
 
 **Staging** (`.env.staging`):
+
 ```env
 NODE_ENV=staging
 SUPABASE_URL=your_staging_supabase_url
@@ -273,6 +300,7 @@ ENABLE_DEBUG=false
 ```
 
 **Production** (`.env.production`):
+
 ```env
 NODE_ENV=production
 SUPABASE_URL=your_production_supabase_url
@@ -283,6 +311,7 @@ ENABLE_DEBUG=false
 ### Preview Deployment Workflow
 
 #### Creating Preview Deployments
+
 ```bash
 # Deploy to staging
 npm run deploy:staging
@@ -295,6 +324,7 @@ npm run deploy:production
 ```
 
 #### Testing in Preview Environment
+
 1. **Functional Testing**:
    - Test all user flows
    - Verify new features work correctly
@@ -316,6 +346,7 @@ npm run deploy:production
    - Verify responsive design
 
 #### Preview Environment Validation
+
 ```bash
 # Run full test suite against staging
 npm run test:staging
@@ -331,8 +362,10 @@ npm run test:security
 ```
 
 #### Staging Environment Maintenance
+
 **Frequency**: Weekly
 **Procedure**:
+
 1. Update staging environment with latest changes
 2. Sync staging database with production schema
 3. Test all critical user flows
@@ -342,6 +375,7 @@ npm run test:security
 ### Environment Management
 
 #### Switching Between Environments
+
 ```bash
 # Switch to development
 npm run env:dev
@@ -354,6 +388,7 @@ npm run env:prod
 ```
 
 #### Environment Health Checks
+
 ```bash
 # Check development environment
 npm run health:dev
@@ -366,6 +401,7 @@ npm run health:prod
 ```
 
 #### Database Management Across Environments
+
 ```bash
 # Apply migrations to staging
 supabase db push --db-url staging_url
@@ -383,16 +419,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### Security & Monitoring
 
 #### Security Audits
+
 **Frequency**: Monthly
 **Procedure**:
+
 1. Run `npm audit` and `pip audit`
 2. Review dependency vulnerabilities
 3. Update dependencies as needed
 4. Document findings in security log
 
 #### SSL Certificate Management
+
 **Frequency**: 90 days before expiration
 **Procedure**:
+
 1. Check certificate expiration dates
 2. Renew certificates through hosting provider
 3. Update DNS records if needed
@@ -401,16 +441,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### Performance & Optimization
 
 #### Performance Monitoring
+
 **Frequency**: Weekly
 **Procedure**:
+
 1. Review Core Web Vitals in Google Analytics
 2. Check Lighthouse scores
 3. Monitor database query performance
 4. Review error rates and response times
 
 #### Database Optimization
+
 **Frequency**: Monthly
 **Procedure**:
+
 1. Analyze slow queries
 2. Update database indexes
 3. Clean up unused data
@@ -419,16 +463,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### Content & Data Management
 
 #### Content Moderation
+
 **Frequency**: Daily
 **Procedure**:
+
 1. Review pending event submissions
 2. Check for spam and inappropriate content
 3. Approve or reject submissions
 4. Update moderation guidelines as needed
 
 #### Data Import/Export
+
 **Frequency**: As needed
 **Procedure**:
+
 1. **Export data**: Use Supabase dashboard or API for data export
 2. **Import data**: Use `make db-upload` for CSV data imports
 3. **Validate data**: Use `make db-validate` before imports
@@ -438,16 +486,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### Backup & Recovery
 
 #### Database Backups
+
 **Frequency**: Daily
 **Procedure**:
+
 1. Automated backup via Supabase
 2. Verify backup integrity
 3. Store backup logs
 4. Test recovery procedures monthly
 
 #### Recovery Procedures
+
 **Frequency**: Test monthly
 **Procedure**:
+
 1. Identify backup to restore from
 2. Stop affected services
 3. Restore database from backup
@@ -457,16 +509,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### Scheduled Tasks
 
 #### GitHub Actions Maintenance
+
 **Frequency**: Weekly
 **Procedure**:
+
 1. Review workflow logs
 2. Update scheduled jobs as needed
 3. Monitor resource usage
 4. Update dependencies in workflows
 
 #### Cron Job Management
+
 **Frequency**: Monthly
 **Procedure**:
+
 1. Review all scheduled tasks
 2. Update job schedules as needed
 3. Monitor job execution logs
@@ -475,16 +531,20 @@ supabase db dump --db-url production_url > production_backup.sql
 ### System Health
 
 #### Health Checks
+
 **Frequency**: Daily
 **Procedure**:
+
 1. Check application uptime
 2. Monitor error rates
 3. Verify database connectivity
 4. Test critical user flows
 
 #### Diagnostics
+
 **Frequency**: As needed
 **Procedure**:
+
 1. Collect system logs
 2. Analyze error patterns
 3. Identify root causes
@@ -496,6 +556,7 @@ supabase db dump --db-url production_url > production_backup.sql
 The project uses a Makefile-based system for consistent database operations across all environments.
 
 #### Core Database Commands
+
 ```bash
 # Reset local database (schema + static data)
 make db-reset
@@ -511,14 +572,18 @@ make db-check-duplicates --events events.csv --organizations organizations.csv
 ```
 
 #### Database Reset Process
+
 The `make db-reset` command performs a complete database reset:
+
 1. **Schema Reset**: Runs `supabase db reset` to apply all migrations
 2. **Static Data Seeding**: Inserts core reference data (tags, core organizations, core locations)
 3. **Data Validation**: Validates all inserted data against Pydantic models
 4. **Status Report**: Provides summary of what was inserted/updated
 
 #### Data Upload Process
+
 The `make db-upload` command handles CSV data uploads:
+
 1. **Environment Selection**: Targets local, staging, or production database
 2. **CSV Validation**: Validates CSV format and data types
 3. **Duplicate Detection**: Fuzzy matching on names (and dates for events)
@@ -528,16 +593,19 @@ The `make db-upload` command handles CSV data uploads:
 7. **Verification**: Confirms successful upload with record counts
 
 #### Duplicate Detection Logic
+
 - **Events**: Fuzzy matching on title + start_date + location
 - **Organizations**: Fuzzy matching on name + website
 - **Locations**: Fuzzy matching on name + address
 - **Tags**: Exact matching on name (tags should be unique)
 
 #### Static vs Dynamic Data
+
 - **Static Data** (seeded on reset): tags, core organizations, core locations
 - **Dynamic Data** (uploaded via CSV): events, announcements, additional organizations/locations
 
 #### Environment-Specific Procedures
+
 ```bash
 # Development: Full reset with sample data
 make db-reset
@@ -550,6 +618,7 @@ make db-upload production --events events.csv --organizations organizations.csv
 ```
 
 #### Data Validation and Safety
+
 - **Pre-upload Validation**: Always run `make db-validate` before uploads
 - **Duplicate Checking**: Use `make db-check-duplicates` to identify conflicts
 - **Backup Procedures**: Automatic backups before production uploads
@@ -560,6 +629,7 @@ make db-upload production --events events.csv --organizations organizations.csv
 ## 🤝 Getting Involved
 
 ### Contributing
+
 1. Fork the repository
 2. Create feature branch
 3. Make changes following coding standards
@@ -567,18 +637,21 @@ make db-upload production --events events.csv --organizations organizations.csv
 5. Submit pull request
 
 ### Issue Reporting
+
 - Use GitHub Issues for bug reports
 - Include steps to reproduce
 - Provide environment details
 - Add screenshots if applicable
 
 ### Feature Requests
+
 - Use GitHub Discussions for feature requests
 - Describe the problem and proposed solution
 - Consider implementation complexity
 - Get community feedback
 
 ### Community Guidelines
+
 - Be respectful and inclusive
 - Follow the code of conduct
 - Help others learn and grow
@@ -589,11 +662,13 @@ make db-upload production --events events.csv --organizations organizations.csv
 ## 📞 Contact & Escalation
 
 ### Emergency Contacts
+
 - **System Administrator**: [Contact Info]
 - **Database Administrator**: [Contact Info]
 - **Security Team**: [Contact Info]
 
 ### Escalation Procedures
+
 1. Document the issue
 2. Attempt immediate resolution
 3. Escalate to appropriate team member
@@ -614,12 +689,14 @@ make db-upload production --events events.csv --organizations organizations.csv
 ## 🔄 Development Process
 
 ### Code Style & Formatting
+
 - **TypeScript**: Use strict mode, follow ESLint rules
 - **Python**: Use ruff for formatting and linting
 - **Markdown**: Follow markdownlint rules
 - **CSS**: Use Tailwind CSS utility classes
 
 ### Git Workflow
+
 1. Create feature branch from `main`
 2. Make changes with descriptive commits
 3. Run tests and linting
@@ -627,12 +704,14 @@ make db-upload production --events events.csv --organizations organizations.csv
 5. Code review and merge
 
 ### Testing
+
 - **Unit tests**: `npm run test`
 - **Integration tests**: `npm run test:integration`
 - **E2E tests**: `npm run test:e2e`
 - **Coverage**: Aim for >80% coverage
 
 ### Code Review Process
+
 1. All changes require pull request
 2. At least one approval required
 3. All tests must pass
@@ -641,9 +720,11 @@ make db-upload production --events events.csv --organizations organizations.csv
 ### Sub-Phase Validation & Testing
 
 #### Required Validation Steps
+
 At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST complete these validation steps:
 
 1. **Code Quality Checks**:
+
    ```bash
    # JavaScript/TypeScript
    npm run lint
@@ -663,12 +744,14 @@ At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST complete these vali
    - Ensure no regressions in existing functionality
 
 3. **Database Validation** (if applicable):
+
    ```bash
    supabase db reset
    # Verify schema and data integrity
    ```
 
 4. **Preview Environment Testing** (if applicable):
+
    ```bash
    # Deploy to preview environment
    npm run deploy:preview
@@ -684,15 +767,18 @@ At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST complete these vali
    ```
 
 #### Autonomous Error Resolution
+
 - If any validation fails, diagnose and fix the issue immediately
 - Re-run validation tools after each fix
 - Continue iteratively until ALL checks pass
 - Only escalate to user if blocked by Clarification Threshold
 
 #### Summary Reporting
+
 After completing each sub-phase and resolving all issues, provide:
 
 **Format**:
+
 ```
 ## ✅ Sub-Phase [X.Y] Complete
 
@@ -704,11 +790,14 @@ After completing each sub-phase and resolving all issues, provide:
 
 ### Suggested Commit Message
 ```
+
 feat: [concise description of changes]
+
 ```
 ```
 
 **Example**:
+
 ```
 ## ✅ Sub-Phase 1.1 Complete
 
@@ -725,7 +814,9 @@ feat: [concise description of changes]
 
 ### Suggested Commit Message
 ```
+
 feat: initialize astro project with typescript and tailwind
+
 ```
 ```
 
@@ -736,8 +827,10 @@ feat: initialize astro project with typescript and tailwind
 ### Database Management
 
 #### Database Migrations
+
 **Frequency**: As needed for schema changes
 **Procedure**:
+
 1. Create migration file: `supabase migration new migration_name`
 2. Write SQL changes in the migration file
 3. Test locally: `supabase db reset`
@@ -747,8 +840,10 @@ feat: initialize astro project with typescript and tailwind
 **Rollback**: Use `supabase db reset` to previous migration
 
 #### Database Maintenance
+
 **Frequency**: Weekly
 **Procedure**:
+
 ```sql
 -- Run in Supabase SQL editor
 VACUUM ANALYZE;
@@ -797,21 +892,25 @@ Edit `.env` with your specific configuration values.
 #### Option A: Local Development (Recommended)
 
 1. **Install Supabase CLI** (if not already installed):
+
    ```bash
    npm install -g supabase
    ```
 
 2. **Start local Supabase services**:
+
    ```bash
    npx supabase start
    ```
 
 3. **Apply database migrations**:
+
    ```bash
    npx supabase db reset
    ```
 
 4. **Get your local credentials**:
+
    ```bash
    npx supabase status
    ```
@@ -824,6 +923,7 @@ Edit `.env` with your specific configuration values.
 2. **Get your project credentials** from the project settings
 3. **Update your `.env` file** with the remote credentials
 4. **Apply migrations to remote**:
+
    ```bash
    npx supabase db push
    ```
@@ -909,11 +1009,13 @@ Set up automated database backups using Supabase's built-in backup system or imp
 #### Manual Backup Process
 
 1. **Create backup**:
+
    ```bash
    npx supabase db dump --db-url $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
    ```
 
 2. **Restore backup**:
+
    ```bash
    npx supabase db reset --db-url $DATABASE_URL < backup_file.sql
    ```
@@ -934,16 +1036,19 @@ psql test_restore < backup_file.sql
 #### From Django/Wagtail to Supabase
 
 1. **Export Django data**:
+
    ```bash
    python manage.py dumpdata --natural-foreign --natural-primary > django_export.json
    ```
 
 2. **Transform data** (use provided migration scripts):
+
    ```bash
    python scripts/migrate_django_data.py django_export.json
    ```
 
 3. **Import to Supabase**:
+
    ```bash
    npx supabase db reset
    psql $DATABASE_URL < transformed_data.sql
@@ -952,6 +1057,7 @@ psql test_restore < backup_file.sql
 #### Schema Updates
 
 1. **Create migration**:
+
    ```bash
    npx supabase db diff -f descriptive_migration_name
    ```
@@ -959,11 +1065,13 @@ psql test_restore < backup_file.sql
 2. **Review migration** in `supabase/migrations/`
 
 3. **Apply migration**:
+
    ```bash
    npx supabase db push
    ```
 
 4. **Update seed data** if needed:
+
    ```bash
    npx supabase db reset
    ```
@@ -973,6 +1081,7 @@ psql test_restore < backup_file.sql
 #### Indexing Strategy
 
 The database includes indexes on:
+
 - Event start dates and status
 - Location and organization relationships
 - Announcement visibility dates
@@ -1038,6 +1147,7 @@ npm run test
 ### Git Workflow
 
 1. **Create feature branch**:
+
    ```bash
    git checkout -b feature/descriptive-name
    ```
@@ -1045,6 +1155,7 @@ npm run test
 2. **Make changes** and commit with descriptive messages
 
 3. **Run validation**:
+
    ```bash
    npm run lint && npm run format:check && npm run build
    ```
@@ -1063,12 +1174,14 @@ npm run test
 ### Staging Environment
 
 1. **Deploy to staging**:
+
    ```bash
    npm run build
    # Deploy to staging platform (Vercel/Netlify)
    ```
 
 2. **Apply staging database changes**:
+
    ```bash
    npx supabase db push --db-url $STAGING_DATABASE_URL
    ```
@@ -1076,12 +1189,14 @@ npm run test
 ### Production Environment
 
 1. **Deploy to production**:
+
    ```bash
    npm run build
    # Deploy to production platform
    ```
 
 2. **Apply production database changes**:
+
    ```bash
    npx supabase db push --db-url $PRODUCTION_DATABASE_URL
    ```
@@ -1136,6 +1251,7 @@ curl -X POST \
 ### Getting Help
 
 1. **Check logs**:
+
    ```bash
    npx supabase logs
    ```

@@ -1,33 +1,55 @@
 :root {
-  /* Category Colors */
-  --color-arts-culture-bg: theme('colors.purple.600');
-  --color-civic-bg: theme('colors.rose.500');
-  --color-family-bg: theme('colors.green.800');
-  --color-food-drink-bg: theme('colors.green.600');
-  --color-sports-bg: theme('colors.cyan.600');
-  --color-town-bg: theme('colors.slate.600');
-  --color-arts-bg: theme('colors.purple.600');
-  --color-nature-bg: theme('colors.green.600');
-  --color-outdoors-bg: theme('colors.green.700');
-  --color-school-bg: theme('colors.cyan.500');
-  --color-music-bg: theme('colors.indigo.600');
-  --color-art-bg: theme('colors.fuchsia.600');
-  --color-education-bg: theme('colors.amber.600');
-  --color-performance-bg: theme('colors.violet.600');
-  --color-community-event-bg: theme('colors.emerald.600');
-  --color-artsplusculture-bg: theme('colors.purple.500');
-  --color-sports-recreation-bg: theme('colors.green.800');
+  /* Event Category Colors */
+  --color-event-arts-culture: #9333ea;
+  --color-event-civic: #f43f5e;
+  --color-event-family: #166534;
+  --color-event-nature: #16a34a;
+  --color-event-outdoors: #15803d;
+  --color-event-school: #06b6d4;
+  --color-event-sports: #0891b2;
+  --color-event-town: #475569;
 
-  /* Text colors for categories (all white for now) */
-  --color-category-text: theme('colors.white');
+  /* General Theme Colors */
+  --color-primary: #1f2937; /* Dark Gray */
+  --color-secondary: #9333ea; /* Purple */
+  --color-background: #F9FAFB; /* Light Gray */
+  --color-surface: #fff; /* White */
+  --color-text: #111827; /* Dark Gray */
+  --color-muted: #6b7280; /* Medium Gray */
+
+  /* Calendar Colors */
+  --color-calendar-bg: var(--color-surface); /* White */
+  --color-calendar-border: #e5e7eb; /* Light Gray */
+  --color-calendar-today: #e3f0fa; /* Light Blue */
+  --color-calendar-header: var(--color-muted); /* Medium Gray */
+  --color-calendar-title: var(--color-text); /* Dark Gray */
+
+  /* Font Families */
+  --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Georgia', serif;
+  --font-mono: 'Menlo', 'Monaco', monospace;
 }
 
-/* Category-specific utility classes */
-.bg-category-arts-culture { background-color: var(--color-arts-culture-bg); }
-.bg-category-civic { background-color: var(--color-civic-bg); }
-.bg-category-family { background-color: var(--color-family-bg); }
-.bg-category-food-drink { background-color: var(--color-food-drink-bg); }
-.bg-category-sports { background-color: var(--color-sports-bg); }
-.bg-category-town { background-color: var(--color-town-bg); }
+/* Utility classes for event pills and backgrounds */
+.bg-event-arts-culture { background-color: var(--color-event-arts-culture) !important; color: #fff !important; }
+.bg-event-civic { background-color: var(--color-event-civic) !important; color: #fff !important; }
+.bg-event-family { background-color: var(--color-event-family) !important; color: #fff !important; }
+.bg-event-nature { background-color: var(--color-event-nature) !important; color: #fff !important; }
+.bg-event-outdoors { background-color: var(--color-event-outdoors) !important; color: #fff !important; }
+.bg-event-school { background-color: var(--color-event-school) !important; color: #fff !important; }
+.bg-event-sports { background-color: var(--color-event-sports) !important; color: #fff !important; }
+.bg-event-town { background-color: var(--color-event-town) !important; color: #fff !important; }
 
-.text-category { color: theme('colors.white'); } 
+.text-theme { color: var(--color-text) !important; }
+.bg-theme-primary { background-color: var(--color-primary) !important; color: #fff !important; }
+.bg-theme-surface { background-color: var(--color-surface) !important; color: var(--color-text) !important; }
+.font-sans { font-family: var(--font-sans) !important; }
+.font-serif { font-family: var(--font-serif) !important; }
+.font-mono { font-family: var(--font-mono) !important; }
+
+/* Tag filter pill active state */
+.tag-filter-pill.is-active {
+  filter: brightness(0.85);
+  opacity: 1 !important;
+  z-index: 2;
+} 

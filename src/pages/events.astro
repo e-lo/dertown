@@ -1,25 +1,28 @@
 ---
+export const prerender = false;
+
 import Layout from '../components/Layout.astro';
 import EventList from '../components/EventList.astro';
+import TagFilter from '../components/TagFilter.astro';
 import { db } from '../lib/supabase';
-import { getCategoryColors } from '../lib/theme';
 
 // Fetch all approved events and tags
-const [eventsResult, tagsResult] = await Promise.all([
-  db.events.getAll(),
-  db.tags.getAll()
-]);
+const [eventsResult, tagsResult] = await Promise.all([db.events.getAll(), db.tags.getAll()]);
 
 const events = eventsResult.data || [];
 const allTags = tagsResult.data || [];
 
-// Get unique tags that are used as either primary or secondary tags
-const usedTagIds = new Set([
-  ...events.map(event => event.primary_tag_id),
-  ...events.map(event => event.secondary_tag_id)
-].filter(Boolean)); 
 
-const usedTags = allTags.filter(tag => usedTagIds.has(tag.id));
+
+// Get unique tags that are used as either primary or secondary tags
+const usedTagIds = new Set(
+  [
+    ...events.map((event) => event.primary_tag_id),
+    ...events.map((event) => event.secondary_tag_id),
+  ].filter(Boolean)
+);
+
+const usedTags = allTags.filter((tag) => usedTagIds.has(tag.id));
 
 // Sort events by date (most recent first)
 const sortedEvents = [...events].sort((a, b) => {
@@ -28,62 +31,55 @@ const sortedEvents = [...events].sort((a, b) => {
   return dateA.getTime() - dateB.getTime();
 });
 
-// Group events by primary tag for color assignment
-const eventsByTag = events.reduce((acc, event) => {
-  const tag = allTags.find(t => t.id === event.primary_tag_id);
-  if (tag) {
-    acc[event.id] = getCategoryColors(tag.name);
-  }
-  return acc;
-}, {} as Record<string, { bg: string, text: string }>);
+// Group events by primary tag for color assignment (CSS only)
+const eventsByTag = events.reduce(
+  (acc, event) => {
+    const tag = allTags.find((t) => t.id === event.primary_tag_id);
+    if (tag) {
+      const kebabCase = (tag.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      acc[event.id] = { bg: `bg-event-${kebabCase}`, text: 'text-white' };
+    }
+    return acc;
+  },
+  {} as Record<string, { bg: string; text: string }>
+);
 
 // Create a map of event IDs to their tag information
-const eventTags = events.reduce((acc, event) => {
-  const primaryTag = allTags.find(t => t.id === event.primary_tag_id);
-  const secondaryTag = event.secondary_tag_id ? allTags.find(t => t.id === event.secondary_tag_id) : null;
-  
-  acc[event.id] = {
-    primary: primaryTag?.name || null,
-    secondary: secondaryTag?.name || null
-  };
-  return acc;
-}, {} as Record<string, { primary: string | null, secondary: string | null }>);
+const eventTags = events.reduce(
+  (acc, event) => {
+    const primaryTag = allTags.find((t) => t.id === event.primary_tag_id);
+    const secondaryTag = event.secondary_tag_id
+      ? allTags.find((t) => t.id === event.secondary_tag_id)
+      : null;
+
+    acc[event.id] = {
+      primary: primaryTag?.name || null,
+      secondary: secondaryTag?.name || null,
+    };
+    return acc;
+  },
+  {} as Record<string, { primary: string | null; secondary: string | null }>
+);
 
 // Sort tags alphabetically for consistent display
 const sortedUsedTags = [...usedTags].sort((a, b) => a.name.localeCompare(b.name));
 ---
 
-<Layout 
-  title="Events - Der Town" 
+<Layout
+  title="Events - Der Town"
   description="Browse all community events in Der Town. Find local events, activities, and gatherings."
 >
   <div class="max-w-7xl mx-auto py-8">
     <div class="px-4 md:px-6 lg:px-8">
-      <div id="tag-filter-controls" class="flex flex-wrap gap-2 mb-4">
-        <a
-          href="/events"
-          class="tag-filter-pill is-active inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-gray-800 text-white"
-          data-tag="all"
-        >
-          All Events
-        </a>
-        {sortedUsedTags.map(tag => {
-          const colors = getCategoryColors(tag.name);
-          return (
-            <a
-              href={`/events?tag=${encodeURIComponent(tag.name)}`}
-              class={`tag-filter-pill inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${colors.bg} ${colors.text} opacity-60 hover:opacity-100`}
-              data-tag={tag.name}
-            >
-              {tag.name}
-            </a>
-          );
-        })}
-      </div>
+      <TagFilter 
+        tags={sortedUsedTags} 
+        selectedTag={new URL(Astro.url).searchParams.get('tag') || 'all'}
+        className="mb-4"
+      />
     </div>
-    
+
     <div class="mt-6 md:px-6 lg:px-8">
-      <EventList 
+      <EventList
         events={sortedEvents}
         eventColors={eventsByTag}
         eventTags={eventTags}
@@ -94,86 +90,4 @@ const sortedUsedTags = [...usedTags].sort((a, b) => a.name.localeCompare(b.name)
   </div>
 </Layout>
 
-<script is:inline>
-  document.addEventListener('DOMContentLoaded', () => {
-    const filterControls = document.getElementById('tag-filter-controls');
-    if (!filterControls) {
-      return;
-    }
 
-    const filterPills = filterControls.querySelectorAll('.tag-filter-pill');
-    const eventCards = document.querySelectorAll('.event-card-wrapper');
-    const allEventsPill = filterControls.querySelector('[data-tag="all"]');
-    
-    function filterEvents(selectedTag) {
-      let visibleCount = 0;
-      eventCards.forEach(card => {
-        const primaryTag = card.dataset.primaryTag || '';
-        const secondaryTag = card.dataset.secondaryTag || '';
-        
-        const isMatch = selectedTag === 'all' || primaryTag === selectedTag || secondaryTag === selectedTag;
-
-        if (isMatch) {
-          card.style.display = '';
-          visibleCount++;
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    }
-
-    function updatePillStyles(activePill) {
-      if (!activePill) {
-        return;
-      }
-
-      filterPills.forEach(pill => {
-        pill.classList.remove('is-active', 'opacity-100');
-        pill.classList.add('opacity-60', 'hover:opacity-100');
-      });
-      
-      activePill.classList.add('is-active');
-      activePill.classList.remove('opacity-60', 'hover:opacity-100');
-      activePill.classList.add('opacity-100');
-    }
-    
-    filterControls.addEventListener('click', (e) => {
-      e.preventDefault();
-      const target = e.target;
-      const pill = target.closest('.tag-filter-pill');
-
-      if (pill) {
-        const selectedTag = pill.dataset.tag || 'all';
-
-        const url = new URL(window.location.href);
-        if (selectedTag === 'all') {
-          url.searchParams.delete('tag');
-        } else {
-          url.searchParams.set('tag', selectedTag);
-        }
-        history.pushState({}, '', url);
-        
-        filterEvents(selectedTag);
-        updatePillStyles(pill);
-      }
-    });
-
-    const initialTag = new URL(window.location.href).searchParams.get('tag') || 'all';
-    const initialPill = filterControls.querySelector(`[data-tag="${initialTag}"]`);
-    
-    if (initialPill) {
-      filterEvents(initialTag);
-      updatePillStyles(initialPill);
-    } else {
-      filterEvents('all');
-      if (allEventsPill) {
-        updatePillStyles(allEventsPill);
-      }
-    }
-
-    const eventCountElement = document.getElementById('event-count-display');
-    if (eventCountElement) {
-        eventCountElement.remove();
-    }
-  });
-</script> 

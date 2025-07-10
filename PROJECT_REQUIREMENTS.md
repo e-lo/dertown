@@ -15,7 +15,7 @@ A previous implementation of this site was implemented as a Django site which ca
 ### ✅ Public-Facing Calendar Website
 
 * Render events and community announcements on carousel of cards
-* Render event details on their own, linkable pages, with related events in a series or similar organizations or locations with ability to download a google calendar, outlook calendar or ical calendar event for the event or 
+* Render event details on their own, linkable pages, with related events in a series or similar organizations or locations with ability to download a google calendar, outlook calendar or ical calendar event for the event or
 * A scrollable list of events that is filterable by event category, date, organization, and location with permalink urls
 * A calendar UX viewable by week, day or month and filterable by category, organization and location with permalink urls
 * Subscribable RSS feed links for events for certain categories or all events regardless of categories
@@ -297,22 +297,22 @@ A previous implementation of this site was implemented as a Django site which ca
 
 ### Key Relationships
 
-- **Events** → **Locations** (many-to-one)
-- **Events** → **Organizations** (many-to-one)  
-- **Events** → **Tags** (many-to-one, primary & secondary)
-- **Events** → **Events** (self-referencing for parent/child events)
-- **Locations** → **Locations** (self-referencing for parent/child locations)
-- **Organizations** → **Organizations** (self-referencing for parent/child orgs)
-- **Organizations** → **Locations** (many-to-one)
-- **CommunityAnnouncements** → **Organizations** (many-to-one)
-- **SourceSites** → **Organizations** (many-to-one)
-- **SourceSites** → **Tags** (many-to-one)
-- **ScrapeLogs** → **SourceSites** (many-to-one)
+* **Events** → **Locations** (many-to-one)
+* **Events** → **Organizations** (many-to-one)  
+* **Events** → **Tags** (many-to-one, primary & secondary)
+* **Events** → **Events** (self-referencing for parent/child events)
+* **Locations** → **Locations** (self-referencing for parent/child locations)
+* **Organizations** → **Organizations** (self-referencing for parent/child orgs)
+* **Organizations** → **Locations** (many-to-one)
+* **CommunityAnnouncements** → **Organizations** (many-to-one)
+* **SourceSites** → **Organizations** (many-to-one)
+* **SourceSites** → **Tags** (many-to-one)
+* **ScrapeLogs** → **SourceSites** (many-to-one)
 
 ### Status Values
 
-- **Event/Location/Organization Status**: `'pending'`, `'approved'`, `'duplicate'`, `'archived'`
-- **SourceSite Import Frequency**: `'hourly'`, `'daily'`, `'weekly'`, `'manual'`
+* **Event/Location/Organization Status**: `'pending'`, `'approved'`, `'duplicate'`, `'archived'`
+* **SourceSite Import Frequency**: `'hourly'`, `'daily'`, `'weekly'`, `'manual'`
 
 ---
 
@@ -347,9 +347,11 @@ A previous implementation of this site was implemented as a Django site which ca
 The Python tooling follows a pragmatic, phased approach that prioritizes development velocity and essential QoL improvements over complex infrastructure:
 
 #### Phase 1: Essential Development Tools (Week 1-2)
+
 **Goal**: Enable rapid development iteration with minimal overhead
 
 **Core Makefile Commands:**
+
 ```bash
 make dev              # Start development server
 make db-reset         # Reset local database with sample data
@@ -359,37 +361,44 @@ make deploy-staging   # Deploy to staging
 ```
 
 **Minimal Python Scripts:**
-- **Development Utilities** (`scripts/dev_utils.py`):
-  - Database reset with sample data
-  - Basic CSV validation (required fields only)
-  - Test data generation
-  - Simple environment setup
+
+* **Development Utilities** (`scripts/dev_utils.py`):
+  * Database reset with sample data
+  * Basic CSV validation (required fields only)
+  * Test data generation
+  * Simple environment setup
 
 **Why These Help Immediately:**
-- Faster iteration cycles (reset DB in seconds)
-- Consistent test data across team members
-- Simple validation to catch obvious errors
-- One-command deployment to reduce friction
+
+* Faster iteration cycles (reset DB in seconds)
+* Consistent test data across team members
+* Simple validation to catch obvious errors
+* One-command deployment to reduce friction
 
 #### Phase 2: DRY Foundation (Week 3-4)
+
 **Goal**: Establish shared patterns and components as the codebase grows
 
 **Shared Components & Utilities:**
-- Centralized database client (`lib/supabase.js`)
-- Simple form validation schemas (`lib/validation.js`)
-- Reusable UI components (`components/EventCard.astro`)
-- TypeScript interfaces (`types/database.ts`)
+
+* Centralized database client (`lib/supabase.js`)
+* Simple form validation schemas (`lib/validation.js`)
+* Reusable UI components (`components/EventCard.astro`)
+* TypeScript interfaces (`types/database.ts`)
 
 **Why These Help During Development:**
-- Consistent UI across the application
-- Type safety to catch errors at compile time
-- Basic form validation for user input
-- Easier refactoring (change once, updates everywhere)
+
+* Consistent UI across the application
+* Type safety to catch errors at compile time
+* Basic form validation for user input
+* Easier refactoring (change once, updates everywhere)
 
 #### Phase 3: Iteration Tools (Week 5-6)
+
 **Goal**: Add tools when development friction is encountered
 
 **Enhanced Development Tools:**
+
 ```bash
 make db-migrate       # Run database migrations
 make db-backup        # Backup current state
@@ -398,16 +407,19 @@ make validate-all     # Run all validations
 ```
 
 **Better Python Scripts:**
-- **Data Manager** (`scripts/data_manager.py`):
-  - CSV validation with error reporting
-  - Realistic test data generation
-  - Safe backup/restore operations
-  - Basic duplicate detection (exact matches only)
+
+* **Data Manager** (`scripts/data_manager.py`):
+  * CSV validation with error reporting
+  * Realistic test data generation
+  * Safe backup/restore operations
+  * Basic duplicate detection (exact matches only)
 
 #### Phase 4: Production Tools (Post-Launch)
+
 **Goal**: Build sophisticated tools based on real usage patterns
 
 **Advanced Data Management:**
+
 ```bash
 make ingest-ics       # Import calendar files
 make process-deduplicate  # Remove duplicates
@@ -416,10 +428,11 @@ make health-check     # System diagnostics
 ```
 
 **Comprehensive Python Infrastructure:**
-- Fuzzy matching for duplicates
-- Advanced data validation
-- Automated ingestion pipelines
-- Health monitoring and audit logging
+
+* Fuzzy matching for duplicates
+* Advanced data validation
+* Automated ingestion pipelines
+* Health monitoring and audit logging
 
 ### Key Principles
 
@@ -431,17 +444,18 @@ make health-check     # System diagnostics
 
 ### What to Avoid Early
 
-- **Complex duplicate detection** - Start with exact matches only
-- **Advanced data validation** - Basic field validation is enough
-- **Comprehensive testing** - Manual testing is fine for MVP
-- **Production monitoring** - Can add after launch
-- **Advanced admin features** - Supabase dashboard is sufficient
+* **Complex duplicate detection** - Start with exact matches only
+* **Advanced data validation** - Basic field validation is enough
+* **Comprehensive testing** - Manual testing is fine for MVP
+* **Production monitoring** - Can add after launch
+* **Advanced admin features** - Supabase dashboard is sufficient
 
 ### Makefile Integration
 
 All Python modules are called through Makefile commands for consistent interface:
 
 #### Essential Development Commands (Week 1-2)
+
 ```bash
 # Start with these - they pay immediate dividends
 make dev              # Development server
@@ -451,6 +465,7 @@ make build            # Production build
 ```
 
 #### Iteration Commands (Week 3-6)
+
 ```bash
 # Add these when you hit friction
 make db-migrate       # When schema changes
@@ -459,6 +474,7 @@ make validate         # When CSV uploads get complex
 ```
 
 #### Production Commands (Post-Launch)
+
 ```bash
 # Build these based on real usage patterns
 make ingest-*         # Based on actual data sources
@@ -469,24 +485,26 @@ make admin-*          # Based on actual admin workflows
 ### Data Validation Strategy
 
 **Database-First Validation:**
-- **SQL Constraints**: Primary validation at the database level
-- **RLS Policies**: Business rules and access control
-- **Simple Python Validation**: Basic field checks for CSV imports
-- **Form Validation**: Simple Zod schemas for user input
+
+* **SQL Constraints**: Primary validation at the database level
+* **RLS Policies**: Business rules and access control
+* **Simple Python Validation**: Basic field checks for CSV imports
+* **Form Validation**: Simple Zod schemas for user input
 
 **No Complex Schema Generation:**
-- No auto-generated Pydantic models
-- No complex validation schemas
-- Trust the database for data integrity
-- Keep validation simple and pragmatic
+
+* No auto-generated Pydantic models
+* No complex validation schemas
+* Trust the database for data integrity
+* Keep validation simple and pragmatic
 
 ### Error Handling and Logging
 
-- **Comprehensive Logging**: All operations logged with structured data
-- **Error Recovery**: Automatic retry mechanisms and rollback procedures
-- **Notification System**: Email/Slack notifications for critical failures
-- **Audit Trail**: Complete audit trail for all data operations
-- **Performance Monitoring**: Track operation performance and resource usage
+* **Comprehensive Logging**: All operations logged with structured data
+* **Error Recovery**: Automatic retry mechanisms and rollback procedures
+* **Notification System**: Email/Slack notifications for critical failures
+* **Audit Trail**: Complete audit trail for all data operations
+* **Performance Monitoring**: Track operation performance and resource usage
 
 ---
 
@@ -558,6 +576,7 @@ make db-restore [local|staging|production] [backup-file]
 ```
 
 #### Administrative Commands
+
 ```bash
 # Data ingestion and processing
 make ingest-ics [file]           # Import ICS file
@@ -610,27 +629,27 @@ GitHub Actions workflows call Makefile commands for scheduled operations:
 
 All data operations use Pydantic models for validation and type safety:
 
-- **Event Models**: `Event`, `EventStaged` (for public submissions)
-- **Organization Models**: `Organization`
-- **Location Models**: `Location`
-- **Tag Models**: `Tag`
-- **Announcement Models**: `Announcement`
-- **Source Models**: `SourceSite`, `ScrapeLog`
+* **Event Models**: `Event`, `EventStaged` (for public submissions)
+* **Organization Models**: `Organization`
+* **Location Models**: `Location`
+* **Tag Models**: `Tag`
+* **Announcement Models**: `Announcement`
+* **Source Models**: `SourceSite`, `ScrapeLog`
 
 Each model includes:
 
-- **Field validation**: Data types, required fields, format validation
-- **Custom validators**: URL validation, date/time parsing, status enums
-- **Database mapping**: Direct mapping to Supabase table columns
-- **CSV compatibility**: Handle CSV-specific data formats (empty strings, \N values)
+* **Field validation**: Data types, required fields, format validation
+* **Custom validators**: URL validation, date/time parsing, status enums
+* **Database mapping**: Direct mapping to Supabase table columns
+* **CSV compatibility**: Handle CSV-specific data formats (empty strings, \N values)
 
 ### Error Handling and Logging
 
-- **Comprehensive Logging**: All operations logged with structured data
-- **Error Recovery**: Automatic retry mechanisms and rollback procedures
-- **Notification System**: Email/Slack notifications for critical failures
-- **Audit Trail**: Complete audit trail for all data operations
-- **Performance Monitoring**: Track operation performance and resource usage
+* **Comprehensive Logging**: All operations logged with structured data
+* **Error Recovery**: Automatic retry mechanisms and rollback procedures
+* **Notification System**: Email/Slack notifications for critical failures
+* **Audit Trail**: Complete audit trail for all data operations
+* **Performance Monitoring**: Track operation performance and resource usage
 
 ---
 
@@ -645,9 +664,11 @@ Each model includes:
   * **Administrative processes and chores** (see below)
 
 ### Administrative Processes & Chores
+
 All administrative and operational procedures must be documented in `DEVELOPING.md`:
 
 #### Initial Setup Procedures
+
 * Development environment setup (Node.js, Python, Supabase CLI)
 * Project initialization and first-time configuration
 * Environment variable setup across all environments
@@ -655,6 +676,7 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * Local development server configuration
 
 #### Ongoing Administrative Tasks
+
 * Database migrations and schema updates
 * **Database seeding and data management via Makefile commands**
 * **CSV data validation and duplicate detection**
@@ -680,6 +702,7 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * System health monitoring and diagnostics
 
 #### Database Management Procedures
+
 * **Local Development**: `make db-reset` for clean development environment
 * **Staging Updates**: `make db-upload staging --events events.csv` for staging data updates
 * **Production Updates**: `make db-upload production --events events.csv` for production data updates
@@ -689,6 +712,7 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * **Restore Procedures**: `make db-restore [env] [backup]` for database restoration
 
 #### Data Ingestion Procedures
+
 * **ICS Import**: `make ingest-ics [file]` for calendar file imports
 * **Web Scraping**: `make ingest-scrape [source]` for automated event collection
 * **Content Summarization**: `make ingest-summarize [content]` for AI-powered descriptions
@@ -696,12 +720,14 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * **Scheduled Ingestion**: GitHub Actions workflows for automated data collection
 
 #### Data Processing Procedures
+
 * **Deduplication**: `make process-deduplicate` for removing duplicate events
 * **Data Cleaning**: `make process-clean` for standardizing data formats
 * **Quality Assurance**: `make process-validate` for comprehensive data quality checks
 * **Audit Reporting**: `make process-audit` for compliance and debugging reports
 
 #### System Administration Procedures
+
 * **System Backups**: `make admin-backup [env]` for complete system backups
 * **Health Monitoring**: `make admin-health-check` for system diagnostics
 * **Performance Optimization**: `make admin-optimize` for database and system optimization
@@ -709,7 +735,9 @@ All administrative and operational procedures must be documented in `DEVELOPING.
 * **User Management**: `make admin-users [action]` for admin user administration
 
 #### Documentation Standards
+
 Each administrative process must include:
+
 * Step-by-step procedures with commands and configurations
 * Required permissions and access levels
 * Frequency and scheduling information
@@ -725,3 +753,11 @@ Each administrative process must include:
 * Public event submission form (done)
 * Google Calendar or Eventbrite sync
 * SMS or email alerts (via Supabase Edge Functions)
+
+## ⚡️ Astro SSR & Netlify Deployment
+
+- Astro is configured for SSR (server-side rendering) using the Netlify adapter for production deploys.
+- All dynamic pages and API routes (e.g., /api/*, /rss, /ical, /submit, /events/[id], /calendar, /events) are server-rendered and always up-to-date with the database.
+- For **local development**, use `output: 'server'` in `astro.config.mjs` **without** the Netlify adapter to enable API routes in `astro dev`.
+- For **production**, use the Netlify adapter (`@astrojs/netlify`) and deploy to Netlify. API routes and dynamic pages will work as intended.
+- See `netlify.toml` for deployment configuration.

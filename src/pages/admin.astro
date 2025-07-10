@@ -2,184 +2,243 @@
 // Server-side logic for admin page
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard - Der Town</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 20px; }
-      .container { max-width: 1200px; margin: 0 auto; }
-      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-      .event-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      .event-table th, .event-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-      .event-table th { background-color: #f2f2f2; }
-      .btn { padding: 8px 16px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; }
-      .btn-approve { background-color: #4CAF50; color: white; }
-      .btn-reject { background-color: #f44336; color: white; }
-      .btn:hover { opacity: 0.8; }
-      .loading { text-align: center; padding: 20px; }
-      .error { color: red; margin: 10px 0; }
-      .success { color: green; margin: 10px 0; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1>Admin Dashboard</h1>
-        <button onclick="logout()" class="btn">Logout</button>
-      </div>
-      
-      <div id="message"></div>
-      
-      <h2>Staged Events for Review</h2>
-      <div id="loading" class="loading">Loading staged events...</div>
-      <div id="events-container"></div>
-    </div>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .event-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  .event-table th,
+  .event-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  .event-table th {
+    background-color: #f2f2f2;
+  }
+  .btn {
+    padding: 8px 16px;
+    margin: 2px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-approve {
+    background-color: #4caf50;
+    color: white;
+  }
+  .btn-reject {
+    background-color: #f44336;
+    color: white;
+  }
+  .btn:hover {
+    opacity: 0.8;
+  }
+  .loading {
+    text-align: center;
+    padding: 20px;
+  }
+  .error {
+    color: red;
+    margin: 10px 0;
+  }
+  .success {
+    color: green;
+    margin: 10px 0;
+  }
+</style>
 
-    <script type="module">
-      import { supabase } from '../lib/supabase';
+<div class="container">
+  <div class="header">
+    <h1>Admin Dashboard</h1>
+    <button onclick="logout()" class="btn">Logout</button>
+  </div>
 
-      // Check if user is logged in
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = '/login';
+  <div id="message"></div>
+
+  <h2>Staged Events for Review</h2>
+  <div id="loading" class="loading">Loading staged events...</div>
+  <div id="events-container"></div>
+</div>
+
+<script type="module">
+  import { supabase } from '../lib/supabase';
+
+  // Check if user is logged in
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    window.location.href = '/login';
+  }
+
+  // Get access token for API calls
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  async function loadStagedEvents() {
+    try {
+      const response = await fetch('/api/admin/events-staged', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Get access token for API calls
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const data = await response.json();
+      displayEvents(data.events || []);
+    } catch (error) {
+      showMessage('Error loading staged events: ' + error.message, 'error');
+    }
+  }
 
-      async function loadStagedEvents() {
-        try {
-          const response = await fetch('/api/admin/events-staged', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          displayEvents(data.events || []);
-        } catch (error) {
-          showMessage('Error loading staged events: ' + error.message, 'error');
-        }
+  function displayEvents(events) {
+    const container = document.getElementById('events-container');
+    const loading = document.getElementById('loading');
+
+    loading.style.display = 'none';
+
+    if (events.length === 0) {
+      container.innerHTML = '<p>No staged events to review.</p>';
+      return;
+    }
+
+    const table =
+      '<table class="event-table">' +
+      '<thead>' +
+      '<tr>' +
+      '<th>Title</th>' +
+      '<th>Date</th>' +
+      '<th>Time</th>' +
+      '<th>Description</th>' +
+      '<th>Submitted</th>' +
+      '<th>Actions</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      events
+        .map(function (event) {
+          return (
+            '<tr>' +
+            '<td>' +
+            (event.title || 'N/A') +
+            '</td>' +
+            '<td>' +
+            (event.start_date || 'N/A') +
+            '</td>' +
+            '<td>' +
+            (event.start_time || 'N/A') +
+            '</td>' +
+            '<td>' +
+            (event.description || '').substring(0, 100) +
+            (event.description && event.description.length > 100 ? '...' : '') +
+            '</td>' +
+            '<td>' +
+            new Date(event.submitted_at).toLocaleDateString() +
+            '</td>' +
+            '<td>' +
+            '<button onclick="approveEvent(\'' +
+            event.id +
+            '\')" class="btn btn-approve">Approve</button>' +
+            '<button onclick="rejectEvent(\'' +
+            event.id +
+            '\')" class="btn btn-reject">Reject</button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody>' +
+      '</table>';
+
+    container.innerHTML = table;
+  }
+
+  async function approveEvent(eventId) {
+    try {
+      const response = await fetch('/api/admin/events-staged/approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ eventId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      function displayEvents(events) {
-        const container = document.getElementById('events-container');
-        const loading = document.getElementById('loading');
-        
-        loading.style.display = 'none';
-        
-        if (events.length === 0) {
-          container.innerHTML = '<p>No staged events to review.</p>';
-          return;
-        }
+      const data = await response.json();
+      showMessage('Event approved successfully!', 'success');
+      loadStagedEvents(); // Reload the list
+    } catch (error) {
+      showMessage('Error approving event: ' + error.message, 'error');
+    }
+  }
 
-        const table = `
-          <table class="event-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Description</th>
-                <th>Submitted</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${events.map(event => `
-                <tr>
-                  <td>${event.title || 'N/A'}</td>
-                  <td>${event.start_date || 'N/A'}</td>
-                  <td>${event.start_time || 'N/A'}</td>
-                  <td>${(event.description || '').substring(0, 100)}${event.description && event.description.length > 100 ? '...' : ''}</td>
-                  <td>${new Date(event.submitted_at).toLocaleDateString()}</td>
-                  <td>
-                    <button onclick="approveEvent('${event.id}')" class="btn btn-approve">Approve</button>
-                    <button onclick="rejectEvent('${event.id}')" class="btn btn-reject">Reject</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
-        
-        container.innerHTML = table;
+  async function rejectEvent(eventId) {
+    const reason = prompt('Reason for rejection (optional):');
+    try {
+      const response = await fetch('/api/admin/events-staged/reject', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ eventId, reason }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      async function approveEvent(eventId) {
-        try {
-          const response = await fetch('/api/admin/events-staged/approve', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ eventId })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          showMessage('Event approved successfully!', 'success');
-          loadStagedEvents(); // Reload the list
-        } catch (error) {
-          showMessage('Error approving event: ' + error.message, 'error');
-        }
-      }
+      const data = await response.json();
+      showMessage('Event rejected successfully!', 'success');
+      loadStagedEvents(); // Reload the list
+    } catch (error) {
+      showMessage('Error rejecting event: ' + error.message, 'error');
+    }
+  }
 
-      async function rejectEvent(eventId) {
-        const reason = prompt('Reason for rejection (optional):');
-        try {
-          const response = await fetch('/api/admin/events-staged/reject', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ eventId, reason })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          showMessage('Event rejected successfully!', 'success');
-          loadStagedEvents(); // Reload the list
-        } catch (error) {
-          showMessage('Error rejecting event: ' + error.message, 'error');
-        }
-      }
+  function showMessage(message, type) {
+    const messageDiv = document.getElementById('message');
+    messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+    setTimeout(() => {
+      messageDiv.innerHTML = '';
+    }, 5000);
+  }
 
-      function showMessage(message, type) {
-        const messageDiv = document.getElementById('message');
-        messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
-        setTimeout(() => {
-          messageDiv.innerHTML = '';
-        }, 5000);
-      }
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  }
 
-      async function logout() {
-        await supabase.auth.signOut();
-        window.location.href = '/';
-      }
+  // Make functions globally available
+  window.approveEvent = approveEvent;
+  window.rejectEvent = rejectEvent;
+  window.logout = logout;
 
-      // Make functions globally available
-      window.approveEvent = approveEvent;
-      window.rejectEvent = rejectEvent;
-      window.logout = logout;
-
-      // Load staged events on page load
-      loadStagedEvents();
-    </script>
-  </body>
-</html> 
+  // Load staged events on page load
+  loadStagedEvents();
+</script>

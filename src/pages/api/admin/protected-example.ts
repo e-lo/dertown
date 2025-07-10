@@ -35,8 +35,11 @@ export const GET: APIRoute = async ({ request }) => {
   }
 
   // Return protected resource
-  return new Response(JSON.stringify({ message: 'You are an admin and can access this resource.' }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}; 
+  return new Response(
+    JSON.stringify({ message: 'You are an admin and can access this resource.' }),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+};

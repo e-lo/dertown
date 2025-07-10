@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase';
 import { validateEventForm } from '../../../lib/validation';
 
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const data = await request.json();
@@ -25,9 +27,9 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid request', details: String(err) }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Invalid request', details: String(err) }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-}; 
+};

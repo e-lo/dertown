@@ -1,41 +1,60 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase';
 
-export const GET: APIRoute = async ({ url }) => {
-  const q = url.searchParams.get('q')?.toLowerCase() || '';
-  const start_date = url.searchParams.get('start_date');
-  const end_date = url.searchParams.get('end_date');
-  const tag = url.searchParams.get('tag');
-  const location = url.searchParams.get('location');
+export const prerender = false;
 
-  const { data, error } = await db.events.getAll();
-  if (error) {
-    return new Response(
-      JSON.stringify({ error: 'Failed to fetch events', details: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+export const GET: APIRoute = async ({ url }) => {
+  try {
+    const searchParams = url.searchParams;
+    const query = searchParams.get('q') || '';
+    const category = searchParams.get('category') || '';
+    const organization = searchParams.get('organization') || '';
+    const location = searchParams.get('location') || '';
+
+    // Build the search query
+    const searchQuery = db.events.getAll();
+
+    // Add filters based on search parameters
+    if (query) {
+      // This would need to be implemented with full-text search in Supabase
+      // For now, we'll just return all events and filter client-side
+    }
+
+    const { data: events, error } = await searchQuery;
+
+    if (error) {
+      return new Response(JSON.stringify({ error: 'Failed to search events' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Filter events based on search parameters (client-side filtering for now)
+    let filteredEvents = events || [];
+
+    if (query) {
+      filteredEvents = filteredEvents.filter(
+        (event) =>
+          event.title.toLowerCase().includes(query.toLowerCase()) ||
+          (event.description && event.description.toLowerCase().includes(query.toLowerCase()))
+      );
+    }
+
+    if (category) {
+      filteredEvents = filteredEvents.filter(
+        (event) => event.primary_tag?.name === category || event.secondary_tag?.name === category
+      );
+    }
+
+    return new Response(JSON.stringify({ events: filteredEvents }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error in events search API:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-  let events = data || [];
-  if (q) {
-    events = events.filter(e =>
-      e.title?.toLowerCase().includes(q) ||
-      e.description?.toLowerCase().includes(q)
-    );
-  }
-  if (start_date) {
-    events = events.filter(e => e.start_date >= start_date);
-  }
-  if (end_date) {
-    events = events.filter(e => e.end_date && e.end_date <= end_date);
-  }
-  if (tag) {
-    events = events.filter(e => e.primary_tag_id === tag || e.secondary_tag_id === tag);
-  }
-  if (location) {
-    events = events.filter(e => e.location_id === location);
-  }
-  return new Response(JSON.stringify({ events }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}; 
+};

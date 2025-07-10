@@ -1,16 +1,5 @@
 ---
 import EventListCard from './EventListCard.astro';
-import type { Tables } from '../lib/supabase';
-
-export interface Props {
-  events: Tables<'events'>[];
-  eventColors?: Record<string, { bg: string, text: string }>;
-  eventTags?: Record<string, { primary: string | null, secondary: string | null }>;
-  showFilters?: boolean;
-  showPagination?: boolean;
-  itemsPerPage?: number;
-  className?: string;
-}
 
 const {
   events,
@@ -31,118 +20,130 @@ const paginatedEvents = events.slice(startIndex, endIndex);
 ---
 
 <div class={`space-y-6 ${className}`}>
-  {showFilters && (
-    <div class="bg-white p-4 rounded-lg shadow-sm border">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Search -->
-        <div>
-          <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <input
-            type="text"
-            id="search"
-            name="search"
-            placeholder="Search events..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        
-        <!-- Date Range -->
-        <div>
-          <label for="start-date" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-          <input
-            type="date"
-            id="start-date"
-            name="start-date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        
-        <div>
-          <label for="end-date" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-          <input
-            type="date"
-            id="end-date"
-            name="end-date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        
-        <!-- Filter Button -->
-        <div class="flex items-end">
-          <button
-            type="button"
-            class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            Filter Events
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-  
-  <!-- Events Grid -->
-  {paginatedEvents.length > 0 ? (
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200/10">
-      {paginatedEvents.map((event) => {
-        const primaryTag = eventTags[event.id]?.primary || '';
-        const secondaryTag = eventTags[event.id]?.secondary || '';
-        return (
-          <div 
-            class={`event-card-wrapper ${eventColors[event.id]?.bg || 'bg-gray-100'}`}
-            data-primary-tag={primaryTag}
-            data-secondary-tag={secondaryTag}
-          >
-            <EventListCard 
-              event={event}
-              tags={{ primary: primaryTag, secondary: secondaryTag }}
-              className={eventColors[event.id]?.text || 'text-gray-800'}
+  {
+    showFilters && (
+      <div class="bg-white p-4 rounded-lg shadow-sm border">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              id="search"
+              name="search"
+              placeholder="Search events..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-        )
-      })}
-    </div>
-  ) : (
-    <div class="text-center py-12">
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No events found</h3>
-      <p class="mt-1 text-sm text-gray-500">Try selecting a different category.</p>
-    </div>
-  )}
-  
-  <!-- Pagination -->
-  {showPagination && totalPages > 1 && (
-    <div class="flex justify-center mt-8">
-      <nav class="flex items-center space-x-2">
-        <button
-          class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+
+          {/* Date Range */}
+          <div>
+            <label for="start-date" class="block text-sm font-medium text-gray-700 mb-1">
+              From Date
+            </label>
+            <input
+              type="date"
+              id="start-date"
+              name="start-date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label for="end-date" class="block text-sm font-medium text-gray-700 mb-1">
+              To Date
+            </label>
+            <input
+              type="date"
+              id="end-date"
+              name="end-date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Filter Button */}
+          <div class="flex items-end">
+            <button
+              type="button"
+              class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+              Filter Events
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {/* Events Grid */}
+  {
+    paginatedEvents.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200/10">
+        {paginatedEvents.map((event: { id: string }) => {
+          const primaryTag = eventTags[event.id]?.primary || '';
+          const secondaryTag = eventTags[event.id]?.secondary || '';
+          return (
+            <div
+              class={`event-card-wrapper ${eventColors[event.id]?.bg || ''}`}
+              data-primary-tag={primaryTag}
+              data-secondary-tag={secondaryTag}
+            >
+              <EventListCard
+                event={event}
+                tags={{ primary: primaryTag, secondary: secondaryTag }}
+                className={eventColors[event.id]?.text || ''}
+              />
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="text-center py-12">
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No events found</h3>
+        <p class="mt-1 text-sm text-gray-500">Try selecting a different category.</p>
+      </div>
+    )
+  }
+
+  {/* Pagination */}
+  {
+    showPagination && totalPages > 1 && (
+      <div class="flex justify-center mt-8">
+        <nav class="flex items-center space-x-2">
           <button
-            class={`px-3 py-2 text-sm font-medium rounded-md ${
-              page === currentPage
-                ? 'bg-gray-800 text-white'
-                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-            }`}
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={currentPage === 1}
           >
-            {page}
+            Previous
           </button>
-        ))}
-        
-        <button
-          class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </nav>
-    </div>
-  )}
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              class={`px-3 py-2 text-sm font-medium rounded-md ${
+                page === currentPage
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </nav>
+      </div>
+    )
+  }
 </div>
 
 <script>
-  // Client-side filtering and pagination logic would go here
   // For now, this is a static component that can be enhanced later
-</script> 
+</script>
+

@@ -1,0 +1,87 @@
+---
+export const prerender = false;
+
+import { db } from '../lib/supabase';
+import type { Database } from '../types/database';
+
+// Set content type for iCal
+Astro.response.headers.set('Content-Type', 'text/calendar; charset=utf-8');
+
+// Fetch all approved events
+const { data: events, error } = await db.events.getAll();
+
+if (error) {
+  throw new Error('Error fetching events');
+}
+
+// Generate iCal content
+function generateICalContent(events: Database['public']['Tables']['events']['Row'][]): string {
+  const now = new Date();
+  const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+
+  let ical = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Der Town//Community Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Der Town Community Events
+X-WR-CALDESC:Community events and activities in Der Town
+`;
+
+  events.forEach((event) => {
+    const startDate = new Date(event.start_time ?? '');
+    const endDate = new Date(event.end_time ?? '');
+    
+    // Format dates for iCal (YYYYMMDDTHHMMSSZ)
+    const formatDate = (date: Date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hour = String(date.getUTCHours()).padStart(2, '0');
+      const minute = String(date.getUTCMinutes()).padStart(2, '0');
+      const second = String(date.getUTCSeconds()).padStart(2, '0');
+      return `${year}${month}${day}T${hour}${minute}${second}Z`;
+    };
+
+    // Clean description for iCal
+    const description = (event.description ?? '')
+      .replace(/\n/g, '\\n')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,');
+
+    const location = (
+      typeof event === 'object' &&
+      'location' in event &&
+      typeof (event as { location?: string | null }).location === 'string'
+        ? ((event as { location?: string | null }).location ?? '')
+        : ''
+    )
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,');
+
+    const title = (event.title ?? '')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,');
+
+    ical += `BEGIN:VEVENT
+UID:${event.id}
+DTSTAMP:${formatDate(now)}
+DTSTART:${formatDate(startDate)}
+DTEND:${formatDate(endDate)}
+SUMMARY:${title}
+DESCRIPTION:${description}
+${location ? `LOCATION:${location}` : ''}
+URL:${event.website ?? `${siteUrl}/events/${event.id}`}
+END:VEVENT
+`;
+  });
+
+  ical += `END:VCALENDAR`;
+
+  return ical;
+}
+
+const icalContent = generateICalContent(events || []);
+---
+
+{icalContent} 

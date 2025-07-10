@@ -1,0 +1,12 @@
+---
+// src/components/Calendar.astro
+interface Props {
+  events: string;
+}
+
+const { events } = Astro.props;
+---
+
+<div id="calendar" style="min-height: 600px;" data-events={events}></div>
+<script is:inline src="https://unpkg.com/fullcalendar@6.1.11/index.global.min.js"></script>
+<script is:inline src="/fullcalendar-init.js"></script> 

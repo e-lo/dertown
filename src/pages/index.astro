@@ -1,143 +1,68 @@
 ---
+export const prerender = false;
+
 import Layout from '../components/Layout.astro';
-import EventCarouselCard from '../components/EventCarouselCard.astro';
-import EventList from '../components/EventList.astro';
+import EventHeroCarousel from '../components/EventHeroCarousel.astro';
 import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
-import CalendarView from '../components/CalendarView.astro';
 import { db } from '../lib/supabase';
+import type { Database } from '../types/database';
 
-// Fetch data for the homepage
-const [eventsResult, announcementsResult] = await Promise.all([
-  db.events.getFeatured(),
-  db.announcements.getPublished()
-]);
+// Fetch all approved events
+const { data: allEvents, error: allEventsError } = await db.events.getAll();
 
-const featuredEvents = eventsResult.data || [];
-const announcements = announcementsResult.data || [];
+if (allEventsError) {
+  console.error('Error fetching events:', allEventsError);
+}
 
-// Get upcoming events for the calendar preview
-const upcomingEvents = featuredEvents.slice(0, 6);
+// Fetch featured events
+const { data: featuredEvents, error: featuredEventsError } = await db.events.getFeatured();
+
+if (featuredEventsError) {
+  console.error('Error fetching featured events:', featuredEventsError);
+}
+
+const events = allEvents || [];
+const featured = featuredEvents || [];
+
+console.log('Database Results:', {
+  allEventsResult: { data: allEvents, error: allEventsError },
+  featuredEventsResult: { data: featuredEvents, error: featuredEventsError },
+  upcomingEventsCount: events.length,
+  featuredEventsCount: featured.length
+});
+
+console.log('Final allEvents:', events.map(e => ({
+  id: e.id,
+  title: e.title,
+  primary_tag: e.primary_tag,
+  secondary_tag: e.secondary_tag
+})));
 ---
 
-<Layout title="Der Town - Community Events" description="Discover and share community events in Der Town">
-  <!-- Announcement Marquee -->
-  <AnnouncementMarquee announcements={announcements} />
-  
-  <!-- Hero Section -->
-  <section class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center">
-        <h1 class="text-4xl md:text-6xl font-bold mb-6">
-          Welcome to Der Town
-        </h1>
-        <p class="text-xl md:text-2xl mb-8 opacity-90">
-          Discover amazing community events and connect with your neighbors
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a 
-            href="/events" 
-            class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Browse Events
-          </a>
-          <a 
-            href="/submit" 
-            class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-          >
-            Submit Event
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Featured Events Section -->
-  <section class="py-16 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">Featured Events</h2>
-        <p class="text-lg text-gray-600">Don't miss these upcoming highlights</p>
-      </div>
-      
-      {featuredEvents.length > 0 ? (
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {featuredEvents.map((event) => (
-            <EventCarouselCard event={event} />
-          ))}
-        </div>
-      ) : (
-        <div class="text-center py-12">
-          <h3 class="mt-2 text-sm font-medium text-gray-900">No featured events yet</h3>
-          <p class="mt-1 text-sm text-gray-500">Check back soon for upcoming events!</p>
-        </div>
-      )}
-      
-      <div class="text-center mt-8">
-        <a 
-          href="/events" 
-          class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          View All Events
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Calendar Preview Section -->
-  <section class="py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">Event Calendar</h2>
-        <p class="text-lg text-gray-600">See what's happening this month</p>
-      </div>
-      
-      <CalendarView events={upcomingEvents} height="400px" />
-      
-      <div class="text-center mt-8">
-        <a 
-          href="/calendar" 
-          class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          View Full Calendar
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Quick Actions Section -->
-  <section class="py-16 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">Get Involved</h2>
-        <p class="text-lg text-gray-600">Join our community and stay connected</p>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="text-center">
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">Submit an Event</h3>
-          <p class="text-gray-600 mb-4">Share your community event with everyone</p>
-          <a href="/submit" class="text-blue-600 hover:text-blue-800 font-medium">
-            Submit Now →
-          </a>
-        </div>
-        
-        <div class="text-center">
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">Stay Updated</h3>
-          <p class="text-gray-600 mb-4">Subscribe to our RSS feed or calendar</p>
-          <div class="space-x-4">
-            <a href="/rss" class="text-green-600 hover:text-green-800 font-medium">RSS Feed</a>
-            <a href="/ical" class="text-green-600 hover:text-green-800 font-medium">iCal</a>
+<Layout title="Der Town Community Events">
+  <main class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <!-- Announcement Marquee -->
+    <AnnouncementMarquee />
+    
+    <!-- Hero Section -->
+    <section class="relative py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col lg:flex-row items-center gap-12">
+          <!-- Hero Text -->
+          <div class="flex-1 text-center lg:text-left mb-12 lg:mb-0">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Welcome to <span class="text-indigo-600">Der Town</span>
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto lg:mx-0">
+              Discover amazing community events, activities, and gatherings happening in our vibrant town.
+            </p>
+          </div>
+          <!-- Carousel -->
+          <div class="w-full max-w-3xl mx-auto">
+            <EventHeroCarousel events={events} />
           </div>
         </div>
-        
-        <div class="text-center">
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">Join the Community</h3>
-          <p class="text-gray-600 mb-4">Connect with organizers and attendees</p>
-          <a href="/events" class="text-purple-600 hover:text-purple-800 font-medium">
-            Browse Events →
-          </a>
-        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 </Layout>

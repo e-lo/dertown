@@ -3,14 +3,20 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 
-// Load environment variables
+// Load environment variables from .env.local first, then .env
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables');
+  console.error('Please create a .env.local file with:');
+  console.error('SUPABASE_URL=http://127.0.0.1:54321');
+  console.error('SUPABASE_ANON_KEY=your-anon-key-here');
+  console.error('');
+  console.error('Or set these environment variables directly.');
   process.exit(1);
 }
 

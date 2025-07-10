@@ -1,39 +1,12 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../../types/database';
+import { db } from '../../../../lib/supabase';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
-  // Check authentication and admin status
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  const token = authHeader.replace('Bearer ', '');
-  const supabase = createClient<Database>(supabaseUrl, token);
-  
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-  if (adminError || !isAdmin) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
   try {
     const { eventId } = await request.json();
+
     if (!eventId) {
       return new Response(JSON.stringify({ error: 'Event ID is required' }), {
         status: 400,
@@ -42,11 +15,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Get the staged event
-    const { data: stagedEvent, error: fetchError } = await supabase
-      .from('events_staged')
-      .select('*')
-      .eq('id', eventId)
-      .single();
+    const { data: stagedEvent, error: fetchError } = await db.eventsStaged.getById(eventId);
 
     if (fetchError || !stagedEvent) {
       return new Response(JSON.stringify({ error: 'Staged event not found' }), {
@@ -55,48 +24,57 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    // Insert into events table with approved status
-    const eventData = {
-      ...stagedEvent,
-      status: 'approved' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    delete (eventData as any).submitted_at; // Remove staged-specific field
+    // Create the approved event
+    const { error: createError } = await db.events.create({
+      title: stagedEvent.title,
+      description: stagedEvent.description,
+      start_date: stagedEvent.start_date,
+      end_date: stagedEvent.end_date,
+      start_time: stagedEvent.start_time,
+      end_time: stagedEvent.end_time,
+      location_id: stagedEvent.location_id,
+      organization_id: stagedEvent.organization_id,
+      email: stagedEvent.email,
+      website: stagedEvent.website,
+      registration_link: stagedEvent.registration_link,
+      primary_tag_id: stagedEvent.primary_tag_id,
+      secondary_tag_id: stagedEvent.secondary_tag_id,
+      image_id: stagedEvent.image_id,
+      external_image_url: stagedEvent.external_image_url,
+      featured: stagedEvent.featured,
+      parent_event_id: stagedEvent.parent_event_id,
+      exclude_from_calendar: stagedEvent.exclude_from_calendar,
+      google_calendar_event_id: stagedEvent.google_calendar_event_id,
+      registration: stagedEvent.registration,
+      cost: stagedEvent.cost,
+      status: 'approved',
+      source_id: stagedEvent.source_id,
+    });
 
-    const { error: insertError } = await supabase
-      .from('events')
-      .insert(eventData);
-
-    if (insertError) {
-      return new Response(JSON.stringify({ error: 'Failed to approve event', details: insertError.message }), {
+    if (createError) {
+      return new Response(JSON.stringify({ error: 'Failed to create approved event' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Delete from events_staged
-    const { error: deleteError } = await supabase
-      .from('events_staged')
-      .delete()
-      .eq('id', eventId);
+    // Delete the staged event
+    const { error: deleteError } = await db.eventsStaged.delete(eventId);
 
     if (deleteError) {
-      return new Response(JSON.stringify({ error: 'Failed to remove staged event', details: deleteError.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.error('Failed to delete staged event after approval:', deleteError);
+      // Don't fail the request if deletion fails, as the event was already created
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'Event approved successfully' }), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-
-  } catch (err) {
-    return new Response(JSON.stringify({ error: 'Invalid request', details: String(err) }), {
-      status: 400,
+  } catch (error) {
+    console.error('Error in admin approve API:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}; 
+};

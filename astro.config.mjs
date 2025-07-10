@@ -1,15 +1,14 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import tailwind from '@astrojs/tailwind';
+import solid from '@astrojs/solid-js';
 
 // https://astro.build/config
 export default defineConfig({
+  output: 'server',
   integrations: [
-    // Tailwind CSS v4 is integrated via the @tailwindcss/vite plugin in vite config
+    tailwind(),
+    solid(),
   ],
-  vite: {
-    plugins: [
-      // Tailwind CSS v4 integration
-      (await import('@tailwindcss/vite')).default()
-    ]
-  }
+
 });

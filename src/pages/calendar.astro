@@ -1,73 +1,29 @@
 ---
-import Layout from '../components/Layout.astro';
-import CalendarView from '../components/CalendarView.astro';
-import Breadcrumb from '../components/Breadcrumb.astro';
-import { db } from '../lib/supabase';
+export const prerender = false;
 
-// Fetch all approved events for the calendar
-const { data: events, error } = await db.events.getAll();
+import Layout from '../components/Layout.astro';
+import { supabase } from '../lib/supabase';
+import CalendarComponent from '../components/Calendar.astro';
+import { transformEventForCalendar } from '../lib/event-utils';
+
+// Fetch events for the calendar
+const { data: events, error } = await supabase
+  .from('events')
+  .select('id, title, description, start_date, start_time, end_date, end_time, location:location_id(name), primary_tag:primary_tag_id(name)')
+  .eq('status', 'approved')
+  .order('start_date', { ascending: true });
 
 if (error) {
   console.error('Error fetching events:', error);
 }
 
-const eventsList = events || [];
+// Transform events for FullCalendar
+const calendarEvents = (events || []).map(transformEventForCalendar);
 ---
 
-<Layout 
-  title="Calendar - Der Town" 
-  description="View the community events calendar for Der Town. See upcoming events in month, week, day, and list views."
->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Breadcrumb -->
-    <Breadcrumb items={[{ label: 'Calendar' }]} />
-    
-    <!-- Page Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-4">Event Calendar</h1>
-      <p class="text-lg text-gray-600">
-        View all community events in calendar format. Switch between month, week, day, and list views.
-      </p>
-    </div>
-    
-    <!-- Calendar View -->
-    <CalendarView events={eventsList} height="700px" />
-    
-    <!-- Calendar Export Links -->
-    <div class="mt-8 p-6 bg-gray-50 rounded-lg">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Export Calendar</h2>
-      <p class="text-gray-600 mb-4">
-        Subscribe to our calendar feeds to stay updated on all events:
-      </p>
-      <div class="flex flex-wrap gap-4">
-        <a 
-          href="/api/calendar/ical" 
-          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd" />
-          </svg>
-          iCal Feed
-        </a>
-        <a 
-          href="/api/calendar/google" 
-          class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-        >
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-          </svg>
-          Google Calendar
-        </a>
-        <a 
-          href="/api/calendar/outlook" 
-          class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-        >
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd" />
-          </svg>
-          Outlook Calendar
-        </a>
-      </div>
-    </div>
+<Layout title="Event Calendar - Der Town">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Use the new Calendar component -->
+    <CalendarComponent events={JSON.stringify(calendarEvents)} />
   </div>
-</Layout> 
+</Layout>

@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase';
+import type { Database } from '../../../types/database';
 
 export const GET: APIRoute = async () => {
   try {
     // Fetch all approved events
     const { data: events, error } = await db.events.getAll();
-    
+
     if (error) {
       return new Response('Error fetching events', { status: 500 });
     }
@@ -16,7 +17,7 @@ export const GET: APIRoute = async () => {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': googleCalendarUrl,
+        Location: googleCalendarUrl,
       },
     });
   } catch (error) {
@@ -25,31 +26,47 @@ export const GET: APIRoute = async () => {
   }
 };
 
-function generateGoogleCalendarUrl(events: any[]): string {
+function generateGoogleCalendarUrl(
+  events: Database['public']['Tables']['events']['Row'][]
+): string {
   const baseUrl = 'https://calendar.google.com/calendar/render';
   const params = new URLSearchParams();
-  
+
   // Add calendar name
   params.append('action', 'TEMPLATE');
   params.append('text', 'Der Town Community Events');
   params.append('details', 'Community events and activities in Der Town');
-  
+
   // If we have events, use the first one as the template
   if (events.length > 0) {
     const firstEvent = events[0];
-    const startDate = new Date(firstEvent.start_time);
-    const endDate = new Date(firstEvent.end_time);
-    
+
+    // Create proper date objects by combining date and time
+    const startDate = new Date(`${firstEvent.start_date}T${firstEvent.start_time || '00:00:00'}`);
+    const endDate =
+      firstEvent.end_date && firstEvent.end_time
+        ? new Date(`${firstEvent.end_date}T${firstEvent.end_time}`)
+        : new Date(`${firstEvent.start_date}T${firstEvent.end_time || '23:59:59'}`);
+
     // Format dates for Google Calendar (YYYYMMDDTHHMMSS)
     const formatDate = (date: Date) => {
-      return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
+      return date
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}Z$/, '');
     };
-    
-    params.set('text', firstEvent.title);
-    params.set('details', firstEvent.description || '');
-    params.set('location', firstEvent.location || '');
+
+    params.set('text', firstEvent.title ?? '');
+    params.set('details', firstEvent.description ?? '');
+    const location =
+      typeof firstEvent === 'object' &&
+      'location' in firstEvent &&
+      typeof (firstEvent as { location?: string | null }).location === 'string'
+        ? ((firstEvent as { location?: string | null }).location ?? '')
+        : '';
+    params.set('location', location);
     params.set('dates', `${formatDate(startDate)}/${formatDate(endDate)}`);
   }
-  
+
   return `${baseUrl}?${params.toString()}`;
-} 
+}

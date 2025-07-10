@@ -1,7 +1,7 @@
 # Der Town Development Makefile
 # Essential commands for rapid development iteration
 
-.PHONY: help dev build preview db-reset db-seed db-migrate db-backup test-data validate-all format lint test clean
+.PHONY: help dev build preview db-reset db-seed db-migrate db-backup test-data validate-all format lint test clean db-seed-local-events venv venv-activate venv-install db-seed db-seed-local update-local-events markdownlint-fix
 
 # Default target
 help:
@@ -10,15 +10,20 @@ help:
 	@echo "  build            - Build for production"
 	@echo "  preview          - Build and preview production locally"
 	@echo "  db-reset         - Reset local database with sample data"
-	@echo "  db-seed          - Seed with test data"
+	@echo "  db-seed          - Seed production/staging DB with canonical data (events, locations, orgs, tags, etc.)"
+	@echo "  db-seed-local    - Seed local DB with local/test data (locations, orgs, tags, announcements, and local events with randomized dates)"
+	@echo "  db-update-local-events - Update event dates in local DB to be in the near future"
 	@echo "  db-migrate       - Run database migrations"
 	@echo "  db-backup        - Backup current database state"
 	@echo "  test-data        - Generate realistic test data"
 	@echo "  validate-all     - Run all validations"
 	@echo "  format           - Format code with Prettier"
-	@echo "  lint             - Run ESLint"
+	@echo "  lint             - Run ESLint and markdownlint"
 	@echo "  test             - Run tests"
 	@echo "  clean            - Clean build artifacts"
+	@echo "  venv                - Create a Python virtual environment (.venv)"
+	@echo "  venv-activate       - Print activation command for venv"
+	@echo "  venv-install        - Install Python requirements in venv"
 
 # Development server
 dev:
@@ -46,8 +51,21 @@ db-reset:
 # Seed database with test data
 db-seed:
 	@echo "Seeding database with test data..."
-	python3 scripts/dev_utils.py seed
+	python3 scripts/seed_database.py
 	@echo "Database seeding complete"
+
+# Seed local database with local/test data
+db-seed-local: db-reset
+	@echo "Seeding local database with local/test data..."
+	python3 scripts/seed_local_base.py
+	python3 scripts/seed_local_events.py
+	@echo "Local database seeding complete"
+
+# Update
+db-update-local-events:
+	@echo "Updating local events..."
+	python3 scripts/update_local_events.py 
+	@echo "Local events updated"
 
 # Run database migrations
 db-migrate:
@@ -92,6 +110,8 @@ format:
 lint:
 	@echo "Running linter..."
 	npx eslint src/ --ext .js,.ts,.astro
+	@echo "Running markdownlint..."
+	npx markdownlint "*.md" "src/**/*.md" "scripts/**/*.md" --fix
 	@echo "Linting complete"
 
 # Run tests
@@ -105,4 +125,18 @@ clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf dist/
 	rm -rf .astro/
-	@echo "Clean complete" 
+	@echo "Clean complete"
+
+# Seed local events
+db-seed-local-events:
+	python3 scripts/seed_local_events.py
+
+venv:
+	uv venv .venv
+
+venv-activate:
+	@echo "Run: source .venv/bin/activate"
+
+venv-install:
+	uv pip install -r requirements.txt
+

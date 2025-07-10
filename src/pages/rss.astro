@@ -1,0 +1,84 @@
+---
+export const prerender = false;
+
+import { db } from '../lib/supabase';
+import type { Database } from '../types/database';
+
+// Set content type for RSS
+Astro.response.headers.set('Content-Type', 'application/xml; charset=utf-8');
+
+// Fetch all approved events
+const { data: events, error } = await db.events.getAll();
+
+if (error) {
+  throw new Error('Error fetching events');
+}
+
+// Generate RSS content
+function generateRSSContent(events: Database['public']['Tables']['events']['Row'][]): string {
+  const now = new Date();
+  const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+
+  let rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Der Town Community Events</title>
+    <link>${siteUrl}</link>
+    <description>Community events and activities in Der Town</description>
+    <language>en-US</language>
+    <lastBuildDate>${now.toUTCString()}</lastBuildDate>
+    <atom:link href="${siteUrl}/rss" rel="self" type="application/rss+xml" />
+`;
+
+  events.forEach((event) => {
+    const startDate = new Date(event.start_time ?? '');
+    const endDate = new Date(event.end_time ?? '');
+
+    // Clean description for XML
+    const description = (event.description ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const location = (
+      typeof event === 'object' &&
+      'location' in event &&
+      typeof (event as { location?: string | null }).location === 'string'
+        ? ((event as { location?: string | null }).location ?? '')
+        : ''
+    )
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const title = (event.title ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    rss += `    <item>
+      <title>${title}</title>
+      <link>${event.website ?? `${siteUrl}/events`}</link>
+      <guid>${event.id}</guid>
+      <pubDate>${startDate.toUTCString()}</pubDate>
+      <description><![CDATA[${description}${location ? `<br/><strong>Location:</strong> ${location}` : ''}<br/><strong>Date:</strong> ${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString()}<br/><strong>Ends:</strong> ${endDate.toLocaleDateString()} at ${endDate.toLocaleTimeString()}]]></description>
+    </item>
+`;
+  });
+
+  rss += `  </channel>
+</rss>`;
+
+  return rss;
+}
+
+const rssContent = generateRSSContent(events || []);
+---
+
+{rssContent} 

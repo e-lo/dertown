@@ -1,16 +1,4 @@
 ---
-import type { Tables } from '../lib/supabase';
-
-export interface Props {
-  event?: Partial<Tables<'events'>>;
-  locations?: Tables<'locations'>[];
-  organizations?: Tables<'organizations'>[];
-  tags?: Tables<'tags'>[];
-  action?: string;
-  method?: 'GET' | 'POST';
-  className?: string;
-}
-
 const {
   event = {},
   locations = [],
@@ -22,22 +10,65 @@ const {
 } = Astro.props;
 
 // Get form field value with fallback
-const getFieldValue = (field: keyof Tables<'events'>, defaultValue = '') => {
+const getFieldValue = (field: string, defaultValue: string = ''): string => {
   return event[field] || defaultValue;
 };
 
 // Get selected value for select fields
-const isSelected = (field: keyof Tables<'events'>, value: string) => {
+const isSelected = (field: string, value: string) => {
   return event[field] === value ? 'selected' : '';
 };
 ---
 
-<form 
-  action={action} 
-  method={method} 
-  class={`space-y-6 ${className}`}
-  id="event-form"
->
+<script>
+  // Client-side validation using Zod
+  import { eventFormSchema } from '../lib/validation';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('event-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form as HTMLFormElement);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          // Validate form data
+          const validatedData = eventFormSchema.parse(data);
+          // Submit form
+          const response = await fetch((form as HTMLFormElement).action, {
+            method: (form as HTMLFormElement).method,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(validatedData),
+          });
+
+          if (response.ok) {
+            // Show success message
+            alert('Event submitted successfully! It will be reviewed before publishing.');
+            (form as HTMLFormElement).reset();
+          } else {
+            // Show error message
+            const error = await response.json();
+            alert(`Error: ${error.message || 'Failed to submit event'}`);
+          }
+        } catch (error) {
+          // Show validation error
+          if (error && typeof error === 'object' && 'errors' in error) {
+            const errorMessage = (error.errors as Array<{message: string}>).map(err => err.message).join('\n');
+            alert(`Validation errors:\n${errorMessage}`);
+          } else {
+            alert('An unexpected error occurred');
+          }
+        }
+      });
+    }
+  });
+</script>
+
+<form action={action} method={method} class={`space-y-6 ${className}`} id="event-form">
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <!-- Title -->
     <div class="md:col-span-2">
@@ -66,8 +97,8 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
         name="description"
         rows="4"
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        placeholder="Describe your event..."
-      >{getFieldValue('description')}</textarea>
+        placeholder="Describe your event...">{getFieldValue('description')}</textarea
+      >
     </div>
 
     <!-- Start Date -->
@@ -101,9 +132,7 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
 
     <!-- End Date -->
     <div>
-      <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-        End Date
-      </label>
+      <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1"> End Date </label>
       <input
         type="date"
         id="end_date"
@@ -115,9 +144,7 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
 
     <!-- End Time -->
     <div>
-      <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">
-        End Time
-      </label>
+      <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1"> End Time </label>
       <input
         type="time"
         id="end_time"
@@ -129,9 +156,7 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
 
     <!-- Cost -->
     <div>
-      <label for="cost" class="block text-sm font-medium text-gray-700 mb-1">
-        Cost
-      </label>
+      <label for="cost" class="block text-sm font-medium text-gray-700 mb-1"> Cost </label>
       <input
         type="text"
         id="cost"
@@ -144,9 +169,7 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
 
     <!-- Website -->
     <div>
-      <label for="website" class="block text-sm font-medium text-gray-700 mb-1">
-        Website
-      </label>
+      <label for="website" class="block text-sm font-medium text-gray-700 mb-1"> Website </label>
       <input
         type="url"
         id="website"
@@ -168,11 +191,13 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
         <option value="">Select a location</option>
-        {locations.map((location) => (
-          <option value={location.id} selected={isSelected('location_id', location.id)}>
-            {location.name}
-          </option>
-        ))}
+        {
+          locations.map((location: { id: string; name: string }) => (
+            <option value={location.id} selected={isSelected('location_id', location.id)}>
+              {location.name}
+            </option>
+          ))
+        }
       </select>
     </div>
 
@@ -187,11 +212,13 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
         <option value="">Select an organization</option>
-        {organizations.map((org) => (
-          <option value={org.id} selected={isSelected('organization_id', org.id)}>
-            {org.name}
-          </option>
-        ))}
+        {
+          organizations.map((org: { id: string; name: string }) => (
+            <option value={org.id} selected={isSelected('organization_id', org.id)}>
+              {org.name}
+            </option>
+          ))
+        }
       </select>
     </div>
 
@@ -206,11 +233,13 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
         <option value="">Select a category</option>
-        {tags.map((tag) => (
-          <option value={tag.id} selected={isSelected('primary_tag_id', tag.id)}>
-            {tag.name}
-          </option>
-        ))}
+        {
+          tags.map((tag: { id: string; name: string }) => (
+            <option value={tag.id} selected={isSelected('primary_tag_id', tag.id)}>
+              {tag.name}
+            </option>
+          ))
+        }
       </select>
     </div>
 
@@ -225,11 +254,13 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
         <option value="">Select a category (optional)</option>
-        {tags.map((tag) => (
-          <option value={tag.id} selected={isSelected('secondary_tag_id', tag.id)}>
-            {tag.name}
-          </option>
-        ))}
+        {
+          tags.map((tag: { id: string; name: string }) => (
+            <option value={tag.id} selected={isSelected('secondary_tag_id', tag.id)}>
+              {tag.name}
+            </option>
+          ))
+        }
       </select>
     </div>
 
@@ -241,7 +272,7 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
           id="registration"
           name="registration"
           value="true"
-          checked={getFieldValue('registration') === true}
+          checked={getFieldValue('registration') === 'true'}
           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label for="registration" class="ml-2 block text-sm text-gray-700">
@@ -306,51 +337,3 @@ const isSelected = (field: keyof Tables<'events'>, value: string) => {
     </button>
   </div>
 </form>
-
-<script>
-  // Client-side validation using Zod
-  import { eventFormSchema } from '../lib/validation';
-
-  const form = document.getElementById('event-form') as HTMLFormElement;
-  
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      
-      try {
-        // Validate form data
-        const validatedData = eventFormSchema.parse(data);
-        
-        // Submit form
-        const response = await fetch(form.action, {
-          method: form.method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(validatedData),
-        });
-        
-        if (response.ok) {
-          // Show success message
-          alert('Event submitted successfully! It will be reviewed before publishing.');
-          form.reset();
-        } else {
-          // Show error message
-          const error = await response.json();
-          alert(`Error: ${error.message || 'Failed to submit event'}`);
-        }
-      } catch (error) {
-        // Show validation error
-        if (error.errors) {
-          const errorMessage = error.errors.map((err: { message: string }) => err.message).join('\n');
-          alert(`Validation errors:\n${errorMessage}`);
-        } else {
-          alert('An unexpected error occurred');
-        }
-      }
-    });
-  }
-</script> 

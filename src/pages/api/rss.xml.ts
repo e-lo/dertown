@@ -1,11 +1,14 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase';
+import type { Database } from '../../types/database';
+
+export const prerender = false;
 
 export const GET: APIRoute = async () => {
   try {
     // Fetch all approved events
     const { data: events, error } = await db.events.getAll();
-    
+
     if (error) {
       return new Response('Error fetching events', { status: 500 });
     }
@@ -25,10 +28,10 @@ export const GET: APIRoute = async () => {
   }
 };
 
-function generateRSSContent(events: any[]): string {
+function generateRSSContent(events: Database['public']['Tables']['events']['Row'][]): string {
   const now = new Date();
   const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
-  
+
   let rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -41,34 +44,40 @@ function generateRSSContent(events: any[]): string {
 `;
 
   events.forEach((event) => {
-    const startDate = new Date(event.start_time);
-    const endDate = new Date(event.end_time);
-    
+    const startDate = new Date(event.start_time ?? '');
+    const endDate = new Date(event.end_time ?? '');
+
     // Clean description for XML
-    const description = event.description
-      ?.replace(/&/g, '&amp;')
+    const description = (event.description ?? '')
+      .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;') || '';
-    
-    const location = event.location
-      ?.replace(/&/g, '&amp;')
+      .replace(/'/g, '&#39;');
+
+    const location = (
+      typeof event === 'object' &&
+      'location' in event &&
+      typeof (event as { location?: string | null }).location === 'string'
+        ? ((event as { location?: string | null }).location ?? '')
+        : ''
+    )
+      .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;') || '';
-    
-    const title = event.title
-      ?.replace(/&/g, '&amp;')
+      .replace(/'/g, '&#39;');
+
+    const title = (event.title ?? '')
+      .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;') || '';
+      .replace(/'/g, '&#39;');
 
     rss += `    <item>
       <title>${title}</title>
-      <link>${event.url || `${siteUrl}/events`}</link>
+      <link>${event.website ?? `${siteUrl}/events`}</link>
       <guid>${event.id}</guid>
       <pubDate>${startDate.toUTCString()}</pubDate>
       <description><![CDATA[${description}${location ? `<br/><strong>Location:</strong> ${location}` : ''}<br/><strong>Date:</strong> ${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString()}<br/><strong>Ends:</strong> ${endDate.toLocaleDateString()} at ${endDate.toLocaleTimeString()}]]></description>
@@ -78,6 +87,6 @@ function generateRSSContent(events: any[]): string {
 
   rss += `  </channel>
 </rss>`;
-  
+
   return rss;
-} 
+}

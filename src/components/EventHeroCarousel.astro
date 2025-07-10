@@ -1,0 +1,146 @@
+---
+import EventCarouselCard from './EventCarouselCard.astro';
+import { filterFutureEvents } from '../lib/event-utils';
+const { events = [], count = 8 } = Astro.props;
+
+// Helper: Sprinkle featured events among upcoming events
+function sprinkleFeatured(upcoming: any[], featured: any[]): any[] {
+  const result = [];
+  const usedIds = new Set();
+  let fIdx = 0;
+  let uIdx = 0;
+  
+  // Keep adding events until we reach the count or run out of events
+  while (result.length < count && (fIdx < featured.length || uIdx < upcoming.length)) {
+    // Add featured event if available and not already used
+    if (fIdx < featured.length && !usedIds.has(featured[fIdx].id)) {
+      result.push(featured[fIdx]);
+      usedIds.add(featured[fIdx].id);
+      fIdx++;
+    }
+    // Add upcoming event if available and not already used
+    else if (uIdx < upcoming.length && !usedIds.has(upcoming[uIdx].id)) {
+      result.push(upcoming[uIdx]);
+      usedIds.add(upcoming[uIdx].id);
+      uIdx++;
+    }
+    // If we can't add either, break to avoid infinite loop
+    else {
+      break;
+    }
+  }
+  
+  return result.slice(0, count);
+}
+
+// Filter to only future events
+const futureEvents = filterFutureEvents(events as any[]);
+const upcoming = (futureEvents as any[]).filter((e: any) => !e.featured);
+const featured = (futureEvents as any[]).filter((e: any) => e.featured);
+const displayEvents = sprinkleFeatured(upcoming, featured);
+const hasEvents = displayEvents.length > 0;
+---
+
+{hasEvents && (
+  <div class="glider-contain relative">
+    <div class="glider">
+      {displayEvents.map((event, index) => (
+        <div class="glider-slide flex-shrink-0" style="width:320px !important; min-width:320px !important; max-width:320px !important; margin: 0 4px; height: 320px; min-height: 320px !important;">
+          <EventCarouselCard event={event} tags={{ primary: event.primary_tag?.name, secondary: event.secondary_tag?.name }} />
+        </div>
+      ))}
+    </div>
+    <button aria-label="Previous" class="glider-prev bg-white hover:bg-gray-50 rounded-full w-10 h-10 flex items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">&#8592;</button>
+    <button aria-label="Next" class="glider-next bg-white hover:bg-gray-50 rounded-full w-10 h-10 flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">&#8594;</button>
+    <script src="/glider-init.js"></script>
+  </div>
+)}
+
+{!hasEvents && (
+  <div class="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
+    <div class="text-center">
+      <p class="text-gray-500 text-lg">No events to display</p>
+      <a href="/submit" class="text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block">
+        Submit the first event →
+      </a>
+    </div>
+  </div>
+)}
+
+<style is:global>
+.glider-contain {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  height: 540px;
+  min-height: 500px;
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+}
+.glider {
+  overflow-x: hidden !important;
+  max-width: 100%;
+  min-width: 0;
+}
+.glider-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+}
+.glider-slide {
+  min-width: 300px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 8px;
+}
+.glider-prev, .glider-next {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  cursor: pointer;
+}
+.glider-prev { left: 0.5rem; }
+.glider-next { right: 0.5rem; }
+.glider-dots {
+  text-align: center;
+  margin-top: 1rem;
+}
+.glider-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #ddd;
+  border-radius: 50%;
+  margin: 0 4px;
+  cursor: pointer;
+}
+.glider-dot.active {
+  background: #333;
+}
+</style>
+
+<style>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style> 

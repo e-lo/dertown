@@ -1,0 +1,40 @@
+---
+interface Props {
+  type?: 'text' | 'email' | 'password' | 'url' | 'date' | 'time' | 'number' | 'tel';
+  name: string;
+  id?: string;
+  value?: string;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  maxlength?: number;
+  className?: string;
+}
+
+const { 
+  type = 'text',
+  name,
+  id = name,
+  value = '',
+  placeholder = '',
+  required = false,
+  disabled = false,
+  maxlength,
+  className = ''
+} = Astro.props;
+
+const baseClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+const classes = `${baseClasses} ${disabled ? 'bg-gray-50 cursor-not-allowed' : ''} ${className}`;
+---
+
+<input
+  type={type}
+  id={id}
+  name={name}
+  value={value}
+  placeholder={placeholder}
+  required={required}
+  disabled={disabled}
+  maxlength={maxlength}
+  class={classes}
+/> 
