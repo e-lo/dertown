@@ -1,0 +1,70 @@
+---
+export interface Props {
+  eventId: string;
+  eventTitle?: string;
+  tooltipText?: string;
+  class?: string;
+}
+
+const { 
+  eventId,
+  eventTitle = "Event",
+  tooltipText = "Add this event to your own calendar",
+  class: className = ""
+} = Astro.props;
+---
+
+<div class={`relative ${className}`}>
+  <button 
+    type="button" 
+    onclick="toggleCalendarDropdown()"
+    class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative"
+    aria-label="Add to Calendar">
+    <!-- Calendar icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <path d="M16 2v4M8 2v4M3 10h18"/>
+    </svg>
+    <span class="tooltip -top-10 left-auto right-0">
+      {tooltipText}
+    </span>
+  </button>
+  <div id="calendar-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+    <a href={`/api/events/${eventId}/google/`} class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700" target="_blank" rel="noopener noreferrer">
+      <!-- Google G icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+        <g>
+          <path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303C34.73 32.364 29.728 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c2.73 0 5.23.928 7.217 2.462l6.084-6.084C33.527 6.163 28.977 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20c11.046 0 20-8.954 20-20 0-1.341-.138-2.651-.389-3.917z"/>
+          <path fill="#34A853" d="M6.306 14.691l6.584 4.829C14.655 16.108 19.008 13 24 13c2.73 0 5.23.928 7.217 2.462l6.084-6.084C33.527 6.163 28.977 4 24 4c-7.732 0-14.37 4.388-17.694 10.691z"/>
+          <path fill="#FBBC05" d="M24 44c5.421 0 10.367-1.858 14.236-5.029l-6.567-5.389C29.728 36 26.995 37 24 37c-5.709 0-10.557-3.657-12.303-8.729l-6.563 5.061C9.615 39.556 16.227 44 24 44z"/>
+          <path fill="#EA4335" d="M43.611 20.083H42V20H24v8h11.303c-1.377 3.726-5.375 7-11.303 7-2.285 0-4.418-.66-6.184-1.797l-6.563 5.061C9.615 39.556 16.227 44 24 44c7.732 0 14.37-4.388 17.694-10.691z"/>
+        </g>
+      </svg>
+      Google Calendar
+    </a>
+    <a href={`/api/events/${eventId}/ical/`} class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700" target="_blank" rel="noopener noreferrer">
+      <!-- Apple logo -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Apple iCal
+    </a>
+    <a href={`/api/events/${eventId}/outlook/`} class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700" target="_blank" rel="noopener noreferrer">
+      <!-- Outlook/Microsoft icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+        <path fill="#0078D4" d="M11.5 2.75c-4.83 0-8.75 3.92-8.75 8.75s3.92 8.75 8.75 8.75 8.75-3.92 8.75-8.75S16.33 2.75 11.5 2.75zM11.5 20c-4.69 0-8.5-3.81-8.5-8.5S6.81 3 11.5 3s8.5 3.81 8.5 8.5-3.81 8.5-8.5 8.5z"/>
+        <path fill="#0078D4" d="M11.5 6.5c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+      </svg>
+      Outlook
+    </a>
+  </div>
+</div>
+
+<script is:inline>
+  function toggleCalendarDropdown() {
+    const dropdown = document.getElementById('calendar-dropdown');
+    if (dropdown) {
+      dropdown.classList.toggle('hidden');
+    }
+  }
+</script> 

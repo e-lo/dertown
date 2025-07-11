@@ -48,11 +48,28 @@ document.addEventListener('DOMContentLoaded', function() {
             info.el.classList.add('text-white');
           }
         }
+        // Remove the event dot in dayGridWeek view
+        if (info.view.type === 'dayGridWeek') {
+          const dot = info.el.querySelector('.fc-daygrid-event-dot');
+          if (dot) dot.style.display = 'none';
+        }
+        // Add left margin to event text
+        const contentEls = info.el.querySelectorAll('.fc-event-time, .fc-event-title');
+        contentEls.forEach(el => {
+          el.style.marginLeft = '2px';
+        });
         // Tooltip logic (unchanged)
         let html = `<div class='fc-tooltip-title'>${event.title}</div>`;
+        
         if (event.extendedProps.description) {
           html += `<div class='fc-tooltip-desc'>${event.extendedProps.description}</div>`;
         }
+
+        // Add location if it exists (as a string)
+        if (event.extendedProps.location) {
+          html += `<div class='fc-tooltip-location'><span>⚲ </span> ${event.extendedProps.location}</div>`;
+        }
+
         if (event.start && info.view.type !== 'dayGridMonth') {
           const startDate = new Date(event.start);
           let hour = startDate.getHours();
@@ -62,10 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
           hour = hour ? hour : 12;
           const minuteStr = minute < 10 ? '0' + minute : minute;
           const timeString = `${hour}:${minuteStr} ${ampm}`;
-          html += `<div class='fc-tooltip-time'><span>Time:</span> ${timeString}</div>`;
-        }
-        if (event.extendedProps.location) {
-          html += `<div class='fc-tooltip-location'><span>Location:</span> ${event.extendedProps.location}</div>`;
+          html += `<div class='fc-tooltip-time'>${timeString}</div>`;
         }
         const tooltip = new Tooltip(info.el, { html });
       }

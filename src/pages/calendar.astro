@@ -3,15 +3,12 @@ export const prerender = false;
 
 import Layout from '../components/Layout.astro';
 import { supabase } from '../lib/supabase';
+import { db } from '../lib/supabase';
 import CalendarComponent from '../components/Calendar.astro';
 import { transformEventForCalendar } from '../lib/event-utils';
 
 // Fetch events for the calendar
-const { data: events, error } = await supabase
-  .from('events')
-  .select('id, title, description, start_date, start_time, end_date, end_time, location:location_id(name), primary_tag:primary_tag_id(name)')
-  .eq('status', 'approved')
-  .order('start_date', { ascending: true });
+const { data: events, error } = await db.events.getCurrentAndFuture();
 
 if (error) {
   console.error('Error fetching events:', error);

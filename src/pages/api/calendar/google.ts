@@ -5,7 +5,7 @@ import type { Database } from '../../../types/database';
 export const GET: APIRoute = async () => {
   try {
     // Fetch all approved events
-    const { data: events, error } = await db.events.getAll();
+    const { data: events, error } = await db.events.getCurrentAndFuture();
 
     if (error) {
       return new Response('Error fetching events', { status: 500 });

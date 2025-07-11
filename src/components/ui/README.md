@@ -46,16 +46,19 @@ import Badge from './ui/Badge.astro';
 ```
 
 **Props:**
+
 - `variant`: 'default' | 'success' | 'warning' | 'info' | 'featured' | 'today' | 'arts-culture' | 'civic' | 'family' | 'nature' | 'outdoors' | 'school' | 'sports' | 'town'
 - `size`: 'sm' | 'md' | 'lg'
 - `className`: Additional CSS classes
 
 **Category Variants:**
 Use the `getCategoryBadgeVariant()` utility function for consistent category styling:
+
 ```astro
 ---
 import { getCategoryBadgeVariant } from '../../lib/date-utils';
 ---
+
 <Badge variant={getCategoryBadgeVariant('Arts+Culture')}>Arts & Culture</Badge>
 ```
 
@@ -88,6 +91,7 @@ import Button from './ui/Button.astro';
 ```
 
 **Props:**
+
 - `variant`: 'primary' | 'secondary' | 'outline' | 'ghost'
 - `size`: 'sm' | 'md' | 'lg'
 - `type`: 'button' | 'submit' | 'reset'
@@ -117,6 +121,7 @@ import Input from './ui/Input.astro';
 ```
 
 **Props:**
+
 - `type`: 'text' | 'email' | 'password' | 'url' | 'date' | 'time' | 'number' | 'tel'
 - `name`: string (required)
 - `id`: string (defaults to name)
@@ -145,6 +150,7 @@ import Select from './ui/Select.astro';
 ```
 
 **Props:**
+
 - `name`: string (required)
 - `id`: string (defaults to name)
 - `required`: boolean
@@ -172,6 +178,7 @@ import Input from './ui/Input.astro';
 ```
 
 **Props:**
+
 - `label`: string (required)
 - `required`: boolean
 - `className`: Additional CSS classes
@@ -185,18 +192,19 @@ A filter component for event categories with interactive pill buttons.
 import TagFilter from '../TagFilter.astro';
 ---
 
-<TagFilter 
+<TagFilter
   tags={[
     { id: '1', name: 'Arts+Culture' },
     { id: '2', name: 'Family' },
-    { id: '3', name: 'Nature' }
-  ]} 
+    { id: '3', name: 'Nature' },
+  ]}
   selectedTag="Arts+Culture"
   className="mb-4"
 />
 ```
 
 **Props:**
+
 - `tags`: Array of tag objects with `id` and `name` properties
 - `selectedTag`: Currently selected tag (defaults to 'all')
 - `showAllOption`: Whether to show "All Events" option (defaults to true)
@@ -204,6 +212,7 @@ import TagFilter from '../TagFilter.astro';
 - `className`: Additional CSS classes
 
 **Features:**
+
 - Client-side filtering of event cards
 - URL state management
 - Category-specific colors using theme CSS classes
@@ -231,14 +240,13 @@ import TagFilter from '../TagFilter.astro';
 All components accept a `className` prop for additional styling:
 
 ```astro
-<Button variant="primary" className="w-full md:w-auto">
-  Responsive Button
-</Button>
+<Button variant="primary" className="w-full md:w-auto"> Responsive Button </Button>
 ```
 
 ### Accessibility
 
 Components are built with accessibility in mind:
+
 - Proper ARIA labels
 - Focus management
 - Keyboard navigation
@@ -259,12 +267,12 @@ Components are built with accessibility in mind:
 The project includes utility functions for common date/time operations:
 
 ```typescript
-import { 
-  formatEventDate, 
-  formatTime, 
-  isToday, 
+import {
+  formatEventDate,
+  formatTime,
+  isToday,
   getEventUrl,
-  transformEventForCalendar 
+  transformEventForCalendar,
 } from '../lib/date-utils';
 
 // Format event dates consistently
@@ -283,4 +291,4 @@ const eventUrl = getEventUrl(event.id);
 const calendarEvents = events.map(transformEventForCalendar);
 ```
 
-These utilities help maintain consistency across components and reduce code duplication. 
+These utilities help maintain consistency across components and reduce code duplication.

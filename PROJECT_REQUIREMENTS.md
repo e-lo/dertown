@@ -756,8 +756,8 @@ Each administrative process must include:
 
 ## ⚡️ Astro SSR & Netlify Deployment
 
-- Astro is configured for SSR (server-side rendering) using the Netlify adapter for production deploys.
-- All dynamic pages and API routes (e.g., /api/*, /rss, /ical, /submit, /events/[id], /calendar, /events) are server-rendered and always up-to-date with the database.
-- For **local development**, use `output: 'server'` in `astro.config.mjs` **without** the Netlify adapter to enable API routes in `astro dev`.
-- For **production**, use the Netlify adapter (`@astrojs/netlify`) and deploy to Netlify. API routes and dynamic pages will work as intended.
-- See `netlify.toml` for deployment configuration.
+* Astro is configured for SSR (server-side rendering) using the Netlify adapter for production deploys.
+* All dynamic pages and API routes (e.g., /api/*, /rss, /ical, /submit, /events/[id], /calendar, /events) are server-rendered and always up-to-date with the database.
+* For **local development**, use `output: 'server'` in `astro.config.mjs` **without** the Netlify adapter to enable API routes in `astro dev`.
+* For **production**, use the Netlify adapter (`@astrojs/netlify`) and deploy to Netlify. API routes and dynamic pages will work as intended.
+* See `netlify.toml` for deployment configuration.

@@ -5,9 +5,10 @@ import Layout from '../components/Layout.astro';
 import EventList from '../components/EventList.astro';
 import TagFilter from '../components/TagFilter.astro';
 import { db } from '../lib/supabase';
+import { filterFutureEvents } from '../lib/event-utils';
 
 // Fetch all approved events and tags
-const [eventsResult, tagsResult] = await Promise.all([db.events.getAll(), db.tags.getAll()]);
+const [eventsResult, tagsResult] = await Promise.all([db.events.getCurrentAndFuture(), db.tags.getAll()]);
 
 const events = eventsResult.data || [];
 const allTags = tagsResult.data || [];

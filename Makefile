@@ -109,7 +109,7 @@ format:
 # Lint code
 lint:
 	@echo "Running linter..."
-	npx eslint src/ --ext .js,.ts,.astro
+	npx eslint src/ --ext .js,.ts,.astro --fix
 	@echo "Running markdownlint..."
 	npx markdownlint "*.md" "src/**/*.md" "scripts/**/*.md" --fix
 	@echo "Linting complete"

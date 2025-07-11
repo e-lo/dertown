@@ -1,0 +1,73 @@
+---
+export interface Props {
+  shareText?: string;
+  tooltipText?: string;
+  url?: string;
+  title?: string;
+  class?: string;
+}
+
+const { 
+  shareText = "Share Event", 
+  tooltipText = "Share event with your neighbors",
+  url,
+  title,
+  class: className = ""
+} = Astro.props;
+---
+
+<button 
+  type="button" 
+  onclick="shareEvent()"
+  data-share-url={url}
+  data-share-title={title}
+  class={`p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative ${className}`}
+  aria-label={shareText}>
+  <!-- Share icon from SVG Repo: https://www.svgrepo.com/svg/361597/share-1 -->
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+  <span class="tooltip -top-10 left-auto right-8">
+    {tooltipText}
+  </span>
+</button>
+
+<script is:inline>
+  function shareEvent() {
+    const button = event.target.closest('button');
+    const shareUrl = button.dataset.shareUrl || window.location.href;
+    const shareTitle = button.dataset.shareTitle || document.title;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: shareTitle,
+        url: shareUrl,
+      }).catch((error) => {
+        console.log('Error sharing:', error);
+        fallbackShare(shareUrl);
+      });
+    } else {
+      fallbackShare(shareUrl);
+    }
+  }
+
+  function fallbackShare(shareUrl) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      // Show a simple toast notification
+      const toast = document.createElement('div');
+      toast.textContent = 'Link copied to clipboard!';
+      toast.className = 'fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50';
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 3000);
+    }).catch((error) => {
+      console.error('Failed to copy link:', error);
+    });
+  }
+</script> 

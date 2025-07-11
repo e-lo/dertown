@@ -12,7 +12,7 @@
   /* General Theme Colors */
   --color-primary: #1f2937; /* Dark Gray */
   --color-secondary: #9333ea; /* Purple */
-  --color-background: #F9FAFB; /* Light Gray */
+  --color-background: #f9fafb; /* Light Gray */
   --color-surface: #fff; /* White */
   --color-text: #111827; /* Dark Gray */
   --color-muted: #6b7280; /* Medium Gray */
@@ -31,25 +31,63 @@
 }
 
 /* Utility classes for event pills and backgrounds */
-.bg-event-arts-culture { background-color: var(--color-event-arts-culture) !important; color: #fff !important; }
-.bg-event-civic { background-color: var(--color-event-civic) !important; color: #fff !important; }
-.bg-event-family { background-color: var(--color-event-family) !important; color: #fff !important; }
-.bg-event-nature { background-color: var(--color-event-nature) !important; color: #fff !important; }
-.bg-event-outdoors { background-color: var(--color-event-outdoors) !important; color: #fff !important; }
-.bg-event-school { background-color: var(--color-event-school) !important; color: #fff !important; }
-.bg-event-sports { background-color: var(--color-event-sports) !important; color: #fff !important; }
-.bg-event-town { background-color: var(--color-event-town) !important; color: #fff !important; }
+.bg-event-arts-culture {
+  background-color: var(--color-event-arts-culture) !important;
+  color: #fff !important;
+}
+.bg-event-civic {
+  background-color: var(--color-event-civic) !important;
+  color: #fff !important;
+}
+.bg-event-family {
+  background-color: var(--color-event-family) !important;
+  color: #fff !important;
+}
+.bg-event-nature {
+  background-color: var(--color-event-nature) !important;
+  color: #fff !important;
+}
+.bg-event-outdoors {
+  background-color: var(--color-event-outdoors) !important;
+  color: #fff !important;
+}
+.bg-event-school {
+  background-color: var(--color-event-school) !important;
+  color: #fff !important;
+}
+.bg-event-sports {
+  background-color: var(--color-event-sports) !important;
+  color: #fff !important;
+}
+.bg-event-town {
+  background-color: var(--color-event-town) !important;
+  color: #fff !important;
+}
 
-.text-theme { color: var(--color-text) !important; }
-.bg-theme-primary { background-color: var(--color-primary) !important; color: #fff !important; }
-.bg-theme-surface { background-color: var(--color-surface) !important; color: var(--color-text) !important; }
-.font-sans { font-family: var(--font-sans) !important; }
-.font-serif { font-family: var(--font-serif) !important; }
-.font-mono { font-family: var(--font-mono) !important; }
+.text-theme {
+  color: var(--color-text) !important;
+}
+.bg-theme-primary {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+.bg-theme-surface {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+.font-sans {
+  font-family: var(--font-sans) !important;
+}
+.font-serif {
+  font-family: var(--font-serif) !important;
+}
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
 
 /* Tag filter pill active state */
 .tag-filter-pill.is-active {
   filter: brightness(0.85);
   opacity: 1 !important;
   z-index: 2;
-} 
+}

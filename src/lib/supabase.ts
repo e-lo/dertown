@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
+import { filterFutureEvents } from './event-utils';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key-here';
@@ -73,6 +74,21 @@ export const db = {
         )
         .eq('status', 'approved')
         .eq('featured', true),
+    getCurrentAndFuture: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address)
+        `
+        )
+        .eq('status', 'approved')
+        .eq('exclude_from_calendar', false);
+      return { data: data ? filterFutureEvents(data) : [], error };
+    },
     create: (data: Database['public']['Tables']['events']['Insert']) =>
       supabase.from('events').insert(data),
     update: (id: string, data: Database['public']['Tables']['events']['Update']) =>

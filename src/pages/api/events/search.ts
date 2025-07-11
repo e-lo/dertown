@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ url }) => {
     const location = searchParams.get('location') || '';
 
     // Build the search query
-    const searchQuery = db.events.getAll();
+    const searchQuery = db.events.getCurrentAndFuture();
 
     // Add filters based on search parameters
     if (query) {

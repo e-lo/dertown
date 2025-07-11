@@ -8,25 +8,19 @@ import { db } from '../lib/supabase';
 import type { Database } from '../types/database';
 
 // Fetch all approved events
-const { data: allEvents, error: allEventsError } = await db.events.getAll();
+const { data: allEvents, error: allEventsError } = await db.events.getCurrentAndFuture();
 
 if (allEventsError) {
   console.error('Error fetching events:', allEventsError);
 }
 
-// Fetch featured events
-const { data: featuredEvents, error: featuredEventsError } = await db.events.getFeatured();
-
-if (featuredEventsError) {
-  console.error('Error fetching featured events:', featuredEventsError);
-}
-
+// Fetch featured events from the current/future set
 const events = allEvents || [];
-const featured = featuredEvents || [];
+const featured = events.filter(e => e.featured);
 
 console.log('Database Results:', {
   allEventsResult: { data: allEvents, error: allEventsError },
-  featuredEventsResult: { data: featuredEvents, error: featuredEventsError },
+  featuredEventsResult: { data: featured, error: null },
   upcomingEventsCount: events.length,
   featuredEventsCount: featured.length
 });
@@ -40,29 +34,29 @@ console.log('Final allEvents:', events.map(e => ({
 ---
 
 <Layout title="Der Town Community Events">
-  <main class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-    <!-- Announcement Marquee -->
+  <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900">
+  <!-- Announcement Marquee -->
     <AnnouncementMarquee />
-    
-    <!-- Hero Section -->
-    <section class="relative py-12 px-4 sm:px-6 lg:px-8">
+
+  <!-- Hero Section -->
+    <section class="relative py-0 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col lg:flex-row items-center gap-12">
           <!-- Hero Text -->
-          <div class="flex-1 text-center lg:text-left mb-12 lg:mb-0">
-            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Welcome to <span class="text-indigo-600">Der Town</span>
+          <div class="flex-1 text-center lg:text-left text-white mb-12 lg:mb-0">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+              Welcome to Der Town
             </h1>
-            <p class="text-xl text-gray-600 max-w-3xl mx-auto lg:mx-0">
-              Discover amazing community events, activities, and gatherings happening in our vibrant town.
+            <p class="text-xl max-w-3xl mx-auto lg:mx-0">
+              Share community. <br>Connect with neighbors.
             </p>
-          </div>
+        </div>
           <!-- Carousel -->
           <div class="w-full max-w-3xl mx-auto">
             <EventHeroCarousel events={events} />
-          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
   </main>
 </Layout>

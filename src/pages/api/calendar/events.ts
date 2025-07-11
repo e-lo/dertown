@@ -5,7 +5,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async () => {
   try {
-    const { data: events, error } = await db.events.getAll();
+    const { data: events, error } = await db.events.getCurrentAndFuture();
 
     if (error) {
       return new Response(JSON.stringify({ error: 'Failed to fetch events' }), {

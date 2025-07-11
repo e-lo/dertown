@@ -170,4 +170,9 @@
 
 .responsive-flex {
   @apply flex flex-col md:flex-row gap-4;
-} 
+}
+
+/* Tooltip utility */
+.tooltip {
+  @apply pointer-events-none absolute z-50 whitespace-nowrap rounded bg-gray-700/80 px-3 py-2 text-sm text-white opacity-0 group-hover:opacity-90 group-focus:opacity-80 transition-opacity duration-200 shadow-lg;
+}

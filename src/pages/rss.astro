@@ -8,7 +8,7 @@ import type { Database } from '../types/database';
 Astro.response.headers.set('Content-Type', 'application/xml; charset=utf-8');
 
 // Fetch all approved events
-const { data: events, error } = await db.events.getAll();
+const { data: events, error } = await db.events.getCurrentAndFuture();
 
 if (error) {
   throw new Error('Error fetching events');

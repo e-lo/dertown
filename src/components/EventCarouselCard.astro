@@ -24,7 +24,7 @@ const eventIsToday = isToday(event.start_date);
   {eventIsToday && (
     <div class="absolute top-4 left-4 z-10">
       <Badge variant="today">Today</Badge>
-    </div>
+        </div>
   )}
 
   <a href={getEventUrl(event.id)} class="block hover:no-underline focus:no-underline flex-1">

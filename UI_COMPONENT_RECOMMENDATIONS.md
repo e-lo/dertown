@@ -17,6 +17,7 @@ After analyzing your codebase, I recommend a **hybrid component system** that co
 ### Why Not daisyUI?
 
 While daisyUI would reduce class repetition, it would:
+
 - Add another dependency and potential conflicts
 - Require learning daisyUI's component system
 - May not align with your existing design system
@@ -28,6 +29,7 @@ While daisyUI would reduce class repetition, it would:
 ### Phase 1: Core UI Components ✅ (Implemented)
 
 **Components Created:**
+
 - `Badge.astro` - For tags, status indicators, labels
 - `Button.astro` - For all interactive buttons
 - `Input.astro` - For form inputs
@@ -35,6 +37,7 @@ While daisyUI would reduce class repetition, it would:
 - `FormField.astro` - For labeled form fields
 
 **Utilities Created:**
+
 - `date-utils.ts` - Centralized date/time formatting
 - `components.css` - Tailwind utility classes
 
@@ -43,6 +46,7 @@ While daisyUI would reduce class repetition, it would:
 **Additional Components to Create:**
 
 1. **SearchInput.astro**
+
 ```astro
 ---
 interface Props {
@@ -64,6 +68,7 @@ interface Props {
 ```
 
 2. **FilterDropdown.astro**
+
 ```astro
 ---
 interface Props {
@@ -86,6 +91,7 @@ interface Props {
 ```
 
 3. **EventCard.astro** (Unified card component)
+
 ```astro
 ---
 interface Props {
@@ -153,6 +159,7 @@ interface Props {
 ## Code Examples
 
 ### Before (Repetitive)
+
 ```astro
 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-400 text-yellow-900">
   Featured Event
@@ -160,11 +167,13 @@ interface Props {
 ```
 
 ### After (Component)
+
 ```astro
 <Badge variant="featured">Featured Event</Badge>
 ```
 
 ### Before (Long Form Classes)
+
 ```astro
 <input
   type="text"
@@ -173,6 +182,7 @@ interface Props {
 ```
 
 ### After (Component)
+
 ```astro
 <Input type="text" name="title" />
 ```
@@ -180,11 +190,13 @@ interface Props {
 ## Performance Considerations
 
 ### Bundle Size Impact
+
 - **Minimal**: Components are Astro components, no additional JS
 - **CSS**: Only adds utility classes, no external CSS
 - **Tree-shaking**: Unused components won't be included
 
 ### Runtime Performance
+
 - **No overhead**: Components render to HTML, no JS framework
 - **Fast**: Static generation with Astro
 - **Accessible**: Semantic HTML output
@@ -192,11 +204,13 @@ interface Props {
 ## Maintenance Strategy
 
 ### Component Updates
+
 1. **Versioning**: Use semantic versioning for components
 2. **Breaking Changes**: Document and communicate changes
 3. **Migration**: Provide migration guides for updates
 
 ### Style Updates
+
 1. **CSS Variables**: Use CSS custom properties for theming
 2. **Tailwind Config**: Extend Tailwind for custom utilities
 3. **Design Tokens**: Centralize design decisions
@@ -204,12 +218,14 @@ interface Props {
 ## Future Considerations
 
 ### When to Consider daisyUI
+
 - If component count exceeds 20+ components
 - If design system becomes complex
 - If team prefers component library approach
 - If accessibility requirements become complex
 
 ### Alternative Approaches
+
 - **Headless UI**: For complex interactive components
 - **Radix UI**: For advanced accessibility needs
 - **Custom Web Components**: For framework-agnostic components
@@ -217,10 +233,11 @@ interface Props {
 ## Conclusion
 
 The hybrid component system provides the best balance of:
+
 - ✅ **Simplicity**: No additional dependencies
 - ✅ **Consistency**: Unified design patterns
 - ✅ **Maintainability**: Centralized styling
 - ✅ **Performance**: Minimal bundle impact
 - ✅ **Flexibility**: Easy to customize and extend
 
-This approach aligns with your project's philosophy of "static-first, minimal-JS" while providing the benefits of componentization for better developer experience and code maintainability. 
+This approach aligns with your project's philosophy of "static-first, minimal-JS" while providing the benefits of componentization for better developer experience and code maintainability.
