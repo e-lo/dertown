@@ -14,6 +14,25 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    // Get the JWT from the Authorization header
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'You must be logged in as an admin to approve events. Please log in with an admin account.',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check if the user is an admin (replace with your admin check logic)
+    // If not admin:
+    // return new Response(JSON.stringify({ error: 'Only admins can approve events. Please log in with an admin account.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+
     // Get the staged event
     const { data: stagedEvent, error: fetchError } = await db.eventsStaged.getById(eventId);
 
@@ -24,6 +43,59 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    let locationId = stagedEvent.location_id;
+    let organizationId = stagedEvent.organization_id;
+
+    // Handle new location if present
+    if (stagedEvent.location_added) {
+      console.log('[APPROVE DEBUG] Creating new location:', stagedEvent.location_added);
+      const { data: newLocation, error: locationError } = await db.locations.create({
+        name: stagedEvent.location_added,
+        status: 'active',
+      } as unknown as { name: string; status: string });
+
+      if (locationError) {
+        console.error('[APPROVE DEBUG] Location creation error:', locationError);
+        return new Response(JSON.stringify({ error: 'Failed to create new location' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (newLocation) {
+        const locationArray = newLocation as unknown as { id: string }[];
+        if (locationArray && locationArray.length > 0) {
+          locationId = locationArray[0].id;
+          console.log('[APPROVE DEBUG] Created location with ID:', locationId);
+        }
+      }
+    }
+
+    // Handle new organization if present
+    if (stagedEvent.organization_added) {
+      console.log('[APPROVE DEBUG] Creating new organization:', stagedEvent.organization_added);
+      const { data: newOrganization, error: orgError } = await db.organizations.create({
+        name: stagedEvent.organization_added,
+        status: 'active',
+      } as unknown as { name: string; status: string });
+
+      if (orgError) {
+        console.error('[APPROVE DEBUG] Organization creation error:', orgError);
+        return new Response(JSON.stringify({ error: 'Failed to create new organization' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (newOrganization) {
+        const orgArray = newOrganization as unknown as { id: string }[];
+        if (orgArray && orgArray.length > 0) {
+          organizationId = orgArray[0].id;
+          console.log('[APPROVE DEBUG] Created organization with ID:', organizationId);
+        }
+      }
+    }
+
     // Create the approved event
     const { error: createError } = await db.events.create({
       title: stagedEvent.title,
@@ -32,8 +104,8 @@ export const POST: APIRoute = async ({ request }) => {
       end_date: stagedEvent.end_date,
       start_time: stagedEvent.start_time,
       end_time: stagedEvent.end_time,
-      location_id: stagedEvent.location_id,
-      organization_id: stagedEvent.organization_id,
+      location_id: locationId,
+      organization_id: organizationId,
       email: stagedEvent.email,
       website: stagedEvent.website,
       registration_link: stagedEvent.registration_link,
@@ -44,9 +116,9 @@ export const POST: APIRoute = async ({ request }) => {
       featured: stagedEvent.featured,
       parent_event_id: stagedEvent.parent_event_id,
       exclude_from_calendar: stagedEvent.exclude_from_calendar,
-      google_calendar_event_id: stagedEvent.google_calendar_event_id,
       registration: stagedEvent.registration,
       cost: stagedEvent.cost,
+      comments: stagedEvent.comments,
       status: 'approved',
       source_id: stagedEvent.source_id,
     });

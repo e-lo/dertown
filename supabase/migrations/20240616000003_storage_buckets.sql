@@ -1,5 +1,7 @@
 -- Create storage buckets
-INSERT INTO storage.buckets (id, name, public) VALUES ('event-assets', 'event-assets', true);
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('event-assets', 'event-assets', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for event-assets bucket
 CREATE POLICY "Public read access for event assets" ON storage.objects

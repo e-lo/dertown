@@ -3,19 +3,34 @@ export const prerender = false;
 
 import Layout from '../components/Layout.astro';
 import EventForm from '../components/EventForm.astro';
+import { db } from '../lib/supabase';
+
+// Fetch all the data needed for the form dropdowns
+const [locationsResult, organizationsResult, tagsResult] = await Promise.all([
+  db.locations.getAll(),
+  db.organizations.getAll(),
+  db.tags.getAll()
+]);
+
+// Sort all arrays alphabetically by name
+const locations = (locationsResult.data || []).sort((a, b) => a.name.localeCompare(b.name));
+const organizations = (organizationsResult.data || []).sort((a, b) => a.name.localeCompare(b.name));
+const tags = (tagsResult.data || []).sort((a, b) => a.name.localeCompare(b.name));
 ---
 
 <Layout title="Submit Event - Der Town">
-  <main class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+  <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white bg-opacity-95 rounded-lg shadow-lg max-w-4xl w-full p-8">
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Submit an Event</h1>
-        <p class="text-xl text-gray-600">Share your community event with everyone in Der Town</p>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Submit an Event</h1>
+        <p class="text-lg text-gray-600">Share your community event with everyone in Der Town</p>
       </div>
       
-      <div class="bg-white rounded-lg shadow-lg p-8">
-        <EventForm />
-      </div>
+      <EventForm 
+        locations={locations}
+        organizations={organizations}
+        tags={tags}
+      />
     </div>
   </main>
 </Layout> 

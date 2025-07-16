@@ -1,0 +1,26 @@
+---
+export const prerender = false;
+
+import Layout from '../components/Layout.astro';
+import AnnouncementForm from '../components/AnnouncementForm.astro';
+import { db } from '../lib/supabase';
+
+// Fetch organizations data for the form dropdown
+const organizationsResult = await db.organizations.getAll();
+
+// Sort organizations alphabetically by name
+const organizations = (organizationsResult.data || []).sort((a, b) => a.name.localeCompare(b.name));
+---
+
+<Layout title="Submit Announcement - Der Town">
+  <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white bg-opacity-95 rounded-lg shadow-lg max-w-4xl w-full p-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Submit an Announcement</h1>
+        <p class="text-lg text-gray-600">Share a community announcement with everyone in Der Town. Announcements are reviewed before publishing.</p>
+      </div>
+      
+      <AnnouncementForm organizations={organizations} />
+    </div>
+  </main>
+</Layout> 

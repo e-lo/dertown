@@ -8,10 +8,8 @@ export const GET: APIRoute = async ({ url }) => {
     const searchParams = url.searchParams;
     const query = searchParams.get('q') || '';
     const category = searchParams.get('category') || '';
-    const organization = searchParams.get('organization') || '';
-    const location = searchParams.get('location') || '';
 
-    // Build the search query
+    // Build the search query (using public view that excludes private fields)
     const searchQuery = db.events.getCurrentAndFuture();
 
     // Add filters based on search parameters

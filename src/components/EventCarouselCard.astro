@@ -13,18 +13,12 @@ const eventIsToday = isToday(event.start_date);
     <img src={event.external_image_url} alt={event.title} class="w-full object-cover rounded-t-xl" style="height: 300px;" />
   )}
 
-  <!-- Featured Badge -->
-  {event.featured && (
-    <div class="absolute top-4 right-4 z-10">
-      <Badge variant="featured">Featured Event</Badge>
+  <!-- Featured and Today Badges (top-right) -->
+  {(event.featured || eventIsToday) && (
+    <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+      {event.featured && <Badge variant="featured">Featured Event</Badge>}
+      {eventIsToday && <Badge variant="today">Today</Badge>}
     </div>
-  )}
-
-  <!-- Today Badge -->
-  {eventIsToday && (
-    <div class="absolute top-4 left-4 z-10">
-      <Badge variant="today">Today</Badge>
-        </div>
   )}
 
   <a href={getEventUrl(event.id)} class="block hover:no-underline focus:no-underline flex-1">

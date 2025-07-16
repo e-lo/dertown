@@ -6,7 +6,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async () => {
   try {
-    // Fetch all approved events
+    // Fetch all approved events (using public view that excludes private fields)
     const { data: events, error } = await db.events.getCurrentAndFuture();
 
     if (error) {

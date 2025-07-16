@@ -4,241 +4,467 @@
 
 <style>
   body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+    font-family: 'Inter', Arial, sans-serif;
+    background: #f6f8fa;
+    margin: 0;
+    min-height: 100vh;
   }
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
+  .admin-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 2.5rem 2rem 2rem 2rem;
+    border: 1px solid #e5e7eb;
   }
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #22223b;
+    margin: 0;
+    letter-spacing: -1px;
+  }
+  .logout-btn {
+    background: #f3f4f6;
+    color: #22223b;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+  .logout-btn:hover {
+    background: #e0e7ef;
+  }
+  .section {
+    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #3a3a4a;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .event-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    background: #f9fafb;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    font-size: 1rem;
   }
   .event-table th,
   .event-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    border: 1px solid #e5e7eb;
+    padding: 0.7rem 0.8rem;
     text-align: left;
   }
   .event-table th {
-    background-color: #f2f2f2;
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #22223b;
   }
-  .btn {
-    padding: 8px 16px;
-    margin: 2px;
+  .event-table td {
+    background: #fff;
+  }
+  .action-btn {
+    padding: 0.4rem 0.9rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
+    font-size: 1rem;
+    margin-right: 0.3rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.2s;
   }
   .btn-approve {
     background-color: #4caf50;
     color: white;
   }
+  .btn-approve:hover {
+    background-color: #388e3c;
+  }
   .btn-reject {
     background-color: #f44336;
     color: white;
   }
-  .btn:hover {
-    opacity: 0.8;
+  .btn-reject:hover {
+    background-color: #c62828;
   }
   .loading {
     text-align: center;
-    padding: 20px;
+    padding: 1.5rem;
+    color: #888;
+    font-size: 1.1rem;
   }
   .error {
-    color: red;
-    margin: 10px 0;
+    color: #c62828;
+    background: #ffeaea;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin: 1rem 0;
+    font-weight: 500;
+    text-align: center;
   }
   .success {
-    color: green;
-    margin: 10px 0;
+    color: #388e3c;
+    background: #e8f5e9;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin: 1rem 0;
+    font-weight: 500;
+    text-align: center;
+  }
+  @media (max-width: 700px) {
+    .admin-card { padding: 1rem; }
+    .header h1 { font-size: 1.3rem; }
+    .event-table th, .event-table td { font-size: 0.95rem; padding: 0.5rem; }
+    .section-title { font-size: 1.1rem; }
   }
 </style>
 
-<div class="container">
+<div class="admin-card">
   <div class="header">
     <h1>Admin Dashboard</h1>
-    <button onclick="logout()" class="btn">Logout</button>
+    <button onclick="logout()" class="logout-btn"><span>🚪</span> Logout</button>
   </div>
 
   <div id="message"></div>
 
-  <h2>Staged Events for Review</h2>
-  <div id="loading" class="loading">Loading staged events...</div>
-  <div id="events-container"></div>
+  <div class="section">
+    <div class="section-title">Staged Events for Review</div>
+    <div id="loading" class="loading">Loading staged events...</div>
+    <div id="events-container"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Staged Announcements for Review</div>
+    <div id="announcements-loading" class="loading">Loading staged announcements...</div>
+    <div id="announcements-container"></div>
+  </div>
 </div>
 
 <script type="module">
-  import { supabase } from '../lib/supabase';
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  // Check if user is logged in
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    window.location.href = '/login';
-  }
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  // Get access token for API calls
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
-  async function loadStagedEvents() {
-    try {
-      const response = await fetch('/api/admin/events-staged', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      displayEvents(data.events || []);
-    } catch (error) {
-      showMessage('Error loading staged events: ' + error.message, 'error');
+  console.log('[ADMIN DEBUG] Supabase URL:', supabaseUrl);
+  console.log('[ADMIN DEBUG] Supabase Anon Key:', supabaseAnonKey);
+  // Message display function
+  function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 4px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      max-width: 300px;
+      word-wrap: break-word;
+    `;
+    
+    if (type === 'error') {
+      messageDiv.style.backgroundColor = '#d32f2f';
+    } else if (type === 'success') {
+      messageDiv.style.backgroundColor = '#388e3c';
+    } else {
+      messageDiv.style.backgroundColor = '#1976d2';
     }
-  }
-
-  function displayEvents(events) {
-    const container = document.getElementById('events-container');
-    const loading = document.getElementById('loading');
-
-    loading.style.display = 'none';
-
-    if (events.length === 0) {
-      container.innerHTML = '<p>No staged events to review.</p>';
-      return;
-    }
-
-    const table =
-      '<table class="event-table">' +
-      '<thead>' +
-      '<tr>' +
-      '<th>Title</th>' +
-      '<th>Date</th>' +
-      '<th>Time</th>' +
-      '<th>Description</th>' +
-      '<th>Submitted</th>' +
-      '<th>Actions</th>' +
-      '</tr>' +
-      '</thead>' +
-      '<tbody>' +
-      events
-        .map(function (event) {
-          return (
-            '<tr>' +
-            '<td>' +
-            (event.title || 'N/A') +
-            '</td>' +
-            '<td>' +
-            (event.start_date || 'N/A') +
-            '</td>' +
-            '<td>' +
-            (event.start_time || 'N/A') +
-            '</td>' +
-            '<td>' +
-            (event.description || '').substring(0, 100) +
-            (event.description && event.description.length > 100 ? '...' : '') +
-            '</td>' +
-            '<td>' +
-            new Date(event.submitted_at).toLocaleDateString() +
-            '</td>' +
-            '<td>' +
-            '<button onclick="approveEvent(\'' +
-            event.id +
-            '\')" class="btn btn-approve">Approve</button>' +
-            '<button onclick="rejectEvent(\'' +
-            event.id +
-            '\')" class="btn btn-reject">Reject</button>' +
-            '</td>' +
-            '</tr>'
-          );
-        })
-        .join('') +
-      '</tbody>' +
-      '</table>';
-
-    container.innerHTML = table;
-  }
-
-  async function approveEvent(eventId) {
-    try {
-      const response = await fetch('/api/admin/events-staged/approve', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ eventId }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      showMessage('Event approved successfully!', 'success');
-      loadStagedEvents(); // Reload the list
-    } catch (error) {
-      showMessage('Error approving event: ' + error.message, 'error');
-    }
-  }
-
-  async function rejectEvent(eventId) {
-    const reason = prompt('Reason for rejection (optional):');
-    try {
-      const response = await fetch('/api/admin/events-staged/reject', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ eventId, reason }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      showMessage('Event rejected successfully!', 'success');
-      loadStagedEvents(); // Reload the list
-    } catch (error) {
-      showMessage('Error rejecting event: ' + error.message, 'error');
-    }
-  }
-
-  function showMessage(message, type) {
-    const messageDiv = document.getElementById('message');
-    messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+    
+    document.body.appendChild(messageDiv);
     setTimeout(() => {
-      messageDiv.innerHTML = '';
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
     }, 5000);
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    window.location.href = '/';
-  }
+  document.addEventListener('DOMContentLoaded', async () => {
+    let token = null;
+    let user = null;
+    try {
+      const { data: sessionData, error } = await supabase.auth.getSession();
+      token = sessionData.session?.access_token;
+      user = sessionData.session?.user;
+      console.log('[ADMIN DEBUG] Supabase session:', sessionData);
+      console.log('[ADMIN DEBUG] Access token:', token);
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      console.log('[ADMIN DEBUG] Fetching staged events and announcements...');
+      loadStagedEvents();
+      loadStagedAnnouncements();
+    } catch (err) {
+      showMessage('Error loading admin dashboard: ' + err.message, 'error');
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('announcements-loading').style.display = 'none';
+    }
 
-  // Make functions globally available
-  window.approveEvent = approveEvent;
-  window.rejectEvent = rejectEvent;
-  window.logout = logout;
+    async function loadStagedEvents() {
+      try {
+        const response = await fetch('/api/admin/events-staged', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayEvents(data.events || []);
+      } catch (error) {
+        showMessage('Error loading staged events: ' + error.message, 'error');
+      }
+    }
 
-  // Load staged events on page load
-  loadStagedEvents();
+    function displayEvents(events) {
+      const container = document.getElementById('events-container');
+      const loading = document.getElementById('loading');
+      loading.style.display = 'none';
+      if (events.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#888;">No staged events to review.</p>' +
+          '<div style="color:#c62828;text-align:center;font-size:0.95rem;margin-top:0.5rem;">If you expect to see events, check your authentication and API permissions.</div>';
+        return;
+      }
+      const table =
+        '<table class="event-table">' +
+        '<thead>' +
+        '<tr>' +
+        '<th>Title</th>' +
+        '<th>Date</th>' +
+        '<th>Time</th>' +
+        '<th>Location</th>' +
+        '<th>Organization</th>' +
+        '<th>Email</th>' +
+        '<th>Comments</th>' +
+        '<th>Description</th>' +
+        '<th>Submitted</th>' +
+        '<th>Actions</th>' +
+        '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+        events
+          .map(function (event) {
+            const locationDisplay = event.location_added ? 
+              `<span style="color: #f57c00; font-weight: 500;">NEW: ${event.location_added}</span>` : 
+              (event.location?.name || 'N/A');
+            const organizationDisplay = event.organization_added ? 
+              `<span style="color: #f57c00; font-weight: 500;">NEW: ${event.organization_added}</span>` : 
+              (event.organization?.name || 'N/A');
+            
+            return (
+              '<tr>' +
+              '<td>' + (event.title || 'N/A') + '</td>' +
+              '<td>' + (event.start_date || 'N/A') + '</td>' +
+              '<td>' + (event.start_time || 'N/A') + '</td>' +
+              '<td>' + locationDisplay + '</td>' +
+              '<td>' + organizationDisplay + '</td>' +
+              '<td>' + (event.email || 'N/A') + '</td>' +
+              '<td>' + (event.comments || '').substring(0, 50) + (event.comments && event.comments.length > 50 ? '...' : '') + '</td>' +
+              '<td>' + (event.description || '').substring(0, 100) + (event.description && event.description.length > 100 ? '...' : '') + '</td>' +
+              '<td>' + (event.submitted_at ? new Date(event.submitted_at).toLocaleDateString() : 'N/A') + '</td>' +
+              '<td>' +
+              '<button onclick="approveEvent(\'' + event.id + '\')" class="action-btn btn-approve">✔ Approve</button>' +
+              '<button onclick="rejectEvent(\'' + event.id + '\')" class="action-btn btn-reject">✖ Reject</button>' +
+              '</td>' +
+              '</tr>'
+            );
+          })
+          .join('') +
+        '</tbody>' +
+        '</table>';
+      container.innerHTML = table;
+    }
+
+    async function approveEvent(eventId) {
+      try {
+        const response = await fetch('/api/admin/events-staged/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ eventId }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        await response.json();
+        showMessage('Event approved successfully!', 'success');
+        loadStagedEvents();
+      } catch (error) {
+        showMessage('Error approving event: ' + error.message, 'error');
+      }
+    }
+
+    async function rejectEvent(eventId) {
+      const reason = prompt('Reason for rejection (optional):');
+      try {
+        const response = await fetch('/api/admin/events-staged/reject', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ eventId, reason }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        await response.json();
+        showMessage('Event rejected successfully!', 'success');
+        loadStagedEvents();
+      } catch (error) {
+        showMessage('Error rejecting event: ' + error.message, 'error');
+      }
+    }
+
+    async function loadStagedAnnouncements() {
+      try {
+        const response = await fetch('/api/admin/announcements-staged', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayAnnouncements(data.announcements || []);
+      } catch (error) {
+        showMessage('Error loading staged announcements: ' + error.message, 'error');
+      }
+    }
+    function displayAnnouncements(announcements) {
+      const container = document.getElementById('announcements-container');
+      const loading = document.getElementById('announcements-loading');
+      loading.style.display = 'none';
+      if (announcements.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#888;">No staged announcements to review.</p>' +
+          '<div style="color:#c62828;text-align:center;font-size:0.95rem;margin-top:0.5rem;">If you expect to see announcements, check your authentication and API permissions.</div>';
+        return;
+      }
+      const table =
+        '<table class="event-table">' +
+        '<thead>' +
+        '<tr>' +
+        '<th>Title</th>' +
+        '<th>Message</th>' +
+        '<th>Email</th>' +
+        '<th>Comments</th>' +
+        '<th>Show At</th>' +
+        '<th>Expires At</th>' +
+        '<th>Submitted</th>' +
+        '<th>Actions</th>' +
+        '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+        announcements
+          .map(function (a) {
+            return (
+              '<tr>' +
+              '<td>' + (a.title || 'N/A') + '</td>' +
+              '<td>' + (a.message || '').substring(0, 100) + (a.message && a.message.length > 100 ? '...' : '') + '</td>' +
+              '<td>' + (a.email || 'N/A') + '</td>' +
+              '<td>' + (a.comments || '').substring(0, 50) + (a.comments && a.comments.length > 50 ? '...' : '') + '</td>' +
+              '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : 'N/A') + '</td>' +
+              '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : 'N/A') + '</td>' +
+              '<td>' + (a.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A') + '</td>' +
+              '<td>' +
+              '<button onclick="approveAnnouncement(\'' + a.id + '\')" class="action-btn btn-approve">✔ Approve</button>' +
+              '<button onclick="rejectAnnouncement(\'' + a.id + '\')" class="action-btn btn-reject">✖ Reject</button>' +
+              '</td>' +
+              '</tr>'
+            );
+          })
+          .join('') +
+        '</tbody>' +
+        '</table>';
+      container.innerHTML = table;
+    }
+
+    async function approveAnnouncement(announcementId) {
+      try {
+        const response = await fetch('/api/admin/announcements-staged/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ announcementId }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        await response.json();
+        showMessage('Announcement approved successfully!', 'success');
+        loadStagedAnnouncements();
+      } catch (error) {
+        showMessage('Error approving announcement: ' + error.message, 'error');
+      }
+    }
+    async function rejectAnnouncement(announcementId) {
+      const reason = prompt('Reason for rejection (optional):');
+      try {
+        const response = await fetch('/api/admin/announcements-staged/reject', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ announcementId, reason }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        await response.json();
+        showMessage('Announcement rejected successfully!', 'success');
+        loadStagedAnnouncements();
+      } catch (error) {
+        showMessage('Error rejecting announcement: ' + error.message, 'error');
+      }
+    }
+
+    window.approveEvent = approveEvent;
+    window.rejectEvent = rejectEvent;
+    window.approveAnnouncement = approveAnnouncement;
+    window.rejectAnnouncement = rejectAnnouncement;
+    window.logout = async function() {
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    };
+  });
 </script>

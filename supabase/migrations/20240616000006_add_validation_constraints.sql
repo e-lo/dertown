@@ -50,7 +50,6 @@ ADD CONSTRAINT announcements_title_length CHECK (length(title) > 0 AND length(ti
 ADD CONSTRAINT announcements_message_length CHECK (length(message) > 0 AND length(message) <= 2000),
 ADD CONSTRAINT announcements_email_format CHECK (email IS NULL OR email ~* '^[^@]+@[^@]+\.[^@]+$'),
 ADD CONSTRAINT announcements_author_length CHECK (length(author) <= 255),
-ADD CONSTRAINT announcements_show_at_future CHECK (show_at >= CURRENT_TIMESTAMP),
 ADD CONSTRAINT announcements_expires_after_show CHECK (expires_at IS NULL OR expires_at > show_at);
 
 -- Tags table constraints

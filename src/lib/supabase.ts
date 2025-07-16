@@ -3,29 +3,31 @@ import type { Database } from '../types/database';
 import { filterFutureEvents } from './event-utils';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key-here';
+const supabaseAnonKey =
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const supabaseServiceKey =
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
 
 // Helper functions for common database operations
 export const db = {
   // Events
   events: {
     getAll: () =>
-      supabase
-        .from('events')
-        .select(
-          `
+      supabase.from('public_events').select(
+        `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name)
         `
-        )
-        .eq('status', 'approved')
-        .eq('exclude_from_calendar', false),
+      ),
     getById: (id: string) =>
       supabase
-        .from('events')
+        .from('public_events')
         .select(
           `
           *,
@@ -39,7 +41,7 @@ export const db = {
         .single(),
     getRelated: (eventId: string, organizationId: string | null, locationId: string | null) => {
       let query = supabase
-        .from('events')
+        .from('public_events')
         .select(
           `
           *,
@@ -49,8 +51,6 @@ export const db = {
           organization:organizations!events_organization_id_fkey(name)
         `
         )
-        .eq('status', 'approved')
-        .eq('exclude_from_calendar', false)
         .neq('id', eventId)
         .limit(6);
 
@@ -64,7 +64,7 @@ export const db = {
     },
     getFeatured: () =>
       supabase
-        .from('events')
+        .from('public_events')
         .select(
           `
           *,
@@ -72,21 +72,16 @@ export const db = {
           secondary_tag:tags!events_secondary_tag_id_fkey(name)
         `
         )
-        .eq('status', 'approved')
         .eq('featured', true),
     getCurrentAndFuture: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select(
-          `
+      const { data, error } = await supabase.from('public_events').select(
+        `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
         `
-        )
-        .eq('status', 'approved')
-        .eq('exclude_from_calendar', false);
+      );
       return { data: data ? filterFutureEvents(data) : [], error };
     },
     create: (data: Database['public']['Tables']['events']['Insert']) =>
@@ -107,54 +102,79 @@ export const db = {
     delete: (id: string) => supabase.from('events_staged').delete().eq('id', id),
   },
 
+  // Admin functions that include private fields
+  admin: {
+    // Get events with private fields for admin use
+    getEventsWithPrivateFields: () =>
+      supabaseAdmin.from('events').select(
+        `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address),
+          organization:organizations!events_organization_id_fkey(name)
+        `
+      ),
+
+    // Get announcements with private fields for admin use
+    getAnnouncementsWithPrivateFields: () => supabaseAdmin.from('announcements').select('*'),
+  },
+
   // Locations
   locations: {
-    getAll: () => supabase.from('locations').select('*').eq('status', 'approved'),
-    getById: (id: string) => supabase.from('locations').select('*').eq('id', id).single(),
+    getAll: () => supabaseAdmin.from('locations').select('*'),
+    getById: (id: string) => supabaseAdmin.from('locations').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['locations']['Insert']) =>
-      supabase.from('locations').insert(data),
+      supabaseAdmin.from('locations').insert(data),
     update: (id: string, data: Database['public']['Tables']['locations']['Update']) =>
-      supabase.from('locations').update(data).eq('id', id),
-    delete: (id: string) => supabase.from('locations').delete().eq('id', id),
+      supabaseAdmin.from('locations').update(data).eq('id', id),
+    delete: (id: string) => supabaseAdmin.from('locations').delete().eq('id', id),
   },
 
   // Organizations
   organizations: {
-    getAll: () => supabase.from('organizations').select('*').eq('status', 'approved'),
-    getById: (id: string) => supabase.from('organizations').select('*').eq('id', id).single(),
+    getAll: () => supabaseAdmin.from('organizations').select('*'),
+    getById: (id: string) => supabaseAdmin.from('organizations').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['organizations']['Insert']) =>
-      supabase.from('organizations').insert(data),
+      supabaseAdmin.from('organizations').insert(data),
     update: (id: string, data: Database['public']['Tables']['organizations']['Update']) =>
-      supabase.from('organizations').update(data).eq('id', id),
-    delete: (id: string) => supabase.from('organizations').delete().eq('id', id),
+      supabaseAdmin.from('organizations').update(data).eq('id', id),
+    delete: (id: string) => supabaseAdmin.from('organizations').delete().eq('id', id),
   },
 
   // Tags
   tags: {
-    getAll: () => supabase.from('tags').select('*'),
-    getById: (id: string) => supabase.from('tags').select('*').eq('id', id).single(),
+    getAll: () => supabaseAdmin.from('tags').select('*'),
+    getById: (id: string) => supabaseAdmin.from('tags').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['tags']['Insert']) =>
-      supabase.from('tags').insert(data),
+      supabaseAdmin.from('tags').insert(data),
     update: (id: string, data: Database['public']['Tables']['tags']['Update']) =>
-      supabase.from('tags').update(data).eq('id', id),
-    delete: (id: string) => supabase.from('tags').delete().eq('id', id),
+      supabaseAdmin.from('tags').update(data).eq('id', id),
+    delete: (id: string) => supabaseAdmin.from('tags').delete().eq('id', id),
   },
 
   // Announcements
   announcements: {
-    getPublished: () =>
-      supabase
-        .from('announcements')
-        .select('*')
-        .or(
-          `and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.is.null),and(status.eq.published,show_at.lte.${new Date().toISOString()},expires_at.gt.${new Date().toISOString()})`
-        ),
-    getById: (id: string) => supabase.from('announcements').select('*').eq('id', id).single(),
+    getPublished: () => supabase.from('public_announcements').select('*'),
+    getById: (id: string) =>
+      supabase.from('public_announcements').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['announcements']['Insert']) =>
       supabase.from('announcements').insert(data),
     update: (id: string, data: Database['public']['Tables']['announcements']['Update']) =>
       supabase.from('announcements').update(data).eq('id', id),
     delete: (id: string) => supabase.from('announcements').delete().eq('id', id),
+  },
+
+  // Announcements Staged
+  announcementsStaged: {
+    create: (data: Database['public']['Tables']['announcements_staged']['Insert']) =>
+      supabase.from('announcements_staged').insert(data),
+    getAll: () => supabase.from('announcements_staged').select('*'),
+    getById: (id: string) =>
+      supabase.from('announcements_staged').select('*').eq('id', id).single(),
+    update: (id: string, data: Database['public']['Tables']['announcements_staged']['Update']) =>
+      supabase.from('announcements_staged').update(data).eq('id', id),
+    delete: (id: string) => supabase.from('announcements_staged').delete().eq('id', id),
   },
 
   // Source Sites

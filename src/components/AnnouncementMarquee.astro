@@ -3,14 +3,17 @@ const { announcements = [] } = Astro.props;
 
 // Filter to only show published announcements that should be visible now
 const now = new Date();
+const seventyTwoHoursAgo = new Date(now.getTime() - (72 * 60 * 60 * 1000));
 
 type Announcement = {
+  id: string;
   title: string;
   message: string;
   status: string;
   show_at?: string;
   expires_at?: string;
   link?: string;
+  created_at?: string;
 };
 
 const visibleAnnouncements = announcements.filter((announcement: Announcement) => {
@@ -24,104 +27,187 @@ const visibleAnnouncements = announcements.filter((announcement: Announcement) =
 
   return true;
 });
+
+// Show new announcements in marquee, older ones in drawer
+const marqueeAnnouncements = visibleAnnouncements.filter((announcement: Announcement) => {
+  const showAt = announcement.show_at ? new Date(announcement.show_at) : null;
+  const createdAt = announcement.created_at ? new Date(announcement.created_at) : null;
+  return (showAt && showAt >= seventyTwoHoursAgo) || (createdAt && createdAt >= seventyTwoHoursAgo);
+});
+
+// Drawer: all visible announcements, most recent first
+const drawerAnnouncements = visibleAnnouncements.slice().sort((a: Announcement, b: Announcement) => {
+  const aDate = new Date(a.show_at || a.created_at || 0);
+  const bDate = new Date(b.show_at || b.created_at || 0);
+  return bDate.getTime() - aDate.getTime();
+});
+
+// Helper: is announcement new?
+function isAnnouncementNew(announcement: Announcement) {
+  const showAt = announcement.show_at ? new Date(announcement.show_at) : null;
+  const createdAt = announcement.created_at ? new Date(announcement.created_at) : null;
+  return (showAt && showAt >= seventyTwoHoursAgo) || (createdAt && createdAt >= seventyTwoHoursAgo);
+}
 ---
 
-<div class="w-full py-6 px-0" style="background: #ffe600;">
-  <div class="max-w-4xl mx-auto flex flex-col gap-4">
+<div class="w-full py-6 px-0" style="background: #ffe600; position: relative;">
+  {/* Side-hugging Drawer Toggle Button inside marquee, flush right */}
+  {
+    drawerAnnouncements.length > 0 && (
+      <div class="absolute right-0 top-1/2 z-20 flex items-center" style="transform: translateY(-50%);">
+        <div class="group relative">
+          <button
+            id="announcements-drawer-toggle"
+            aria-label="View all announcements"
+            class="w-12 h-12 bg-gray-800 text-white flex items-center justify-center rounded-l-full shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+            style="border-top-left-radius: 1.5rem; border-bottom-left-radius: 1.5rem;"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <span class="tooltip group-hover:opacity-90 group-focus:opacity-80 right-full top-1/2 -translate-y-1/2 ml-2">View all announcements</span>
+        </div>
+      </div>
+    )
+  }
+  <div class="flex flex-col gap-2 relative px-4 md:px-8">
+    <!-- New Announcements Marquee -->
     {
-      visibleAnnouncements.length === 0 && (
-        <div class="bg-yellow-100 text-yellow-800 text-center py-4 rounded shadow mt-2">
+      marqueeAnnouncements.length === 0 && drawerAnnouncements.length === 0 && (
+        <div class="text-yellow-800 text-center py-4 rounded shadow mt-2">
           No announcements to display at this time.
         </div>
       )
     }
     {
-      visibleAnnouncements.map((announcement: Announcement, index: number) => (
+      marqueeAnnouncements.map((announcement: Announcement, index: number) => (
         <div
-          class="bg-gray-700 text-white rounded-2xl px-6 py-4 shadow flex flex-col md:flex-row md:items-center gap-2 md:gap-6"
+          class="flex flex-col md:flex-row md:items-end gap-0.5 md:gap-0 relative py-0.5 w-full"
           data-index={index}
-          style="font-size: 1.1rem;"
+          style="font-size: 1.1rem; color: #111; background: none; border: none; box-shadow: none;"
         >
-          <div class="flex-1 min-w-0">
-            <span class="font-bold text-lg md:text-xl">{announcement.title}</span>
+          <div class="flex-1 min-w-0 text-left md:flex md:items-center md:gap-2 md:truncate">
+            <span class="font-bold text-lg md:text-xl md:whitespace-nowrap" style="color: #111;">{announcement.title}</span>
             <span class="mx-2 hidden md:inline">|</span>
-            <span class="block md:inline text-base font-normal opacity-90">
+            <span class="block md:inline text-sm font-normal opacity-90 md:truncate md:whitespace-nowrap" style="color: #111;">
               {announcement.message}
+              {announcement.link && (
+                <a
+                  href={announcement.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-black font-semibold hover:text-yellow-700 transition-all text-base md:text-lg ml-2"
+                  style="color: #111;"
+                >
+                  {'>>'}
+                </a>
+              )}
             </span>
           </div>
-          {announcement.link && (
-            <div class="flex-shrink-0 mt-2 md:mt-0">
-              <a
-                href={announcement.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-white underline font-semibold hover:text-yellow-300 transition-all text-base md:text-lg"
-              >
-                Learn more
-              </a>
-            </div>
-          )}
         </div>
       ))
     }
   </div>
 </div>
 
+<!-- Announcements Drawer -->
+{
+  drawerAnnouncements.length > 0 && (
+    <div
+      id="announcements-drawer"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden"
+    >
+      <div class="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="flex flex-col h-full">
+          <!-- Header -->
+          <div class="flex items-center justify-between p-6 border-b bg-gray-50">
+            <h2 class="text-xl font-bold text-gray-900">All Announcements</h2>
+            <button
+              id="announcements-drawer-close"
+              class="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <div class="space-y-2">
+              {drawerAnnouncements.map((announcement: Announcement) => {
+                return (
+                  <div class="relative px-0 py-1">
+                    {/* New dot indicator */}
+                    {isAnnouncementNew(announcement) && (
+                      <span class="absolute top-2 right-0 w-2 h-2 rounded-full bg-blue-500"></span>
+                    )}
+                    <div class="flex flex-col">
+                      <span class="font-bold text-base md:text-lg" style={{ color: '#111' }}>{announcement.title}</span>
+                      <span class="text-sm font-normal opacity-90 mt-0.5" style={{ color: '#111' }}>
+                        {announcement.message}
+                        {announcement.link && (
+                          <a
+                            href={announcement.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-black font-semibold hover:text-yellow-700 transition-all text-base md:text-lg ml-2"
+                            style={{ color: '#111' }}
+                          >
+                            {'>>'}
+                          </a>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.announcement-container');
-    const slides = document.querySelectorAll('.announcement-slide');
-    const dots = document.querySelectorAll('.announcement-dot');
-    const prevBtn = document.querySelector('.announcement-prev');
-    const nextBtn = document.querySelector('.announcement-next');
+    const drawerToggle = document.getElementById('announcements-drawer-toggle');
+    const drawer = document.getElementById('announcements-drawer');
+    const drawerClose = document.getElementById('announcements-drawer-close');
+    const drawerContent = drawer?.querySelector('.fixed.right-0');
 
-    if (!container || slides.length <= 1) return;
-    let currentIndex = 0;
-    let interval: ReturnType<typeof setInterval> | null = null;
+    if (!drawerToggle || !drawer || !drawerClose || !drawerContent) return;
 
-    const showSlide = (index: number) => {
-      currentIndex = index;
-      const translateX = -index * 100;
-      if (container && container instanceof HTMLElement) {
-        container.style.transform = `translateX(${translateX}%)`;
-      }
-      dots.forEach((dot, i) => {
-        if (dot && 'classList' in dot) {
-          dot.classList.toggle('opacity-100', i === index);
-          dot.classList.toggle('opacity-50', i !== index);
-        }
-      });
-    };
-
-    const nextSlide = () => {
-      const nextIndex = (currentIndex + 1) % slides.length;
-      showSlide(nextIndex);
-    };
-
-    const prevSlide = () => {
-      const prevIndex = currentIndex === 0 ? slides.length - 1 : currentIndex - 1;
-      showSlide(prevIndex);
-    };
-
-    dots.forEach((dot, index) => {
-      dot.addEventListener('click', () => showSlide(index));
+    // Open drawer
+    drawerToggle.addEventListener('click', () => {
+      drawer.classList.remove('hidden');
+      // Force reflow
+      drawerContent.classList.remove('translate-x-full');
     });
-    if (prevBtn) prevBtn.addEventListener('click', prevSlide);
-    if (nextBtn) nextBtn.addEventListener('click', nextSlide);
 
-    const startAutoRotate = () => {
-      if (interval) clearInterval(interval);
-      interval = setInterval(nextSlide, 5000);
+    // Close drawer
+    const closeDrawer = () => {
+      drawerContent.classList.add('translate-x-full');
+      setTimeout(() => {
+        drawer.classList.add('hidden');
+      }, 300);
     };
-    const stopAutoRotate = () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
+
+    drawerClose.addEventListener('click', closeDrawer);
+
+    // Close on backdrop click
+    drawer.addEventListener('click', (e) => {
+      if (e.target === drawer) {
+        closeDrawer();
       }
-    };
-    startAutoRotate();
-    container.addEventListener('mouseenter', stopAutoRotate);
-    container.addEventListener('mouseleave', startAutoRotate);
-    showSlide(0);
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !drawer.classList.contains('hidden')) {
+        closeDrawer();
+      }
+    });
   });
 </script>

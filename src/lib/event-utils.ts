@@ -9,7 +9,7 @@ export function formatEventDate(date: string | Date): {
 } {
   const eventDate = new Date(date);
   return {
-    month: eventDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+    month: eventDate.toLocaleDateString('en-US', { month: 'short' }),
     day: eventDate.toLocaleDateString('en-US', { day: 'numeric' }),
     dayOfWeek: eventDate.toLocaleDateString('en-US', { weekday: 'short' }),
   };
@@ -90,7 +90,7 @@ export function transformEventForCalendar(event: {
   end_date: string | null;
   end_time: string | null;
   location: { name: string } | null;
-  primary_tag: any;
+  primary_tag: { name: string } | null;
 }): {
   id: string;
   title: string;
@@ -133,7 +133,19 @@ export function transformEventForCalendar(event: {
 /**
  * Filter events to only those in the future (including today)
  */
-export function filterFutureEvents(events: any[]): any[] {
+export function filterFutureEvents(
+  events: {
+    start_date: string;
+    start_time: string | null;
+    end_date: string | null;
+    end_time: string | null;
+  }[]
+): {
+  start_date: string;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+}[] {
   const now = new Date();
   return events.filter((e) => {
     const startDate = new Date(e.start_date + (e.start_time ? 'T' + e.start_time : ''));
@@ -160,7 +172,12 @@ export function filterFutureEvents(events: any[]): any[] {
 }
 
 // Format event date/time as 'Fri June 5th at 5:00PM'
-export function formatEventDateTime(event: any): string {
+export function formatEventDateTime(event: {
+  start_date: string;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+}): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const months = [
     'January',

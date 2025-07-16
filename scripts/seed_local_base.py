@@ -1,7 +1,7 @@
 import csv
 import os
 import psycopg2
-import datetime
+from datetime import datetime, timedelta, date
 
 DB_HOST = os.environ.get('PGHOST', 'localhost')
 DB_PORT = os.environ.get('PGPORT', '54322')
@@ -23,7 +23,7 @@ NULLABLE_COLUMNS = {
     'locations': ['latitude', 'longitude', 'address', 'website', 'phone'],
     'organizations': ['description', 'website', 'email', 'phone'],
     'tags': ['calendar_id', 'share_id'],
-    'community_announcements': ['link', 'email', 'organization_id', 'author'],
+    'announcements': ['link', 'email', 'organization_id', 'author', 'expires_at'],
 }
 
 def clean_value(value, column_name, table_name):
@@ -65,6 +65,45 @@ for table, csv_file in TABLES:
             )
     print(f'Seeded {len(rows)} rows into {table}')
 
+# Add 3 recent announcements for dev/testing
+if table == 'announcements':
+    now = datetime.utcnow()
+    recent_announcements = [
+        {
+            'title': 'Pop-Up Ice Cream Social',
+            'message': 'Free ice cream in the park today! Come meet your neighbors and enjoy a treat.',
+            'status': 'published',
+            'link': 'https://example.com/ice-cream',
+            'show_at': (now).strftime('%Y-%m-%d %H:%M:%S+00'),
+            'expires_at': None,
+            'created_at': (now).strftime('%Y-%m-%d %H:%M:%S+00'),
+        },
+        {
+            'title': 'Community Cleanup Tomorrow',
+            'message': 'Join us for a community cleanup event tomorrow morning. Supplies provided!',
+            'status': 'published',
+            'link': 'https://example.com/cleanup',
+            'show_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S+00'),
+            'expires_at': None,
+            'created_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S+00'),
+        },
+        {
+            'title': 'Farmers Market This Weekend',
+            'message': 'Fresh produce and local goods at the farmers market this Saturday and Sunday.',
+            'status': 'published',
+            'link': 'https://example.com/farmers-market',
+            'show_at': (now - timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S+00'),
+            'expires_at': None,
+            'created_at': (now - timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S+00'),
+        },
+    ]
+    for ann in recent_announcements:
+        cur.execute(
+            'INSERT INTO announcements (title, message, status, link, show_at, expires_at, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
+            [ann['title'], ann['message'], ann['status'], ann['link'], ann['show_at'], ann['expires_at'], ann['created_at']]
+        )
+    print('Seeded 3 recent announcements for dev/testing')
+
 # --- Seed events table from events_local.csv ---
 events_csv_path = os.path.join(BASE_DIR, 'events_local.csv')
 if os.path.exists(events_csv_path):
@@ -73,11 +112,11 @@ if os.path.exists(events_csv_path):
         events = list(reader)
     # Find the earliest start_date
     date_format = '%Y-%m-%d'
-    today = datetime.date.today()
-    event_dates = [datetime.datetime.strptime(e['start_date'], date_format).date() for e in events if e['start_date']]
+    today = date.today()
+    event_dates = [datetime.strptime(e['start_date'], date_format).date() for e in events if e['start_date']]
     if event_dates:
         min_date = min(event_dates)
-        days_shift = (today + datetime.timedelta(days=1) - min_date).days
+        days_shift = (today + timedelta(days=1) - min_date).days
     else:
         days_shift = 0
     # Clear events table
@@ -104,8 +143,8 @@ if os.path.exists(events_csv_path):
             print(f"  primary_tag='{primary_tag_name}' -> found: {primary_tag_id}")
             continue
         # Shift start_date and end_date
-        start_date = datetime.datetime.strptime(event['start_date'], date_format).date() + datetime.timedelta(days=days_shift) if event['start_date'] else None
-        end_date = datetime.datetime.strptime(event['end_date'], date_format).date() + datetime.timedelta(days=days_shift) if event['end_date'] else None
+        start_date = datetime.strptime(event['start_date'], date_format).date() + timedelta(days=days_shift) if event['start_date'] else None
+        end_date = datetime.strptime(event['end_date'], date_format).date() + timedelta(days=days_shift) if event['end_date'] else None
         # Prepare insert values, mapping CSV fields to DB columns
         cur.execute(
             '''INSERT INTO events (title, description, start_date, start_time, end_time, end_date, external_image_url, registration_link, website, status, location_id, organization_id, primary_tag_id)

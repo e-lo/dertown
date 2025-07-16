@@ -1,0 +1,126 @@
+---
+import RssFeedButton from './ui/RssFeedButton.astro';
+import CalendarSubscribeButton from './ui/CalendarSubscribeButton.astro';
+import { db } from '../lib/supabase';
+
+// Fetch event categories/tags for popout menus
+
+---
+<nav class="bg-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16">
+      <!-- Logo and primary nav -->
+      <div class="flex">
+        <div class="flex-shrink-0 flex items-center">
+          <a href="/" class="flex items-center space-x-2 text-xl font-bold text-gray-900">
+            <img src="/logo.svg" alt="Der Town Logo" class="h-8 w-8" />
+            <span>DerTown</span>
+          </a>
+        </div>
+        <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+          <a
+            href="/events"
+            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+          >
+            Events
+          </a>
+          <a
+            href="/calendar"
+            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+          >
+            Calendar
+          </a>
+        </div>
+      </div>
+
+      <!-- Secondary nav and mobile menu button -->
+      <div class="hidden sm:ml-6 sm:flex sm:items-center gap-2">
+        <span class="font-semibold text-gray-600 mr-2">Subscribe:</span>
+        <CalendarSubscribeButton />
+        <RssFeedButton />
+      </div>
+
+      <!-- Mobile menu button -->
+      <div class="-mr-2 flex items-center sm:hidden">
+        <button
+          type="button"
+          class="mobile-menu-button bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+        >
+          <span class="sr-only">Open main menu</span>
+          <!-- Hamburger icon -->
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div class="sm:hidden hidden" id="mobile-menu">
+    <div class="pt-2 pb-3 space-y-1">
+      <a
+        href="/events"
+        class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+      >
+        Events
+      </a>
+      <a
+        href="/calendar"
+        class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+      >
+        Calendar
+      </a>
+      <!-- Mobile Subscribe Menu -->
+      <div class="border-t border-gray-200 mt-2 pt-2">
+        <button type="button" class="w-full text-left font-semibold text-gray-700 flex items-center justify-between px-4 py-2" aria-expanded="false" id="mobile-subscribe-toggle">
+          Subscribe
+          <span aria-hidden="true">▼</span>
+        </button>
+        <div class="hidden pl-2" id="mobile-subscribe-menu">
+          <a href="/api/rss.xml" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">RSS</a>
+          <a href="/calendar-subscribe" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Calendar</a>
+        </div>
+      </div>
+    </div>
+    <div class="pt-4 pb-3 border-t border-gray-200">
+      <div class="space-y-1 flex justify-center">
+        <RssFeedButton />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Mobile menu toggle
+    const mobileMenuButton = document.querySelector('.mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        const isHidden = mobileMenu.classList.contains('hidden');
+
+        if (isHidden) {
+          mobileMenu.classList.remove('hidden');
+          mobileMenuButton.setAttribute('aria-expanded', 'true');
+        } else {
+          mobileMenu.classList.add('hidden');
+          mobileMenuButton.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+  </script>
+  <script>
+    // Mobile Subscribe Menu Toggle
+    const subscribeToggle = document.getElementById('mobile-subscribe-toggle');
+    const subscribeMenu = document.getElementById('mobile-subscribe-menu');
+    if (subscribeToggle && subscribeMenu) {
+      subscribeToggle.addEventListener('click', () => {
+        const isHidden = subscribeMenu.classList.contains('hidden');
+        subscribeMenu.classList.toggle('hidden', !isHidden);
+        subscribeToggle.setAttribute('aria-expanded', String(isHidden));
+      });
+    }
+  </script>
+</nav> 

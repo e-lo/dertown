@@ -62,7 +62,6 @@ function toKebabCase(str: string): string {
     const eventCards = document.querySelectorAll('.event-card-wrapper');
 
     function filterEvents(selectedTag: string) {
-      let visibleCount = 0;
       eventCards.forEach((card) => {
         const cardElement = card as HTMLElement;
         const primaryTag = cardElement.dataset.primaryTag || '';
@@ -72,7 +71,6 @@ function toKebabCase(str: string): string {
           selectedTag === 'all' || primaryTag === selectedTag || secondaryTag === selectedTag;
         if (isMatch) {
           cardElement.style.display = '';
-          visibleCount++;
         } else {
           cardElement.style.display = 'none';
         }

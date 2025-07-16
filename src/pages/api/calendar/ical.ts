@@ -4,23 +4,42 @@ import type { Database } from '../../../types/database';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ url }) => {
   try {
-    // Fetch all approved events
+    const tagsParam = url.searchParams.get('tags');
+    let tagNames: string[] = [];
+    if (tagsParam) {
+      tagNames = tagsParam.split(',').map((t) => decodeURIComponent(t));
+    }
+    // Fetch all approved events (using public view that excludes private fields)
     const { data: events, error } = await db.events.getCurrentAndFuture();
 
     if (error) {
       return new Response('Error fetching events', { status: 500 });
     }
 
+    // Filter by tags if specified
+    let filteredEvents = events;
+    if (tagNames.length > 0) {
+      filteredEvents =
+        events?.filter((event) => {
+          const primary = event.primary_tag?.name;
+          const secondary = event.secondary_tag?.name;
+          return tagNames.includes(primary) || tagNames.includes(secondary);
+        }) || [];
+    }
+
     // Generate iCal content
-    const icalContent = generateICalContent(events || []);
+    const icalContent = generateICalContent(
+      filteredEvents || [],
+      tagNames.length > 0 ? tagNames[0] : null
+    );
 
     return new Response(icalContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="der-town-events.ics"',
+        'Content-Disposition': `attachment; filename="der-town-events${tagNames.length > 0 ? `-${tagNames.join('-')}` : ''}.ics"`,
       },
     });
   } catch (error) {
@@ -29,9 +48,18 @@ export const GET: APIRoute = async () => {
   }
 };
 
-function generateICalContent(events: Database['public']['Tables']['events']['Row'][]): string {
+function generateICalContent(
+  events: Database['public']['Tables']['events']['Row'][],
+  tagName?: string | null
+): string {
   const now = new Date();
   const calendarId = `der-town-events-${now.getTime()}`;
+  const calendarName =
+    tagName && tagName !== 'all' ? `Der Town ${tagName} Events` : 'Der Town Community Events';
+  const calendarDesc =
+    tagName && tagName !== 'all'
+      ? `${tagName} events and activities in Der Town`
+      : 'Community events and activities in Der Town';
 
   let ical =
     [
@@ -40,8 +68,8 @@ function generateICalContent(events: Database['public']['Tables']['events']['Row
       'PRODID:-//Der Town//Community Events//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:Der Town Community Events',
-      'X-WR-CALDESC:Community events and activities in Der Town',
+      `X-WR-CALNAME:${calendarName}`,
+      `X-WR-CALDESC:${calendarDesc}`,
       'X-WR-TIMEZONE:America/New_York',
     ].join('\r\n') + '\r\n';
 

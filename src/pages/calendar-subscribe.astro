@@ -1,0 +1,197 @@
+---
+import Layout from '../components/Layout.astro';
+import { db } from '../lib/supabase';
+
+// Get all tags for the form
+const { data: tags, error } = await db.tags.getAll();
+
+if (error) {
+  console.error('Error fetching tags:', error);
+}
+---
+
+<Layout title="Subscribe to Calendar - Der Town">
+  <div class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 py-8">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">
+          Subscribe to Calendar
+        </h1>
+        <p class="text-lg text-indigo-100">
+          Stay up-to-date with Der Town events
+        </p>
+      </div>
+
+      <!-- Subscription Form -->
+      <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8">
+        <!-- Tag Selection -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            Event Categories
+          </label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <button type="button" 
+              class="badge badge-md badge-info interactive" 
+              data-tag="all">
+              All Events
+            </button>
+            {tags?.map(tag => (
+              <button type="button" 
+                class="badge badge-md badge-default interactive" 
+                data-tag={tag.name}>
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <p class="text-xs text-gray-500">Click to select categories</p>
+        </div>
+
+        <!-- Subscription Link Section -->
+        <div id="subscription-link-section" class="mt-8 hidden">
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Live Calendar Subscription Link</h2>
+            <p class="text-sm text-gray-600 mb-2">This link is a live feed. Add it to your calendar app to always stay up to date. <span class="font-semibold text-indigo-700">Do not download as .ics for ongoing updates.</span></p>
+            <div class="flex items-center gap-2">
+              <code id="subscription-link" class="bg-gray-100 px-3 py-2 rounded text-sm break-all"></code>
+              <button id="copy-link-btn" type="button" class="btn btn-secondary btn-sm flex items-center" aria-label="Copy link">
+                <svg id="copy-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8a2 2 0 002-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v6a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" /></svg>
+                <span id="copy-btn-text">Copy</span>
+              </button>
+            </div>
+            <div id="copy-feedback" class="text-green-600 text-xs mt-1 hidden">Copied!</div>
+          </div>
+          <div id="platform-instructions" class="mt-8">
+            <div class="mb-6">
+              <div class="flex items-center gap-3 mb-2">
+                <img src="/icons/apple.svg" alt="Apple Calendar" class="w-6 h-6">
+                <span class="font-semibold text-gray-900">Apple Calendar</span>
+              </div>
+              <ol class="list-decimal list-inside space-y-1 text-gray-700 text-sm ml-8">
+                <li>Copy the link above.</li>
+                <li>Open the Calendar app on your Mac or iOS device.</li>
+                <li>Go to File → New Calendar Subscription.</li>
+                <li>Paste the link and click "Subscribe". Your calendar will stay up to date automatically.</li>
+              </ol>
+            </div>
+            <div class="mb-6">
+              <div class="flex items-center gap-3 mb-2">
+                <img src="/icons/google.svg" alt="Google Calendar" class="w-6 h-6">
+                <span class="font-semibold text-gray-900">Google Calendar</span>
+              </div>
+              <ol class="list-decimal list-inside space-y-1 text-gray-700 text-sm ml-8">
+                <li>Copy the link above.</li>
+                <li>Go to <a href='https://calendar.google.com' target='_blank' class='text-indigo-700 underline'>Google Calendar</a> on desktop.</li>
+                <li>On the left, click "+" next to "Other calendars" → "From URL".</li>
+                <li>Paste the link and click "Add calendar". It will stay up to date automatically.</li>
+              </ol>
+            </div>
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <img src="/icons/outlook.svg" alt="Outlook Calendar" class="w-6 h-6">
+                <span class="font-semibold text-gray-900">Outlook Calendar</span>
+              </div>
+              <ol class="list-decimal list-inside space-y-1 text-gray-700 text-sm ml-8">
+                <li>Copy the link above.</li>
+                <li>Go to <a href='https://outlook.live.com/calendar/' target='_blank' class='text-indigo-700 underline'>Outlook Calendar</a> on desktop.</li>
+                <li>Click "Add calendar" → "Subscribe from web".</li>
+                <li>Paste the link and click "Import". It will stay up to date automatically.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  let selectedTags: string[] = ['all'];
+
+  function updateSubscriptionLink() {
+    const section = document.getElementById('subscription-link-section');
+    const linkBox = document.getElementById('subscription-link');
+    const copyBtn = document.getElementById('copy-link-btn');
+    const feedback = document.getElementById('copy-feedback');
+    if (!section || !linkBox || !copyBtn || !feedback) return;
+    if (selectedTags.length === 0) {
+      section.classList.add('hidden');
+      return;
+    }
+    // Generate the subscription URL - always use ical endpoint
+    const baseUrl = window.location.origin;
+    let subscriptionUrl: string;
+    if (selectedTags.includes('all') || selectedTags.length === 0) {
+      subscriptionUrl = `${baseUrl}/api/calendar/ical`;
+    } else {
+      const tagParam = encodeURIComponent(selectedTags.join(','));
+      subscriptionUrl = `${baseUrl}/api/calendar/ical?tags=${tagParam}`;
+    }
+    linkBox.textContent = subscriptionUrl;
+    section.classList.remove('hidden');
+    // Copy button logic
+    copyBtn.onclick = function() {
+      navigator.clipboard.writeText(subscriptionUrl).then(() => {
+        feedback.classList.remove('hidden');
+        setTimeout(() => feedback.classList.add('hidden'), 1500);
+      });
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the "All Events" badge as selected
+    const allEventsBadge = document.querySelector('[data-tag="all"]');
+    if (allEventsBadge) {
+      allEventsBadge.classList.remove('badge-default');
+      allEventsBadge.classList.add('badge-info');
+    }
+    // Tag selection
+    document.querySelectorAll('[data-tag]').forEach(button => {
+      button.addEventListener('click', function(this: HTMLElement) {
+        const tag = this.getAttribute('data-tag');
+        if (!tag) return;
+        if (tag === 'all') {
+          selectedTags = ['all'];
+          // Deselect all other badges
+          document.querySelectorAll('[data-tag]').forEach(btn => {
+            btn.classList.remove('badge-info');
+            btn.classList.add('badge-default');
+          });
+          this.classList.remove('badge-default');
+          this.classList.add('badge-info');
+        } else {
+          // Remove 'all' if present
+          selectedTags = selectedTags.filter(t => t !== 'all');
+          if (selectedTags.includes(tag)) {
+            // Deselect this tag
+            selectedTags = selectedTags.filter(t => t !== tag);
+            this.classList.remove('badge-info');
+            this.classList.add('badge-default');
+          } else {
+            // Select this tag
+            selectedTags.push(tag);
+            this.classList.remove('badge-default');
+            this.classList.add('badge-info');
+          }
+          // Deselect 'all' badge if any tag is selected
+          const allBtn = document.querySelector('[data-tag="all"]');
+          if (allBtn) {
+            allBtn.classList.remove('badge-info');
+            allBtn.classList.add('badge-default');
+          }
+          // If no tags are selected, reselect 'all'
+          if (selectedTags.length === 0) {
+            selectedTags = ['all'];
+            if (allBtn) {
+              allBtn.classList.remove('badge-default');
+              allBtn.classList.add('badge-info');
+            }
+          }
+        }
+        updateSubscriptionLink();
+      });
+    });
+    // Show the link immediately on load
+    updateSubscriptionLink();
+  });
+</script> 

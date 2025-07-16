@@ -176,3 +176,32 @@
 .tooltip {
   @apply pointer-events-none absolute z-50 whitespace-nowrap rounded bg-gray-700/80 px-3 py-2 text-sm text-white opacity-0 group-hover:opacity-90 group-focus:opacity-80 transition-opacity duration-200 shadow-lg;
 }
+
+/* Tooltip positioning - using direct classes to avoid circular dependency */
+.tooltip.right-full {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 0.5rem;
+}
+
+.tooltip.left-full {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0.5rem;
+}
+
+.tooltip.top-full {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+}
+
+.tooltip.bottom-full {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+}

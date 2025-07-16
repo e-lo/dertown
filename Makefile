@@ -1,29 +1,31 @@
 # Der Town Development Makefile
 # Essential commands for rapid development iteration
 
-.PHONY: help dev build preview db-reset db-seed db-migrate db-backup test-data validate-all format lint test clean db-seed-local-events venv venv-activate venv-install db-seed db-seed-local update-local-events markdownlint-fix
+.PHONY: help dev build preview clean venv venv-activate venv-install \
+	format lint test validate-all test-data \
+	db-local-reset db-local-migrate db-local-seed db-local-update-events db-backup
 
 # Default target
 help:
 	@echo "Der Town Development Commands:"
-	@echo "  dev              - Start development server"
-	@echo "  build            - Build for production"
-	@echo "  preview          - Build and preview production locally"
-	@echo "  db-reset         - Reset local database with sample data"
-	@echo "  db-seed          - Seed production/staging DB with canonical data (events, locations, orgs, tags, etc.)"
-	@echo "  db-seed-local    - Seed local DB with local/test data (locations, orgs, tags, announcements, and local events with randomized dates)"
-	@echo "  db-update-local-events - Update event dates in local DB to be in the near future"
-	@echo "  db-migrate       - Run database migrations"
-	@echo "  db-backup        - Backup current database state"
-	@echo "  test-data        - Generate realistic test data"
-	@echo "  validate-all     - Run all validations"
-	@echo "  format           - Format code with Prettier"
-	@echo "  lint             - Run ESLint and markdownlint"
-	@echo "  test             - Run tests"
-	@echo "  clean            - Clean build artifacts"
+	@echo "  dev                 - Start development server"
+	@echo "  build               - Build for production"
+	@echo "  preview             - Build and preview production locally"
+	@echo "  clean               - Clean build artifacts"
+	@echo "  format              - Format code with Prettier"
+	@echo "  lint                - Run ESLint and markdownlint"
+	@echo "  test                - Run tests"
+	@echo "  validate-all        - Run all validations"
+	@echo "  test-data           - Generate realistic test data"
 	@echo "  venv                - Create a Python virtual environment (.venv)"
 	@echo "  venv-activate       - Print activation command for venv"
 	@echo "  venv-install        - Install Python requirements in venv"
+	@echo ""
+	@echo "  db-local-reset         - Reset, migrate, and seed local database (all-in-one for dev)"
+	@echo "  db-local-migrate       - Run migrations on local DB only (no data loss)"
+	@echo "  db-local-seed          - Seed local DB with local/test data (including staged data)"
+	@echo "  db-local-update-events - Update local event dates, etc."
+	@echo "  db-backup              - Backup current database state (local)"
 
 # Development server
 dev:
@@ -42,63 +44,12 @@ preview:
 	@echo "Starting production preview server..."
 	npx astro preview
 
-# Database reset with sample data
-db-reset:
-	@echo "Resetting local database..."
-	supabase db reset
-	@echo "Database reset complete"
-
-# Seed database with test data
-db-seed:
-	@echo "Seeding database with test data..."
-	python3 scripts/seed_database.py
-	@echo "Database seeding complete"
-
-# Seed local database with local/test data
-db-seed-local: db-reset
-	@echo "Seeding local database with local/test data..."
-	python3 scripts/seed_local_base.py
-	python3 scripts/seed_local_events.py
-	@echo "Local database seeding complete"
-
-# Update
-db-update-local-events:
-	@echo "Updating local events..."
-	python3 scripts/update_local_events.py 
-	@echo "Local events updated"
-
-# Run database migrations
-db-migrate:
-	@echo "Running database migrations..."
-	supabase db push
-	@echo "Database migrations complete"
-
-# Backup current database state
-db-backup:
-	@echo "Creating database backup..."
-	@mkdir -p backups
-	@timestamp=$$(date +%Y%m%d_%H%M%S); \
-	supabase db dump --data-only > backups/db_backup_$$timestamp.sql; \
-	echo "Database backup saved to backups/db_backup_$$timestamp.sql"
-
-# Generate realistic test data
-test-data:
-	@echo "Generating realistic test data..."
-	python3 scripts/data_manager.py generate-test-data
-	@echo "Test data generation complete"
-
-# Run all validations
-validate-all:
-	@echo "Running all validations..."
-	@echo "1. TypeScript compilation..."
-	npx tsc --noEmit
-	@echo "2. ESLint (excluding Astro files)..."
-	npx eslint src/ --ext .js,.ts
-	@echo "3. Prettier check..."
-	npx prettier --check src/
-	@echo "4. Build test..."
-	npx astro build
-	@echo "All validations passed!"
+# Clean build artifacts
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf dist/
+	rm -rf .astro/
+	@echo "Clean complete"
 
 # Format code
 format:
@@ -120,16 +71,24 @@ test:
 	npm run test
 	@echo "Tests complete"
 
-# Clean build artifacts
-clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf dist/
-	rm -rf .astro/
-	@echo "Clean complete"
+# Run all validations
+validate-all:
+	@echo "Running all validations..."
+	@echo "1. TypeScript compilation..."
+	npx tsc --noEmit
+	@echo "2. ESLint (excluding Astro files)..."
+	npx eslint src/ --ext .js,.ts
+	@echo "3. Prettier check..."
+	npx prettier --check src/
+	@echo "4. Build test..."
+	npx astro build
+	@echo "All validations passed!"
 
-# Seed local events
-db-seed-local-events:
-	python3 scripts/seed_local_events.py
+# Generate realistic test data
+test-data:
+	@echo "Generating realistic test data..."
+	.venv/bin/python3 scripts/data_manager.py generate-test-data
+	@echo "Test data generation complete"
 
 venv:
 	uv venv .venv
@@ -139,4 +98,48 @@ venv-activate:
 
 venv-install:
 	uv pip install -r requirements.txt
+
+# =====================
+# LOCAL DEVELOPMENT DATABASE COMMANDS
+# =====================
+
+# Reset local DB, run migrations, and seed local data (all-in-one for local dev)
+db-local-reset:
+	@echo "[LOCAL] Resetting, migrating, and seeding local database..."
+	supabase db reset
+	make db-local-migrate
+	make db-local-seed
+	@echo "[LOCAL] Local database fully reset, migrated, and seeded."
+
+# Run migrations on local DB only (no data loss)
+db-local-migrate:
+	@echo "[LOCAL] Running local database migrations..."
+	supabase db migrate
+	@echo "[LOCAL] Local database migrations complete."
+
+# Seed local DB with local/test data (locations, orgs, tags, announcements, and local events with randomized dates)
+db-local-seed:
+	@echo "[LOCAL] Seeding local database with local/test data..."
+	.venv/bin/python3 scripts/seed_local_base.py
+	.venv/bin/python3 scripts/seed_staged_data.py
+	@echo "[LOCAL] Local database seeding complete."
+
+# Update local events (dates, etc.)
+db-local-update-events:
+	@echo "[LOCAL] Updating local events..."
+	.venv/bin/python3 scripts/update_local_events.py
+	@echo "[LOCAL] Local events updated."
+
+# Backup current database state (local)
+db-backup:
+	@echo "[LOCAL] Creating database backup..."
+	@mkdir -p backups
+	@timestamp=$$(date +%Y%m%d_%H%M%S); \
+	supabase db dump --data-only > backups/db_backup_$$timestamp.sql; \
+	echo "Database backup saved to backups/db_backup_$$timestamp.sql"
+
+# =====================
+# REMOTE/PRODUCTION DATABASE COMMANDS (future)
+# =====================
+# (Add remote/production DB commands here as needed)
 

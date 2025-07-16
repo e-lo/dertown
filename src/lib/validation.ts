@@ -10,18 +10,38 @@ export const eventFormSchema = z.object({
   end_date: z.string().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  location_id: z.string().uuid().optional(),
-  organization_id: z.string().uuid().optional(),
+  // Hybrid fields: either ID (UUID) or name (string)
+  location_id: z.string().uuid().optional().or(z.literal('')),
+  location_added: z
+    .string()
+    .max(255, 'Location name must be less than 255 characters')
+    .optional()
+    .or(z.literal('')),
+  organization_id: z.string().uuid().optional().or(z.literal('')),
+  organization_added: z
+    .string()
+    .max(255, 'Organization name must be less than 255 characters')
+    .optional()
+    .or(z.literal('')),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
   website: z.string().url('Invalid URL format').optional().or(z.literal('')),
   registration_link: z.string().url('Invalid URL format').optional().or(z.literal('')),
-  primary_tag_id: z.string().uuid().optional(),
-  secondary_tag_id: z.string().uuid().optional(),
+  primary_tag_id: z.string().uuid().optional().or(z.literal('')),
+  secondary_tag_id: z.string().uuid().optional().or(z.literal('')),
   external_image_url: z.string().url('Invalid URL format').optional().or(z.literal('')),
   featured: z.boolean().optional(),
   exclude_from_calendar: z.boolean().optional(),
   registration: z.boolean().optional(),
   cost: z.string().max(100, 'Cost must be less than 100 characters').optional(),
+  comments: z
+    .string()
+    .max(2000, 'Comments must be less than 2000 characters')
+    .optional()
+    .or(z.literal('')),
+  // Honeypot field - should always be empty
+  website_url: z.string().max(0, 'Invalid submission detected').optional().or(z.literal('')),
+  // Timestamp for rate limiting
+  submission_time: z.string().optional(),
 });
 
 export const locationFormSchema = z.object({
@@ -50,12 +70,30 @@ export const announcementFormSchema = z.object({
     .string()
     .min(1, 'Message is required')
     .max(2000, 'Message must be less than 2000 characters'),
-  link: z.string().url('Invalid URL format').optional().or(z.literal('')),
-  email: z.string().email('Invalid email format').optional().or(z.literal('')),
-  organization_id: z.string().uuid().optional(),
-  author: z.string().max(255, 'Author must be less than 255 characters').optional(),
   show_at: z.string().optional(),
   expires_at: z.string().optional(),
+  link: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  email: z.string().email('Invalid email format').optional().or(z.literal('')),
+  organization_id: z.string().uuid().optional().or(z.literal('')),
+  organization_name: z
+    .string()
+    .max(255, 'Organization name must be less than 255 characters')
+    .optional()
+    .or(z.literal('')),
+  organization_added: z
+    .string()
+    .max(255, 'Organization name must be less than 255 characters')
+    .optional()
+    .or(z.literal('')),
+  comments: z
+    .string()
+    .max(2000, 'Comments must be less than 2000 characters')
+    .optional()
+    .or(z.literal('')),
+  // Honeypot field - should always be empty
+  website_url: z.string().max(0, 'Invalid submission detected').optional().or(z.literal('')),
+  // Timestamp for rate limiting
+  submission_time: z.string().optional(),
 });
 
 // Type exports for TypeScript

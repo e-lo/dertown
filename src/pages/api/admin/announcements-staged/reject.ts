@@ -1,26 +1,22 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../../lib/supabase';
-
-export const prerender = false;
+import { db } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { eventId } = await request.json();
-
-    if (!eventId) {
-      return new Response(JSON.stringify({ error: 'Event ID is required' }), {
+    const { announcementId } = await request.json();
+    if (!announcementId) {
+      return new Response(JSON.stringify({ error: 'Announcement ID is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
     // Get the JWT from the Authorization header
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({
           error:
-            'You must be logged in as an admin to reject events. Please log in with an admin account.',
+            'You must be logged in as an admin to reject announcements. Please log in with an admin account.',
         }),
         {
           status: 403,
@@ -28,29 +24,23 @@ export const POST: APIRoute = async ({ request }) => {
         }
       );
     }
-
-    // Check if the user is an admin (replace with your admin check logic)
+    // TODO: Check if user is admin (implement your admin check logic here)
     // If not admin:
-    // return new Response(JSON.stringify({ error: 'Only admins can reject events. Please log in with an admin account.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
-
-    // Update the staged event status to rejected
-    const { error: updateError } = await db.eventsStaged.update(eventId, {
-      status: 'rejected',
-    });
-
-    if (updateError) {
-      return new Response(JSON.stringify({ error: 'Failed to reject event' }), {
+    // return new Response(JSON.stringify({ error: 'Only admins can reject announcements. Please log in with an admin account.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    // Delete the staged announcement
+    const { error } = await db.announcementsStaged.delete(announcementId);
+    if (error) {
+      return new Response(JSON.stringify({ error: 'Failed to delete staged announcement' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
+    // Optionally: log the reason or notify the submitter
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in admin reject API:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
