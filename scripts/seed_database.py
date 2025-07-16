@@ -22,7 +22,7 @@ from scripts.models import (
     Organization,
     Tag,
 )
-from scripts.validation import validate_data
+from scripts.validation import validate_csv_data
 from src.lib.supabase import get_supabase_client
 
 # Configure logging
@@ -30,6 +30,19 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_admin_supabase_client():
+    """Get Supabase client with service role key for admin operations."""
+    import os
+    from supabase import create_client, Client
+    
+    url = os.environ.get("SUPABASE_URL")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if not url or not service_key:
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables must be set")
+    
+    return create_client(url, service_key)
 
 
 def read_csv_data(file_path: Path) -> List[Dict]:
@@ -92,14 +105,26 @@ def seed_tags(supabase) -> Dict[int, str]:
                 'share_id': tag.share_id
             }).execute()
             
-            if result.data:
-                new_id = result.data[0]['id']
-                old_id = int(data[i]['id'])
-                id_mapping[old_id] = new_id
-                logger.info(f"Inserted tag: {tag.name} (ID: {new_id})")
+            # Debug: Log the full result
+            logger.info(f"Tag insert result: {result}")
+            
+            if result.data and len(result.data) > 0:
+                try:
+                    new_id = result.data[0]['id']
+                    old_id = int(data[i]['id'])
+                    id_mapping[old_id] = new_id
+                    logger.info(f"Inserted tag: {tag.name} (ID: {new_id})")
+                except (KeyError, IndexError) as e:
+                    logger.warning(f"Could not extract ID from result for tag {tag.name}: {e}")
+                    logger.warning(f"Result data: {result.data}")
+            else:
+                logger.warning(f"No data returned for tag {tag.name}")
             
         except Exception as e:
             logger.error(f"Error inserting tag {tag.name}: {e}")
+            # Log more details about the error
+            logger.error(f"Tag data: {tag.dict()}")
+            logger.error(f"Exception type: {type(e)}")
     
     return id_mapping
 
@@ -139,7 +164,7 @@ def seed_locations(supabase) -> Dict[int, str]:
             result = supabase.table('locations').insert({
                 'name': location.name,
                 'address': location.address,
-                'website': location.website,
+                'website': str(location.website) if location.website else None,
                 'phone': location.phone,
                 'latitude': location.latitude,
                 'longitude': location.longitude,
@@ -147,14 +172,26 @@ def seed_locations(supabase) -> Dict[int, str]:
                 'status': location.status
             }).execute()
             
-            if result.data:
-                new_id = result.data[0]['id']
-                old_id = int(data[i]['id'])
-                id_mapping[old_id] = new_id
-                logger.info(f"Inserted location: {location.name} (ID: {new_id})")
+            # Debug: Log the full result
+            logger.info(f"Location insert result: {result}")
+            
+            if result.data and len(result.data) > 0:
+                try:
+                    new_id = result.data[0]['id']
+                    old_id = int(data[i]['id'])
+                    id_mapping[old_id] = new_id
+                    logger.info(f"Inserted location: {location.name} (ID: {new_id})")
+                except (KeyError, IndexError) as e:
+                    logger.warning(f"Could not extract ID from result for location {location.name}: {e}")
+                    logger.warning(f"Result data: {result.data}")
+            else:
+                logger.warning(f"No data returned for location {location.name}")
             
         except Exception as e:
             logger.error(f"Error inserting location {location.name}: {e}")
+            # Log more details about the error
+            logger.error(f"Location data: {location.dict()}")
+            logger.error(f"Exception type: {type(e)}")
     
     return id_mapping
 
@@ -200,7 +237,7 @@ def seed_organizations(supabase, location_id_mapping: Dict[int, str]) -> Dict[in
             result = supabase.table('organizations').insert({
                 'name': organization.name,
                 'description': organization.description,
-                'website': organization.website,
+                'website': str(organization.website) if organization.website else None,
                 'phone': organization.phone,
                 'email': organization.email,
                 'location_id': organization.location_id,
@@ -208,11 +245,17 @@ def seed_organizations(supabase, location_id_mapping: Dict[int, str]) -> Dict[in
                 'status': organization.status
             }).execute()
             
-            if result.data:
-                new_id = result.data[0]['id']
-                old_id = int(data[i]['id'])
-                id_mapping[old_id] = new_id
-                logger.info(f"Inserted organization: {organization.name} (ID: {new_id})")
+            if result.data and len(result.data) > 0:
+                try:
+                    new_id = result.data[0]['id']
+                    old_id = int(data[i]['id'])
+                    id_mapping[old_id] = new_id
+                    logger.info(f"Inserted organization: {organization.name} (ID: {new_id})")
+                except (KeyError, IndexError) as e:
+                    logger.warning(f"Could not extract ID from result for organization {organization.name}: {e}")
+                    logger.warning(f"Result data: {result.data}")
+            else:
+                logger.warning(f"No data returned for organization {organization.name}")
             
         except Exception as e:
             logger.error(f"Error inserting organization {organization.name}: {e}")
@@ -279,8 +322,8 @@ def seed_events(supabase, tag_id_mapping: Dict[int, str],
                 featured=row.get('featured', 'false').lower() == 'true',
                 exclude_from_calendar=row.get('exclude_from_calendar', 'false').lower() == 'true',
                 google_calendar_event_id=row.get('google_calendar_event_id'),
-                registration_required=row.get('registration_required', 'false').lower() == 'true',
-                fee=row.get('fee'),
+                registration=row.get('registration_required', 'false').lower() == 'true',
+                cost=row.get('fee'),
                 status=row.get('status', 'approved')
             )
             validated_events.append((event, row.get('parent_event_id')))
@@ -302,24 +345,30 @@ def seed_events(supabase, tag_id_mapping: Dict[int, str],
                 'location_id': event.location_id,
                 'organization_id': event.organization_id,
                 'email': event.email,
-                'website': event.website,
-                'registration_link': event.registration_link,
+                'website': str(event.website) if event.website else None,
+                'registration_link': str(event.registration_link) if event.registration_link else None,
                 'primary_tag_id': event.primary_tag_id,
                 'secondary_tag_id': event.secondary_tag_id,
-                'external_image_url': event.external_image_url,
+                'external_image_url': str(event.external_image_url) if event.external_image_url else None,
                 'featured': event.featured,
                 'exclude_from_calendar': event.exclude_from_calendar,
                 'google_calendar_event_id': event.google_calendar_event_id,
-                'registration_required': event.registration_required,
-                'fee': event.fee,
+                'registration': event.registration,
+                'cost': event.cost,
                 'status': event.status
             }).execute()
             
-            if result.data:
-                new_id = result.data[0]['id']
-                old_id = int(data[i]['id'])
-                id_mapping[old_id] = new_id
-                logger.info(f"Inserted event: {event.title} (ID: {new_id})")
+            if result.data and len(result.data) > 0:
+                try:
+                    new_id = result.data[0]['id']
+                    old_id = int(data[i]['id'])
+                    id_mapping[old_id] = new_id
+                    logger.info(f"Inserted event: {event.title} (ID: {new_id})")
+                except (KeyError, IndexError) as e:
+                    logger.warning(f"Could not extract ID from result for event {event.title}: {e}")
+                    logger.warning(f"Result data: {result.data}")
+            else:
+                logger.warning(f"No data returned for event {event.title}")
             
         except Exception as e:
             logger.error(f"Error inserting event {event.title}: {e}")
@@ -383,7 +432,7 @@ def seed_community_announcements(supabase, organization_id_mapping: Dict[int, st
             result = supabase.table('community_announcements').insert({
                 'title': announcement.title,
                 'message': announcement.message,
-                'link': announcement.link,
+                'link': str(announcement.link) if announcement.link else None,
                 'email': announcement.email,
                 'organization_id': announcement.organization_id,
                 'author': announcement.author,
@@ -402,7 +451,7 @@ def main():
     logger.info("Starting database seeding...")
     
     # Get Supabase client
-    supabase = get_supabase_client()
+    supabase = get_admin_supabase_client()
     
     try:
         # Seed data in order (respecting foreign key constraints)

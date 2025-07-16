@@ -46,6 +46,52 @@
 
 ---
 
+## 🚦 Initial Project Setup & First Deployment
+
+### 1. Supabase Project Setup
+
+- Create a new project at [Supabase](https://app.supabase.com/)
+- Go to Project Settings > API and copy your `SUPABASE_URL` and `SUPABASE_KEY`
+- In the SQL editor, run all migrations in `supabase/migrations/` (or use `supabase db push` locally)
+- (Optional) Seed the database:
+  - Use `make db-seed` or run the Python scripts in `scripts/` for test data
+- (Optional) Set up storage buckets if needed (see `supabase/config.toml`)
+
+### 2. Netlify Site Setup
+
+- Create a new site at [Netlify](https://app.netlify.com/)
+- Connect your GitHub repo (choose the `dev` or `main` branch)
+- In Site settings > Environment variables, add:
+  - `SUPABASE_URL` (from Supabase API settings)
+  - `SUPABASE_KEY` (from Supabase API settings)
+  - (Optional) `SUPABASE_SERVICE_ROLE_KEY` for admin/server-side scripts
+  - (Optional) `GOOGLE_ANALYTICS_ID` for analytics
+- Set build command: `npm run build`
+- Set publish directory: `dist`
+- Deploy the site
+
+### 3. First-Time Setup Tips
+
+- Ensure your `.env` file matches `.env.example` for local dev
+- If migrations fail, check DB version compatibility in `supabase/config.toml`
+- For troubleshooting, check Netlify deploy logs and Supabase project logs
+- After first deploy, test public and admin flows (login, event/announcement submission, admin approval)
+
+---
+
+## 🚀 Deployment
+
+- Deploy to Netlify
+- In the Netlify dashboard, go to your site > Site settings > Environment variables
+- Add the following variables (copy/paste from the Supabase connection widget):
+  - `SUPABASE_URL`
+  - `SUPABASE_KEY`
+- (Optional, for admin/server-side scripts) Add `SUPABASE_SERVICE_ROLE_KEY` if needed
+- For analytics, add `GOOGLE_ANALYTICS_ID` if using Google Analytics
+- Deploy as usual (Netlify will use these variables for both build and runtime)
+
+---
+
 ## 🗃️ Database Management
 
 - **Migrations:** Add SQL files to `supabase/migrations/` and run `supabase db push`
@@ -66,6 +112,9 @@
   - Feeds are always up-to-date; calendar apps poll every 2-6 hours
   - Tag-based feeds supported via query params (e.g., `/api/calendar/ical?tag=Arts+Culture`)
   - See PROJECT_REQUIREMENTS.md for technical details
+- **Initial data seed:**
+  - Run `make db-initial-seed` to upload all reference and content data (tags, organizations, locations, events, announcements) from `/seed_data` to your database.
+  - **Warning:** Only run this on a fresh database! It will insert all data, including events and announcements.
 
 ---
 
@@ -85,14 +134,6 @@
 - `npm run format` — Format code
 - `npm run test` — Run tests (if present)
 - Manual testing: Use dev server and admin panel to verify all flows
-
----
-
-## 🚀 Deployment
-
-- Deploy to Netlify or Vercel
-- Set environment variables in deployment dashboard
-- For production, run `npm run build` and deploy output
 
 ---
 
@@ -122,11 +163,3 @@
 - [Supabase Docs](https://supabase.com/docs)
 - [Astro Docs](https://docs.astro.build)
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
-
----
-
-## 📝 Updating This Documentation
-
-- Keep this file concise and up to date as workflows evolve
-- Document any new manual procedures or admin tasks
-- Use the AI agent to help clarify and refactor documentation

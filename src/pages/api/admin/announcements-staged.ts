@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../../types/database';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 
 export const GET: APIRoute = async ({ request }) => {
   const authHeader = request.headers.get('Authorization');

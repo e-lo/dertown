@@ -138,6 +138,17 @@ db-backup:
 	supabase db dump --data-only > backups/db_backup_$$timestamp.sql; \
 	echo "Database backup saved to backups/db_backup_$$timestamp.sql"
 
+# Seed ALL reference and content data (tags, organizations, locations, events, announcements) from /seed_data to the current database
+db-initial-seed:
+	@echo "Seeding ALL reference and content data (tags, organizations, locations, events, announcements) from /seed_data to the current database..."
+	@if [ -f .env.production ]; then \
+		export $$(cat .env.production | grep -v '^#' | xargs) && python3 scripts/seed_database.py; \
+	else \
+		echo "Error: .env.production file not found. Please create it with your Supabase credentials."; \
+		exit 1; \
+	fi
+	@echo "Initial seed complete. Only run this on a fresh database!"
+
 # =====================
 # REMOTE/PRODUCTION DATABASE COMMANDS (future)
 # =====================

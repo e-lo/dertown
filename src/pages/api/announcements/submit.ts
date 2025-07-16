@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/supabase';
+import { db } from '../../../lib/supabase.ts';
 import { validateAnnouncementForm } from '../../../lib/validation';
 
 export const prerender = false;

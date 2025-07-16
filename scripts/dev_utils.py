@@ -27,10 +27,10 @@ except ImportError as e:
 def get_supabase_client() -> Client:
     """Get Supabase client for database operations."""
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY")
+    key = os.getenv("SUPABASE_KEY")
     
     if not url or not key:
-        print("Error: SUPABASE_URL and SUPABASE_ANON_KEY environment variables required")
+        print("Error: SUPABASE_URL and SUPABASE_KEY environment variables required")
         print("Please check your .env file")
         sys.exit(1)
     

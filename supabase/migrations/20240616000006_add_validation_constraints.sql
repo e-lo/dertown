@@ -7,13 +7,15 @@ ADD CONSTRAINT events_title_length CHECK (length(title) > 0 AND length(title) <=
 ADD CONSTRAINT events_description_length CHECK (length(description) <= 2000),
 ADD CONSTRAINT events_email_format CHECK (email IS NULL OR email ~* '^[^@]+@[^@]+\.[^@]+$'),
 ADD CONSTRAINT events_cost_length CHECK (length(cost) <= 100),
-ADD CONSTRAINT events_start_date_future CHECK (start_date >= CURRENT_DATE),
 ADD CONSTRAINT events_end_date_after_start CHECK (end_date IS NULL OR end_date >= start_date),
 ADD CONSTRAINT events_time_consistency CHECK (
     (start_time IS NULL AND end_time IS NULL) OR 
     (start_time IS NOT NULL AND end_time IS NULL) OR
     (start_time IS NOT NULL AND end_time IS NOT NULL AND end_time > start_time)
 );
+
+-- Remove the constraint that enforces event start dates must be in the future
+ALTER TABLE events DROP CONSTRAINT IF EXISTS events_start_date_future;
 
 -- Events staged table constraints (same as events)
 ALTER TABLE events_staged 

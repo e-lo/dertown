@@ -4,7 +4,7 @@ import type { Database } from '../../../types/database';
 
 export const prerender = false;
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 
 export const GET: APIRoute = async ({ request }) => {
   const authHeader = request.headers.get('Authorization');
