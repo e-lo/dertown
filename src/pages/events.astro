@@ -17,15 +17,16 @@ const allTags = tagsResult.data || [];
 // Get unique tags that are used as either primary or secondary tags
 const usedTagIds = new Set(
   [
-    ...events.map((event) => event.primary_tag_id),
-    ...events.map((event) => event.secondary_tag_id),
+    ...events.map((event: any) => event.primary_tag_id),
+    ...events.map((event: any) => event.secondary_tag_id),
   ].filter(Boolean)
 );
 
 const usedTags = allTags.filter((tag) => usedTagIds.has(tag.id));
 
-// Sort events by date (most recent first)
-const sortedEvents = [...events].sort((a, b) => {
+// Sort events by start date (earliest first)
+const sortedEvents = [...events].sort((a: any, b: any) => {
+  if (!a.start_date || !b.start_date) return 0;
   const dateA = new Date(a.start_date + (a.start_time || 'T00:00:00'));
   const dateB = new Date(b.start_date + (b.start_time || 'T00:00:00'));
   return dateA.getTime() - dateB.getTime();
@@ -33,7 +34,7 @@ const sortedEvents = [...events].sort((a, b) => {
 
 // Group events by primary tag for color assignment (CSS only)
 const eventsByTag = events.reduce(
-  (acc, event) => {
+  (acc, event: any) => {
     const tag = allTags.find((t) => t.id === event.primary_tag_id);
     if (tag) {
       const kebabCase = (tag.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -46,7 +47,7 @@ const eventsByTag = events.reduce(
 
 // Create a map of event IDs to their tag information
 const eventTags = events.reduce(
-  (acc, event) => {
+  (acc, event: any) => {
     const primaryTag = allTags.find((t) => t.id === event.primary_tag_id);
     const secondaryTag = event.secondary_tag_id
       ? allTags.find((t) => t.id === event.secondary_tag_id)
@@ -84,7 +85,7 @@ const sortedUsedTags = [...usedTags].sort((a, b) => a.name.localeCompare(b.name)
         eventColors={eventsByTag}
         eventTags={eventTags}
         showFilters={false}
-        showPagination={true}
+        showPagination={false}
       />
     </div>
   </div>

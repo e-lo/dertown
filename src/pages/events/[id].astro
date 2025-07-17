@@ -29,82 +29,87 @@ if (error || !event) {
 // Fetch related events (same organization or location)
 const { data: relatedEvents } = await db.events.getRelated(id, event.organization_id, event.location_id);
 
-const related = relatedEvents || [];
+const related = (relatedEvents || []) as Array<{
+  id: string;
+  title: string;
+  start_date: string;
+  location?: { name: string };
+}>;
 ---
 
 <Layout title={`${event.title} - Der Town`}>
-  <main class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+  <main class="min-h-screen bg-gray-50 py-4 sm:py-8">
+    <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
-      <div class="bg-white rounded-lg shadow-lg mb-8 relative">
+      <div class="bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative">
         {event.external_image_url && (
           <div class="overflow-hidden rounded-t-lg">
-            <div class="w-full h-64 bg-cover bg-center" style={`background-image: url('${event.external_image_url}')`}></div>
+            <div class="w-full h-48 sm:h-64 bg-cover bg-center" style={`background-image: url('${event.external_image_url}')`}></div>
           </div>
         )}
-        <div class="p-8 pb-20 relative">
+        <div class="p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative">
           <!-- Share Button in top-right -->
-          <div class="absolute top-6 right-6 flex gap-2 z-20">
+          <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
             <ShareButton 
-              title={event.title}
+              title={event.title || 'Event'}
               url={Astro.url.href}
               tooltipText="Share event with your neighbors"
             />
             <!-- Calendar Add Button -->
             <CalendarAddButton 
               eventId={event.id}
-              eventTitle={event.title}
+              eventTitle={event.title || 'Event'}
               tooltipText="Add this event to your own calendar"
             />
           </div>
-          <h1 class="text-3xl font-bold mb-4">{event.title}</h1>
+          <h1 class="text-2xl sm:text-3xl font-bold mb-4 pr-20 sm:pr-24">{event.title || 'Event'}</h1>
           
           <!-- Event Meta -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 h-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6 h-full">
             <div class="flex flex-col h-full min-h-0">
               <!-- Date/Time -->
-              <div class="flex items-center gap-2 text-lg text-gray-700">
+              <div class="flex items-center gap-2 text-base sm:text-lg text-gray-700">
                 <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                {formatEventDateTime(event)}
+                <span class="break-words">{formatEventDateTime(event as any)}</span>
               </div>
               <!-- Location -->
               {event.location?.name && (
-                <div class="flex items-center gap-2 text-lg text-gray-700">
+                <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
                   <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  {event.location.name}
+                  <span class="break-words">{event.location.name}</span>
                 </div>
               )}
               <!-- Organization -->
               {event.organization && (
-                <div class="flex items-center gap-2 text-lg text-gray-700">
+                <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
                   <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <circle cx="12" cy="8" r="4"/>
-                    <path d="M16 20v-2a4 4 0 0 0-8 0v2"/>
+                    <path d="M16 20v-2a4 4 0 00-8 0v2"/>
                     <circle cx="5" cy="13" r="2.5"/>
                     <circle cx="19" cy="13" r="2.5"/>
-                    <path d="M3 20v-1a4 4 0 0 1 3-3.87M21 20v-1a4 4 0 0 0-3-3.87"/>
+                    <path d="M3 20v-1a4 4 0 013-3.87M21 20v-1a4 4 0 00-3-3.87"/>
                   </svg>
-                  {typeof event.organization === 'object' && event.organization !== null ? event.organization.name : event.organization}
+                  <span class="break-words">{typeof event.organization === 'object' && event.organization !== null ? event.organization.name : event.organization}</span>
                 </div>
               )}
               <!-- Website -->
               {event.website && (
-                <a href={event.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-lg text-blue-600 hover:underline">
+                <a href={event.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-base sm:text-lg text-blue-600 hover:underline mt-2">
                   <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                  Website
+                  <span class="break-words">Website</span>
                 </a>
               )}
             </div>
-            <div class="prose max-w-none text-gray-800">
+            <div class="prose max-w-none text-gray-800 sm:text-base">
               {event.description}
             </div>
           </div>
           
           <!-- Tags -->
           {(event.primary_tag || event.secondary_tag) && (
-            <div class="mb-6">
+            <div class="mb-4 sm:mb-6">
   
-              <div class="flex flex-wrap gap-2 mt-10 mb-0 md:mb-0 md:absolute md:bottom-6 md:left-8 md:right-8">
+              <div class="flex flex-wrap gap-2 mt-6 sm:mt-10 md:mb-0 absolute md:bottom-6 md:left-8 md:right-8">
                 {event.primary_tag && (
                   <Badge variant={getCategoryBadgeVariant(event.primary_tag.name)} size="md">
                     {event.primary_tag.name}
@@ -120,17 +125,17 @@ const related = relatedEvents || [];
           )}
           
           <!-- Action Buttons -->
-          <div class="flex flex-wrap gap-4">
+          <div class="flex flex-wrap gap-3 sm:gap-4">
             {event.website && (
               <a href={event.website} target="_blank" rel="noopener noreferrer" 
-                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                 Visit Website
               </a>
             )}
             
             {event.registration_link && (
               <a href={event.registration_link} target="_blank" rel="noopener noreferrer"
-                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                 Register Now
               </a>
             )}
@@ -140,21 +145,21 @@ const related = relatedEvents || [];
       
       <!-- Related Events -->
       {related.length > 0 && (
-        <div class="bg-white rounded-lg shadow-lg p-8">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Related Events</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                         {related.map((relatedEvent: unknown) => (
-               <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8">
+          <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Related Events</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                         {related.map((relatedEvent) => (
+               <div class="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
                  <h3 class="font-semibold text-gray-900 mb-2">
                    <a href={`/events/${relatedEvent.id}`} class="hover:text-blue-600">
                      {relatedEvent.title}
                    </a>
                  </h3>
-                 <p class="text-sm text-gray-600 mb-2">
+                 <p class="text-xs sm:text-sm text-gray-600 mb-2">
                    {new Date(relatedEvent.start_date).toLocaleDateString()}
                  </p>
                  {relatedEvent.location && (
-                   <p class="text-sm text-gray-500">{relatedEvent.location.name}</p>
+                   <p class="text-xs sm:text-sm text-gray-500">{relatedEvent.location.name}</p>
                  )}
                </div>
              ))}

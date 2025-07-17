@@ -135,19 +135,20 @@ export function transformEventForCalendar(event: {
  */
 export function filterFutureEvents(
   events: {
-    start_date: string;
+    start_date: string | null;
     start_time: string | null;
     end_date: string | null;
     end_time: string | null;
   }[]
 ): {
-  start_date: string;
+  start_date: string | null;
   start_time: string | null;
   end_date: string | null;
   end_time: string | null;
 }[] {
   const now = new Date();
   return events.filter((e) => {
+    if (!e.start_date) return false;
     const startDate = new Date(e.start_date + (e.start_time ? 'T' + e.start_time : ''));
     // If end_date or end_time exists, use it for comparison
     let endDate: Date | null = null;

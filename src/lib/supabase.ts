@@ -81,7 +81,7 @@ export const db = {
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
         `
-      );
+      ).order('start_date', { ascending: true });
       return { data: data ? filterFutureEvents(data) : [], error };
     },
     create: (data: Database['public']['Tables']['events']['Insert']) =>

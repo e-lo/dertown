@@ -5,6 +5,8 @@ A modern, community-driven events and announcements site for small towns.
 - **Built with:** Astro, TypeScript, Supabase, Tailwind CSS
 - **Maintained by:** Single contributor with AI agent assistance
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/5f2db1b2-1070-4e9e-8ade-958de3b45534/deploy-status)](https://app.netlify.com/projects/dertown/deploys)
+
 ---
 
 ## 🚀 Quickstart
