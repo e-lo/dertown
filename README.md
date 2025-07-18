@@ -2,7 +2,7 @@
 
 A modern, community-driven events and announcements site for small towns.
 
-- **Built with:** Astro, TypeScript, Supabase, Tailwind CSS
+- **Built with:** Astro, TypeScript, Supabase, Tailwind CSS, Embla Carousel
 - **Maintained by:** Single contributor with AI agent assistance
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/5f2db1b2-1070-4e9e-8ade-958de3b45534/deploy-status)](https://app.netlify.com/projects/dertown/deploys)
@@ -43,7 +43,7 @@ See [DEVELOPING.md](./DEVELOPING.md) for full setup, admin, and troubleshooting 
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** Astro, Tailwind CSS, custom UI components
+- **Frontend:** Astro, Tailwind CSS, custom UI components, Embla Carousel (event carousel)
 - **Backend:** Supabase (PostgreSQL, Auth, Storage, RLS)
 - **Calendar UI:** FullCalendar.js
 - **Python Utilities:** For data import, validation, and admin tasks

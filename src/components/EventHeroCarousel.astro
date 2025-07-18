@@ -42,21 +42,21 @@ const hasEvents = displayEvents.length > 0;
 ---
 
 {hasEvents && (
-  <div class="glider-contain relative">
-    <div class="glider">
+  <div class="embla relative">
+    <div class="embla__container">
       {displayEvents.map((event, index) => (
-        <div class="glider-slide flex-shrink-0" style="width:320px !important; min-width:320px !important; max-width:320px !important; margin: 0 4px; height: 320px; min-height: 320px !important;">
+        <div class="embla__slide flex-shrink-0" style="width:320px; min-width:320px; max-width:320px; margin: 0 4px;">
           <EventCarouselCard event={event} tags={{ primary: event.primary_tag?.name, secondary: event.secondary_tag?.name }} />
         </div>
       ))}
     </div>
-    <button aria-label="Previous" class="glider-prev bg-white hover:bg-gray-50 rounded-full w-10 h-10 flex items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">
+    <button aria-label="Previous" id="embla-prev" class="hidden md:flex bg-white hover:bg-gray-50 rounded-full w-10 h-10 items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">
       <span class="material-symbols-outlined text-2xl">chevron_left</span>
     </button>
-    <button aria-label="Next" class="glider-next bg-white hover:bg-gray-50 rounded-full w-10 h-10 flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">
+    <button aria-label="Next" id="embla-next" class="hidden md:flex bg-white hover:bg-gray-50 rounded-full w-10 h-10 items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 z-10 shadow-lg border border-gray-200">
       <span class="material-symbols-outlined text-2xl">chevron_right</span>
     </button>
-    <script src="/glider-init.js"></script>
+    <script type="module" src="/embla-init.js"></script>
   </div>
 )}
 
@@ -72,65 +72,29 @@ const hasEvents = displayEvents.length > 0;
 )}
 
 <style is:global>
-.glider-contain {
+.embla {
   position: relative;
   width: 100%;
   margin: 0 auto;
-  height: 540px;
-  min-height: 500px;
+  margin-top: 20px;
   padding: 0 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow-x: hidden;
 }
-.glider {
-  overflow-x: hidden !important;
+.embla__container {
+  display: flex;
+  flex-wrap: nowrap;
   max-width: 100%;
   min-width: 0;
 }
-.glider-track {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-}
-.glider-slide {
-  min-width: 300px;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 0 8px;
-}
-.glider-prev, .glider-next {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  cursor: pointer;
-}
-.glider-prev { left: 0.5rem; }
-.glider-next { right: 0.5rem; }
-.glider-dots {
-  text-align: center;
-  margin-top: 1rem;
-}
-.glider-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  background: #ddd;
-  border-radius: 50%;
+.embla__slide {
+  flex: 0 0 320px;
+  min-width: 320px;
+  max-width: 320px;
   margin: 0 4px;
-  cursor: pointer;
-}
-.glider-dot.active {
-  background: #333;
+  cursor: grab;
 }
 </style>
 

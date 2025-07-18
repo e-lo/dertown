@@ -73,7 +73,7 @@ export function getCategoryBadgeVariant(
   };
 
   const result = categoryMap[categoryName] || 'default';
-  console.log('getCategoryBadgeVariant result:', result);
+  //console.log('getCategoryBadgeVariant result:', result);
   return result;
 }
 

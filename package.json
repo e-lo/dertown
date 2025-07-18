@@ -26,7 +26,7 @@
     "@fullcalendar/timegrid": "^6.1.17",
     "@shoelace-style/shoelace": "^2.20.1",
     "astro": "^4.14.0",
-    "glider-js": "^1.7.9",
+    "embla-carousel": "^8.6.0",
     "rollup-plugin-copy": "^3.5.0",
     "solid-js": "^1.9.7",
     "tailwindcss": "^3.4.17",
