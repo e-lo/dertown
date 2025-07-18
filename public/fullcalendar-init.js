@@ -20,12 +20,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     // Mobile-specific header and views
     const mobileHeaderToolbar = {
-      left: '',
-      center: 'title',
-      right: 'dayGridWeek,timeGridDay'
+      start: 'title',
+      center: 'dayGridWeek,timeGridDay,today',
+      end: ''
     };
     const desktopHeaderToolbar = {
-      left: 'prev,next today',
+      left: 'prev,next,today',
       center: 'title',
       right: 'dayGridMonth,dayGridWeek,timeGridDay'
     };
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const todayButton = calendarEl.querySelector('.fc-today-button');
       if (todayButton) {
         todayButton.innerHTML = '<span class="material-symbols-outlined">today</span>';
-        todayButton.setAttribute('aria-label', 'Go to today');
+        todayButton.setAttribute('aria-label', 'Go to today 1');
       }
 
       // Replace view button text with icons
@@ -191,17 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
       `;
       document.head.appendChild(mobileStyle);
     }
-    // On mobile, hide prev/next arrows and add swipe navigation
+    // On mobile add swipe navigation
     if (isMobile) {
-      // Hide prev/next buttons
-      const style = document.createElement('style');
-      style.textContent = `
-        .fc-header-toolbar .fc-prev-button,
-        .fc-header-toolbar .fc-next-button {
-          display: none !important;
-        }
-      `;
-      document.head.appendChild(style);
       // Add swipe gesture support
       let touchStartX = null;
       calendarEl.addEventListener('touchstart', function(e) {
@@ -224,32 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     }
-    // Add a 'today' icon button on mobile, top-right, same line as view selector
-    function addTodayIconButton() {
-      if (document.getElementById('fc-today-icon-btn')) return;
-      const rightChunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk:last-child');
-      if (rightChunk) {
-        const btn = document.createElement('button');
-        btn.id = 'fc-today-icon-btn';
-        btn.type = 'button';
-        btn.title = 'Go to today';
-        btn.setAttribute('aria-label', 'Go to today');
-        btn.style.background = 'none';
-        btn.style.border = 'none';
-        btn.style.marginLeft = '0.75rem';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.justifyContent = 'center';
-        btn.style.padding = '0.25rem 0.5rem';
-        btn.style.cursor = 'pointer';
-        btn.innerHTML = '<span class="material-symbols-outlined text-2xl">today</span>';
-        btn.onclick = function() { calendar.today(); };
-        rightChunk.appendChild(btn);
-      }
-    }
-    calendar.on('datesSet', addTodayIconButton);
-    // Also add on initial render
-    addTodayIconButton();
   } else {
     console.error('FullCalendar not loaded or #calendar not found');
   }

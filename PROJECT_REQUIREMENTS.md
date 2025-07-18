@@ -2,7 +2,7 @@
 
 ## 1. 🎯 Purpose
 
-A lightweight, modern web application for community events and announcements, optimized for small towns. Built for fast, accessible, and low-maintenance operation, with a focus on admin review, public submissions, and calendar integration.
+A lightweight, mobile-responsive, modern web application for community events and announcements, optimized for small towns. Built for fast, accessible, and low-maintenance operation, with a focus on admin review, public submissions, and calendar integration.
 
 ---
 
