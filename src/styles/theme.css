@@ -1,19 +1,26 @@
 :root {
-  /* Event Category Colors */
-  --color-event-arts-culture: #9333ea;
-  --color-event-civic: #f43f5e;
-  --color-event-family: #166534;
-  --color-event-nature: #16a34a;
-  --color-event-outdoors: #15803d;
-  --color-event-school: #06b6d4;
-  --color-event-sports: #0891b2;
-  --color-event-town: #475569;
+/* palette */
+  --palatinate-blue: #4740cbff;
+  --canary: #ffe600ff;
+  --pigment-green: #4daa57ff;
+  --blue-green: #219ebcff;
+  --fandango: #c0268cff;
+  --cal-poly-green: #14532dff;
+  --dark-slate-gray: #2f4445ff;
+
+  /* blue gradient colors */
+  --brandeis-blue: #2472FCff;
+  --neon-blue: #5460F9ff;
+
+  /* blue gradients for backgrounds */
+  --gradient-blues-light: linear-gradient(90deg, var(--palatinate-blue) 0%, var(--brandeis-blue) 100%);
+  --gradient-blues-bold: linear-gradient(90deg, var(--palatinate-blue) 0%, var(--neon-blue) 100%);
 
   /* General Theme Colors */
-  --color-primary: #1f2937; /* Dark Gray */
-  --color-secondary: #9333ea; /* Purple */
-  --color-background: #f9fafb; /* Light Gray */
-  --color-surface: #fff; /* White */
+  --color-primary: var(--palatinate-blue);
+  --color-secondary: var(--canary);
+  --color-background:  var(--palatinate-blue);/* Light Gray */
+  --color-surface: #f9fafb; /* Light Gray */
   --color-text: #111827; /* Dark Gray */
   --color-muted: #6b7280; /* Medium Gray */
 
@@ -31,58 +38,74 @@
 }
 
 /* Utility classes for event pills and backgrounds */
-.bg-event-arts-culture {
-  background-color: var(--color-event-arts-culture) !important;
+.bg-event-featured {
+  background-color: var(--canary) !important;
+  color: var(--color-text) !important;
+}
+.bg-event-today {
+  background-color: var( --pigment-green) !important;
   color: #fff !important;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.10), 0 0.5px 1.5px 0 rgba(0,0,0,0.08);
+}
+.bg-event-arts-culture {
+  background-color: var(--canary) !important;
+  color: #111111 !important;
 }
 .bg-event-civic {
-  background-color: var(--color-event-civic) !important;
+  background-color: var(--dark-slate-gray) !important;
   color: #fff !important;
 }
 .bg-event-family {
-  background-color: var(--color-event-family) !important;
+  background-color: var(--fandango) !important;
   color: #fff !important;
 }
 .bg-event-nature {
-  background-color: var(--color-event-nature) !important;
+  background-color: var(--cal-poly-green) !important;
+  color: #fff !important;
+}
+.bg-event-recreation {
+  background-color: var(--blue-green) !important;
   color: #fff !important;
 }
 .bg-event-outdoors {
-  background-color: var(--color-event-outdoors) !important;
+  background-color: var(--blue-green) !important;
   color: #fff !important;
 }
 .bg-event-school {
-  background-color: var(--color-event-school) !important;
+  background-color: var(--dark-slate-gray) !important;
+  color: #fff !important;
+}
+.bg-event-seniors {
+  background-color: var(--fandango) !important;
   color: #fff !important;
 }
 .bg-event-sports {
-  background-color: var(--color-event-sports) !important;
+  background-color: var(--canary) !important;
   color: #fff !important;
 }
 .bg-event-town {
-  background-color: var(--color-event-town) !important;
+  background-color: var(--palatinate-blue) !important;
   color: #fff !important;
 }
 
-.text-theme {
-  color: var(--color-text) !important;
+.bg-gradient-blues-light {
+  background: var(--gradient-blues-light) !important;
 }
-.bg-theme-primary {
-  background-color: var(--color-primary) !important;
+.bg-gradient-blues-bold {
+  background: var(--gradient-blues-bold) !important;
+}
+
+/* Fallback for events with no recognized tag */
+.bg-event-default {
+  background: var(--gradient-blues-light) !important;
   color: #fff !important;
 }
-.bg-theme-surface {
-  background-color: var(--color-surface) !important;
-  color: var(--color-text) !important;
-}
+
 .font-sans {
   font-family: var(--font-sans) !important;
 }
 .font-serif {
   font-family: var(--font-serif) !important;
-}
-.font-mono {
-  font-family: var(--font-mono) !important;
 }
 
 /* Tag filter pill active state */

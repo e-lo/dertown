@@ -16,13 +16,24 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (calendarEl && window.FullCalendar) {
+    // Detect mobile
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    // Mobile-specific header and views
+    const mobileHeaderToolbar = {
+      left: '',
+      center: 'title',
+      right: 'dayGridWeek,timeGridDay'
+    };
+    const desktopHeaderToolbar = {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,dayGridWeek,timeGridDay'
+    };
+    const headerToolbar = isMobile ? mobileHeaderToolbar : desktopHeaderToolbar;
+    const initialView = isMobile ? 'dayGridWeek' : 'dayGridWeek';
     const calendar = new window.FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridWeek',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,dayGridWeek,timeGridDay'
-      },
+      initialView,
+      headerToolbar,
       events: events,
       eventClick: function(info) {
         if (info.event.id) {
@@ -85,6 +96,160 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     calendar.render();
+    // Replace all button text with Material Symbols icons after calendar renders
+    function replaceButtonsWithIcons() {
+      // Replace navigation arrows
+      const prevButton = calendarEl.querySelector('.fc-prev-button');
+      const nextButton = calendarEl.querySelector('.fc-next-button');
+      if (prevButton) {
+        prevButton.innerHTML = '<span class="material-symbols-outlined">chevron_left</span>';
+        prevButton.setAttribute('aria-label', 'Previous');
+      }
+      if (nextButton) {
+        nextButton.innerHTML = '<span class="material-symbols-outlined">chevron_right</span>';
+        nextButton.setAttribute('aria-label', 'Next');
+      }
+
+      // Replace today button
+      const todayButton = calendarEl.querySelector('.fc-today-button');
+      if (todayButton) {
+        todayButton.innerHTML = '<span class="material-symbols-outlined">today</span>';
+        todayButton.setAttribute('aria-label', 'Go to today');
+      }
+
+      // Replace view button text with icons
+      const viewButtons = calendarEl.querySelectorAll('.fc-dayGridMonth-button, .fc-dayGridWeek-button, .fc-timeGridDay-button');
+      viewButtons.forEach(btn => {
+        const viewType = btn.className;
+        if (viewType.includes('dayGridMonth')) {
+          btn.innerHTML = '<span class="material-symbols-outlined">calendar_view_month</span>';
+          btn.setAttribute('aria-label', 'Month view');
+        } else if (viewType.includes('dayGridWeek')) {
+          btn.innerHTML = '<span class="material-symbols-outlined">calendar_view_week</span>';
+          btn.setAttribute('aria-label', 'Week view');
+        } else if (viewType.includes('timeGridDay')) {
+          btn.innerHTML = '<span class="material-symbols-outlined">calendar_view_day</span>';
+          btn.setAttribute('aria-label', 'Day view');
+        }
+      });
+    }
+
+    // Replace buttons on initial render and after navigation
+    calendar.on('datesSet', replaceButtonsWithIcons);
+    // Also call immediately after render
+    setTimeout(replaceButtonsWithIcons, 100);
+    // Add custom CSS for calendar header and icons
+    const style = document.createElement('style');
+    style.textContent = `
+      .fc-header-toolbar .fc-button .material-symbols-outlined {
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .fc-button {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 2.5rem !important;
+        min-height: 2.5rem !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Add mobile-specific CSS
+    if (isMobile) {
+      const mobileStyle = document.createElement('style');
+      mobileStyle.textContent = `
+        .fc-header-toolbar {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 0.5rem !important;
+        }
+        .fc-header-toolbar .fc-toolbar-chunk {
+          width: 100%;
+          display: flex;
+          justify-content: flex-start;
+          margin-bottom: 0.25rem;
+        }
+        .fc-header-toolbar .fc-toolbar-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin: 0.5rem 0 0.25rem 0;
+          width: 100%;
+          text-align: left;
+        }
+        .fc-header-toolbar .fc-button-group {
+          margin-bottom: 0.25rem;
+        }
+        .fc-header-toolbar .fc-button {
+          min-width: 2.5rem;
+          min-height: 2.5rem;
+          font-size: 1rem;
+          margin-right: 0.5rem;
+        }
+      `;
+      document.head.appendChild(mobileStyle);
+    }
+    // On mobile, hide prev/next arrows and add swipe navigation
+    if (isMobile) {
+      // Hide prev/next buttons
+      const style = document.createElement('style');
+      style.textContent = `
+        .fc-header-toolbar .fc-prev-button,
+        .fc-header-toolbar .fc-next-button {
+          display: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+      // Add swipe gesture support
+      let touchStartX = null;
+      calendarEl.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+        }
+      });
+      calendarEl.addEventListener('touchend', function(e) {
+        if (touchStartX !== null && e.changedTouches.length === 1) {
+          const touchEndX = e.changedTouches[0].clientX;
+          const deltaX = touchEndX - touchStartX;
+          if (Math.abs(deltaX) > 50) {
+            if (deltaX < 0) {
+              calendar.next();
+            } else {
+              calendar.prev();
+            }
+          }
+          touchStartX = null;
+        }
+      });
+    }
+    // Add a 'today' icon button on mobile, top-right, same line as view selector
+    function addTodayIconButton() {
+      if (document.getElementById('fc-today-icon-btn')) return;
+      const rightChunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk:last-child');
+      if (rightChunk) {
+        const btn = document.createElement('button');
+        btn.id = 'fc-today-icon-btn';
+        btn.type = 'button';
+        btn.title = 'Go to today';
+        btn.setAttribute('aria-label', 'Go to today');
+        btn.style.background = 'none';
+        btn.style.border = 'none';
+        btn.style.marginLeft = '0.75rem';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.padding = '0.25rem 0.5rem';
+        btn.style.cursor = 'pointer';
+        btn.innerHTML = '<span class="material-symbols-outlined text-2xl">today</span>';
+        btn.onclick = function() { calendar.today(); };
+        rightChunk.appendChild(btn);
+      }
+    }
+    calendar.on('datesSet', addTodayIconButton);
+    // Also add on initial render
+    addTodayIconButton();
   } else {
     console.error('FullCalendar not loaded or #calendar not found');
   }

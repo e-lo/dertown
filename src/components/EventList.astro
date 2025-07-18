@@ -3,7 +3,6 @@ import EventListCard from './EventListCard.astro';
 
 const {
   events,
-  eventColors = {},
   eventTags = {},
   showFilters = true,
   showPagination = true,
@@ -85,15 +84,10 @@ const paginatedEvents = events.slice(startIndex, endIndex);
           const primaryTag = eventTags[event.id]?.primary || '';
           const secondaryTag = eventTags[event.id]?.secondary || '';
           return (
-            <div
-              class={`event-card-wrapper ${eventColors[event.id]?.bg || ''}`}
-              data-primary-tag={primaryTag}
-              data-secondary-tag={secondaryTag}
-            >
+            <div class="event-card-wrapper">
               <EventListCard
                 event={event}
                 tags={{ primary: primaryTag, secondary: secondaryTag }}
-                className={eventColors[event.id]?.text || ''}
               />
             </div>
           );

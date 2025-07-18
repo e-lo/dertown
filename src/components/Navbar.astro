@@ -37,7 +37,9 @@ import { db } from '../lib/supabase';
       <div class="hidden sm:ml-6 sm:flex sm:items-center gap-2">
         <span class="font-semibold text-gray-600 mr-2">Subscribe:</span>
         <CalendarSubscribeButton />
-        <RssFeedButton />
+        <a href="/rss.xml" class="inline-flex items-center px-2 py-1" title="RSS Feed">
+          <span class="material-symbols-outlined text-xl">rss_feed</span>
+        </a>
       </div>
 
       <!-- Mobile menu button -->
@@ -50,9 +52,7 @@ import { db } from '../lib/supabase';
         >
           <span class="sr-only">Open main menu</span>
           <!-- Hamburger icon -->
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <span class="material-symbols-outlined text-2xl">menu</span>
         </button>
       </div>
     </div>

@@ -38,11 +38,11 @@ const eventsByTag = events.reduce(
     const tag = allTags.find((t) => t.id === event.primary_tag_id);
     if (tag) {
       const kebabCase = (tag.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      acc[event.id] = { bg: `bg-event-${kebabCase}`, text: 'text-white' };
+      acc[event.id] = { primary: kebabCase, secondary: '' };
     }
     return acc;
   },
-  {} as Record<string, { bg: string; text: string }>
+  {} as Record<string, { primary: string; secondary: string }>
 );
 
 // Create a map of event IDs to their tag information

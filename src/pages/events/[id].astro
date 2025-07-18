@@ -7,6 +7,7 @@ import ShareButton from '../../components/ui/ShareButton.astro';
 import CalendarAddButton from '../../components/ui/CalendarAddButton.astro';
 import { db } from '../../lib/supabase';
 import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-utils';
+import EventListCard from '../../components/EventListCard.astro';
 
 export async function getStaticPaths() {
   // This function is not used when prerender = false, but we keep it for type safety
@@ -38,7 +39,7 @@ const related = (relatedEvents || []) as Array<{
 ---
 
 <Layout title={`${event.title} - Der Town`}>
-  <main class="min-h-screen bg-gray-50 py-4 sm:py-8">
+  <main class="min-h-screen bg-gradient-blues-bold py-4 sm:py-8">
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
       <div class="bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative">
@@ -69,33 +70,27 @@ const related = (relatedEvents || []) as Array<{
             <div class="flex flex-col h-full min-h-0">
               <!-- Date/Time -->
               <div class="flex items-center gap-2 text-base sm:text-lg text-gray-700">
-                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="material-symbols-outlined text-blue-600">calendar_today</span>
                 <span class="break-words">{formatEventDateTime(event as any)}</span>
               </div>
               <!-- Location -->
               {event.location?.name && (
                 <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
-                  <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span class="material-symbols-outlined text-blue-600">location_on</span>
                   <span class="break-words">{event.location.name}</span>
                 </div>
               )}
               <!-- Organization -->
               {event.organization && (
                 <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
-                  <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M16 20v-2a4 4 0 00-8 0v2"/>
-                    <circle cx="5" cy="13" r="2.5"/>
-                    <circle cx="19" cy="13" r="2.5"/>
-                    <path d="M3 20v-1a4 4 0 013-3.87M21 20v-1a4 4 0 00-3-3.87"/>
-                  </svg>
-                  <span class="break-words">{typeof event.organization === 'object' && event.organization !== null ? event.organization.name : event.organization}</span>
+                  <span class="material-symbols-outlined text-blue-600">diversity_3</span>
+                  <span class="break-words">{typeof event.organization === 'object' && event.organization !== null ? event.organization.name : (event.organization ?? '')}</span>
                 </div>
               )}
               <!-- Website -->
               {event.website && (
                 <a href={event.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-base sm:text-lg text-blue-600 hover:underline mt-2">
-                  <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                  <span class="material-symbols-outlined text-blue-600">link</span>
                   <span class="break-words">Website</span>
                 </a>
               )}
@@ -148,21 +143,15 @@ const related = (relatedEvents || []) as Array<{
         <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8">
           <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Related Events</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                         {related.map((relatedEvent) => (
-               <div class="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
-                 <h3 class="font-semibold text-gray-900 mb-2">
-                   <a href={`/events/${relatedEvent.id}`} class="hover:text-blue-600">
-                     {relatedEvent.title}
-                   </a>
-                 </h3>
-                 <p class="text-xs sm:text-sm text-gray-600 mb-2">
-                   {new Date(relatedEvent.start_date).toLocaleDateString()}
-                 </p>
-                 {relatedEvent.location && (
-                   <p class="text-xs sm:text-sm text-gray-500">{relatedEvent.location.name}</p>
-                 )}
-               </div>
-             ))}
+            {related.map((relatedEvent) => (
+              <EventListCard
+                event={relatedEvent}
+                tags={{
+                  primary: ('primary_tag' in relatedEvent && relatedEvent.primary_tag && typeof relatedEvent.primary_tag === 'object' && 'name' in relatedEvent.primary_tag) ? relatedEvent.primary_tag.name : '',
+                  secondary: ('secondary_tag' in relatedEvent && relatedEvent.secondary_tag && typeof relatedEvent.secondary_tag === 'object' && 'name' in relatedEvent.secondary_tag) ? relatedEvent.secondary_tag.name : ''
+                }}
+              />
+            ))}
           </div>
         </div>
       )}

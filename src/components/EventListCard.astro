@@ -2,13 +2,21 @@
 import Badge from './ui/Badge.astro';
 import { formatEventDate, formatTime, isToday, getEventUrl } from '../lib/event-utils';
 
-const { event, tags, className = '' } = Astro.props;
+const { event, tags } = Astro.props;
 
 const { month: eventMonth, day: eventDay, dayOfWeek: eventDayOfWeek } = formatEventDate(event.start_date);
 const eventIsToday = isToday(event.start_date);
+
+// Always sanitize tag and provide a fallback
+function toKebabCase(str: string) {
+  return (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+const primaryTag = tags && tags.primary ? toKebabCase(tags.primary) : '';
+const bgClass = primaryTag ? `bg-event-${primaryTag}` : 'bg-event-default';
+const textClass = 'text-white';
 ---
 
-<article class={`event-list-card relative flex h-full transition-colors ${className}`}>
+<article class={`event-list-card relative flex h-full transition-colors ${bgClass} ${textClass}`}>
   <a
     href={getEventUrl(event.id)}
     class="absolute inset-0 z-10"
@@ -33,11 +41,6 @@ const eventIsToday = isToday(event.start_date);
 
     <!-- Main content -->
     <div class="relative z-0">
-      {
-        eventIsToday && (
-          <Badge variant="today" size="sm" className="mb-2">Today</Badge>
-        )
-      }
       <h3 class="text-xl font-bold mb-1 line-clamp-2">{event.title}</h3>
       <p class="text-sm opacity-90 mb-2">
         <span class="font-semibold">{eventDayOfWeek}</span>
@@ -48,33 +51,16 @@ const eventIsToday = isToday(event.start_date);
 
       <!-- Tags -->
       <div class="flex flex-wrap gap-2 mt-3">
-        {
-          tags && tags.primary && (
-            <Badge variant="white" size="sm">{tags.primary}</Badge>
-          )
-        }
-        {
-          tags && tags.secondary && (
-            <Badge variant="white" size="sm">{tags.secondary}</Badge>
-          )
-        }
+        {eventIsToday && (
+          <Badge variant="today" size="sm">Today</Badge>
+        )}
+        {tags && tags.primary && (
+          <Badge variant="white" size="sm">{tags.primary}</Badge>
+        )}
+        {tags && tags.secondary && (
+          <Badge variant="white" size="sm">{tags.secondary}</Badge>
+        )}
       </div>
     </div>
   </div>
 </article>
-
-<style>
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-</style>
