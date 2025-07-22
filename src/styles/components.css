@@ -219,3 +219,10 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+input[type="date"] {
+  border-radius: 0.375rem;
+  color: darkgrey;
+  padding: .2rem;
+  background: #fff;
+}

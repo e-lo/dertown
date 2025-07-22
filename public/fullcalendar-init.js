@@ -21,11 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mobile-specific header and views
     const mobileHeaderToolbar = {
       start: 'title',
-      center: 'dayGridWeek,timeGridDay,today',
+      center: 'dayGridWeek,timeGridDay,today,calendarPicker',
       end: ''
     };
     const desktopHeaderToolbar = {
-      left: 'prev,next,today',
+      left: 'prev,next,today,calendarPicker',
       center: 'title',
       right: 'dayGridMonth,dayGridWeek,timeGridDay'
     };
@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const calendar = new window.FullCalendar.Calendar(calendarEl, {
       initialView,
       headerToolbar,
+      customButtons: {
+        calendarPicker: {
+          text: '',
+          hint: 'Pick a date',
+        },
+      },
       events: events,
       eventClick: function(info) {
         if (info.event.id) {
@@ -95,7 +101,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const tooltip = new Tooltip(info.el, { html });
       }
     });
+    window.calendar = calendar; // <-- Assign to window for global access
     calendar.render();
+
     // Replace all button text with Material Symbols icons after calendar renders
     function replaceButtonsWithIcons() {
       // Replace navigation arrows
@@ -132,6 +140,18 @@ document.addEventListener('DOMContentLoaded', function() {
           btn.setAttribute('aria-label', 'Day view');
         }
       });
+      // Add icon to calendarPicker button
+      const dateInputBtn = calendarEl.querySelector('.fc-calendarPicker-button');
+      if (dateInputBtn) {
+        dateInputBtn.innerHTML = '<input id="calendar-datepicker-input" placeholder="Jump to..." type="date" class="date-picker-input">';
+        const dateInput = dateInputBtn.querySelector('#calendar-datepicker-input');
+        dateInput.addEventListener('change', function (e) {
+          const date = e.target.value;
+          if (window.calendar && date) {
+            window.calendar.gotoDate(date);
+          }
+        });
+      }
     }
 
     // Replace buttons on initial render and after navigation
