@@ -381,6 +381,25 @@ const getFieldValue = (field: string, defaultValue: string = ''): string => {
       />
     </div>
 
+    <!-- Image Alt Text for Accessibility -->
+    <div class="md:col-span-2">
+      <label for="image_alt_text" class="block text-sm font-medium text-gray-700 mb-1">
+        Image Alt Text (for screen readers)
+      </label>
+      <input
+        type="text"
+        id="image_alt_text"
+        name="image_alt_text"
+        value={getFieldValue('image_alt_text')}
+        maxlength="255"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Describe the image for people who cannot see it"
+      />
+      <p class="text-sm text-gray-500 mt-1">
+        This text will be used by screen readers and shown if the image cannot be loaded.
+      </p>
+    </div>
+
     <!-- Comments -->
     <div class="md:col-span-2">
       <label for="comments" class="block text-sm font-medium text-gray-700 mb-1">

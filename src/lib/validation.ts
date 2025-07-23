@@ -29,6 +29,7 @@ export const eventFormSchema = z.object({
   primary_tag_id: z.string().uuid().optional().or(z.literal('')),
   secondary_tag_id: z.string().uuid().optional().or(z.literal('')),
   external_image_url: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  image_alt_text: z.string().max(255, 'Alt text must be less than 255 characters').optional().or(z.literal('')),
   featured: z.boolean().optional(),
   exclude_from_calendar: z.boolean().optional(),
   registration: z.boolean().optional(),

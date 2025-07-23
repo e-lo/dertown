@@ -114,7 +114,7 @@ db-local-reset:
 # Run migrations on local DB only (no data loss)
 db-local-migrate:
 	@echo "[LOCAL] Running local database migrations..."
-	supabase db migrate
+	supabase db push --include-all --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 	@echo "[LOCAL] Local database migrations complete."
 
 # Seed local DB with local/test data (locations, orgs, tags, announcements, and local events with randomized dates)

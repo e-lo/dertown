@@ -148,6 +148,7 @@ export type Database = {
           google_calendar_event_id: string | null;
           id: string;
           image_id: string | null;
+          image_alt_text: string | null;
           location_id: string | null;
           organization_id: string | null;
           parent_event_id: string | null;
@@ -178,6 +179,7 @@ export type Database = {
           google_calendar_event_id?: string | null;
           id?: string;
           image_id?: string | null;
+          image_alt_text?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           parent_event_id?: string | null;
@@ -208,6 +210,7 @@ export type Database = {
           google_calendar_event_id?: string | null;
           id?: string;
           image_id?: string | null;
+          image_alt_text?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           parent_event_id?: string | null;
@@ -290,6 +293,7 @@ export type Database = {
           featured: boolean | null;
           id: string;
           image_id: string | null;
+          image_alt_text: string | null;
           location_added: string | null;
           location_id: string | null;
           organization_added: string | null;
@@ -322,6 +326,7 @@ export type Database = {
           featured?: boolean | null;
           id?: string;
           image_id?: string | null;
+          image_alt_text?: string | null;
           location_added?: string | null;
           location_id?: string | null;
           organization_added?: string | null;
@@ -354,6 +359,7 @@ export type Database = {
           featured?: boolean | null;
           id?: string;
           image_id?: string | null;
+          image_alt_text?: string | null;
           location_added?: string | null;
           location_id?: string | null;
           organization_added?: string | null;
@@ -684,6 +690,7 @@ export type Database = {
           end_time: string | null;
           exclude_from_calendar: boolean | null;
           external_image_url: string | null;
+          image_alt_text: string | null;
           featured: boolean | null;
           id: string | null;
           location_id: string | null;
@@ -707,6 +714,7 @@ export type Database = {
           end_time?: string | null;
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
+          image_alt_text?: string | null;
           featured?: boolean | null;
           id?: string | null;
           location_id?: string | null;
@@ -730,6 +738,7 @@ export type Database = {
           end_time?: string | null;
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
+          image_alt_text?: string | null;
           featured?: boolean | null;
           id?: string | null;
           location_id?: string | null;

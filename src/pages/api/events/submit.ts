@@ -56,6 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
       website: formData.website || null,
       registration_link: formData.registration_link || null,
       external_image_url: formData.external_image_url || null,
+      image_alt_text: formData.image_alt_text || null,
       registration: formData.registration || false,
       cost: formData.cost || null,
       comments: formData.comments || null,

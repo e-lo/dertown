@@ -10,7 +10,7 @@ const eventIsToday = isToday(event.start_date);
 
 <div class={`event-carousel-card bg-white rounded-xl shadow-lg border border-gray-200 transition-transform duration-200 hover:shadow-2xl hover:-translate-y-1 focus-within:shadow-2xl focus-within:-translate-y-1 cursor-pointer ${className}`} style="width: 320px; height: 500px; min-height: 500px; position: relative; display: flex; flex-direction: column;">
   {event.external_image_url && (
-    <img src={event.external_image_url} alt={event.title} class="w-full object-cover rounded-t-xl" style="height: 300px;" />
+    <img src={event.external_image_url} alt={String(event.image_alt_text ?? 'Event image')} class="w-full object-cover rounded-t-xl" style="height: 300px;" />
   )}
 
   <!-- Featured and Today Badges (top-right) -->

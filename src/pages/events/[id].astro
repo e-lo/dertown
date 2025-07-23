@@ -46,7 +46,7 @@ const related = (relatedEvents || []) as Array<{
         {event.external_image_url && (
           <div class="overflow-hidden rounded-t-lg w-full">
             <div class="event-detail-image-wrapper">
-              <img src={event.external_image_url} alt={event.title || 'Event image'} class="event-detail-image" />
+              <img src={event.external_image_url} alt={String(event.image_alt_text ?? 'Event image')} class="event-detail-image" />
             </div>
           </div>
         )}
