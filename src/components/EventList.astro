@@ -84,7 +84,7 @@ const paginatedEvents = events.slice(startIndex, endIndex);
           const primaryTag = eventTags[event.id]?.primary || '';
           const secondaryTag = eventTags[event.id]?.secondary || '';
           return (
-            <div class="event-card-wrapper">
+            <div class="event-card-wrapper" data-primary-tag={primaryTag} data-secondary-tag={secondaryTag}>
               <EventListCard
                 event={event}
                 tags={{ primary: primaryTag, secondary: secondaryTag }}
