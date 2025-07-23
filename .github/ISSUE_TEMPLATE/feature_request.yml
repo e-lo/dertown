@@ -11,22 +11,22 @@ body:
     id: problem
     attributes:
       label: Is your feature request related to a problem or an opportunity? If so, please describe
-      description: A clear and concise description of what the problem is. Ex: I'm always frustrated when [...], I've always wished that I could [...]
+      description: "A clear and concise description of what the problem is. Ex: I'm always frustrated when [...], I've always wished that I could [...]"
       placeholder: Describe the problem or opportunity
     validations:
       required: true
   - type: textarea
     id: solution
     attributes:
-      label: Describe the solution you'd like
-      description: Have a thought on what you'd like the solution to be?
+      label: "Describe the solution you'd like"
+      description: "Have a thought on what you'd like the solution to be?"
       placeholder: Describe your ideal solution
     validations:
       required: false
   - type: textarea
     id: alternatives
     attributes:
-      label: Describe alternatives you've considered
+      label: "Describe alternatives you've considered"
       description: Have you considered any alternative solutions or features?
       placeholder: List any alternatives
     validations:
