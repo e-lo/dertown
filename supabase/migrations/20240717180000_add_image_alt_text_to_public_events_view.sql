@@ -5,7 +5,7 @@ SELECT
     location_id, organization_id, website, registration_link, external_image_url,
     cost, registration, status, featured, exclude_from_calendar, created_at, updated_at,
     primary_tag_id, secondary_tag_id,
-    image_alt_text -- now at the end
+    image_alt_text
 FROM events 
 WHERE status = 'approved'
   AND exclude_from_calendar = FALSE

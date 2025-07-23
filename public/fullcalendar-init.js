@@ -56,14 +56,17 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       eventDidMount: function(info) {
         const event = info.event;
-        // Color events by category in week/day views
-        if (info.view.type === 'dayGridWeek' || info.view.type === 'timeGridDay') {
-          const category = event.extendedProps.category;
-          if (category) {
-            const kebab = toKebabCase(category);
-            info.el.classList.add(`bg-event-${kebab}`);
-            info.el.classList.add('text-white');
-          }
+        // Color events by category in all views
+        const category = event.extendedProps.category;
+        if (category) {
+          const kebab = toKebabCase(category);
+          info.el.classList.add(`bg-event-${kebab}`);
+          info.el.classList.add('text-white');
+          // Debug logging (remove in production)
+          console.log(`Event "${event.title}" with category "${category}" -> class "bg-event-${kebab}"`);
+        } else {
+          // Debug logging for events without categories
+          console.log(`Event "${event.title}" has no category`);
         }
         // Remove the event dot in dayGridWeek view
         if (info.view.type === 'dayGridWeek') {

@@ -124,6 +124,10 @@ db-local-seed:
 	.venv/bin/python3 scripts/seed_staged_data.py
 	@echo "[LOCAL] Local database seeding complete."
 
+db-local-seed-from-remote:
+	supabase db dump --data-only --schema public > seed_data/db_dump.sql
+	psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f remote_data_dump.sql
+
 # Update local events (dates, etc.)
 db-local-update-events:
 	@echo "[LOCAL] Updating local events..."

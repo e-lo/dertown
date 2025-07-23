@@ -74,14 +74,17 @@ export const db = {
         )
         .eq('featured', true),
     getCurrentAndFuture: async () => {
-      const { data, error } = await supabase.from('public_events').select(
-        `
+      const { data, error } = await supabase
+        .from('public_events')
+        .select(
+          `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
         `
-      ).order('start_date', { ascending: true });
+        )
+        .order('start_date', { ascending: true });
       return { data: data ? filterFutureEvents(data) : [], error };
     },
     create: (data: Database['public']['Tables']['events']['Insert']) =>
