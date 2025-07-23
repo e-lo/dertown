@@ -81,7 +81,7 @@
 }
 .bg-event-sports {
   background-color: var(--canary) !important;
-  color: #fff !important;
+  color: #111111 !important;
 }
 .bg-event-town {
   background-color: var(--palatinate-blue) !important;
