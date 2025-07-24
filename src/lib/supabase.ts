@@ -85,7 +85,32 @@ export const db = {
         `
         )
         .order('start_date', { ascending: true });
-      return { data: data ? filterFutureEvents(data) : [], error };
+      
+      // Filter to only current and future events, but return the full data
+      const filteredData = data ? data.filter((event: any) => {
+        if (!event.start_date) return false;
+        const startDate = new Date(event.start_date + (event.start_time ? 'T' + event.start_time : ''));
+        const now = new Date();
+        
+        // If end_date or end_time exists, use it for comparison
+        if (event.end_date) {
+          const endDate = new Date(event.end_date + (event.end_time ? 'T' + event.end_time : ''));
+          return endDate >= now;
+        } else if (event.end_time) {
+          // If only end_time exists, use start_date with end_time
+          const endDate = new Date(event.start_date + 'T' + event.end_time);
+          return endDate >= now;
+        } else {
+          // If event has a time, compare full datetime; otherwise, compare date only
+          if (event.start_time) {
+            return startDate >= now;
+          } else {
+            return startDate.toDateString() >= now.toDateString();
+          }
+        }
+      }) : [];
+      
+      return { data: filteredData, error };
     },
     create: (data: Database['public']['Tables']['events']['Insert']) =>
       supabase.from('events').insert(data),
