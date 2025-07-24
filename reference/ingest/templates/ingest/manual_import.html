@@ -1,9 +1,0 @@
-{% extends "wagtailadmin/base.html" %} {% load static %} {% block content %}
-<div class="nice-padding">
-  <h1>Manual Event Import</h1>
-  <form method="post">
-    {% csrf_token %} {{ form.as_p }}
-    <button type="submit" class="button button-primary">Import Now</button>
-  </form>
-</div>
-{% endblock %}
