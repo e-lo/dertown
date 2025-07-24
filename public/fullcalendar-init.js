@@ -15,13 +15,32 @@ document.addEventListener('DOMContentLoaded', function() {
     return (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
 
+  // Helper: calculate available height for calendar
+  function calculateCalendarHeight(viewType = 'timeGrid') {
+    const minHeight = 500;
+    const maxHeight = 1200;
+    const viewportHeight = window.innerHeight;
+    const headerHeight = 80; // Approximate header height
+    const padding = 64; // Container padding (py-8 = 32px top + 32px bottom)
+    const toolbarHeight = 60; // Calendar toolbar height
+    const availableHeight = viewportHeight - padding - toolbarHeight;
+
+    if (viewType === 'dayGridMonth') {
+      // For month view, use a fixed minimum height of 500px
+      return Math.max(minHeight, availableHeight);
+    } else {
+      // For day/week views, use a more conservative height calculation with min and max
+      return Math.min(Math.max(availableHeight, minHeight), maxHeight);
+    }
+  }
+
   if (calendarEl && window.FullCalendar) {
     // Detect mobile
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     // Mobile-specific header and views
     const mobileHeaderToolbar = {
       start: 'title',
-      center: 'dayGridWeek,timeGridDay,today,calendarPicker',
+      center: 'today,calendarPicker',
       end: ''
     };
     const desktopHeaderToolbar = {
@@ -30,10 +49,26 @@ document.addEventListener('DOMContentLoaded', function() {
       right: 'dayGridMonth,dayGridWeek,timeGridDay'
     };
     const headerToolbar = isMobile ? mobileHeaderToolbar : desktopHeaderToolbar;
-    const initialView = isMobile ? 'dayGridWeek' : 'dayGridWeek';
+    const initialView = isMobile ? 'timeGridDay' : 'dayGridWeek';
+    
+    // Calculate initial height based on view type
+    const initialHeight = calculateCalendarHeight(initialView);
     const calendar = new window.FullCalendar.Calendar(calendarEl, {
       initialView,
       headerToolbar,
+      // Height management using FullCalendar's built-in controls
+      height: initialHeight, // Use the calculated height for all views initially
+      contentHeight: 'auto', // Let content determine height
+      expandRows: false, // Don't expand rows to fill height
+      // Time grid specific options for day/week views
+      slotMinTime: '06:00:00',
+      slotMaxTime: '23:00:00',
+      slotDuration: '01:00:00',
+      slotLabelInterval: '01:00:00',
+      // Scroll to current time on load
+      scrollTime: '08:00:00',
+      // Now indicator
+      nowIndicator: true,
       customButtons: {
         calendarPicker: {
           text: '',
@@ -61,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (category) {
           const kebab = toKebabCase(category);
           info.el.classList.add(`bg-event-${kebab}`);
-          info.el.classList.add('text-white');
+          // Don't add text-white - let the CSS classes handle text colors
           // Debug logging (remove in production)
           console.log(`Event "${event.title}" with category "${category}" -> class "bg-event-${kebab}"`);
         } else {
@@ -106,6 +141,48 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     window.calendar = calendar; // <-- Assign to window for global access
     calendar.render();
+    
+    // Force initial size update after render
+    setTimeout(() => {
+      const currentView = calendar.view.type;
+      const newHeight = calculateCalendarHeight(currentView);
+      
+      calendar.setOption('height', newHeight);
+      calendar.setOption('contentHeight', newHeight - 60);
+      calendar.updateSize();
+    }, 100);
+
+    // Handle window resize to recalculate height
+    function handleResize() {
+      const currentView = calendar.view.type;
+      const newHeight = calculateCalendarHeight(currentView);
+      
+      calendar.setOption('height', newHeight);
+      calendar.setOption('contentHeight', newHeight - 60);
+      calendar.updateSize();
+    }
+
+    // Debounced resize handler
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(handleResize, 250);
+    });
+
+    // Handle view changes to ensure proper height
+    calendar.on('viewDidMount', function() {
+      const currentView = calendar.view.type;
+      const newHeight = calculateCalendarHeight(currentView);
+      
+      // Set both height and contentHeight for consistent sizing
+      calendar.setOption('height', newHeight);
+      calendar.setOption('contentHeight', newHeight - 60); // Subtract toolbar height
+      
+      // Force a size update
+      setTimeout(() => {
+        calendar.updateSize();
+      }, 50);
+    });
 
     // Replace all button text with Material Symbols icons after calendar renders
     function replaceButtonsWithIcons() {
@@ -177,6 +254,16 @@ document.addEventListener('DOMContentLoaded', function() {
         min-width: 2.5rem !important;
         min-height: 2.5rem !important;
       }
+      
+      /* Calendar container height management */
+      #calendar {
+        height: 100%;
+      }
+      
+      /* Optimize slot heights for better fit */
+      .fc-timegrid-slot {
+        height: 2em;
+      }
     `;
     document.head.appendChild(style);
 
@@ -210,6 +297,16 @@ document.addEventListener('DOMContentLoaded', function() {
           min-height: 2.5rem;
           font-size: 1rem;
           margin-right: 0.5rem;
+        }
+        
+        /* Mobile-specific height adjustments */
+        #calendar {
+          height: 100%;
+        }
+        
+        /* Optimize mobile time grid */
+        .fc-timegrid-slot {
+          height: 1.5em;
         }
       `;
       document.head.appendChild(mobileStyle);

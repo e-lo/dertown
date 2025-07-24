@@ -44,54 +44,42 @@
 /* Utility classes for event pills and backgrounds */
 .bg-event-featured {
   background-color: var(--canary) !important;
-  color: var(--color-text) !important;
 }
 .bg-event-today {
   background-color: var(--pigment-green) !important;
-  color: #fff !important;
   box-shadow:
     0 1px 4px 0 rgba(0, 0, 0, 0.1),
     0 0.5px 1.5px 0 rgba(0, 0, 0, 0.08);
 }
 .bg-event-arts-culture {
   background-color: var(--canary) !important;
-  color: #111111 !important;
 }
 .bg-event-civic {
   background-color: var(--dark-slate-gray) !important;
-  color: #fff !important;
 }
 .bg-event-family {
   background-color: var(--fandango) !important;
-  color: #fff !important;
 }
 .bg-event-nature {
   background-color: var(--cal-poly-green) !important;
-  color: #fff !important;
 }
 .bg-event-recreation {
   background-color: var(--blue-green) !important;
-  color: #fff !important;
 }
 .bg-event-outdoors {
   background-color: var(--blue-green) !important;
-  color: #fff !important;
 }
 .bg-event-school {
   background-color: var(--dark-slate-gray) !important;
-  color: #fff !important;
 }
 .bg-event-seniors {
   background-color: var(--fandango) !important;
-  color: #fff !important;
 }
 .bg-event-sports {
   background-color: var(--canary) !important;
-  color: #111111 !important;
 }
 .bg-event-town {
   background-color: var(--palatinate-blue) !important;
-  color: #fff !important;
 }
 
 .bg-gradient-blues-light {
@@ -104,7 +92,6 @@
 /* Fallback for events with no recognized tag */
 .bg-event-default {
   background: var(--gradient-blues-light) !important;
-  color: #fff !important;
 }
 
 .font-sans {
@@ -119,4 +106,97 @@
   filter: brightness(0.85);
   opacity: 1 !important;
   z-index: 2;
+}
+
+/* Override FullCalendar's default text color for our custom event classes */
+.bg-event-arts-culture,
+.bg-event-sports {
+  --fc-event-text-color: #111111 !important;
+  color: #111111 !important;
+}
+
+.bg-event-arts-culture .fc-event-main,
+.bg-event-sports .fc-event-main {
+  color: #111111 !important;
+}
+
+.bg-event-arts-culture .fc-event-title,
+.bg-event-sports .fc-event-title {
+  color: #111111 !important;
+}
+
+.bg-event-arts-culture .fc-event-time,
+.bg-event-sports .fc-event-time {
+  color: #111111 !important;
+}
+
+.bg-event-civic,
+.bg-event-family,
+.bg-event-nature,
+.bg-event-recreation,
+.bg-event-outdoors,
+.bg-event-school,
+.bg-event-seniors,
+.bg-event-town,
+.bg-event-default {
+  --fc-event-text-color: #fff !important;
+  color: #fff !important;
+}
+
+.bg-event-civic .fc-event-main,
+.bg-event-family .fc-event-main,
+.bg-event-nature .fc-event-main,
+.bg-event-recreation .fc-event-main,
+.bg-event-outdoors .fc-event-main,
+.bg-event-school .fc-event-main,
+.bg-event-seniors .fc-event-main,
+.bg-event-town .fc-event-main,
+.bg-event-default .fc-event-main {
+  color: #fff !important;
+}
+
+.bg-event-civic .fc-event-title,
+.bg-event-family .fc-event-title,
+.bg-event-nature .fc-event-title,
+.bg-event-recreation .fc-event-title,
+.bg-event-outdoors .fc-event-title,
+.bg-event-school .fc-event-title,
+.bg-event-seniors .fc-event-title,
+.bg-event-town .fc-event-title,
+.bg-event-default .fc-event-title {
+  color: #fff !important;
+}
+
+.bg-event-civic .fc-event-time,
+.bg-event-family .fc-event-time,
+.bg-event-nature .fc-event-time,
+.bg-event-recreation .fc-event-time,
+.bg-event-outdoors .fc-event-time,
+.bg-event-school .fc-event-time,
+.bg-event-seniors .fc-event-time,
+.bg-event-town .fc-event-time,
+.bg-event-default .fc-event-time {
+  color: #fff !important;
+}
+
+.bg-event-featured {
+  --fc-event-text-color: var(--color-text) !important;
+  color: var(--color-text) !important;
+}
+
+.bg-event-featured .fc-event-main,
+.bg-event-featured .fc-event-title,
+.bg-event-featured .fc-event-time {
+  color: var(--color-text) !important;
+}
+
+.bg-event-today {
+  --fc-event-text-color: #fff !important;
+  color: #fff !important;
+}
+
+.bg-event-today .fc-event-main,
+.bg-event-today .fc-event-title,
+.bg-event-today .fc-event-time {
+  color: #fff !important;
 }

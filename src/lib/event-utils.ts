@@ -7,7 +7,17 @@ export function formatEventDate(date: string | Date): {
   day: string;
   dayOfWeek: string;
 } {
-  const eventDate = new Date(date);
+  // Handle date strings by ensuring they're treated as local dates
+  let eventDate: Date;
+  if (typeof date === 'string') {
+    // For date strings like "2024-07-23", create a local date
+    // by adding a time component to avoid timezone conversion
+    const [year, month, day] = date.split('-').map(Number);
+    eventDate = new Date(year, month - 1, day); // month is 0-indexed
+  } else {
+    eventDate = date;
+  }
+  
   return {
     month: eventDate.toLocaleDateString('en-US', { month: 'short' }),
     day: eventDate.toLocaleDateString('en-US', { day: 'numeric' }),
@@ -25,7 +35,18 @@ export function formatTime(time: string): string {
 
 export function isToday(date: string | Date): boolean {
   const today = new Date();
-  const eventDate = new Date(date);
+  
+  // Handle date strings by ensuring they're treated as local dates
+  let eventDate: Date;
+  if (typeof date === 'string') {
+    // For date strings like "2024-07-23", create a local date
+    // by adding a time component to avoid timezone conversion
+    const [year, month, day] = date.split('-').map(Number);
+    eventDate = new Date(year, month - 1, day); // month is 0-indexed
+  } else {
+    eventDate = date;
+  }
+  
   return today.toDateString() === eventDate.toDateString();
 }
 
