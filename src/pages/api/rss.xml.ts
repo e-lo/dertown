@@ -30,7 +30,7 @@ export const GET: APIRoute = async () => {
 
 function generateRSSContent(events: Database['public']['Tables']['events']['Row'][]): string {
   const now = new Date();
-  const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+  const siteUrl = import.meta.env.SITE || 'http://www.dertown.org';
 
   let rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
