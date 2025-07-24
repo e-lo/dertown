@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
-import type { Database } from '../../types/database';
 
 export const prerender = false;
 
@@ -28,7 +27,22 @@ export const GET: APIRoute = async () => {
   }
 };
 
-function generateRSSContent(events: Database['public']['Tables']['events']['Row'][]): string {
+// Type for the event data structure
+type EventData = {
+  id: string;
+  title: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  website: string | null;
+  location?: { name: string; address: string | null } | null;
+  primary_tag?: { name: string } | null;
+  secondary_tag?: { name: string } | null;
+};
+
+function generateRSSContent(events: EventData[]): string {
   const now = new Date();
   const siteUrl = import.meta.env.SITE || 'http://www.dertown.org';
 
@@ -44,24 +58,31 @@ function generateRSSContent(events: Database['public']['Tables']['events']['Row'
 `;
 
   events.forEach((event) => {
-    const startDate = new Date(event.start_time ?? '');
-    const endDate = new Date(event.end_time ?? '');
+    // Properly construct datetime strings for parsing
+    const startDateTime = event.start_date && event.start_time 
+      ? `${event.start_date}T${event.start_time}`
+      : event.start_date 
+        ? `${event.start_date}T00:00:00`
+        : null;
+    
+    const endDateTime = event.end_date && event.end_time
+      ? `${event.end_date}T${event.end_time}`
+      : event.end_date
+        ? `${event.end_date}T23:59:59`
+        : null;
+
+    // Parse dates safely
+    const startDate = startDateTime ? new Date(startDateTime) : null;
+    const endDate = endDateTime ? new Date(endDateTime) : null;
+
+    // Skip events with invalid dates
+    if (!startDate || isNaN(startDate.getTime())) {
+      console.warn(`Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`);
+      return;
+    }
 
     // Clean description for XML
     const description = (event.description ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-    const location = (
-      typeof event === 'object' &&
-      'location' in event &&
-      typeof (event as { location?: string | null }).location === 'string'
-        ? ((event as { location?: string | null }).location ?? '')
-        : ''
-    )
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -75,12 +96,55 @@ function generateRSSContent(events: Database['public']['Tables']['events']['Row'
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
+    // Format dates for display
+    const startDateFormatted = startDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const startTimeFormatted = event.start_time 
+      ? startDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      : 'All day';
+
+    const endDateFormatted = endDate && !isNaN(endDate.getTime())
+      ? endDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      : null;
+
+    const endTimeFormatted = endDate && event.end_time && !isNaN(endDate.getTime())
+      ? endDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      : null;
+
+    // Build description with location if available
+    let fullDescription = description;
+    if (event.location?.name) {
+      fullDescription += `<br/><strong>Location:</strong> ${event.location.name}`;
+    }
+    fullDescription += `<br/><strong>Date:</strong> ${startDateFormatted} at ${startTimeFormatted}`;
+    if (endDateFormatted) {
+      fullDescription += `<br/><strong>Ends:</strong> ${endDateFormatted}${endTimeFormatted ? ` at ${endTimeFormatted}` : ''}`;
+    }
+
     rss += `    <item>
       <title>${title}</title>
-      <link>${event.website ?? `${siteUrl}/events`}</link>
+      <link>${event.website ?? `${siteUrl}/events/${event.id}`}</link>
       <guid>${event.id}</guid>
       <pubDate>${startDate.toUTCString()}</pubDate>
-      <description><![CDATA[${description}${location ? `<br/><strong>Location:</strong> ${location}` : ''}<br/><strong>Date:</strong> ${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString()}<br/><strong>Ends:</strong> ${endDate.toLocaleDateString()} at ${endDate.toLocaleTimeString()}]]></description>
+      <description><![CDATA[${fullDescription}]]></description>
     </item>
 `;
   });
