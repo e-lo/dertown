@@ -1,0 +1,65 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in DerTown.
+title: "[Bug] <brief description>"
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us improve DerTown by reporting a bug!
+  - type: textarea
+    id: bug
+    attributes:
+      label: Describe the bug or other issue
+      description: A clear and concise description of what the issue is.
+      placeholder: Describe the bug or issue
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened vs what should have happened?
+      description: Sometimes it's easiest to show the problem with screenshots.
+      placeholder: What did you expect to happen?
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: Drag and drop screenshots or paste them here
+    validations:
+      required: false
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: e.g. iOS, Windows, Linux, macOS
+      placeholder: OS name and version
+    validations:
+      required: false
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: e.g. Chrome, Safari, Firefox
+      placeholder: Browser name and version
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: App or browser version (if relevant)
+      placeholder: Version number
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+      placeholder: Additional context
+    validations:
+      required: false 
