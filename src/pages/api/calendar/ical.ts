@@ -126,7 +126,15 @@ function generateICalContent(
       return `${year}${month}${day}T${hour}${minute}${second}Z`;
     };
 
-    const description = (event.description ?? '').replace(/\n/g, '\\n');
+    const eventDetailUrl = `${siteUrl}/events/${event.id}`;
+    const externalUrl = event.website ?? eventDetailUrl;
+
+    // Compose description with optional learn more link
+    let description = (event.description ?? '').replace(/\n/g, '\\n');
+    if (externalUrl) {
+      // iCal line folding: max 75 octets per line, but for simplicity, just add the link
+      description += `\\nLearn more: ${externalUrl}`;
+    }
     const location = (event.location?.name ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
     const title = (event.title ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
 
@@ -145,7 +153,8 @@ function generateICalContent(
         `SUMMARY:${title}`,
         `DESCRIPTION:${description}`,
         location ? `LOCATION:${location}` : '',
-        `URL:${event.website ?? `${siteUrl}/events/${event.id}`}`,
+        // Always use event detail page for URL (per iCal spec)
+        `URL:${eventDetailUrl}`,
         'END:VEVENT',
       ].filter(line => line !== '').join('\r\n') + '\r\n';
   });
