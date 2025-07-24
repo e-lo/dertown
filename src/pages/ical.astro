@@ -2,7 +2,6 @@
 export const prerender = false;
 
 import { db } from '../lib/supabase';
-import type { Database } from '../types/database';
 
 // Set content type for iCal
 Astro.response.headers.set('Content-Type', 'text/calendar; charset=utf-8');
@@ -14,8 +13,23 @@ if (error) {
   throw new Error('Error fetching events');
 }
 
+// Type for the event data structure
+type EventData = {
+  id: string | null;
+  title: string | null;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  website: string | null;
+  location?: { name: string; address: string | null } | null;
+  primary_tag?: { name: string } | null;
+  secondary_tag?: { name: string } | null;
+};
+
 // Generate iCal content
-function generateICalContent(events: Database['public']['Tables']['events']['Row'][]): string {
+function generateICalContent(events: EventData[]): string {
   const now = new Date();
   const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
 
@@ -26,11 +40,32 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Der Town Community Events
 X-WR-CALDESC:Community events and activities in Der Town
+X-WR-TIMEZONE:America/Los_Angeles
 `;
 
   events.forEach((event) => {
-    const startDate = new Date(event.start_time ?? '');
-    const endDate = new Date(event.end_time ?? '');
+    // Properly construct datetime strings for parsing
+    const startDateTime = event.start_date && event.start_time 
+      ? `${event.start_date}T${event.start_time}`
+      : event.start_date 
+        ? `${event.start_date}T00:00:00`
+        : null;
+    
+    const endDateTime = event.end_date && event.end_time
+      ? `${event.end_date}T${event.end_time}`
+      : event.end_date
+        ? `${event.end_date}T23:59:59`
+        : null;
+
+    // Parse dates safely - treat as Pacific time
+    const startDate = startDateTime ? new Date(startDateTime + '-07:00') : null;
+    const endDate = endDateTime ? new Date(endDateTime + '-07:00') : null;
+
+    // Skip events with invalid dates
+    if (!startDate || isNaN(startDate.getTime())) {
+      console.warn(`Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`);
+      return;
+    }
     
     // Format dates for iCal (YYYYMMDDTHHMMSSZ)
     const formatDate = (date: Date) => {
@@ -40,6 +75,7 @@ X-WR-CALDESC:Community events and activities in Der Town
       const hour = String(date.getUTCHours()).padStart(2, '0');
       const minute = String(date.getUTCMinutes()).padStart(2, '0');
       const second = String(date.getUTCSeconds()).padStart(2, '0');
+      
       return `${year}${month}${day}T${hour}${minute}${second}Z`;
     };
 
@@ -49,13 +85,7 @@ X-WR-CALDESC:Community events and activities in Der Town
       .replace(/;/g, '\\;')
       .replace(/,/g, '\\,');
 
-    const location = (
-      typeof event === 'object' &&
-      'location' in event &&
-      typeof (event as { location?: string | null }).location === 'string'
-        ? ((event as { location?: string | null }).location ?? '')
-        : ''
-    )
+    const location = (event.location?.name ?? '')
       .replace(/;/g, '\\;')
       .replace(/,/g, '\\,');
 
@@ -63,11 +93,16 @@ X-WR-CALDESC:Community events and activities in Der Town
       .replace(/;/g, '\\;')
       .replace(/,/g, '\\,');
 
+    // Determine end date - if no end date/time, default to 1 hour after start
+    const eventEndDate = endDate && !isNaN(endDate.getTime()) 
+      ? endDate 
+      : new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
+
     ical += `BEGIN:VEVENT
 UID:${event.id}
 DTSTAMP:${formatDate(now)}
 DTSTART:${formatDate(startDate)}
-DTEND:${formatDate(endDate)}
+DTEND:${formatDate(eventEndDate)}
 SUMMARY:${title}
 DESCRIPTION:${description}
 ${location ? `LOCATION:${location}` : ''}
