@@ -29,8 +29,8 @@ export const GET: APIRoute = async () => {
 
 // Type for the event data structure
 type EventData = {
-  id: string;
-  title: string;
+  id: string | null;
+  title: string | null;
   description: string | null;
   start_date: string | null;
   end_date: string | null;

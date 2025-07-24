@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
-import type { Database } from '../../../types/database';
 
 export const prerender = false;
 
@@ -22,7 +21,7 @@ export const GET: APIRoute = async ({ url }) => {
     let filteredEvents = events;
     if (tagNames.length > 0) {
       filteredEvents =
-        events?.filter((event) => {
+        events?.filter((event: any) => {
           const primary = event.primary_tag?.name;
           const secondary = event.secondary_tag?.name;
           return tagNames.includes(primary) || tagNames.includes(secondary);
@@ -48,11 +47,27 @@ export const GET: APIRoute = async ({ url }) => {
   }
 };
 
+// Type for the event data structure
+type EventData = {
+  id: string | null;
+  title: string | null;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  website: string | null;
+  location?: { name: string; address: string | null } | null;
+  primary_tag?: { name: string } | null;
+  secondary_tag?: { name: string } | null;
+};
+
 function generateICalContent(
-  events: Database['public']['Tables']['events']['Row'][],
+  events: EventData[],
   tagName?: string | null
 ): string {
   const now = new Date();
+  const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
   const calendarId = `der-town-events-${now.getTime()}`;
   const calendarName =
     tagName && tagName !== 'all' ? `Der Town ${tagName} Events` : 'Der Town Community Events';
@@ -70,34 +85,55 @@ function generateICalContent(
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${calendarName}`,
       `X-WR-CALDESC:${calendarDesc}`,
-      'X-WR-TIMEZONE:America/New_York',
+      'X-WR-TIMEZONE:America/Los_Angeles',
     ].join('\r\n') + '\r\n';
 
   events.forEach((event, index) => {
     const eventId = `${calendarId}-${index}`;
 
-    // Create proper date objects by combining date and time
-    const startDate = new Date(`${event.start_date}T${event.start_time || '00:00:00'}`);
-    const endDate =
-      event.end_date && event.end_time
-        ? new Date(`${event.end_date}T${event.end_time}`)
-        : new Date(`${event.start_date}T${event.end_time || '23:59:59'}`);
+    // Properly construct datetime strings for parsing
+    const startDateTime = event.start_date && event.start_time 
+      ? `${event.start_date}T${event.start_time}`
+      : event.start_date 
+        ? `${event.start_date}T00:00:00`
+        : null;
+    
+    const endDateTime = event.end_date && event.end_time
+      ? `${event.end_date}T${event.end_time}`
+      : event.end_date
+        ? `${event.end_date}T23:59:59`
+        : null;
+
+    // Parse dates safely - treat as Pacific time
+    const startDate = startDateTime ? new Date(startDateTime + '-07:00') : null;
+    const endDate = endDateTime ? new Date(endDateTime + '-07:00') : null;
+
+    // Skip events with invalid dates
+    if (!startDate || isNaN(startDate.getTime())) {
+      console.warn(`Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`);
+      return;
+    }
 
     // Format dates for iCal (YYYYMMDDTHHMMSSZ)
     const formatDate = (date: Date) => {
-      return date
-        .toISOString()
-        .replace(/[-:]/g, '')
-        .replace(/\.\d{3}/, '');
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hour = String(date.getUTCHours()).padStart(2, '0');
+      const minute = String(date.getUTCMinutes()).padStart(2, '0');
+      const second = String(date.getUTCSeconds()).padStart(2, '0');
+      
+      return `${year}${month}${day}T${hour}${minute}${second}Z`;
     };
 
     const description = (event.description ?? '').replace(/\n/g, '\\n');
-    const location =
-      typeof event === 'object' &&
-      'location' in event &&
-      typeof (event as { location?: string | null }).location === 'string'
-        ? ((event as { location?: string | null }).location ?? '')
-        : '';
+    const location = (event.location?.name ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
+    const title = (event.title ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
+
+    // Determine end date - if no end date/time, default to 1 hour after start
+    const eventEndDate = endDate && !isNaN(endDate.getTime()) 
+      ? endDate 
+      : new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
 
     ical +=
       [
@@ -105,13 +141,13 @@ function generateICalContent(
         `UID:${eventId}`,
         `DTSTAMP:${formatDate(now)}`,
         `DTSTART:${formatDate(startDate)}`,
-        `DTEND:${formatDate(endDate)}`,
-        `SUMMARY:${event.title}`,
+        `DTEND:${formatDate(eventEndDate)}`,
+        `SUMMARY:${title}`,
         `DESCRIPTION:${description}`,
-        `LOCATION:${location}`,
-        `URL:${event.website ?? ''}`,
+        location ? `LOCATION:${location}` : '',
+        `URL:${event.website ?? `${siteUrl}/events/${event.id}`}`,
         'END:VEVENT',
-      ].join('\r\n') + '\r\n';
+      ].filter(line => line !== '').join('\r\n') + '\r\n';
   });
 
   ical += 'END:VCALENDAR\r\n';
