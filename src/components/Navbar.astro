@@ -30,6 +30,31 @@ import { db } from '../lib/supabase';
           >
             Calendar
           </a>
+          <!-- Families Dropdown -->
+          <div class="relative group flex items-center">
+            <button
+              class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+            >
+              Families
+              <span class="material-symbols-outlined text-sm ml-1">expand_more</span>
+            </button>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div class="py-1">
+                <a
+                  href="/families/school"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  School
+                </a>
+                <a
+                  href="/families/activities"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Activities
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -73,6 +98,17 @@ import { db } from '../lib/supabase';
       >
         Calendar
       </a>
+      <!-- Mobile Families Menu -->
+      <div class="border-t border-gray-200 mt-2 pt-2">
+        <button type="button" class="w-full text-left font-semibold text-gray-700 flex items-center justify-between px-4 py-2" aria-expanded="false" id="mobile-families-toggle">
+          Families
+          <span aria-hidden="true">▼</span>
+        </button>
+        <div class="hidden pl-2" id="mobile-families-menu">
+          <a href="/families/school" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">School</a>
+          <a href="/families/activities" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Activities</a>
+        </div>
+      </div>
       <!-- Mobile Subscribe Menu -->
       <div class="border-t border-gray-200 mt-2 pt-2">
         <button type="button" class="w-full text-left font-semibold text-gray-700 flex items-center justify-between px-4 py-2" aria-expanded="false" id="mobile-subscribe-toggle">
@@ -120,6 +156,18 @@ import { db } from '../lib/supabase';
         const isHidden = subscribeMenu.classList.contains('hidden');
         subscribeMenu.classList.toggle('hidden', !isHidden);
         subscribeToggle.setAttribute('aria-expanded', String(isHidden));
+      });
+    }
+  </script>
+  <script>
+    // Mobile Families Menu Toggle
+    const familiesToggle = document.getElementById('mobile-families-toggle');
+    const familiesMenu = document.getElementById('mobile-families-menu');
+    if (familiesToggle && familiesMenu) {
+      familiesToggle.addEventListener('click', () => {
+        const isHidden = familiesMenu.classList.contains('hidden');
+        familiesMenu.classList.toggle('hidden', !isHidden);
+        familiesToggle.setAttribute('aria-expanded', String(isHidden));
       });
     }
   </script>

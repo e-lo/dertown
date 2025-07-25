@@ -19,7 +19,7 @@
     var(--brandeis-blue) 100%
   );
   --gradient-blues-bold: linear-gradient(90deg, var(--palatinate-blue) 0%, var(--neon-blue) 100%);
-
+  
   /* General Theme Colors */
   --color-primary: var(--palatinate-blue);
   --color-secondary: var(--canary);
@@ -39,6 +39,30 @@
   --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   --font-serif: 'Georgia', serif;
   --font-mono: 'Menlo', 'Monaco', monospace;
+}
+
+.bg-yellow {
+  background-color: var(--canary) !important;
+  color: black !important;
+}
+
+.bg-blue {
+  background-color: var(--palatinate-blue) !important;
+  color: white !important;
+}
+
+.bg-green {
+  background-color: var(--pigment-green) !important;
+  color: white !important;
+}
+
+.bg-blue-green {
+  background-color: var(--blue-green) !important;
+  color: white !important;
+}
+
+.bg-green-100 {
+  background-color: #ecfccb !important;
 }
 
 /* Utility classes for event pills and backgrounds */
@@ -87,6 +111,27 @@
 }
 .bg-gradient-blues-bold {
   background: var(--gradient-blues-bold) !important;
+}
+
+/* Border utilities for theme colors */
+.border-fandango {
+  border-color: var(--fandango) !important;
+}
+
+.border-canary {
+  border-color: var(--canary) !important;
+}
+
+.border-pigment-green {
+  border-color: var(--pigment-green) !important;
+}
+
+.border-blue-green {
+  border-color: var(--blue-green) !important;
+}
+
+.border-palatinat-blue {
+  border-color: var(--palatinate-blue) !important;
 }
 
 /* Fallback for events with no recognized tag */
