@@ -1,0 +1,29 @@
+---
+export interface Props {
+  title: string;
+  text?: string;
+  subtext?: string;
+  link: string;
+  icon?: string;
+  iconColor?: string;
+  external?: boolean;
+}
+
+const { title, text, subtext, link, icon, iconColor = "text-gray-600", external = true } = Astro.props;
+---
+
+<a href={link} target={external ? "_blank" : "_self"} class="group flex items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+  {icon && (
+    <span class={`material-symbols-outlined text-2xl mr-3 group-hover:scale-110 transition-transform ${iconColor}`}>
+      {icon}
+    </span>
+  )}
+  <div class="flex-1">
+    <h4 class="font-medium text-gray-900">{title}</h4>
+    {text && <p class="text-sm text-gray-600">{text}</p>}
+    {subtext && <p class="text-xs text-gray-500 mt-1">{subtext}</p>}
+  </div>
+  {external && (
+    <span class="material-symbols-outlined text-gray-400 text-sm">open_in_new</span>
+  )}
+</a> 

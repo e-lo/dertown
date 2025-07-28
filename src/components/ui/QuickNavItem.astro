@@ -1,0 +1,20 @@
+---
+export interface Props {
+  title: string;
+  link: string;
+  icon?: string;
+}
+
+const {
+  title,
+  link,
+  icon="",
+} = Astro.props;
+---
+
+<a href={link} class="inline-flex items-center px-3 py-1.5 bg-white text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-colors">
+  {icon && (
+    <span class="material-symbols-outlined text-sm mr-1.5">{icon}</span>
+  )}
+  {title}
+</a>

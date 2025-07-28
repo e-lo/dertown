@@ -59,17 +59,19 @@ function generateRSSContent(events: EventData[]): string {
 
   events.forEach((event) => {
     // Properly construct datetime strings for parsing
-    const startDateTime = event.start_date && event.start_time 
-      ? `${event.start_date}T${event.start_time}`
-      : event.start_date 
-        ? `${event.start_date}T00:00:00`
-        : null;
-    
-    const endDateTime = event.end_date && event.end_time
-      ? `${event.end_date}T${event.end_time}`
-      : event.end_date
-        ? `${event.end_date}T23:59:59`
-        : null;
+    const startDateTime =
+      event.start_date && event.start_time
+        ? `${event.start_date}T${event.start_time}`
+        : event.start_date
+          ? `${event.start_date}T00:00:00`
+          : null;
+
+    const endDateTime =
+      event.end_date && event.end_time
+        ? `${event.end_date}T${event.end_time}`
+        : event.end_date
+          ? `${event.end_date}T23:59:59`
+          : null;
 
     // Parse dates safely
     const startDate = startDateTime ? new Date(startDateTime) : null;
@@ -77,7 +79,9 @@ function generateRSSContent(events: EventData[]): string {
 
     // Skip events with invalid dates
     if (!startDate || isNaN(startDate.getTime())) {
-      console.warn(`Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`);
+      console.warn(
+        `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
+      );
       return;
     }
 
@@ -101,33 +105,35 @@ function generateRSSContent(events: EventData[]): string {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
-    
-    const startTimeFormatted = event.start_time 
+
+    const startTimeFormatted = event.start_time
       ? startDate.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true
+          hour12: true,
         })
       : 'All day';
 
-    const endDateFormatted = endDate && !isNaN(endDate.getTime())
-      ? endDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      : null;
+    const endDateFormatted =
+      endDate && !isNaN(endDate.getTime())
+        ? endDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        : null;
 
-    const endTimeFormatted = endDate && event.end_time && !isNaN(endDate.getTime())
-      ? endDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        })
-      : null;
+    const endTimeFormatted =
+      endDate && event.end_time && !isNaN(endDate.getTime())
+        ? endDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          })
+        : null;
 
     // Build description with location if available
     let fullDescription = description;

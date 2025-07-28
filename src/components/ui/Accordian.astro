@@ -1,0 +1,38 @@
+---
+export interface Props {
+    title: string;
+    sectionId: string
+    icon?: string;
+}
+
+const { title, sectionId, icon } = Astro.props;
+---
+
+<button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition-all duration-200" id={`button-${sectionId}`} onclick={`toggleAccordion('${sectionId}')`}>
+    <div class="flex items-center">
+      {icon && <span class={`material-symbols-outlined text-lg mr-2 text-blue-400`}>{icon}</span>}
+      <span class="font-semibold text-gray-700">{title}</span>
+    </div>
+    <span class="material-symbols-outlined text-gray-500 transition-transform" id={`${sectionId}-expand-icon`}>expand_more</span>
+</button>
+<div id={`${sectionId}-content`} class="hidden mt-3">
+    <slot />
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Make sure the function is available globally
+      (window as any).toggleAccordion = function(sectionId: string) {
+        const content = document.getElementById(sectionId + '-content')!;
+        const icon = document.getElementById(sectionId + '-expand-icon')!;
+        
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          icon.style.transform = 'rotate(180deg)';
+        } else {
+          content.classList.add('hidden');
+          icon.style.transform = 'rotate(0deg)';
+        }
+      };
+    });
+  </script> 

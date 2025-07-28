@@ -19,7 +19,7 @@
     var(--brandeis-blue) 100%
   );
   --gradient-blues-bold: linear-gradient(90deg, var(--palatinate-blue) 0%, var(--neon-blue) 100%);
-  
+
   /* General Theme Colors */
   --color-primary: var(--palatinate-blue);
   --color-secondary: var(--canary);
@@ -58,6 +58,11 @@
 
 .bg-blue-green {
   background-color: var(--blue-green) !important;
+  color: white !important;
+}
+
+.bg-fandango {
+  background-color: var(--fandango) !important;
   color: white !important;
 }
 
