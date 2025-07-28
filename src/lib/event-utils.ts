@@ -17,7 +17,7 @@ export function formatEventDate(date: string | Date): {
   } else {
     eventDate = date;
   }
-  
+
   return {
     month: eventDate.toLocaleDateString('en-US', { month: 'short' }),
     day: eventDate.toLocaleDateString('en-US', { day: 'numeric' }),
@@ -35,7 +35,7 @@ export function formatTime(time: string): string {
 
 export function isToday(date: string | Date): boolean {
   const today = new Date();
-  
+
   // Handle date strings by ensuring they're treated as local dates
   let eventDate: Date;
   if (typeof date === 'string') {
@@ -46,7 +46,7 @@ export function isToday(date: string | Date): boolean {
   } else {
     eventDate = date;
   }
-  
+
   return today.toDateString() === eventDate.toDateString();
 }
 

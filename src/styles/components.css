@@ -226,3 +226,14 @@ input[type='date'] {
   padding: 0.2rem;
   background: #fff;
 }
+
+/* Content Sections */
+.floating-section-background {
+  @apply px-4 sm:px-6 lg:px-8 py-6;
+}
+.floating-section-foreground {
+  @apply rounded-lg p-6;
+}
+.full-width-section {
+  @apply py-6 px-4 sm:px-6 lg:px-8;
+}

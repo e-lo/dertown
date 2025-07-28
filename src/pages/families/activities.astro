@@ -1,705 +1,444 @@
 ---
 import Layout from '../../components/Layout.astro';
+import SectionHeader from '../../components/ui/SectionHeader.astro';
+import QuickNavItem from '../../components/ui/QuickNavItem.astro';
+import LinkListItem from '../../components/ui/LinkListItem.astro';
+import LinkBox from '../../components/ui/LinkBox.astro';
+import Disclaimer from '../../components/ui/Disclaimer.astro';
+import Accordian from '../../components/ui/Accordian.astro';
 ---
 
 <Layout title="Activities - Families | Der Town" description="Family activities, programs, and recreational opportunities in Der Town">
-  <div class="bg-gray-50 min-h-screen">
+  <div class="bg-white min-h-screen">
     <!-- Hero Section -->
-    <div class="bg-white shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="text-center">
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">Family Activities</h1>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Discover fun activities, programs, and events for families of all ages in Der Town.
-          </p>
-        </div>
-      </div>
+      <div class=" max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        <SectionHeader
+          title="Family Activities"
+          text="Discover fun activities, programs, and events for families of all ages in Der Town."
+        />
     </div>
 
+    <!-- Quick Navigation -->
+    <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-wrap justify-center gap-2">
+        <QuickNavItem title="Sports" link="#sports" icon="sports_soccer" />
+        <QuickNavItem title="Aquatics" link="#aquatics" icon="pool" />
+        <QuickNavItem title="Parks" link="#parks" icon="park" />
+        <QuickNavItem title="Arts & Culture" link="#arts-culture" icon="brush" />
+        <QuickNavItem title="Community" link="#community" icon="groups" />
+        <QuickNavItem title="Seasonal" link="#seasonal" icon="calendar_month" />
+      </div>
+  </div>
+
     <!-- Sports Section -->
-    <div class="bg-yellow py-8">
+    <div id="sports" class="bg-yellow py-8">
       <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-gray-900 mb-3 flex items-center justify-center">
-            <span class="material-symbols-outlined text-4xl mr-3">sports_soccer</span>
-            Sports
-          </h2>
-          <p class="text-lg text-gray-700">
-            Organized sports and recreational activities for families.
-          </p>
-        </div>
-        
+        <SectionHeader
+          title="Sports"
+          icon="sports_soccer"
+          text="Organized sports and recreational activities for families."
+        />
+
         <div class="bg-white rounded-lg shadow-lg p-6">
-          <!-- Year-Round Sports Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('year-round')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-purple-600">calendar_month</span>
-                <span class="font-semibold text-gray-700">Year-Round Sports</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="year-round-icon">expand_more</span>
-            </button>
-                         <div id="year-round-content" class="hidden mt-3">
-               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                 <a href="https://wenatcheeunitedsc.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-blue-600">sports_soccer</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Wenatchee United SC</h5>
-                     <p class="text-sm text-gray-600">Competitive club soccer development</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 8-18, tryouts required, competitive</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://ncwvbc.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-blue-500">sports_volleyball</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">NCW Volleyball Club</h5>
-                     <p class="text-sm text-gray-600">Competitive volleyball training</p>
-                     <p class="text-xs text-gray-500 mt-1">Grades 5-12, competitive teams</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://www.axiomjiujitsu.com/youth-programs" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-purple-600">sports_martial_arts</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Axiom Jiu-Jitsu</h5>
-                     <p class="text-sm text-gray-600">Brazilian Jiu-Jitsu youth programs</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 8-14, two skill levels available</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://www.sportgymnastics.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-pink-600">sports_gymnastics</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">S.P.O.R.T. Gymnastics</h5>
-                     <p class="text-sm text-gray-600">Recreational and competitive gymnastics</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 2.5-18, various skill levels</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://applecapitalgymnastics.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-pink-600">sports_gymnastics</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Apple Capital Gymnastics</h5>
-                     <p class="text-sm text-gray-600">Recreational and competitive gymnastics</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 18 months-18, co-ed preschool classes</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://edelweissdanceacadamie.com/dragon-mnt-martial-arts" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-red-600">sports_martial_arts</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Dragon Mountain Martial Arts</h5>
-                     <p class="text-sm text-gray-600">Isshinryu Karate training</p>
-                     <p class="text-xs text-gray-500 mt-1">All ages, family classes available</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://www.riverfrontrockgym.com/youth-team" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-orange-600">landscape</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Riverfront Rock Gym Climbing Team</h5>
-                     <p class="text-sm text-gray-600">Competitive climbing team</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 8-18, competitive, tryouts required</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-                 <a href="https://www.riverfrontrockgym.com/classes-1" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                   <span class="material-symbols-outlined text-lg mr-3 text-orange-600">landscape</span>
-                   <div class="flex-1">
-                     <h5 class="font-medium text-gray-900">Riverfront Rock Gym Youth Club</h5>
-                     <p class="text-sm text-gray-600">Recreational climbing club</p>
-                     <p class="text-xs text-gray-500 mt-1">Ages 8-13, recreational, drop-in available</p>
-                   </div>
-                   <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                 </a>
-               </div>
-             </div>
-          </div>
-          
+          <Accordian title="Year-Round Sports" sectionId="year-round" icon="calendar_month">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Wenatchee United SC"
+              text="Competitive club soccer development"
+              subtext="Ages 8-18, tryouts required, competitive"
+              link="https://wenatcheeunitedsc.com/"
+              icon="sports_soccer"
+            />
+            <LinkBox
+              title="NCW Volleyball Club"
+              text="Competitive volleyball training"
+              subtext="Grades 5-12, competitive teams"
+              link="https://ncwvbc.com/"
+              icon="sports_volleyball"
+            />
+            <LinkBox
+              title="Axiom Jiu-Jitsu"
+              text="Brazilian Jiu-Jitsu youth programs"
+              subtext="Ages 8-14, two skill levels available"
+              link="https://www.axiomjiujitsu.com/youth-programs"
+              icon="sports_martial_arts"
+            />
+            <LinkBox
+              title="S.P.O.R.T. Gymnastics"
+              text="Recreational and competitive gymnastics"
+              subtext="Ages 2.5-18, various skill levels"
+              link="https://www.sportgymnastics.com/"
+              icon="sports_gymnastics"
+            />
+            <LinkBox
+              title="Apple Capital Gymnastics"
+              text="Recreational and competitive gymnastics"
+              subtext="Ages 18 months-18, co-ed preschool classes"
+              link="https://applecapitalgymnastics.com/"
+              icon="sports_gymnastics"
+            />
+            <LinkBox
+              title="Dragon Mountain Martial Arts"
+              text="Isshinryu Karate training"
+              subtext="All ages, family classes available"
+              link="https://www.dragonmountainmartialarts.com/"
+              icon="sports_martial_arts"
+            />
+            <LinkBox
+              title="Riverfront Rock Gym Climbing Team"
+              text="Competitive climbing team"
+              subtext="Ages 8-18, competitive, tryouts required"
+              link="https://www.riverfrontrockgym.com/youth-team"
+              icon="landscape"
+            />
+            <LinkBox
+              title="Riverfront Rock Gym Youth Club"
+              text="Recreational climbing club"
+              subtext="Ages 8-13, recreational, drop-in available"
+              link="https://www.riverfrontrockgym.com/classes-1"
+              icon="landscape"
+            />
+            </div>
+          </Accordian>
+
           <!-- Fall Sports Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('fall')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-orange-600">park</span>
-                <span class="font-semibold text-gray-700">Fall Sports</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="fall-icon">expand_more</span>
-            </button>
-            <div id="fall-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                <a href="https://www.leavenworthsoccerclub.org/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-600">sports_soccer</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Leavenworth Soccer Club</h5>
-                    <p class="text-sm text-gray-600">Recreational youth soccer league</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 4-14, recreational</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://www.wybasketball.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-orange-600">sports_basketball</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Wenatchee Youth Basketball</h5>
-                    <p class="text-sm text-gray-600">Youth basketball programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Grades K-8, various skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://iciclebicycleclub.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-green-600">pedal_bike</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Icicle Bicycle Club</h5>
-                    <p class="text-sm text-gray-600">Mountain biking programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Middle school and up, family-friendly</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-              </div>
+          <Accordian title="Fall Sports" sectionId="fall" icon="park">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Leavenworth Soccer Club"
+                text="Recreational youth soccer league"
+                subtext="Ages 4-14, recreational"
+                link="https://www.leavenworthsoccerclub.org/"
+                icon="sports_soccer"
+              />
+              <LinkBox
+                title="Wenatchee Youth Basketball"
+                text="Youth basketball programs"
+                subtext="Grades K-8, various skill levels"
+                link="https://www.wybasketball.com/"
+                icon="sports_basketball"
+              />
+              <LinkBox
+                title="Icicle Bicycle Club"
+                text="Mountain biking programs"
+                subtext="Middle school and up, family-friendly"
+                link="https://iciclebicycleclub.com/"
+                icon="pedal_bike"
+              />
             </div>
-          </div>
-          
+          </Accordian>
           <!-- Winter Sports Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('winter')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-blue-400">ac_unit</span>
-                <span class="font-semibold text-gray-700">Winter Sports</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="winter-icon">expand_more</span>
-            </button>
-            <div id="winter-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                <a href="https://www.skiplain.com/pvnt" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-400">downhill_skiing</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Plain Valley Nordic Team</h5>
-                    <p class="text-sm text-gray-600">Cross-country skiing programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, all skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://skileavenworth.com/teams/nordic" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-400">downhill_skiing</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Leavenworth Nordic Team</h5>
-                    <p class="text-sm text-gray-600">Cross-country skiing programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, all skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://www.stevenspass.com/plan-your-trip/more-options/stevens-pass-alpine-club.aspx" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-400">downhill_skiing</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Stevens Pass Alpine Club</h5>
-                    <p class="text-sm text-gray-600">Alpine racing & freeride programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, competitive, tryouts required</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://skileavenworth.com/teams/alpine-ski-team/junior-alpine-ski-team" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-400">downhill_skiing</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Leavenworth Junior Alpine Team</h5>
-                    <p class="text-sm text-gray-600">Alpine racing programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, various skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://skileavenworth.com/teams" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-400">downhill_skiing</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Mission Ridge Ski Team</h5>
-                    <p class="text-sm text-gray-600">Alpine racing programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, competitive</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://www.wenatcheehockey.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-800">sports_hockey</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Wenatchee Amateur Hockey</h5>
-                    <p class="text-sm text-gray-600">Youth hockey programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 4-18, various skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-              </div>
+          <Accordian title="Winter Sports" sectionId="winter" icon="ac_unit">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Plain Valley Nordic Team"
+                text="Cross-country skiing programs"
+                subtext="Ages 6-18, all skill levels"
+                link="https://www.skiplain.com/pvnt"
+                icon="downhill_skiing"
+              />
+              <LinkBox
+                title="Leavenworth Nordic Team"
+                text="Cross-country skiing programs"
+                subtext="Ages 6-18, all skill levels"
+                link="https://skileavenworth.com/teams/nordic"
+                icon="downhill_skiing"
+              />
+              <LinkBox
+                title="Stevens Pass Alpine Club"
+                text="Alpine racing & freeride programs"
+                subtext="Ages 6-18, competitive, tryouts required"
+                link="https://www.stevenspass.com/plan-your-trip/more-options/stevens-pass-alpine-club.aspx"
+                icon="downhill_skiing"
+              />
+              <LinkBox
+                title="Leavenworth Junior Alpine Team"
+                text="Alpine racing programs"
+                subtext="Ages 6-18, various skill levels"
+                link="https://skileavenworth.com/teams/alpine-ski-team/junior-alpine-ski-team"
+                icon="downhill_skiing"
+              />
+              <LinkBox
+                title="Mission Ridge Ski Team"
+                text="Alpine racing programs"
+                subtext="Ages 6-18, competitive"
+                link="https://skileavenworth.com/teams"
+                icon="downhill_skiing"
+              />
+              <LinkBox
+                title="Wenatchee Amateur Hockey"
+                text="Youth hockey programs"
+                subtext="Ages 4-18, various skill levels"
+                link="https://www.wenatcheehockey.com/"
+                icon="sports_hockey"
+              />
             </div>
-          </div>
-          
+          </Accordian>
           <!-- Spring Sports Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('spring')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-green-600">park</span>
-                <span class="font-semibold text-gray-700">Spring Sports</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="spring-icon">expand_more</span>
-            </button>
-            <div id="spring-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                <a href="https://www.cascadeyouthbaseball.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-green-600">sports_baseball</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Cascade Youth Baseball</h5>
-                    <p class="text-sm text-gray-600">Youth baseball and softball</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 4-18, various skill levels</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="http://gwgsa.org/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-pink-600">sports_baseball</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Greater Wenatchee Girls Softball</h5>
-                    <p class="text-sm text-gray-600">Girls softball association</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, girls only</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://www.leavenworthsoccerclub.org/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-600">sports_soccer</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Leavenworth Soccer Club</h5>
-                    <p class="text-sm text-gray-600">Recreational youth soccer league</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 4-14, recreational</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://iciclebicycleclub.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-green-600">pedal_bike</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Icicle Bicycle Club</h5>
-                    <p class="text-sm text-gray-600">Mountain biking programs</p>
-                    <p class="text-xs text-gray-500 mt-1">Middle school and up, family-friendly</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-              </div>
+          <Accordian title="Spring Sports" sectionId="spring" icon="park">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Cascade Youth Baseball"
+                text="Youth baseball and softball"
+                subtext="Ages 4-18, various skill levels"
+                link="https://www.cascadeyouthbaseball.com/"
+                icon="sports_baseball"
+              />
+              <LinkBox
+                title="Greater Wenatchee Girls Softball"
+                text="Girls softball association"
+                subtext="Ages 6-18, girls only"
+                link="http://gwgsa.org/"
+                icon="sports"
+              />
+              <LinkBox
+                title="Leavenworth Soccer Club"
+                text="Recreational youth soccer league"
+                subtext="Ages 4-14, recreational"
+                link="https://www.leavenworthsoccerclub.org/"
+                icon="sports_soccer"
+              />
+              <LinkBox
+                title="Icicle Bicycle Club"
+                text="Mountain biking programs"
+                subtext="Middle school and up, family-friendly"
+                link="https://iciclebicycleclub.com/"
+                icon="pedal_bike"
+              />
             </div>
-          </div>
-          
+          </Accordian>
           <!-- Summer Sports Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('summer')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-yellow-600">wb_sunny</span>
-                <span class="font-semibold text-gray-700">Summer Sports</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="summer-icon">expand_more</span>
-            </button>
-            <div id="summer-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                <a href="https://www.leavenworthswimteam.com/" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-blue-600">pool</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Leavenworth Swim Team</h5>
-                    <p class="text-sm text-gray-600">Competitive summer swim team</p>
-                    <p class="text-xs text-gray-500 mt-1">Ages 6-18, competitive</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-                <a href="https://leagues.teamlinkt.com/wenlax" target="_blank" class="group flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <span class="material-symbols-outlined text-lg mr-3 text-purple-600">sports</span>
-                  <div class="flex-1">
-                    <h5 class="font-medium text-gray-900">Wenatchee Valley Lacrosse</h5>
-                    <p class="text-sm text-gray-600">Youth and high school lacrosse</p>
-                    <p class="text-xs text-gray-500 mt-1">Grades 3-12, co-ed</p>
-                  </div>
-                  <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-                </a>
-              </div>
+          <Accordian title="Summer Sports" sectionId="summer" icon="wb_sunny">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Leavenworth Swim Team"
+                text="Competitive summer swim team"
+                subtext="Ages 6-18, competitive"
+                link="https://www.leavenworthswimteam.com/"
+                icon="pool"
+              />
+              <LinkBox
+                title="Wenatchee Valley Lacrosse"
+                text="Youth and high school lacrosse"
+                subtext="Grades 3-12, co-ed"
+                link="https://leagues.teamlinkt.com/wenlax"
+                icon="sports"
+              />
             </div>
-          </div>
+          </Accordian>
         </div>
       </div>
     </div>
 
     <!-- Aquatics Section -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 py-8">
+    <div id="aquatics" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-8">
       <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
-            <span class="material-symbols-outlined text-4xl mr-3">pool</span>
-            Aquatics
-          </h2>
-          <p class="text-lg text-blue-100">
-            Swimming pools, beaches, and water activities for families.
-          </p>
-        </div>
+        <SectionHeader
+        title="Aquatics"
+        icon="pool"
+        text="Swimming pools, beaches, and water activities for families."
+      />
         
         <div class="bg-white rounded-lg shadow-lg p-6">
-          <!-- Pools Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('pools')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-blue-600">pool</span>
-                <span class="font-semibold text-gray-700">Pools</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="pools-icon">expand_more</span>
-            </button>
-            <div id="pools-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ml-8">
-                <!-- Howard Hopkins Pool -->
-                <a href="https://cityofleavenworth.com/pool/" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">pool</span>
-                    <h4 class="font-medium text-gray-900">Howard Hopkins Pool</h4>
-                    <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Membership:</strong> Public facility, daily admission & season passes</p>
-                    <p class="text-gray-600"><strong>Lessons:</strong> Group and private swim lessons available</p>
-                    <p class="text-gray-600"><strong>Features:</strong> Indoor pool, seasonal operation</p>
-                    <p class="text-xs text-gray-500">Check website for current schedules and pricing</p>
-                  </div>
-                </a>
-
-                <!-- Wenatchee YMCA -->
-                <a href="https://www.wenymca.org/aquatics" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">fitness_center</span>
-                    <h4 class="font-medium text-gray-900">Wenatchee YMCA</h4>
-                    <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Membership:</strong> YMCA membership required</p>
-                    <p class="text-gray-600"><strong>Lessons:</strong> Group lessons, private lessons, lifeguard certification</p>
-                    <p class="text-gray-600"><strong>Features:</strong> Indoor pool, swim test policy for children under 13</p>
-                    <p class="text-xs text-gray-500">Hours: Mon-Fri 5am-10pm, Sat 7am-5pm, Sun Closed</p>
-                  </div>
-                </a>
-
-                <!-- Cashmere Pool -->
-                <a href="https://www.cityofcashmere.org/services/parks-recreation" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">pool</span>
-                    <h4 class="font-medium text-gray-900">Cashmere Pool</h4>
-                    <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Membership:</strong> Public facility, daily admission & season passes</p>
-                    <p class="text-gray-600"><strong>Lessons:</strong> Summer swim lessons and programs</p>
-                    <p class="text-gray-600"><strong>Features:</strong> Outdoor pool, seasonal operation</p>
-                    <p class="text-xs text-gray-500">Managed by Cashmere Parks & Recreation Department</p>
-                  </div>
-                </a>
-
-                <!-- Kahler Glen Athletic Club -->
-                <a href="https://kahlerglencommunity.org/kahler-glen-athletic-club/" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">pool</span>
-                    <h4 class="font-medium text-gray-900">Kahler Glen Athletic Club</h4>
-                    <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Membership:</strong> Private club, members and guests only</p>
-                    <p class="text-gray-600"><strong>Lessons:</strong> Contact club for availability</p>
-                    <p class="text-gray-600"><strong>Features:</strong> Indoor heated pool, spa, sauna, year-round</p>
-                    <p class="text-xs text-gray-500">Note: Resort guests must be accompanied by members</p>
-                  </div>
-                </a>
-              </div>
+          <Accordian title="Pools" sectionId="pools" icon="pool">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Howard Hopkins Pool"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://cityofleavenworth.com/pool/"
+                icon="pool"
+              />
+              <LinkBox
+                title="Wenatchee YMCA"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.wenymca.org/aquatics"
+                icon="pool"
+              />
+              <LinkBox
+                title="Cashmere Pool"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.cityofcashmere.org/services/parks-recreation"
+                icon="pool"
+              />
+              <LinkBox
+                title="Kahler Glen Athletic Club"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://kahlerglencommunity.org/kahler-glen-athletic-club/"
+                icon="pool"
+              />
             </div>
-          </div>
-
-          <!-- Beaches Accordion -->
-          <div class="mb-4">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200" onclick="toggleAccordion('beaches')">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-lg mr-2 text-blue-600">beach_access</span>
-                <span class="font-semibold text-gray-700">Beaches</span>
-              </div>
-              <span class="material-symbols-outlined text-gray-500 transition-transform" id="beaches-icon">expand_more</span>
-            </button>
-            <div id="beaches-content" class="hidden mt-3">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ml-8">
-                <!-- Barn Beach Swimming Beach -->
-                <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">beach_access</span>
-                    <h4 class="font-medium text-gray-900">Barn Beach Swimming Beach</h4>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Features:</strong> Swimming beach, river access</p>
-                    <p class="text-gray-600"><strong>Activities:</strong> Swimming, wading, water play</p>
-                    <p class="text-gray-600"><strong>Age Range:</strong> All ages</p>
-                    <p class="text-xs text-gray-500">Popular summer swimming destination</p>
-                  </div>
-                </a>
-
-                <!-- Shore Street Public River Access -->
-                <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">beach_access</span>
-                    <h4 class="font-medium text-gray-900">Shore Street River Access</h4>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Features:</strong> Swimming beach, Icicle River access</p>
-                    <p class="text-gray-600"><strong>Activities:</strong> Swimming, river play, picnicking</p>
-                    <p class="text-gray-600"><strong>Age Range:</strong> All ages</p>
-                    <p class="text-xs text-gray-500">Access to Icicle River swimming</p>
-                  </div>
-                </a>
-
-                <!-- Dog Beach Swimming Area -->
-                <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-                  <div class="flex items-center mb-2">
-                    <span class="material-symbols-outlined text-lg text-blue-600 mr-2">beach_access</span>
-                    <h4 class="font-medium text-gray-900">Dog Beach Swimming Area</h4>
-                  </div>
-                  <div class="space-y-2 text-sm">
-                    <p class="text-gray-600"><strong>Features:</strong> Swimming beach, river access</p>
-                    <p class="text-gray-600"><strong>Activities:</strong> Swimming, water play, dog-friendly</p>
-                    <p class="text-gray-600"><strong>Age Range:</strong> All ages</p>
-                    <p class="text-xs text-gray-500">Downstream of red bridge/tumwater pipeline trail</p>
-                  </div>
-                </a>
-              </div>
+          </Accordian>
+          <Accordian title="Beaches" sectionId="beaches" icon="beach_access">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Barn Beach Swimming Beach"
+                text="Public swimming beach"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.leavenworth.org/barn-beach"
+                icon="pool"
+              />
+              <LinkBox
+                title="Shore Street Public River Access"
+                text="Public swimming beach"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.leavenworth.org/shore-street-river-access"
+                icon="pool"
+              />
+              <LinkBox
+                title="Dog Beach Swimming Area"
+                text="Public swimming beach"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.leavenworth.org/dog-beach-swimming-area"
+                icon="pool"
+              />
             </div>
+          </Accordian>
+         
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Parks Section -->
-    <div class="bg-green py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
-            <span class="material-symbols-outlined text-4xl mr-3">park</span>
-            Parks
-          </h2>
-          <p class="text-lg text-blue-100">
-            Local parks, playgrounds, and outdoor recreation areas.
-          </p>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Enchantment Park - Pump Track & Skate Park -->
-            <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-blue-600 mr-2">park</span>
-                <h4 class="font-medium text-gray-900">Enchantment Park</h4>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Features:</strong> Pump track, skate park, playground</p>
-                <p class="text-gray-600"><strong>Activities:</strong> BMX biking, skateboarding, play equipment</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> All ages, various skill levels</p>
-                <p class="text-xs text-gray-500">Popular destination for active families</p>
-              </div>
-            </a>
-
-            <!-- Waterfront Park Playground -->
-            <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-blue-600 mr-2">park</span>
-                <h4 class="font-medium text-gray-900">Waterfront Park</h4>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Features:</strong> Playground equipment, river views</p>
-                <p class="text-gray-600"><strong>Activities:</strong> Play equipment, walking paths</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> All ages</p>
-                <p class="text-xs text-gray-500">Scenic location along the Wenatchee River</p>
-              </div>
-            </a>
-
-            <!-- Osborn Park - All-Abilities Playground -->
-            <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-blue-600 mr-2">park</span>
-                <h4 class="font-medium text-gray-900">Osborn Park</h4>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Features:</strong> All-abilities playground, inclusive design</p>
-                <p class="text-gray-600"><strong>Activities:</strong> Accessible play equipment</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> All ages and abilities</p>
-                <p class="text-xs text-gray-500">Designed for children of all abilities</p>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+    
 
     <!-- Arts & Culture Section -->
-    <div class="py-8" style="background-color: var(--fandango);">
+    <div id="arts-culture" class="bg-fandango py-8">
       <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
-            <span class="material-symbols-outlined text-4xl mr-3">brush</span>
-            Arts & Culture
-          </h2>
-          <p class="text-lg text-pink-100">
-            Creative opportunities, performances, and cultural experiences for families.
-          </p>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <SectionHeader
+          title="Arts & Culture"
+          icon="brush"
+          text="Creative opportunities, performances, and cultural experiences for families."
+        />
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Edelweiss Dance Acadamie -->
-            <a href="https://edelweissdanceacadamie.com/" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-pink-600 mr-2">music_note</span>
-                <h4 class="font-medium text-gray-900">Edelweiss Dance Acadamie</h4>
-                <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Programs:</strong> Ballet, Jazz, Modern & Pointe</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> Ages 3 through Adult</p>
-                <p class="text-gray-600"><strong>Features:</strong> Nutcracker performance, spring recital</p>
-                <p class="text-xs text-gray-500">Located at 202 Scholze St, Leavenworth</p>
-              </div>
-            </a>
-
-            <!-- Icicle Creek Center for the Arts -->
-            <a href="https://icicle.org/arts-education/" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-purple-600 mr-2">music_note</span>
-                <h4 class="font-medium text-gray-900">Icicle Creek Center for the Arts</h4>
-                <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Programs:</strong> Summer camps, workshops, youth symphony</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> Kids to adults</p>
-                <p class="text-gray-600"><strong>Features:</strong> Music, theater, writing camps</p>
-                <p class="text-xs text-gray-500">Located at 7409 Icicle Rd, Leavenworth</p>
-              </div>
-            </a>
-
-            <!-- Leavenworth Art Haus -->
-            <a href="https://www.leavenwortharthaus.com/" target="_blank" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-blue-600 mr-2">brush</span>
-                <h4 class="font-medium text-gray-900">Leavenworth Art Haus</h4>
-                <span class="material-symbols-outlined text-gray-400 ml-auto">open_in_new</span>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Programs:</strong> Paint on ceramics, wood, canvas, rocks</p>
-                <p class="text-gray-600"><strong>Age Range:</strong> All ages, family-friendly</p>
-                <p class="text-gray-600"><strong>Features:</strong> Same-day completion, events/parties</p>
-                <p class="text-xs text-gray-500">Family-friendly art studio in Leavenworth</p>
-              </div>
-            </a>
-
-            <!-- Cascade SD Spring School Play -->
-            <a href="#" class="group flex flex-col p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <div class="flex items-center mb-2">
-                <span class="material-symbols-outlined text-lg text-green-600 mr-2">theater_comedy</span>
-                <h4 class="font-medium text-gray-900">Cascade SD Spring School Play</h4>
-              </div>
-              <div class="space-y-2 text-sm">
-                <p class="text-gray-600"><strong>Program:</strong> School theater production</p>
-                <p class="text-gray-600"><strong>Season:</strong> Spring (details TBD)</p>
-                <p class="text-gray-600"><strong>Features:</strong> Student performance opportunity</p>
-                <p class="text-xs text-gray-500">Information coming in spring</p>
-              </div>
-            </a>
+            <LinkBox
+              title="Edelweiss Dance Acadamie"
+              text="Ballet, Jazz, Modern & Pointe. For ages 3 through Adult. Nutcracker performance, spring recital."
+              link="https://edelweissdanceacadamie.com/"
+              icon="music_note"
+              external={true}
+            />
+            <LinkBox
+              title="Icicle Creek Center for the Arts"
+              text="Music, theater, writing, and visual arts. Summer camps, workshops, and youth symphony."
+              link="https://icicle.org/arts-education/"
+              icon="music_note"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Art Haus"
+              text="Family-friendly art studio in Leavenworth with classes and camps."
+              link="https://www.leavenwortharthaus.com/"
+              icon="brush"
+              external={true}
+            />
+            <LinkBox
+              title="Cascade SD Spring School Play"
+              text="Spring play at Cascade School District."
+              link="#"
+              icon="theater_comedy"
+            /> 
           </div>
-        </div>
       </div>
     </div>
 
     <!-- Community Programs Section -->
-    <div class="bg-green py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
-            <span class="material-symbols-outlined text-3xl mr-3">groups</span>
-            Community Programs
-          </h2>
-          <p class="text-lg text-blue-100">
-            Connect with local organizations and build community relationships.
-          </p>
-        </div>
+    <div id="community" class="bg-green py-8 full-width-section">
+          <SectionHeader
+            title="Community Programs"
+            icon="groups"
+            text="Connect with local organizations and build community relationships."
+          />
         
         <div class="bg-white rounded-lg shadow-lg p-6">
-          <div class="space-y-4">
             <!-- Cub Scouts -->
-            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors rounded-lg px-2">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-2xl text-green-600 mr-3">hiking</span>
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">Cub Scouts</h3>
-                  <p class="text-sm text-gray-600">Grades K-5, open to all genders. Every other Thursday after school at Alpine Lakes Elementary. <a href="mailto:christinabarrineau@gmail.com" class="text-blue-600 hover:underline">Contact Cubmaster Christina</a></p>
-                </div>
-              </div>
-              <a href="https://beascout.scouting.org/" target="_blank">
-                <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-              </a>
-            </div>
-
-            <!-- Scouting America (formerly Boy Scouts) -->
-            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors rounded-lg px-2">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-2xl text-green-600 mr-3">hiking</span>
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">Scouting America</h3>
-                  <p class="text-sm text-gray-600">Grades 6+, open to all genders (formerly Boy Scouts).<a href="mailto:baballetnut@gmail.com" class="text-blue-600 hover:underline">Contact Scoutmaster Briar</a></p>
-                </div>
-              </div>
-              <a href="https://beascout.scouting.org/" target="_blank">
-                <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-              </a>
-            </div>
-
-            <!-- 4-H & Agriculture -->
-            <a href="https://extension.wsu.edu/chelan-douglas/youthdevelopment/" target="_blank" class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors rounded-lg px-2">
-              <div class="flex items-center">
-                <span class="material-symbols-outlined text-2xl text-green-600 mr-3">agriculture</span>
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">4-H Youth Development</h3>
-                  <p class="text-sm text-gray-600">WSU Extension programs for youth ages 5-19</p>
-                  <p class="text-xs text-gray-500 mt-1">Hands-on learning in agriculture, STEM, leadership, and life skills</p>
-                </div>
-              </div>
-              <span class="material-symbols-outlined text-gray-400">open_in_new</span>
-            </a>
-          </div>
+             <LinkListItem
+              title="Cub Scouts"
+              text="Grades K-5, open to all genders. Every other Thursday after school at Alpine Lakes Elementary. Contact Cubmaster Christina for more information."
+              link="mailto:christinabarrineau@gmail.com"
+              icon="hiking"
+              iconColor="text-green-600"
+              external={true}
+            />
+            <LinkListItem
+              title="Scouting America"
+              text="Grades 6+, open to all genders (formerly Boy Scouts). Contact Scoutmaster Briar for more information."
+              link="mailto:baballetnut@gmail.com"
+              icon="hiking"
+              iconColor="text-green-600"
+              external={true}
+            />
+            <LinkListItem
+              title="4-H Youth Development"
+              text="WSU Extension programs for youth ages 5-19"
+              subtext="Hands-on learning in agriculture, STEM, leadership, and life skills"
+              link="https://extension.wsu.edu/chelan-douglas/youthdevelopment/"
+              icon="agriculture"
+              iconColor="text-green-600"
+              external={true}
+            />
         </div>
+    </div>
+<!-- Parks Section -->
+<div id="parks" class="bg-blue-green py-8">
+  <div class="w-full px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl mr-3">park</span>
+        Parks
+      </h2>
+      <p class="text-lg text-blue-100">
+        Local parks, playgrounds, and outdoor recreation areas.
+      </p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <LinkListItem
+          title="Enchantment Park"
+          text="Pump track, skate park, playground, play fields, picnic tables,trails, kids fishing pond, and river access."
+          link="https://www.leavenworth.org/enchantment-park"
+          icon="park"
+        />
+        <LinkListItem
+          title="Waterfront Park"
+          text="Playground equipment, trails, picnic tables, and river access."
+          link="https://www.leavenworth.org/waterfront-park"
+          icon="park"
+        />
+        <LinkListItem
+          title="Osborn Park"
+          text="All-abilities playground, field, tennis courts."
+          link="https://www.leavenworth.org/osborn-park"
+          icon="park"
+        />
+
       </div>
     </div>
-
+  </div>
+</div>
     <!-- Seasonal Activities Section -->
-    <div class="w-full px-4 sm:px-6 lg:px-8 py-7">
-      <div class="w-full">
-        <div class="rounded-lg p-6 bg-yellow">
-          <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center justify-center">
-            <span class="material-symbols-outlined text-3xl mr-3">calendar_month</span>
-            Seasonal Activities
-          </h2>
-          
-          <div class="mb-8">
-            <div class="text-center py-8">
-              <span class="material-symbols-outlined text-6xl text-gray-400 mb-4">pending</span>
-              <h3 class="text-xl font-semibold text-gray-700 mb-2">Information Coming Soon</h3>
-              <p class="text-gray-600 max-w-md mx-auto">
-                We're gathering information about summer camps, holiday events, and seasonal activities. 
-                Check back soon for details about seasonal programs and opportunities for families.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Disclaimer -->
-    <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
-      <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-fandango">
-        <div class="flex items-start">
-          <span class="material-symbols-outlined text-gray-500 mr-3 mt-0.5">info</span>
-          <div>
-            <h3 class="text-sm font-semibold text-gray-700 mb-2">Disclaimer</h3>
-            <p class="text-sm text-gray-600 leading-relaxed">
-              The information provided on this page is for convenience only and should not be construed as official information. 
-              While we strive to maintain accurate and up-to-date information, please verify details directly with the organizations listed. 
-              Corrections and updates are gladly accepted - please <a href="mailto:dertownleavenworth@gmail.com" class="text-blue-600 hover:text-blue-800 underline">contact us</a> if you notice any inaccuracies.
+    <div id="seasonal" class="floating-section-background">
+      <div class="floating-section-foreground bg-yellow">
+          <SectionHeader
+            title="Seasonal Activities"
+            icon="calendar_month"
+            text="Information Coming Soon"
+          />
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <p class="text-gray-600">
+              We're gathering information about summer camps, holiday events, and seasonal activities. 
+              Check back soon for details about seasonal programs and opportunities for families.
             </p>
           </div>
         </div>
-      </div>
     </div>
+
+    <!-- Disclaimer -->
+    <Disclaimer />
 
     <!-- Call to Action -->
     <div class="mt-8 text-center">
