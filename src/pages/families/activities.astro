@@ -1,453 +1,48 @@
 ---
 import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
-import QuickNavItem from '../../components/ui/QuickNavItem.astro';
-import LinkListItem from '../../components/ui/LinkListItem.astro';
-import LinkBox from '../../components/ui/LinkBox.astro';
-import Disclaimer from '../../components/ui/Disclaimer.astro';
-import Accordian from '../../components/ui/Accordian.astro';
+import ActivityFilters from '../../components/kid-activities/ActivityFilters.astro';
+import ViewToggle from '../../components/kid-activities/ViewToggle.astro';
+import type { Database } from '../../types/database';
+
+type KidActivity = Database['public']['Views']['public_kid_activities']['Row'];
+
+// Get URL parameters for initial state
+const url = new URL(Astro.request.url);
+const initialView = (url.searchParams.get('view') as 'program' | 'schedule') || 'program';
 ---
 
-<Layout title="Activities - Families | Der Town" description="Family activities, programs, and recreational opportunities in Der Town">
+<Layout title="Programs - Families | Der Town" description="Find recurring programs, classes, and activities for children in Der Town">
   <div class="bg-white min-h-screen">
-    <!-- Hero Section -->
-      <div class=" max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        <SectionHeader
-          title="Family Activities"
-          text="Discover fun activities, programs, and events for families of all ages in Der Town."
-        />
-    </div>
-
-    <!-- Quick Navigation -->
-    <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <div class="flex flex-wrap justify-center gap-2">
-        <QuickNavItem title="Sports" link="#sports" icon="sports_soccer" />
-        <QuickNavItem title="Aquatics" link="#aquatics" icon="pool" />
-        <QuickNavItem title="Parks" link="#parks" icon="park" />
-        <QuickNavItem title="Arts & Culture" link="#arts-culture" icon="brush" />
-        <QuickNavItem title="Community" link="#community" icon="groups" />
-        <QuickNavItem title="Seasonal" link="#seasonal" icon="calendar_month" />
-      </div>
-  </div>
-
-    <!-- Sports Section -->
-    <div id="sports" class="bg-yellow py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <SectionHeader
-          title="Sports"
-          icon="sports_soccer"
-          text="Organized sports and recreational activities for families."
-        />
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <Accordian title="Year-Round Sports" sectionId="year-round" icon="calendar_month">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <LinkBox
-              title="Wenatchee United SC"
-              text="Competitive club soccer development"
-              subtext="Ages 8-18, tryouts required, competitive"
-              link="https://wenatcheeunitedsc.com/"
-              icon="sports_soccer"
-            />
-            <LinkBox
-              title="NCW Volleyball Club"
-              text="Competitive volleyball training"
-              subtext="Grades 5-12, competitive teams"
-              link="https://ncwvbc.com/"
-              icon="sports_volleyball"
-            />
-            <LinkBox
-              title="Axiom Jiu-Jitsu"
-              text="Brazilian Jiu-Jitsu youth programs"
-              subtext="Ages 8-14, two skill levels available"
-              link="https://www.axiomjiujitsu.com/youth-programs"
-              icon="sports_martial_arts"
-            />
-            <LinkBox
-              title="S.P.O.R.T. Gymnastics"
-              text="Recreational and competitive gymnastics"
-              subtext="Ages 2.5-18, various skill levels"
-              link="https://www.sportgymnastics.com/"
-              icon="sports_gymnastics"
-            />
-            <LinkBox
-              title="Apple Capital Gymnastics"
-              text="Recreational and competitive gymnastics"
-              subtext="Ages 18 months-18, co-ed preschool classes"
-              link="https://applecapitalgymnastics.com/"
-              icon="sports_gymnastics"
-            />
-            <LinkBox
-              title="Dragon Mountain Martial Arts"
-              text="Isshinryu Karate training"
-              subtext="All ages, family classes available"
-              link="https://www.dragonmountainmartialarts.com/"
-              icon="sports_martial_arts"
-            />
-            <LinkBox
-              title="Riverfront Rock Gym Climbing Team"
-              text="Competitive climbing team"
-              subtext="Ages 8-18, competitive, tryouts required"
-              link="https://www.riverfrontrockgym.com/youth-team"
-              icon="landscape"
-            />
-            <LinkBox
-              title="Riverfront Rock Gym Youth Club"
-              text="Recreational climbing club"
-              subtext="Ages 8-13, recreational, drop-in available"
-              link="https://www.riverfrontrockgym.com/classes-1"
-              icon="landscape"
-            />
-            </div>
-          </Accordian>
-
-          <!-- Fall Sports Accordion -->
-          <Accordian title="Fall Sports" sectionId="fall" icon="park">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Leavenworth Soccer Club"
-                text="Recreational youth soccer league"
-                subtext="Ages 4-14, recreational"
-                link="https://www.leavenworthsoccerclub.org/"
-                icon="sports_soccer"
-              />
-              <LinkBox
-                title="Wenatchee Youth Basketball"
-                text="Youth basketball programs"
-                subtext="Grades K-8, various skill levels"
-                link="https://www.wybasketball.com/"
-                icon="sports_basketball"
-              />
-              <LinkBox
-                title="Icicle Bicycle Club"
-                text="Mountain biking programs"
-                subtext="Middle school and up, family-friendly"
-                link="https://iciclebicycleclub.com/"
-                icon="pedal_bike"
-              />
-            </div>
-          </Accordian>
-          <!-- Winter Sports Accordion -->
-          <Accordian title="Winter Sports" sectionId="winter" icon="ac_unit">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Plain Valley Nordic Team"
-                text="Cross-country skiing programs"
-                subtext="Ages 6-18, all skill levels"
-                link="https://www.skiplain.com/pvnt"
-                icon="downhill_skiing"
-              />
-              <LinkBox
-                title="Leavenworth Nordic Team"
-                text="Cross-country skiing programs"
-                subtext="Ages 6-18, all skill levels"
-                link="https://skileavenworth.com/teams/nordic"
-                icon="downhill_skiing"
-              />
-              <LinkBox
-                title="Stevens Pass Alpine Club"
-                text="Alpine racing & freeride programs"
-                subtext="Ages 6-18, competitive, tryouts required"
-                link="https://www.stevenspass.com/plan-your-trip/more-options/stevens-pass-alpine-club.aspx"
-                icon="downhill_skiing"
-              />
-              <LinkBox
-                title="Leavenworth Junior Alpine Team"
-                text="Alpine racing programs"
-                subtext="Ages 6-18, various skill levels"
-                link="https://skileavenworth.com/teams/alpine-ski-team/junior-alpine-ski-team"
-                icon="downhill_skiing"
-              />
-              <LinkBox
-                title="Mission Ridge Ski Team"
-                text="Alpine racing programs"
-                subtext="Ages 6-18, competitive"
-                link="https://skileavenworth.com/teams"
-                icon="downhill_skiing"
-              />
-              <LinkBox
-                title="Wenatchee Amateur Hockey"
-                text="Youth hockey programs"
-                subtext="Ages 4-18, various skill levels"
-                link="https://www.wenatcheehockey.com/"
-                icon="sports_hockey"
-              />
-            </div>
-          </Accordian>
-          <!-- Spring Sports Accordion -->
-          <Accordian title="Spring Sports" sectionId="spring" icon="park">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Cascade Youth Baseball"
-                text="Youth baseball and softball"
-                subtext="Ages 4-18, various skill levels"
-                link="https://www.cascadeyouthbaseball.com/"
-                icon="sports_baseball"
-              />
-              <LinkBox
-                title="Greater Wenatchee Girls Softball"
-                text="Girls softball association"
-                subtext="Ages 6-18, girls only"
-                link="http://gwgsa.org/"
-                icon="sports"
-              />
-              <LinkBox
-                title="Leavenworth Soccer Club"
-                text="Recreational youth soccer league"
-                subtext="Ages 4-14, recreational"
-                link="https://www.leavenworthsoccerclub.org/"
-                icon="sports_soccer"
-              />
-              <LinkBox
-                title="Icicle Bicycle Club"
-                text="Mountain biking programs"
-                subtext="Middle school and up, family-friendly"
-                link="https://iciclebicycleclub.com/"
-                icon="pedal_bike"
-              />
-            </div>
-          </Accordian>
-          <!-- Summer Sports Accordion -->
-          <Accordian title="Summer Sports" sectionId="summer" icon="wb_sunny">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Leavenworth Swim Team"
-                text="Competitive summer swim team"
-                subtext="Ages 6-18, competitive"
-                link="https://www.leavenworthswimteam.com/"
-                icon="pool"
-              />
-              <LinkBox
-                title="Wenatchee Valley Lacrosse"
-                text="Youth and high school lacrosse"
-                subtext="Grades 3-12, co-ed"
-                link="https://leagues.teamlinkt.com/wenlax"
-                icon="sports"
-              />
-            </div>
-          </Accordian>
-        </div>
-      </div>
-    </div>
-
-    <!-- Aquatics Section -->
-    <div id="aquatics" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <SectionHeader
-        title="Aquatics"
-        icon="pool"
-        text="Swimming pools, beaches, and water activities for families."
-      />
-        
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <Accordian title="Pools" sectionId="pools" icon="pool">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Howard Hopkins Pool"
-                text="Public pool with indoor and outdoor pools"
-                subtext="Public facility, daily admission & season passes"
-                link="https://cityofleavenworth.com/pool/"
-                icon="pool"
-              />
-              <LinkBox
-                title="Wenatchee YMCA"
-                text="Public pool with indoor and outdoor pools"
-                subtext="Public facility, daily admission & season passes"
-                link="https://www.wenymca.org/aquatics"
-                icon="pool"
-              />
-              <LinkBox
-                title="Cashmere Pool"
-                text="Public pool with indoor and outdoor pools"
-                subtext="Public facility, daily admission & season passes"
-                link="https://www.cityofcashmere.org/services/parks-recreation"
-                icon="pool"
-              />
-              <LinkBox
-                title="Kahler Glen Athletic Club"
-                text="Public pool with indoor and outdoor pools"
-                subtext="Public facility, daily admission & season passes"
-                link="https://kahlerglencommunity.org/kahler-glen-athletic-club/"
-                icon="pool"
-              />
-            </div>
-          </Accordian>
-          <Accordian title="Beaches" sectionId="beaches" icon="beach_access">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <LinkBox
-                title="Barn Beach Swimming Beach"
-                text="Public swimming beach"
-                subtext="Public facility, daily admission & season passes"
-                link="https://www.leavenworth.org/barn-beach"
-                icon="pool"
-              />
-              <LinkBox
-                title="Shore Street Public River Access"
-                text="Public swimming beach"
-                subtext="Public facility, daily admission & season passes"
-                link="https://www.leavenworth.org/shore-street-river-access"
-                icon="pool"
-              />
-              <LinkBox
-                title="Dog Beach Swimming Area"
-                text="Public swimming beach"
-                subtext="Public facility, daily admission & season passes"
-                link="https://www.leavenworth.org/dog-beach-swimming-area"
-                icon="pool"
-              />
-            </div>
-          </Accordian>
-         
-          </div>
-        </div>
-      </div>
-    </div>
-
-    
-
-    <!-- Arts & Culture Section -->
-    <div id="arts-culture" class="bg-fandango py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <SectionHeader
-          title="Arts & Culture"
-          icon="brush"
-          text="Creative opportunities, performances, and cultural experiences for families."
-        />
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <LinkBox
-              title="Edelweiss Dance Acadamie"
-              text="Ballet, Jazz, Modern & Pointe. For ages 3 through Adult. Nutcracker performance, spring recital."
-              link="https://edelweissdanceacadamie.com/"
-              icon="music_note"
-              external={true}
-            />
-            <LinkBox
-              title="Icicle Creek Center for the Arts"
-              text="Music, theater, writing, and visual arts. Summer camps, workshops, and youth symphony."
-              link="https://icicle.org/arts-education/"
-              icon="music_note"
-              external={true}
-            />
-            <LinkBox
-              title="Leavenworth Art Haus"
-              text="Family-friendly art studio in Leavenworth with classes and camps."
-              link="https://www.leavenwortharthaus.com/"
-              icon="brush"
-              external={true}
-            />
-            <LinkBox
-              title="Cascade SD Spring School Play"
-              text="Spring play at Cascade School District."
-              link="#"
-              icon="theater_comedy"
-            /> 
-          </div>
-      </div>
-    </div>
-
-    <!-- Community Programs Section -->
-    <div id="community" class="bg-green py-8 full-width-section">
-          <SectionHeader
-            title="Community Programs"
-            icon="groups"
-            text="Connect with local organizations and build community relationships."
-          />
-        
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <!-- Cub Scouts -->
-             <LinkListItem
-              title="Cub Scouts"
-              text="Grades K-5, open to all genders. Every other Thursday after school at Alpine Lakes Elementary. Contact Cubmaster Christina for more information."
-              link="mailto:christinabarrineau@gmail.com"
-              icon="hiking"
-              iconColor="text-green-600"
-              external={true}
-            />
-            <LinkListItem
-              title="Scouting America"
-              text="Grades 6+, open to all genders (formerly Boy Scouts). Contact Scoutmaster Briar for more information."
-              link="mailto:baballetnut@gmail.com"
-              icon="hiking"
-              iconColor="text-green-600"
-              external={true}
-            />
-            <LinkListItem
-              title="4-H Youth Development"
-              text="WSU Extension programs for youth ages 5-19"
-              subtext="Hands-on learning in agriculture, STEM, leadership, and life skills"
-              link="https://extension.wsu.edu/chelan-douglas/youthdevelopment/"
-              icon="agriculture"
-              iconColor="text-green-600"
-              external={true}
-            />
-        </div>
-    </div>
-<!-- Parks Section -->
-<div id="parks" class="bg-blue-green py-8">
-  <div class="w-full px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
-        <span class="material-symbols-outlined text-4xl mr-3">park</span>
-        Parks
-      </h2>
-      <p class="text-lg text-blue-100">
-        Local parks, playgrounds, and outdoor recreation areas.
-      </p>
-    </div>
-    
-    <div class="bg-white rounded-lg shadow-lg p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <LinkListItem
-          title="Enchantment Park"
-          text="Pump track, skate park, playground, play fields, picnic tables,trails, kids fishing pond, and river access."
-          link="https://www.leavenworth.org/enchantment-park"
-          icon="park"
-        />
-        <LinkListItem
-          title="Waterfront Park"
-          text="Playground equipment, trails, picnic tables, and river access."
-          link="https://www.leavenworth.org/waterfront-park"
-          icon="park"
-        />
-        <LinkListItem
-          title="Osborn Park"
-          text="All-abilities playground, field, tennis courts."
-          link="https://www.leavenworth.org/osborn-park"
-          icon="park"
-        />
-
-      </div>
-    </div>
-  </div>
-</div>
-    <!-- Seasonal Activities Section -->
-    <div id="seasonal" class="floating-section-background">
-      <div class="floating-section-foreground bg-yellow">
-          <SectionHeader
-            title="Seasonal Activities"
-            icon="calendar_month"
-            text="Information Coming Soon"
-          />
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <p class="text-gray-600">
-              We're gathering information about summer camps, holiday events, and seasonal activities. 
-              Check back soon for details about seasonal programs and opportunities for families.
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Under Construction Notice -->
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center">
+          <span class="material-symbols-outlined text-yellow-600 mr-2">construction</span>
+          <div>
+            <h3 class="text-sm font-medium text-yellow-800">Under Construction</h3>
+            <p class="text-sm text-yellow-700 mt-1">
+              This programs page is currently in development. We're working hard to bring you a comprehensive directory of children's activities in Der Town. Please check back soon for the full experience!
             </p>
           </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Disclaimer -->
-    <Disclaimer />
+      <SectionHeader
+        title="Programs"
+        text="Discover ongoing programs, classes, and activities for children of all ages in Der Town."
+      />
 
-    <!-- Call to Action -->
-    <div class="mt-8 text-center">
-      <div class="bg-blue-green p-8">
-        <h2 class="text-2xl font-semibold mb-4">Have some information you think we should add?</h2>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            Let Us Know
-          </a>
+      <!-- View Toggle -->
+      <ViewToggle activeView={initialView} class="mb-6" />
+
+      <!-- Filters -->
+      <ActivityFilters class="mb-4" />
+
+      <!-- Activities List -->
+      <div id="activitiesList" class="space-y-8">
+        <div class="text-center py-8">
+          <p class="text-gray-500">Loading programs...</p>
         </div>
       </div>
     </div>
@@ -455,19 +50,511 @@ import Accordian from '../../components/ui/Accordian.astro';
 </Layout>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Make sure the function is available globally
-    (window as any).toggleAccordion = function(section: string) {
-      const content = document.getElementById(section + '-content')!;
-      const icon = document.getElementById(section + '-icon')!;
-      
-      if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        icon.style.transform = 'rotate(180deg)';
-      } else {
-        content.classList.add('hidden');
-        icon.style.transform = 'rotate(0deg)';
-      }
+  interface Activity {
+    id: string;
+    name: string;
+    description?: string | null;
+    activity_type?: string | null;
+    activity_hierarchy_type?: string | null;
+    min_age?: number | null;
+    max_age?: number | null;
+    min_grade?: string | null;
+    max_grade?: string | null;
+    cost?: string | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
+    commitment_level?: string | null;
+    website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    registration_link?: string | null;
+    registration_opens?: string | null;
+    registration_closes?: string | null;
+    registration_required?: boolean | null;
+    is_ongoing?: boolean | null;
+    is_fall?: boolean | null;
+    is_winter?: boolean | null;
+    is_spring?: boolean | null;
+    is_summer?: boolean | null;
+    location?: {
+      name?: string | null;
+      address?: string | null;
+    } | null;
+    sponsoring_organization?: {
+      name?: string | null;
+      website?: string | null;
+    } | null;
+    parent_activity_id?: string | null;
+    children?: Activity[];
+    events?: any[];
+    rrule?: string | null; // Added for schedule view
+  }
+
+  interface Filters {
+    quickFilters?: Array<{ type: string; value: string }>;
+    activity_type?: string;
+    location?: string;
+    day_of_week?: string[];
+    [key: string]: any;
+  }
+
+  let currentActivities: Activity[] = [];
+  let currentFilters: Filters = {};
+  let currentView: 'program' | 'schedule' = 'program';
+  let isLoading = false;
+  let cache: { [key: string]: Activity[] } = {};
+
+  // Helper functions
+  function gradeToAgeRange(minGrade: string | null, maxGrade: string | null) {
+    if (!minGrade && !maxGrade) return null;
+    
+    const gradeAgeMap: Record<string, number> = {
+      'K': 5, '1': 6, '2': 7, '3': 8, '4': 9, '5': 10,
+      '6': 11, '7': 12, '8': 13, '9': 14, '10': 15, '11': 16, '12': 17
     };
+    
+    const minAge = minGrade ? gradeAgeMap[minGrade] || null : null;
+    const maxAge = maxGrade ? gradeAgeMap[maxGrade] || null : null;
+    
+    return { minAge, maxAge };
+  }
+
+  function getRegistrationStatus(activity: Activity) {
+    if (!activity.registration_opens && !activity.registration_closes) {
+      return { label: 'Open for Registration', color: 'success' };
+    }
+    
+    const now = new Date();
+    const opens = activity.registration_opens ? new Date(activity.registration_opens) : null;
+    const closes = activity.registration_closes ? new Date(activity.registration_closes) : null;
+    
+    if (opens && now < opens) {
+      return { label: 'Registration Opens Soon', color: 'warning' };
+    } else if (closes && now > closes) {
+      return { label: 'Registration Closed', color: 'default' };
+    } else {
+      return { label: 'Open for Registration', color: 'success' };
+    }
+  }
+
+  function getCategoryIcon(activityType: string | null) {
+    const iconMap: Record<string, string> = {
+      'Sports': 'sports_soccer',
+      'Arts': 'palette',
+      'Music': 'music_note',
+      'Dance': 'dance',
+      'STEM': 'science',
+      'Academic': 'school',
+      'Recreation': 'park',
+      'Other': 'star'
+    };
+    return iconMap[activityType || 'Other'] || 'star';
+  }
+
+  function getCategoryColor(activityType: string | null) {
+    const colorMap: Record<string, string> = {
+      'Sports': 'bg-blue-100 text-blue-800',
+      'Arts': 'bg-purple-100 text-purple-800',
+      'Music': 'bg-pink-100 text-pink-800',
+      'Dance': 'bg-red-100 text-red-800',
+      'STEM': 'bg-green-100 text-green-800',
+      'Academic': 'bg-yellow-100 text-yellow-800',
+      'Recreation': 'bg-indigo-100 text-indigo-800',
+      'Other': 'bg-gray-100 text-gray-800'
+    };
+    return colorMap[activityType || 'Other'] || 'bg-gray-100 text-gray-800';
+  }
+
+  function formatTime(timeString: string | null) {
+    if (!timeString) return '';
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+
+  function formatWeekdays(rrule: string | null | undefined) {
+    if (!rrule) return '';
+    const match = rrule.match(/BYDAY=([^;]+)/);
+    if (!match) return '';
+    
+    const days = match[1].split(',').map(day => {
+      const dayMap: Record<string, string> = {
+        'MO': 'Mon', 'TU': 'Tue', 'WE': 'Wed', 'TH': 'Thu', 'FR': 'Fri', 'SA': 'Sat', 'SU': 'Sun'
+      };
+      return dayMap[day] || day;
+    });
+    
+    return days.join(', ');
+  }
+
+  // Filter functions
+  function applyQuickFilter(type: string, value: string) {
+    if (!currentFilters.quickFilters) {
+      currentFilters.quickFilters = [];
+    }
+    
+    // Remove existing filter of this type
+    currentFilters.quickFilters = currentFilters.quickFilters.filter(f => f.type !== type);
+    
+    // Add new filter
+    currentFilters.quickFilters.push({ type, value });
+    
+    loadActivities(currentFilters);
+  }
+
+  function applyAdvancedFilter(type: string, value: any) {
+    if (value === null || value === undefined || value === '') {
+      delete currentFilters[type];
+    } else {
+      currentFilters[type] = value;
+    }
+    
+    loadActivities(currentFilters);
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('filterChange', function(e: any) {
+      const { type, value } = e.detail;
+      if (type === 'season' || type === 'age') {
+        applyQuickFilter(type, value);
+      } else {
+        applyAdvancedFilter(type, value);
+      }
+    });
+
+    document.addEventListener('viewChange', function(e: any) {
+      const { view } = e.detail;
+      currentView = view;
+      loadActivities(currentFilters);
+    });
+  });
+
+  function updateFilterPillStates() {
+    const allPills = document.querySelectorAll('.filter-pill');
+    allPills.forEach(pill => {
+      const filterType = pill.getAttribute('data-filter');
+      const filterValue = pill.getAttribute('data-value');
+      let isActive = false;
+      
+      if (currentFilters.quickFilters &&
+          currentFilters.quickFilters.some((f: { type: string; value: string }) => f.type === filterType && f.value === filterValue)) {
+        isActive = true;
+      }
+      
+      if (filterType && currentFilters[filterType as keyof Filters] === filterValue) {
+        isActive = true;
+      }
+      
+      if (isActive) {
+        pill.classList.remove('opacity-60');
+        pill.classList.add('opacity-100', 'ring-2', 'ring-offset-2', 'ring-blue-500');
+      } else {
+        pill.classList.remove('opacity-60', 'opacity-100', 'ring-2', 'ring-offset-2', 'ring-blue-500');
+      }
+    });
+  }
+
+  function renderProgramView(activities: Activity[]) {
+    const listElement = document.getElementById('activitiesList');
+    if (!listElement) return;
+
+    // Group activities by category
+    const categories: Record<string, Activity[]> = {};
+    activities.forEach(activity => {
+      const category = activity.activity_type || 'Other';
+      if (!categories[category]) {
+        categories[category] = [];
+      }
+      categories[category].push(activity);
+    });
+
+    const sortedCategories = Object.keys(categories).sort();
+    
+    let html = '<div class="program-view"><div class="space-y-8">';
+    
+    sortedCategories.forEach(category => {
+      const categoryActivities = categories[category];
+      const categoryIcon = getCategoryIcon(category);
+      const categoryColor = getCategoryColor(category);
+      
+      html += `
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div class="bg-gray-50 p-4 rounded-t-lg border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+              <span class="material-symbols-outlined mr-2">${categoryIcon}</span>
+              ${category} (${categoryActivities.length})
+            </h3>
+          </div>
+          <div class="p-4">
+            <div class="space-y-4">
+      `;
+      
+      categoryActivities.forEach(activity => {
+        const registrationStatus = getRegistrationStatus(activity);
+        const ageRange = activity.min_age && activity.max_age ? 
+          `${activity.min_age}-${activity.max_age} years` : 
+          (activity.min_grade || activity.max_grade ? `${activity.min_grade || ''}${activity.min_grade && activity.max_grade ? '-' : ''}${activity.max_grade || ''}` : 'All ages');
+        
+        html += `
+          <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="text-lg font-semibold text-gray-900">${activity.name}</h4>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${registrationStatus.color === 'success' ? 'bg-green-100 text-green-800' : registrationStatus.color === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
+                ${registrationStatus.label}
+              </span>
+            </div>
+            ${activity.description ? `<p class="text-gray-600 mb-3">${activity.description}</p>` : ''}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+              <div>
+                <span class="font-medium">Age Range:</span> ${ageRange}
+              </div>
+              ${activity.cost ? `<div><span class="font-medium">Cost:</span> ${activity.cost}</div>` : ''}
+              ${activity.location?.name ? `<div><span class="font-medium">Location:</span> ${activity.location.name}</div>` : ''}
+              ${activity.sponsoring_organization?.name ? `<div><span class="font-medium">Organization:</span> ${activity.sponsoring_organization.name}</div>` : ''}
+            </div>
+            ${activity.children && activity.children.length > 0 ? `
+              <div class="mt-4 pt-4 border-t border-gray-200">
+                <h5 class="font-medium text-gray-900 mb-2">Available Sessions:</h5>
+                <div class="space-y-2">
+                  ${activity.children.map(child => `
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-700">${child.name}</span>
+                      <span class="text-gray-500">${child.cost || 'Contact for details'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      
+      html += `
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div></div>';
+    listElement.innerHTML = html;
+  }
+
+  function renderScheduleView(activities: Activity[]) {
+    const listElement = document.getElementById('activitiesList');
+    if (!listElement) return;
+
+    // Group activities by day of the week
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const activitiesByDay: Record<string, Activity[]> = {};
+    
+    daysOfWeek.forEach(day => {
+      activitiesByDay[day] = [];
+    });
+
+    activities.forEach(activity => {
+      // For now, we'll show all activities. In the future, this could be enhanced to parse RRULE data
+      if (activity.rrule) {
+        const weekdays = formatWeekdays(activity.rrule!);
+        if (weekdays) {
+          weekdays.split(', ').forEach(day => {
+            const fullDayName = day === 'Mon' ? 'Monday' : 
+                              day === 'Tue' ? 'Tuesday' : 
+                              day === 'Wed' ? 'Wednesday' : 
+                              day === 'Thu' ? 'Thursday' : 
+                              day === 'Fri' ? 'Friday' : 
+                              day === 'Sat' ? 'Saturday' : 
+                              day === 'Sun' ? 'Sunday' : day;
+            if (activitiesByDay[fullDayName]) {
+              activitiesByDay[fullDayName].push(activity);
+            }
+          });
+        }
+      } else {
+        // If no RRULE, show in a general section
+        activitiesByDay['Monday'].push(activity);
+      }
+    });
+
+    let html = `
+      <div class="schedule-view">
+        <div class="space-y-6">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Weekly Schedule</h2>
+    `;
+
+    daysOfWeek.forEach(day => {
+      const dayActivities = activitiesByDay[day];
+      if (dayActivities.length > 0) {
+        html += `
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="bg-blue-50 p-4 rounded-t-lg border-b border-blue-200">
+              <h3 class="text-lg font-semibold text-blue-800">${day}</h3>
+            </div>
+            <div class="p-4">
+              <div class="space-y-3">
+        `;
+        
+        dayActivities.forEach(activity => {
+          const registrationStatus = getRegistrationStatus(activity);
+          html += `
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <h4 class="font-medium text-gray-900">${activity.name}</h4>
+                <p class="text-sm text-gray-500">${activity.activity_type || 'Activity'}</p>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${registrationStatus.color === 'success' ? 'bg-green-100 text-green-800' : registrationStatus.color === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
+                ${registrationStatus.label}
+              </span>
+            </div>
+          `;
+        });
+        
+        html += `
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    html += '</div></div>';
+    listElement.innerHTML = html;
+  }
+
+  async function loadActivities(filters: Filters = {}) {
+    const listElement = document.getElementById('activitiesList');
+    if (!listElement) return;
+
+    if (isLoading) return;
+    isLoading = true;
+
+    listElement.innerHTML = '<div class="text-center py-8"><p class="text-gray-500">Loading...</p></div>';
+
+    try {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && key !== 'quickFilter' && key !== 'view') {
+          if (typeof value === 'string') {
+            params.append(key, value);
+          } else if (Array.isArray(value)) {
+            value.forEach(v => params.append(key, v));
+          } else if (typeof value === 'object') {
+            params.append(key, JSON.stringify(value));
+          }
+        }
+      });
+
+      const response = await fetch(`/api/kid-activities?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to load activities');
+
+      let activities: Activity[] = await response.json();
+      currentActivities = activities;
+
+      // Apply quick filters
+      if (filters.quickFilters && filters.quickFilters.length > 0) {
+        filters.quickFilters.forEach((filter: { type: string; value: string }) => {
+          const { type, value } = filter;
+          switch (type) {
+            case 'season':
+              if (value === 'ongoing-or-soon') {
+                const twoMonthsFromNow = new Date();
+                twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
+                activities = activities.filter((activity: Activity) => {
+                  const isOngoing = activity.is_ongoing;
+                  const isStartingSoon = activity.start_datetime && new Date(activity.start_datetime) <= twoMonthsFromNow;
+                  return isOngoing || isStartingSoon;
+                });
+              } else if (['fall', 'winter', 'spring', 'summer'].includes(value)) {
+                activities = activities.filter((activity: Activity) => {
+                  const seasonKey = `is_${value}` as keyof Activity;
+                  return activity[seasonKey];
+                });
+              }
+              break;
+            case 'age':
+              const ageRanges: Record<string, { min: number; max: number }> = {
+                'toddlers': { min: 1, max: 3 },
+                'preschool': { min: 3, max: 5 },
+                'elementary': { min: 6, max: 10 },
+                'middle': { min: 11, max: 13 },
+                'high': { min: 14, max: 18 }
+              };
+              
+              const range = ageRanges[value];
+              if (range) {
+                activities = activities.filter((activity: Activity) => {
+                  const ageRange = gradeToAgeRange(activity.min_grade, activity.max_grade);
+                  const minAge = activity.min_age || (ageRange ? ageRange.minAge : null);
+                  const maxAge = activity.max_age || (ageRange ? ageRange.maxAge : null);
+                  
+                  if (!minAge && !maxAge) return true;
+                  
+                  return (minAge && minAge <= range.max) && (maxAge && maxAge >= range.min);
+                });
+              }
+              break;
+          }
+        });
+      }
+
+      // Apply advanced filters
+      if (filters.activity_type) {
+        activities = activities.filter((activity: Activity) => activity.activity_type === filters.activity_type!);
+      }
+      
+      if (filters.location && typeof filters.location === 'string') {
+        const locationFilter = filters.location;
+        activities = activities.filter((activity: Activity) => {
+          if (activity.location?.name === locationFilter) return true;
+          if (activity.location?.address && typeof activity.location.address === 'string') {
+            return activity.location.address.includes(locationFilter);
+          }
+          return false;
+        });
+      }
+      
+      if (filters.day_of_week && filters.day_of_week.length > 0) {
+        // This will be implemented when we have event data
+        activities = activities.filter((activity: Activity) => true);
+      }
+      
+      if (activities.length === 0) {
+        listElement.innerHTML = '<div class="text-center py-8"><p class="text-gray-500">No programs found matching your criteria</p></div>';
+        return;
+      }
+      
+      // Group activities by parent-child relationships
+      const parentActivities = activities.filter((activity: Activity) => !activity.parent_activity_id);
+      const childActivities = activities.filter((activity: Activity) => activity.parent_activity_id);
+       
+      const activitiesWithChildren = parentActivities.map((parent: Activity) => {
+        const children = childActivities.filter((child: Activity) => child.parent_activity_id === parent.id);
+        return { ...parent, children };
+      });
+      
+      // Determine view type and render
+      const viewType = currentView || 'program';
+      
+      if (viewType === 'schedule') {
+        renderScheduleView(activitiesWithChildren);
+      } else {
+        renderProgramView(activitiesWithChildren);
+      }
+
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      listElement.innerHTML = '<div class="text-center py-8"><p class="text-red-500">Error loading programs</p></div>';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  // Load activities on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    loadActivities();
   });
 </script> 

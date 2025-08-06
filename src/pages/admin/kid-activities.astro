@@ -1,0 +1,2968 @@
+---
+import Layout from '../../components/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type { Database } from '../../types/database';
+import MeetingPatternForm from '../../components/MeetingPatternForm.astro';
+import ActivityScheduleForm from '../../components/ActivityScheduleForm.astro';
+
+type KidActivity = Database['public']['Tables']['kid_activities']['Row'];
+type PublicKidActivity = Database['public']['Views']['public_kid_activities']['Row'];
+
+const { data: activities, error } = await supabase.from('kid_activities').select('*').order('name');
+
+if (error) {
+  console.error('Error fetching activities:', error);
+}
+
+// Helper function to get parent activity name
+function getParentName(activities: KidActivity[], parentId: string | null): string | null {
+  if (!parentId) return null;
+  const parent = activities?.find(a => a.id === parentId);
+  return parent?.name || null;
+}
+
+// Group activities by hierarchy type
+      const programs = activities?.filter(a => a.activity_hierarchy_type === 'PROGRAM') || [];
+      const sessions = activities?.filter(a => a.activity_hierarchy_type === 'SESSION') || [];
+      const classTypes = activities?.filter(a => a.activity_hierarchy_type === 'CLASS_TYPE') || [];
+      const classInstances = activities?.filter(a => a.activity_hierarchy_type === 'CLASS_INSTANCE') || [];
+
+// Build hierarchy tree
+const buildHierarchy = (activities: KidActivity[]) => {
+  const activityMap = new Map();
+  const roots: any[] = [];
+
+  // Create map of all activities
+  activities?.forEach(activity => {
+    activityMap.set(activity.id, {
+      ...activity,
+      children: []
+    });
+  });
+
+  // Build parent-child relationships
+  activities?.forEach(activity => {
+    if (activity.parent_activity_id) {
+      const parent = activityMap.get(activity.parent_activity_id);
+      if (parent) {
+        parent.children.push(activityMap.get(activity.id));
+      }
+    } else {
+      roots.push(activityMap.get(activity.id));
+    }
+  });
+
+  return roots;
+};
+
+const hierarchyTree = buildHierarchy(activities || []);
+---
+
+<Layout title="Admin - Kid Activities">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Kid Activities Admin</h1>
+
+    <!-- Hierarchy Explanation -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-blue-800">Activity Hierarchy Guide</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold text-blue-700 mb-2">Hierarchy Structure:</h3>
+          <ul class="text-sm text-blue-600 space-y-1">
+            <li><strong>PROGRAM:</strong> Main organization (e.g., "Apple Capital Gymnastics")</li>
+            <li><strong>SESSION:</strong> Optional time period (e.g., "2025-26 School Year")</li>
+            <li><strong>CLASS_TYPE:</strong> Specific class (e.g., "Kindergarten Tap Dance")</li>
+            <li><strong>SCHEDULE:</strong> Time slot with capacity (e.g., "Monday 3-4pm")</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-blue-700 mb-2">Calendar Components:</h3>
+          <ul class="text-sm text-blue-600 space-y-1">
+            <li><strong>Meeting Patterns:</strong> Recurring schedules (e.g., "Every Mon/Wed 3-4pm")</li>
+            <li><strong>Activity Schedules:</strong> Specific time slots with capacity limits</li>
+            <li><strong>Calendar Exceptions:</strong> Closures/holidays (cascade to all children)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-2">Programs</h3>
+        <p class="text-3xl font-bold text-blue-600">{programs.length}</p>
+        <p class="text-sm text-gray-600">Main programs</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-2">Sessions</h3>
+        <p class="text-3xl font-bold text-green-600">{sessions.length}</p>
+        <p class="text-sm text-gray-600">Seasonal sessions</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-2">Class Types</h3>
+        <p class="text-3xl font-bold text-purple-600">{classTypes.length}</p>
+        <p class="text-sm text-gray-600">Class types</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-2">Class Instances</h3>
+        <p class="text-3xl font-bold text-orange-600" data-count="class-instances">{classInstances.length}</p>
+        <p class="text-sm text-gray-600">Class instances</p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+      <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+      <div class="flex flex-wrap gap-4">
+        <button 
+          onclick="showModal('activityModal')"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Create New Program
+        </button>
+        <button 
+          onclick="bulkMigrateCalendarData()"
+          class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+        >
+          Bulk Migrate Calendar Data
+        </button>
+        <button 
+          onclick="bulkCreateSessions()"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Bulk Create Sessions
+        </button>
+        <button 
+          onclick="exportCalendarData()"
+          class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+        >
+          Export Calendar Data
+        </button>
+        <button 
+          onclick="bulkDuplicatePrograms()"
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          Bulk Duplicate Programs
+        </button>
+      </div>
+    </div>
+
+    <!-- Activity Hierarchy -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Activity Hierarchy</h2>
+      
+      <!-- Programs -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-3 text-blue-600">Programs</h3>
+        <div class="space-y-2">
+          {programs.map((program) => {
+            const programSessions = activities?.filter(a => a.parent_activity_id === program.id && a.activity_hierarchy_type === 'SESSION') || [];
+            const programClassTypes = activities?.filter(a => a.parent_activity_id === program.id && a.activity_hierarchy_type === 'CLASS_TYPE') || [];
+            
+            return (
+              <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h4 class="font-semibold">{program.name}</h4>
+                    <p class="text-sm text-gray-600">{program.description || 'No description'}</p>
+                    <p class="text-xs text-gray-500">Type: {program.activity_hierarchy_type || 'Not set'}</p>
+                    <div id={`effective-location-${program.id}`} class="text-xs text-blue-600 mt-1">
+                      📍 Loading location...
+                    </div>
+                    
+                    {/* Hierarchy Summary */}
+                    <div class="mt-3 text-sm text-gray-500">
+                      <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded mr-2">
+                        {programSessions.length} Session{programSessions.length !== 1 ? 's' : ''}
+                        {programSessions.length > 0 && (
+                          <button 
+                            onclick={`scrollToSession('${programSessions[0].id}')`}
+                            class="ml-1 text-green-700 hover:text-green-900 font-medium"
+                            title="Jump to first session"
+                          >
+                            →
+                          </button>
+                        )}
+                      </span>
+                      <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                        {programClassTypes.length} Class Type{programClassTypes.length !== 1 ? 's' : ''}
+                        {programClassTypes.length > 0 && (
+                          <button 
+                            onclick={`scrollToClassType('${programClassTypes[0].id}')`}
+                            class="ml-1 text-purple-700 hover:text-purple-900 font-medium"
+                            title="Jump to first class type"
+                          >
+                            →
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    
+                    {/* Collapsible Details */}
+                    <details class="mt-3">
+                      <summary class="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                        View Details
+                      </summary>
+                      <div class="mt-3 pl-4 border-l-2 border-gray-200">
+                        {programSessions.length > 0 && (
+                          <div class="mb-3">
+                            <h5 class="font-medium text-gray-700 mb-2">Sessions:</h5>
+                            <ul class="space-y-1">
+                              {programSessions.map((session) => (
+                                <li class="text-sm text-gray-600">
+                                  • <button 
+                                      onclick={`scrollToSession('${session.id}')`}
+                                      class="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                                    >
+                                      {session.name}
+                                    </button>
+                                    {session.start_datetime && session.end_datetime && (
+                                      <span class="text-gray-400 ml-2">
+                                        ({new Date(session.start_datetime).toLocaleDateString()} - {new Date(session.end_datetime).toLocaleDateString()})
+                                      </span>
+                                    )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {programClassTypes.length > 0 && (
+                          <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Class Types:</h5>
+                            <ul class="space-y-1">
+                              {programClassTypes.map((classType) => (
+                                <li class="text-sm text-gray-600">
+                                  • <button 
+                                      onclick={`scrollToClassType('${classType.id}')`}
+                                      class="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                                    >
+                                      {classType.name}
+                                    </button>
+                                    {classType.min_age && classType.max_age && (
+                                      <span class="text-gray-400 ml-2">
+                                        (Ages {classType.min_age}-{classType.max_age})
+                                      </span>
+                                    )}
+                                    {classType.cost && (
+                                      <span class="text-gray-400 ml-2">
+                                        - {classType.cost}
+                                      </span>
+                                    )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {programSessions.length === 0 && programClassTypes.length === 0 && (
+                          <p class="text-sm text-gray-400 italic">No sessions or class types yet</p>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+                  
+                  <div class="flex gap-2">
+                    <button 
+                      onclick={`createChildActivity('${program.id}', 'SESSION')`}
+                      class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                    >
+                      Add Session
+                    </button>
+                    <button 
+                      onclick={`createChildActivity('${program.id}', 'CLASS_TYPE')`}
+                      class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+                    >
+                      Add Class Type
+                    </button>
+                    <button 
+                      onclick={`createChildActivity('${program.id}', 'CLASS_INSTANCE')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Add Class Instance
+                    </button>
+                    <button 
+                      onclick={`editActivity('${program.id}')`}
+                      class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onclick={`duplicateActivity('${program.id}')`}
+                      class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
+                    >
+                      Duplicate
+                    </button>
+                    <button 
+                      onclick={`deleteActivity('${program.id}')`}
+                      class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                    <button 
+                      onclick={`console.log('Meeting Patterns button clicked for program:', '${program.id}'); manageMeetingPatterns('${program.id}')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Meeting Patterns
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <!-- Sessions -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-3 text-green-600">Sessions</h3>
+        <div class="space-y-2">
+          {sessions.map((session) => {
+            const sessionClassTypes = activities?.filter(a => a.parent_activity_id === session.id && a.activity_hierarchy_type === 'CLASS_TYPE') || [];
+            
+            return (
+              <div id={`session-${session.id}`} class="border border-gray-200 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h4 class="font-semibold">{session.name}</h4>
+                    <p class="text-sm text-gray-600">{session.description || 'No description'}</p>
+                    <p class="text-xs text-gray-500">
+                      Parent: {getParentName(activities || [], session.parent_activity_id) || 'None'} | 
+                      Type: {session.activity_hierarchy_type || 'Not set'}
+                    </p>
+                    <div id={`effective-location-${session.id}`} class="text-xs text-blue-600 mt-1">
+                      📍 Loading location...
+                    </div>
+                    
+                    {/* Session dates */}
+                    {session.start_datetime && session.end_datetime && (
+                      <p class="text-xs text-gray-500 mt-1">
+                        {new Date(session.start_datetime).toLocaleDateString()} - {new Date(session.end_datetime).toLocaleDateString()}
+                      </p>
+                    )}
+                    
+                    {/* Hierarchy Summary */}
+                    <div class="mt-3 text-sm text-gray-500">
+                      <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                        {sessionClassTypes.length} Class Type{sessionClassTypes.length !== 1 ? 's' : ''}
+                        {sessionClassTypes.length > 0 && (
+                          <button 
+                            onclick={`scrollToClassType('${sessionClassTypes[0].id}')`}
+                            class="ml-1 text-purple-700 hover:text-purple-900 font-medium"
+                            title="Jump to first class type"
+                          >
+                            →
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    
+                    {/* Collapsible Details */}
+                    <details class="mt-3">
+                      <summary class="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                        View Class Types
+                      </summary>
+                      <div class="mt-3 pl-4 border-l-2 border-gray-200">
+                        {sessionClassTypes.length > 0 ? (
+                          <ul class="space-y-1">
+                            {sessionClassTypes.map((classType) => (
+                              <li class="text-sm text-gray-600">
+                                • <button 
+                                    onclick={`scrollToClassType('${classType.id}')`}
+                                    class="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                                  >
+                                    {classType.name}
+                                  </button>
+                                  {classType.min_age && classType.max_age && (
+                                    <span class="text-gray-400 ml-2">
+                                      (Ages {classType.min_age}-{classType.max_age})
+                                    </span>
+                                  )}
+                                  {classType.cost && (
+                                    <span class="text-gray-400 ml-2">
+                                      - {classType.cost}
+                                    </span>
+                                  )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p class="text-sm text-gray-400 italic">No class types yet</p>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+                  
+                  <div class="flex gap-2">
+                    <button 
+                      onclick={`createChildActivity('${session.id}', 'CLASS_TYPE')`}
+                      class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+                    >
+                      Add Class Type
+                    </button>
+                    <button 
+                      onclick={`createChildActivity('${session.id}', 'CLASS_INSTANCE')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Add Class Instance
+                    </button>
+                    <button 
+                      onclick={`editActivity('${session.id}')`}
+                      class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onclick={`duplicateActivity('${session.id}')`}
+                      class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
+                    >
+                      Duplicate
+                    </button>
+                    <button 
+                      onclick={`deleteActivity('${session.id}')`}
+                      class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                    <button 
+                      onclick={`console.log('Meeting Patterns button clicked for session:', '${session.id}'); manageMeetingPatterns('${session.id}')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Meeting Patterns
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <!-- Class Types -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-3 text-purple-600">Class Types</h3>
+        <div class="space-y-2">
+          {classTypes.map((classType) => {
+            const classTypeInstances = activities?.filter(a => a.parent_activity_id === classType.id && a.activity_hierarchy_type === 'CLASS_INSTANCE') || [];
+            
+            return (
+              <div id={`classType-${classType.id}`} class="border border-gray-200 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h4 class="font-semibold">{classType.name}</h4>
+                    <p class="text-sm text-gray-600">{classType.description || 'No description'}</p>
+                    <p class="text-xs text-gray-500">
+                      Parent: {getParentName(activities || [], classType.parent_activity_id) || 'None'} | 
+                      Type: {classType.activity_hierarchy_type || 'Not set'}
+                    </p>
+                    <div id={`effective-location-${classType.id}`} class="text-xs text-blue-600 mt-1">
+                      📍 Loading location...
+                    </div>
+                    
+                    {/* Age and cost info */}
+                    {(classType.min_age || classType.max_age || classType.cost) && (
+                      <p class="text-xs text-gray-500 mt-1">
+                        {classType.min_age && classType.max_age && `Ages ${classType.min_age}-${classType.max_age}`}
+                        {classType.cost && (classType.min_age || classType.max_age) && ' • '}
+                        {classType.cost && classType.cost}
+                      </p>
+                    )}
+                    
+                    {classType.required_gear && (
+                      <p class="text-xs text-blue-600 mt-1">
+                        <strong>Gear:</strong> {classType.required_gear}
+                        {classType.gear_assistance_available && (
+                          <span class="text-green-600"> (Assistance available)</span>
+                        )}
+                      </p>
+                    )}
+                    
+                    {/* Hierarchy Summary */}
+                    <div class="mt-3 text-sm text-gray-500">
+                      <span class="inline-block bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                        {classTypeInstances.length} Instance{classTypeInstances.length !== 1 ? 's' : ''}
+                        {classTypeInstances.length > 0 && (
+                          <button 
+                            onclick={`scrollToClassInstance('${classTypeInstances[0].id}')`}
+                            class="ml-1 text-orange-700 hover:text-orange-900 font-medium"
+                            title="Jump to first class instance"
+                          >
+                            →
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    
+                    {/* Class Instances - Display directly under class type */}
+                    {classTypeInstances.length > 0 && (
+                      <div class="mt-4 pl-4 border-l-2 border-orange-200">
+                        <h5 class="font-medium text-orange-700 mb-2">Class Instances:</h5>
+                        <div class="space-y-3">
+                          {classTypeInstances.map((classInstance) => (
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                              <div class="flex justify-between items-start">
+                                                                 <div class="flex-1">
+                                   <h6 class="font-semibold text-orange-800">{classInstance.name}</h6>
+                                   {classInstance.description && (
+                                     <p class="text-xs text-gray-600">{classInstance.description}</p>
+                                   )}
+                                  {classInstance.waitlist_status && (
+                                    <p class="text-xs text-orange-600 mt-1">
+                                      <strong>Waitlist:</strong> {classInstance.waitlist_status}
+                                    </p>
+                                  )}
+                                  {classInstance.required_gear && (
+                                    <p class="text-xs text-blue-600 mt-1">
+                                      <strong>Gear:</strong> {classInstance.required_gear}
+                                      {classInstance.gear_assistance_available && (
+                                        <span class="text-green-600"> (Assistance available)</span>
+                                      )}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Schedule Display */}
+                                  <div id={`schedule-${classInstance.id}`} class="mt-2 text-xs text-gray-600">
+                                    <span class="text-gray-500">📅 Loading schedule...</span>
+                                  </div>
+                                  
+                                  {/* Effective Location Display */}
+                                  <div id={`effective-location-${classInstance.id}`} class="text-xs text-blue-600 mt-1">
+                                    📍 Loading location...
+                                  </div>
+                                </div>
+                                <div class="flex gap-1">
+                                  <button 
+                                    onclick={`editActivity('${classInstance.id}')`}
+                                    class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    onclick={`duplicateActivity('${classInstance.id}')`}
+                                    class="bg-indigo-600 text-white px-2 py-1 rounded text-xs hover:bg-indigo-700"
+                                    title="Duplicate and edit this class instance"
+                                  >
+                                    📋
+                                  </button>
+                                  <button 
+                                    onclick={`deleteActivity('${classInstance.id}')`}
+                                    class="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                                  >
+                                    Del
+                                  </button>
+                                  <button 
+                                    onclick={`manageEvents('${classInstance.id}')`}
+                                    class="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+                                  >
+                                    Events
+                                  </button>
+                                  <button 
+                                    onclick={`exportCalendar('${classInstance.id}')`}
+                                    class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                                  >
+                                    📅
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div class="flex gap-2">
+                    <button 
+                      onclick={`createChildActivity('${classType.id}', 'CLASS_INSTANCE')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Add Class Instance
+                    </button>
+                    <button 
+                      onclick={`editActivity('${classType.id}')`}
+                      class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onclick={`duplicateActivity('${classType.id}')`}
+                      class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
+                    >
+                      Duplicate
+                    </button>
+                    <button 
+                      onclick={`deleteActivity('${classType.id}')`}
+                      class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                    <button 
+                      onclick={`manageEvents('${classType.id}')`}
+                      class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
+                    >
+                      Activity Events
+                    </button>
+                    <button 
+                      onclick={`console.log('Meeting Patterns button clicked for classType:', '${classType.id}'); manageMeetingPatterns('${classType.id}')`}
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                    >
+                      Meeting Patterns
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
+
+      <!-- Orphaned Activities (activities with no parent but not programs) -->
+      {(() => {
+        const orphanedActivities = activities?.filter(a => !a.parent_activity_id && a.activity_hierarchy_type !== 'PROGRAM') || [];
+        return orphanedActivities.length > 0 ? (
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-red-600">⚠️ Orphaned Activities (Need Parent Assignment)</h3>
+            <div class="space-y-2">
+              {orphanedActivities.map((activity) => (
+                <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <h4 class="font-semibold text-red-800">{activity.name}</h4>
+                      <p class="text-sm text-gray-600">{activity.description || 'No description'}</p>
+                      <p class="text-xs text-red-600">
+                        <strong>Issue:</strong> {activity.activity_hierarchy_type} with no parent | 
+                        ID: {activity.id}
+                      </p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button 
+                        onclick={`editActivity('${activity.id}')`}
+                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onclick={`duplicateActivity('${activity.id}')`}
+                        class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
+                      >
+                        Duplicate
+                      </button>
+                      <button 
+                        onclick={`deleteActivity('${activity.id}')`}
+                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
+    </div>
+  </div>
+
+  <!-- Activity Modal -->
+  <div id="activityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
+      <h2 id="modalTitle" class="text-2xl font-bold mb-4">Create Activity</h2>
+      
+      <form id="activityForm" class="space-y-4">
+        <input type="hidden" id="activityId" name="id" />
+        <input type="hidden" id="parentActivityId" name="parent_activity_id" />
+        <input type="hidden" id="activityHierarchyType" name="activity_hierarchy_type" />
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="activityName" class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-gray-500">(Optional)</span></label>
+            <input type="text" id="activityName" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Leave empty for auto-generated name" />
+          </div>
+          
+          <div id="activityTypeField">
+            <label for="activityType" class="block text-sm font-medium text-gray-700 mb-1">Activity Type</label>
+            <select id="activityType" name="activity_type" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+              <option value="">Select type</option>
+              <option value="sports">Sports</option>
+              <option value="arts">Arts</option>
+              <option value="music">Music</option>
+              <option value="dance">Dance</option>
+              <option value="academic">Academic</option>
+              <option value="recreation">Recreation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="activityDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea id="activityDescription" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+        </div>
+
+        <!-- Standard Activity Fields (hide for SESSION) -->
+        <div id="standardActivityFields">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="minAge" class="block text-sm font-medium text-gray-700 mb-1">Min Age</label>
+              <input type="number" id="minAge" name="min_age" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            
+            <div>
+              <label for="maxAge" class="block text-sm font-medium text-gray-700 mb-1">Max Age</label>
+              <input type="number" id="maxAge" name="max_age" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="minGrade" class="block text-sm font-medium text-gray-700 mb-1">Min Grade</label>
+              <input type="number" id="minGrade" name="min_grade" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            
+            <div>
+              <label for="maxGrade" class="block text-sm font-medium text-gray-700 mb-1">Max Grade</label>
+              <input type="number" id="maxGrade" name="max_grade" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="cost" class="block text-sm font-medium text-gray-700 mb-1">Cost</label>
+              <input type="text" id="cost" name="cost" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., $150" />
+            </div>
+            
+            <div>
+              <label for="commitmentLevel" class="block text-sm font-medium text-gray-700 mb-1">Commitment Level</label>
+              <select id="commitmentLevel" name="commitment_level" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Select level</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session Information Section (only show for SESSION hierarchy type) -->
+        <div id="sessionInfoSection" class="border-t pt-4 hidden">
+          <h3 class="text-lg font-semibold mb-3 text-gray-800">Session Information</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="startDatetime" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input type="date" id="startDatetime" name="start_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            
+            <div>
+              <label for="endDatetime" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input type="date" id="endDatetime" name="end_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label for="registrationOpens" class="block text-sm font-medium text-gray-700 mb-1">Registration Opens</label>
+              <input type="date" id="registrationOpens" name="registration_opens" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            
+            <div>
+              <label for="registrationCloses" class="block text-sm font-medium text-gray-700 mb-1">Registration Closes</label>
+              <input type="date" id="registrationCloses" name="registration_closes" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label for="registrationInfo" class="block text-sm font-medium text-gray-700 mb-1">Registration Information</label>
+            <textarea id="registrationInfo" name="registration_info" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Early bird pricing available, scholarships available, tryouts required"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label for="registrationLink" class="block text-sm font-medium text-gray-700 mb-1">Registration Link</label>
+              <input type="url" id="registrationLink" name="registration_link" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="https://..." />
+            </div>
+            
+            <div>
+              <label for="registrationRequired" class="flex items-center mt-6">
+                <input type="checkbox" id="registrationRequired" name="registration_required" class="mr-2" />
+                <span class="text-sm font-medium text-gray-700">Registration Required</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Class Instance Information Section (only show for CLASS_INSTANCE hierarchy type) -->
+        <div id="classInstanceInfoSection" class="border-t pt-4 hidden">
+          <h3 class="text-lg font-semibold mb-3 text-gray-800">📅 Class Instance Schedule</h3>
+          
+          <!-- Session Selection (only show if no parent session) -->
+          <div id="sessionSelectionSection" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 hidden">
+            <h4 class="text-md font-semibold text-blue-800 mb-3">Session Assignment</h4>
+            <div>
+              <label for="sessionSelector" class="block text-sm font-medium text-gray-700 mb-2">Which session does this class instance belong to? *</label>
+              <select id="sessionSelector" name="session_id" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                <option value="">Select a session...</option>
+              </select>
+              <p class="text-xs text-gray-600 mt-1">This class instance will be associated with the selected session for scheduling and registration purposes.</p>
+            </div>
+          </div>
+          
+          <!-- Quick Schedule Setup -->
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <h4 class="text-md font-semibold text-green-800 mb-3">Quick Schedule Setup</h4>
+            
+            <!-- Schedule Type Selection -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">What type of schedule? *</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button type="button" id="recurringBtn" class="p-3 border-2 border-gray-300 rounded-lg text-left hover:border-green-500 focus:border-green-500 focus:outline-none transition-colors" onclick="selectScheduleType('RECURRING')">
+                  <div class="font-medium">🔄 Recurring</div>
+                  <div class="text-xs text-gray-600">Weekly practice, regular classes</div>
+                </button>
+                <button type="button" id="oneOffBtn" class="p-3 border-2 border-gray-300 rounded-lg text-left hover:border-green-500 focus:border-green-500 focus:outline-none transition-colors" onclick="selectScheduleType('ONE_OFF')">
+                  <div class="font-medium">📅 One-time</div>
+                  <div class="text-xs text-gray-600">Games, recitals, special events</div>
+                </button>
+              </div>
+              <input type="hidden" id="scheduleType" name="event_type" required>
+            </div>
+            
+            <!-- Recurring Schedule Form -->
+            <div id="recurringForm" class="hidden space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                                     <div>
+                       <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">⏰ Start Time *</label>
+                       <input type="time" id="startTime" name="start_time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                     </div>
+                     <div>
+                       <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">⏰ End Time *</label>
+                       <input type="time" id="endTime" name="end_time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                     </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">📆 Which days? *</label>
+                <div class="grid grid-cols-7 gap-2">
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="MO" class="mb-1">
+                    <span class="text-xs font-medium">Mon</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="TU" class="mb-1">
+                    <span class="text-xs font-medium">Tue</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="WE" class="mb-1">
+                    <span class="text-xs font-medium">Wed</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="TH" class="mb-1">
+                    <span class="text-xs font-medium">Thu</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="FR" class="mb-1">
+                    <span class="text-xs font-medium">Fri</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="SA" class="mb-1">
+                    <span class="text-xs font-medium">Sat</span>
+                  </label>
+                  <label class="flex flex-col items-center p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="weekdays" value="SU" class="mb-1">
+                    <span class="text-xs font-medium">Sun</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                                     <div>
+                       <label for="frequency" class="block text-sm font-medium text-gray-700 mb-1">🔄 Frequency *</label>
+                       <select id="frequency" name="freq" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                         <option value="WEEKLY" selected>Weekly</option>
+                         <option value="DAILY">Daily</option>
+                         <option value="MONTHLY">Monthly</option>
+                       </select>
+                     </div>
+                     <div>
+                       <label for="interval" class="block text-sm font-medium text-gray-700 mb-1">📅 Every *</label>
+                       <select id="interval" name="interval" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                         <option value="1" selected>1 week</option>
+                         <option value="2">2 weeks</option>
+                         <option value="3">3 weeks</option>
+                         <option value="4">4 weeks</option>
+                       </select>
+                     </div>
+              </div>
+            </div>
+            
+            <!-- One-off Schedule Form -->
+            <div id="oneOffForm" class="hidden space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="startDatetime" class="block text-sm font-medium text-gray-700 mb-1">📅 Start Date & Time *</label>
+                  <input type="datetime-local" id="startDatetime" name="start_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                  <label for="endDatetime" class="block text-sm font-medium text-gray-700 mb-1">📅 End Date & Time *</label>
+                  <input type="datetime-local" id="endDatetime" name="end_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current Schedule Display -->
+          <div id="currentScheduleDisplay" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 hidden">
+            <h4 class="text-md font-semibold text-blue-800 mb-3">📋 Current Schedule</h4>
+            <div id="scheduleContent" class="text-sm text-blue-700">
+              <!-- Schedule content will be populated here -->
+            </div>
+          </div>
+
+          <!-- Optional Details -->
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+            <h4 class="text-md font-semibold text-gray-800 mb-3">📝 Optional Details</h4>
+            
+            <div class="space-y-4">
+              <div>
+                <label for="eventName" class="block text-sm font-medium text-gray-700 mb-1">Event Name (Optional)</label>
+                <input type="text" id="eventName" name="event_name" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Weekly Practice, Spring Recital">
+              </div>
+              
+              <div>
+                <label for="eventDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                <textarea id="eventDescription" name="event_description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Additional details about this event"></textarea>
+              </div>
+              
+              <!-- Until Date (Optional) -->
+              <div class="mb-4">
+                <label for="until" class="block text-sm font-medium text-gray-700 mb-1">⏰ Until Date (Optional)</label>
+                <input type="date" id="until" name="until" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Defaults to session end date">
+                <div id="sessionEndDateInfo" class="text-xs text-blue-600 mt-1 hidden">
+                  <span>Session ends: <span id="sessionEndDateDisplay"></span></span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Leave empty to use session end date</p>
+              </div>
+              
+              <div>
+                <label for="waitlistStatus" class="block text-sm font-medium text-gray-700 mb-1">🎫 Waitlist Status</label>
+                <select id="waitlistStatus" name="waitlist_status" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  <option value="">Not at capacity</option>
+                  <option value="FULL_WAITLIST_AVAILABLE">Full - Waitlist Available</option>
+                  <option value="FULL">Full - No Waitlist</option>
+                </select>
+              </div>
+              
+              <div>
+                <label class="flex items-center">
+                  <input type="checkbox" id="ignoreExceptions" name="ignore_exceptions" class="mr-2">
+                  <span class="text-sm">🚫 Ignore Parent Exceptions</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gear Section (only show for non-SESSION hierarchy types) -->
+        <div id="gearSection" class="border-t pt-4">
+          <h3 class="text-lg font-semibold mb-3 text-gray-800">Gear Information</h3>
+          
+          <div>
+            <label for="requiredGear" class="block text-sm font-medium text-gray-700 mb-1">Required Gear</label>
+            <textarea id="requiredGear" name="required_gear" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Comfortable athletic shoes, water bottle, yoga mat"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label for="gearAssistanceAvailable" class="flex items-center">
+                <input type="checkbox" id="gearAssistanceAvailable" name="gear_assistance_available" class="mr-2" />
+                <span class="text-sm font-medium text-gray-700">Gear Assistance Available</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label for="gearAssistanceDetails" class="block text-sm font-medium text-gray-700 mb-1">Gear Assistance Details</label>
+            <textarea id="gearAssistanceDetails" name="gear_assistance_details" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Equipment can be borrowed from the facility, scholarships available for gear"></textarea>
+          </div>
+        </div>
+
+        <!-- Location Section -->
+        <div class="border-t pt-4">
+          <h3 class="text-lg font-semibold mb-3 text-gray-800">Location Information</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="locationId" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <select id="locationId" name="location_id" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Select Location</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                Leave empty to inherit from parent activity
+              </p>
+              <div id="inherited-location-display" class="text-xs text-green-600 mt-1 hidden">
+                <span class="font-medium">Will inherit:</span> <span id="inherited-location-text"></span>
+              </div>
+            </div>
+            
+            <div>
+              <label for="locationDetails" class="block text-sm font-medium text-gray-700 mb-1">Location Details</label>
+              <input type="text" id="locationDetails" name="location_details" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                     placeholder="e.g., Room 101, Main Gym, etc.">
+              <p class="text-xs text-gray-500 mt-1">
+                Additional location information (optional)
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-4">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Activity</button>
+          <button type="button" onclick="closeModal('activityModal')" class="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Activity Events Modal -->
+  <div id="calendarModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-2xl font-bold mb-4">Manage Activity Events</h2>
+      <div id="calendarManagementContent"></div>
+      <button onclick="closeModal('calendarModal')" class="mt-4 px-4 py-2 bg-gray-200 rounded">Close</button>
+    </div>
+  </div>
+
+  <!-- Activity Schedules Modal -->
+  <div id="schedulesModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-2xl font-bold mb-4">Manage Activity Schedules</h2>
+      <div id="schedulesManagementContent"></div>
+      <button onclick="closeModal('schedulesModal')" class="mt-4 px-4 py-2 bg-gray-200 rounded">Close</button>
+    </div>
+  </div>
+
+  <script define:vars={{ activities }}>
+    // Initialize initialActivities as a mutable variable
+    let initialActivities = activities;
+    console.log('Script loaded - initialActivities is mutable:', typeof initialActivities);
+    console.log('initialActivities can be reassigned:', typeof initialActivities !== 'const');
+    // Debug: Log the initial activities
+    console.log('initialActivities loaded:', initialActivities);
+    console.log('initialActivities length:', initialActivities?.length);
+    if (initialActivities && initialActivities.length > 0) {
+      console.log('First activity:', initialActivities[0]);
+    }
+    
+    // Global functions for modal management
+    window.showModal = function(modalId) {
+      console.log('showModal called with modalId:', modalId);
+      const modal = document.getElementById(modalId);
+      console.log('Found modal element:', modal);
+      if (modal) {
+        modal.classList.remove('hidden');
+        console.log('Modal should now be visible');
+      } else {
+        console.error('Modal element not found:', modalId);
+      }
+    };
+
+    window.closeModal = function(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    };
+
+    window.createChildActivity = function(parentId, hierarchyType) {
+      document.getElementById('modalTitle').textContent = `Create ${hierarchyType.replace('_', ' ')}`;
+      
+      // Reset form first
+      document.getElementById('activityForm').reset();
+      document.getElementById('activityId').value = '';
+      
+      // Set the hidden fields AFTER reset
+      document.getElementById('parentActivityId').value = parentId;
+      document.getElementById('activityHierarchyType').value = hierarchyType;
+      
+      // Clear any existing values
+      document.getElementById('activityName').value = '';
+      document.getElementById('activityDescription').value = '';
+      document.getElementById('activityType').value = '';
+      
+      // Show/hide sections based on hierarchy type
+      toggleFormSections(hierarchyType);
+      
+      // If creating a CLASS_INSTANCE, pre-populate the until date with session end date
+      if (hierarchyType === 'CLASS_INSTANCE') {
+        const parentActivity = initialActivities.find(a => a.id === parentId);
+        if (parentActivity && parentActivity.end_datetime) {
+          const sessionEndDate = parentActivity.end_datetime.split('T')[0];
+          const untilField = document.getElementById('until');
+          const sessionEndDateInfo = document.getElementById('sessionEndDateInfo');
+          const sessionEndDateDisplay = document.getElementById('sessionEndDateDisplay');
+          
+          if (untilField) {
+            untilField.value = sessionEndDate;
+            untilField.placeholder = `Session ends: ${sessionEndDate}`;
+          }
+          
+          if (sessionEndDateInfo && sessionEndDateDisplay) {
+            sessionEndDateDisplay.textContent = sessionEndDate;
+            sessionEndDateInfo.classList.remove('hidden');
+          }
+        }
+      }
+      
+      showModal('activityModal');
+    };
+
+    // Function to toggle form sections based on hierarchy type
+    function toggleFormSections(hierarchyType) {
+      console.log('Toggling form sections for hierarchy type:', hierarchyType);
+      
+      // Show/hide inherited location when parent changes
+      const parentSelect = document.getElementById('parentActivityId');
+      if (parentSelect && parentSelect.value && hierarchyType !== 'PROGRAM') {
+        showInheritedLocation(parentSelect.value);
+      } else {
+        hideInheritedLocation();
+      }
+      
+      const standardFields = document.getElementById('standardActivityFields');
+      const sessionSection = document.getElementById('sessionInfoSection');
+      const classInstanceSection = document.getElementById('classInstanceInfoSection');
+      const gearSection = document.getElementById('gearSection');
+      const activityTypeField = document.getElementById('activityTypeField');
+      const nameField = document.getElementById('activityName');
+      const nameRequired = document.getElementById('nameRequired');
+      
+      console.log('Found elements:', {
+        standardFields: !!standardFields,
+        sessionSection: !!sessionSection,
+        classInstanceSection: !!classInstanceSection,
+        gearSection: !!gearSection,
+        activityTypeField: !!activityTypeField
+      });
+      
+      if (hierarchyType === 'SESSION') {
+        // For sessions, hide standard fields, gear, activity type, and class instance info; show session info
+        if (standardFields) standardFields.classList.add('hidden');
+        if (sessionSection) sessionSection.classList.remove('hidden');
+        if (classInstanceSection) classInstanceSection.classList.add('hidden');
+        if (gearSection) gearSection.classList.add('hidden');
+        if (activityTypeField) activityTypeField.classList.add('hidden');
+        // Make name optional for sessions (will be auto-generated)
+        if (nameField) nameField.required = false;
+        if (nameRequired) nameRequired.style.display = 'none';
+        console.log('Showing session fields, hiding standard, gear, activity type, and class instance fields');
+      } else if (hierarchyType === 'CLASS_INSTANCE') {
+        // For class instances, hide standard fields, gear, activity type, and session info; show class instance info
+        if (standardFields) standardFields.classList.add('hidden');
+        if (sessionSection) sessionSection.classList.add('hidden');
+        if (classInstanceSection) classInstanceSection.classList.remove('hidden');
+        if (gearSection) gearSection.classList.add('hidden');
+        if (activityTypeField) activityTypeField.classList.add('hidden');
+        // Make name optional for class instances
+        if (nameField) nameField.required = false;
+        if (nameRequired) nameRequired.style.display = 'none';
+        console.log('Showing class instance fields, hiding all other sections');
+        
+        // Check if we need to show session selector
+        const parentSelect = document.getElementById('parentActivityId');
+        if (parentSelect && parentSelect.value) {
+          showSessionSelectorIfNeeded(parentSelect.value);
+        }
+        
+        // Reset the schedule form when switching to class instance
+        setTimeout(() => {
+          if (window.resetScheduleForm) {
+            window.resetScheduleForm();
+          }
+        }, 100);
+      } else {
+        // For other types (PROGRAM, CLASS_TYPE), show standard fields, gear, and activity type; hide session and class instance info
+        if (standardFields) standardFields.classList.remove('hidden');
+        if (sessionSection) sessionSection.classList.add('hidden');
+        if (classInstanceSection) classInstanceSection.classList.add('hidden');
+        if (gearSection) gearSection.classList.remove('hidden');
+        if (activityTypeField) activityTypeField.classList.remove('hidden');
+        // Make name required for programs and class types
+        if (nameField) nameField.required = true;
+        if (nameRequired) nameRequired.style.display = 'inline';
+        console.log('Showing standard, gear, and activity type fields, hiding session and class instance fields');
+      }
+    }
+
+    // Function to reset the schedule form when switching to class instance
+    window.resetScheduleForm = function() {
+      // Reset schedule type selection
+      const recurringBtn = document.getElementById('recurringBtn');
+      const oneOffBtn = document.getElementById('oneOffBtn');
+      const recurringForm = document.getElementById('recurringForm');
+      const oneOffForm = document.getElementById('oneOffForm');
+      const scheduleType = document.getElementById('scheduleType');
+      
+      // Reset button styles
+      if (recurringBtn) recurringBtn.classList.remove('border-green-500', 'bg-green-50');
+      if (oneOffBtn) oneOffBtn.classList.remove('border-green-500', 'bg-green-50');
+      
+      // Hide both forms
+      if (recurringForm) recurringForm.classList.add('hidden');
+      if (oneOffForm) oneOffForm.classList.add('hidden');
+      
+      // Clear the hidden input
+      if (scheduleType) scheduleType.value = '';
+      
+      // Clear all form fields
+      const startTime = document.getElementById('startTime');
+      const endTime = document.getElementById('endTime');
+      const startDatetime = document.getElementById('startDatetime');
+      const endDatetime = document.getElementById('endDatetime');
+      const eventName = document.getElementById('eventName');
+      const eventDescription = document.getElementById('eventDescription');
+      const until = document.getElementById('until');
+      const waitlistStatus = document.getElementById('waitlistStatus');
+      const ignoreExceptions = document.getElementById('ignoreExceptions');
+      
+      if (startTime) startTime.value = '';
+      if (endTime) endTime.value = '';
+      if (startDatetime) startDatetime.value = '';
+      if (endDatetime) endDatetime.value = '';
+      if (eventName) eventName.value = '';
+      if (eventDescription) eventDescription.value = '';
+      if (until) until.value = '';
+      if (waitlistStatus) waitlistStatus.value = '';
+      if (ignoreExceptions) ignoreExceptions.checked = false;
+      
+      // Uncheck all weekdays
+      document.querySelectorAll('input[name="weekdays"]').forEach(cb => {
+        cb.checked = false;
+      });
+      
+      // Reset frequency and interval to defaults
+      const frequency = document.getElementById('frequency');
+      const interval = document.getElementById('interval');
+      if (frequency) frequency.value = 'WEEKLY';
+      if (interval) interval.value = '1';
+    };
+
+    window.editActivity = function(activityId) {
+      const activity = initialActivities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      document.getElementById('modalTitle').textContent = 'Edit Activity';
+      document.getElementById('activityId').value = activity.id;
+      document.getElementById('parentActivityId').value = activity.parent_activity_id || '';
+      document.getElementById('activityHierarchyType').value = activity.activity_hierarchy_type || '';
+      document.getElementById('activityName').value = activity.name || '';
+      document.getElementById('activityDescription').value = activity.description || '';
+      document.getElementById('activityType').value = activity.activity_type || '';
+      
+      // Show/hide sections based on hierarchy type
+      toggleFormSections(activity.activity_hierarchy_type || 'PROGRAM');
+      
+      // Standard activity fields
+      document.getElementById('minAge').value = activity.min_age || '';
+      document.getElementById('maxAge').value = activity.max_age || '';
+      document.getElementById('minGrade').value = activity.min_grade || '';
+      document.getElementById('maxGrade').value = activity.max_grade || '';
+      document.getElementById('cost').value = activity.cost || '';
+      document.getElementById('commitmentLevel').value = activity.commitment_level || '';
+      
+      // Gear fields
+      document.getElementById('requiredGear').value = activity.required_gear || '';
+      document.getElementById('gearAssistanceAvailable').checked = activity.gear_assistance_available || false;
+      document.getElementById('gearAssistanceDetails').value = activity.gear_assistance_details || '';
+      
+      // Location fields
+      document.getElementById('locationId').value = activity.location_id || '';
+      document.getElementById('locationDetails').value = activity.location_details || '';
+      
+      // Show inherited location if no location is set
+      if (!activity.location_id && activity.parent_activity_id) {
+        showInheritedLocation(activity.parent_activity_id);
+      } else {
+        hideInheritedLocation();
+      }
+      
+      // Session fields
+      if (activity.start_datetime) {
+        document.getElementById('startDatetime').value = activity.start_datetime.slice(0, 10); // Format for date input (YYYY-MM-DD)
+      }
+      if (activity.end_datetime) {
+        document.getElementById('endDatetime').value = activity.end_datetime.slice(0, 10); // Format for date input (YYYY-MM-DD)
+      }
+      document.getElementById('registrationOpens').value = activity.registration_opens || '';
+      document.getElementById('registrationCloses').value = activity.registration_closes || '';
+      document.getElementById('registrationInfo').value = activity.registration_info || '';
+      document.getElementById('registrationLink').value = activity.registration_link || '';
+      document.getElementById('registrationRequired').checked = activity.registration_required || false;
+
+      // Schedule fields
+      document.getElementById('waitlistStatus').value = activity.waitlist_status || '';
+
+      // If this is a CLASS_INSTANCE, load its events and check session selector
+      if (activity.activity_hierarchy_type === 'CLASS_INSTANCE') {
+        loadEventsForEdit(activityId);
+        
+        // Check if we need to show session selector and populate it
+        if (activity.parent_activity_id) {
+          showSessionSelectorIfNeeded(activity.parent_activity_id);
+          
+          // Set the session value after the selector is populated
+          setTimeout(() => {
+            const sessionSelector = document.getElementById('sessionSelector');
+            if (sessionSelector) {
+              sessionSelector.value = activity.session_id || '';
+            }
+          }, 100);
+        }
+      }
+
+      showModal('activityModal');
+    };
+
+    window.manageEvents = function(activityId) {
+      console.log('manageEvents called with activityId:', activityId);
+      
+      const activity = initialActivities.find(a => a.id === activityId);
+      console.log('Found activity:', activity);
+      if (!activity) {
+        console.error('Activity not found for ID:', activityId);
+        return;
+      }
+
+      const content = document.getElementById('calendarManagementContent');
+      content.setAttribute('data-activity-id', activityId);
+      content.innerHTML = `
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold">Activity Events for: ${activity.name}</h3>
+          <p class="text-sm text-gray-600">Activity ID: ${activity.id} | Type: ${activity.activity_hierarchy_type}</p>
+          <p class="text-sm text-blue-600 mt-2">Activity events can be recurring (e.g., "Weekly Practice") or one-off (e.g., "Spring Recital")</p>
+        </div>
+        
+        <!-- Activity Events Section -->
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <h4 class="font-medium text-lg">Activity Events</h4>
+            <button onclick="showAddEventForm()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+              Add Activity Event
+            </button>
+          </div>
+          
+          <div id="eventsList" class="space-y-2">
+            <div class="bg-gray-50 p-4 rounded">
+              <p class="text-sm text-gray-600">Loading activity events...</p>
+            </div>
+          </div>
+          
+          <!-- Add Activity Event Form (hidden by default) -->
+          <div id="addEventForm" class="hidden bg-gray-50 p-4 rounded">
+            <h5 class="font-medium mb-3">Add New Activity Event</h5>
+            <form id="eventForm" class="space-y-3">
+              <input type="hidden" id="eventId" name="event_id" />
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Activity Event Type</label>
+                <select id="eventType" name="event_type" class="w-full px-3 py-2 border border-gray-300 rounded-md" onchange="toggleEventTypeFields()">
+                  <option value="">Select activity event type</option>
+                  <option value="RECURRING">Recurring Activity Event</option>
+                  <option value="ONE_OFF">One-off Activity Event</option>
+                </select>
+              </div>
+              
+              <div>
+                <label for="eventName" class="block text-sm font-medium text-gray-700 mb-1">Activity Event Name</label>
+                <input type="text" id="eventName" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Weekly Practice, Spring Recital">
+              </div>
+              
+              <div>
+                <label for="eventDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                <textarea id="eventDescription" name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Additional details about this activity event"></textarea>
+              </div>
+              
+              <!-- Recurring Activity Event Fields -->
+              <div id="recurringFields" class="hidden space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                    <input type="time" id="startTime" name="start_time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  </div>
+                  <div>
+                    <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                    <input type="time" id="endTime" name="end_time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="frequency" class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                    <select id="frequency" name="freq" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="DAILY">Daily</option>
+                      <option value="MONTHLY">Monthly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="interval" class="block text-sm font-medium text-gray-700 mb-1">Interval</label>
+                    <input type="number" id="interval" name="interval" value="1" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Days of Week</label>
+                  <div class="grid grid-cols-7 gap-2">
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="MO" class="mr-1"> Mon
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="TU" class="mr-1"> Tue
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="WE" class="mr-1"> Wed
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="TH" class="mr-1"> Thu
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="FR" class="mr-1"> Fri
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="SA" class="mr-1"> Sat
+                    </label>
+                    <label class="flex items-center">
+                      <input type="checkbox" name="weekdays" value="SU" class="mr-1"> Sun
+                    </label>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="until" class="block text-sm font-medium text-gray-700 mb-1">Until Date (Optional)</label>
+                  <input type="date" id="until" name="until" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+              </div>
+              
+              <!-- One-off Activity Event Fields -->
+              <div id="oneOffFields" class="hidden space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="startDatetime" class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                    <input type="datetime-local" id="startDatetime" name="start_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  </div>
+                  <div>
+                    <label for="endDatetime" class="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+                    <input type="datetime-local" id="endDatetime" name="end_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  </div>
+                </div>
+              </div>
+              
+
+              
+              <div>
+                <label class="flex items-center">
+                  <input type="checkbox" id="ignoreExceptions" name="ignore_exceptions" class="mr-2">
+                  <span class="text-sm font-medium text-gray-700">Ignore Parent Exceptions</span>
+                </label>
+              </div>
+              
+              <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                  Save Activity Event
+                </button>
+                <button type="button" onclick="hideAddEventForm()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-300">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      showModal('calendarModal');
+      loadEvents(activityId);
+    };
+
+    // Activity Event management functions
+    // Location management functions
+    window.loadLocations = async function() {
+      try {
+        const response = await fetch('/api/admin/locations');
+        const locations = await response.json();
+        
+        const locationSelect = document.getElementById('locationId');
+        if (locationSelect) {
+          // Clear existing options except the first one
+          locationSelect.innerHTML = '<option value="">Select Location</option>';
+          
+          // Add location options
+          locations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            option.textContent = location.name + (location.address ? ` - ${location.address}` : '');
+            locationSelect.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading locations:', error);
+      }
+    };
+
+    window.loadEffectiveLocation = async function(activityId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/effective-location`);
+        const effectiveLocation = await response.json();
+        
+        if (effectiveLocation) {
+          return effectiveLocation;
+        }
+        return null;
+      } catch (error) {
+        console.error('Error loading effective location:', error);
+        return null;
+      }
+    };
+
+    window.loadAllEffectiveLocations = async function() {
+      // Get all activities from the page
+      const locationElements = document.querySelectorAll('[id^="effective-location-"]');
+      
+      for (const element of locationElements) {
+        const activityId = element.id.replace('effective-location-', '');
+        await loadAndDisplayEffectiveLocation(activityId);
+      }
+    };
+
+    // Session management functions
+    window.loadAvailableSessions = async function(classTypeId) {
+      try {
+        // Get all sessions that belong to the same program as this class type
+        const classType = initialActivities.find(a => a.id === classTypeId);
+        if (!classType) {
+          console.error('Class type not found:', classTypeId);
+          return [];
+        }
+
+        // Find the parent program
+        let parentProgram = null;
+        if (classType.parent_activity_id) {
+          parentProgram = initialActivities.find(a => a.id === classType.parent_activity_id);
+        } else {
+          parentProgram = classType; // Class type is the program
+        }
+
+        if (!parentProgram) {
+          console.error('Parent program not found for class type:', classTypeId);
+          return [];
+        }
+
+        // Find all sessions that belong to this program
+        const sessions = initialActivities.filter(a => 
+          a.activity_hierarchy_type === 'SESSION' && 
+          a.parent_activity_id === parentProgram.id
+        );
+
+        return sessions;
+      } catch (error) {
+        console.error('Error loading available sessions:', error);
+        return [];
+      }
+    };
+
+    window.populateSessionSelector = async function(classTypeId) {
+      try {
+        const sessions = await loadAvailableSessions(classTypeId);
+        const sessionSelector = document.getElementById('sessionSelector');
+        
+        if (sessionSelector) {
+          // Store current value before clearing
+          const currentValue = sessionSelector.value;
+          
+          // Clear existing options except the first one
+          sessionSelector.innerHTML = '<option value="">Select a session...</option>';
+          
+          if (sessions.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No sessions available for this class type';
+            option.disabled = true;
+            sessionSelector.appendChild(option);
+          } else {
+            // Add session options
+            sessions.forEach(session => {
+              const option = document.createElement('option');
+              option.value = session.id;
+              
+              // Create a descriptive name for the session
+              let sessionName = session.name || 'Unnamed Session';
+              if (session.start_datetime && session.end_datetime) {
+                const startDate = new Date(session.start_datetime).toLocaleDateString();
+                const endDate = new Date(session.end_datetime).toLocaleDateString();
+                sessionName += ` (${startDate} - ${endDate})`;
+              }
+              
+              option.textContent = sessionName;
+              sessionSelector.appendChild(option);
+            });
+          }
+          
+          // Restore current value if it exists in the new options
+          if (currentValue && sessions.some(s => s.id === currentValue)) {
+            sessionSelector.value = currentValue;
+          }
+        }
+      } catch (error) {
+        console.error('Error populating session selector:', error);
+      }
+    };
+
+    window.populateSessionsFromProgram = async function(programId) {
+      try {
+        // Find all sessions that belong to this program
+        const sessions = initialActivities.filter(a => 
+          a.activity_hierarchy_type === 'SESSION' && 
+          a.parent_activity_id === programId
+        );
+        
+        const sessionSelector = document.getElementById('sessionSelector');
+        
+        if (sessionSelector) {
+          // Store current value before clearing
+          const currentValue = sessionSelector.value;
+          
+          // Clear existing options
+          sessionSelector.innerHTML = '<option value="">Select a session (optional)...</option>';
+          
+          if (sessions.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No sessions available for this program';
+            option.disabled = true;
+            sessionSelector.appendChild(option);
+          } else {
+            // Add session options
+            sessions.forEach(session => {
+              const option = document.createElement('option');
+              option.value = session.id;
+              
+              // Create a descriptive name for the session
+              let sessionName = session.name || 'Unnamed Session';
+              if (session.start_datetime && session.end_datetime) {
+                const startDate = new Date(session.start_datetime).toLocaleDateString();
+                const endDate = new Date(session.end_datetime).toLocaleDateString();
+                sessionName += ` (${startDate} - ${endDate})`;
+              }
+              
+              option.textContent = sessionName;
+              sessionSelector.appendChild(option);
+            });
+          }
+          
+          // Restore current value if it exists in the new options
+          if (currentValue && sessions.some(s => s.id === currentValue)) {
+            sessionSelector.value = currentValue;
+          }
+        }
+      } catch (error) {
+        console.error('Error populating sessions from program:', error);
+      }
+    };
+
+    window.showSessionSelectorIfNeeded = function(parentActivityId) {
+      const sessionSelectionSection = document.getElementById('sessionSelectionSection');
+      const sessionSelector = document.getElementById('sessionSelector');
+      const sessionLabel = document.querySelector('label[for="sessionSelector"]');
+      
+      if (!sessionSelectionSection || !sessionSelector) return;
+      
+      const parentActivity = initialActivities.find(a => a.id === parentActivityId);
+      
+      if (parentActivity) {
+        if (parentActivity.activity_hierarchy_type === 'CLASS_TYPE') {
+          // Class instance under a class type - show sessions from the parent program
+          sessionSelectionSection.classList.remove('hidden');
+          sessionSelector.required = true;
+          if (sessionLabel) sessionLabel.textContent = 'Which session does this class instance belong to? *';
+          populateSessionSelector(parentActivityId);
+        } else if (parentActivity.activity_hierarchy_type === 'PROGRAM') {
+          // Class instance directly under a program - show all sessions from this program
+          sessionSelectionSection.classList.remove('hidden');
+          sessionSelector.required = false; // Optional since it's directly under program
+          if (sessionLabel) sessionLabel.textContent = 'Which session does this class instance belong to? (optional)';
+          populateSessionsFromProgram(parentActivityId);
+        } else if (parentActivity.activity_hierarchy_type === 'SESSION') {
+          // Class instance directly under a session - no session selector needed
+          sessionSelectionSection.classList.add('hidden');
+          sessionSelector.required = false;
+        } else {
+          // Hide session selector for other cases
+          sessionSelectionSection.classList.add('hidden');
+          sessionSelector.required = false;
+        }
+      } else {
+        // Hide session selector
+        sessionSelectionSection.classList.add('hidden');
+        sessionSelector.required = false;
+      }
+    };
+    
+    window.showInheritedLocation = async function(parentActivityId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${parentActivityId}/effective-location`);
+        const effectiveLocation = await response.json();
+        
+        const displayElement = document.getElementById('inherited-location-display');
+        const textElement = document.getElementById('inherited-location-text');
+        
+        if (effectiveLocation && effectiveLocation.location_name) {
+          textElement.textContent = `${effectiveLocation.location_name}${effectiveLocation.location_address ? ` (${effectiveLocation.location_address})` : ''} (from ${effectiveLocation.source_level})`;
+          displayElement.classList.remove('hidden');
+        } else {
+          hideInheritedLocation();
+        }
+      } catch (error) {
+        console.error('Error loading inherited location:', error);
+        hideInheritedLocation();
+      }
+    };
+    
+    window.hideInheritedLocation = function() {
+      const displayElement = document.getElementById('inherited-location-display');
+      displayElement.classList.add('hidden');
+    };
+
+    window.loadAndDisplayEffectiveLocation = async function(activityId) {
+      try {
+        const effectiveLocation = await loadEffectiveLocation(activityId);
+        const locationElement = document.getElementById(`effective-location-${activityId}`);
+        
+        if (locationElement) {
+          if (effectiveLocation) {
+            const locationText = effectiveLocation.location_name + 
+              (effectiveLocation.location_address ? ` - ${effectiveLocation.location_address}` : '') +
+              (effectiveLocation.location_details ? ` (${effectiveLocation.location_details})` : '') +
+              ` [${effectiveLocation.source_level}]`;
+            locationElement.innerHTML = `📍 ${locationText}`;
+          } else {
+            locationElement.innerHTML = '📍 No location set';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading effective location for activity:', activityId, error);
+        const locationElement = document.getElementById(`effective-location-${activityId}`);
+        if (locationElement) {
+          locationElement.innerHTML = '📍 Error loading location';
+        }
+      }
+    };
+
+    window.loadAllClassInstanceSchedules = async function() {
+      // Get all class instances from the page - now they're in schedule divs under class types
+      const scheduleElements = document.querySelectorAll('[id^="schedule-"]');
+      
+      for (const element of scheduleElements) {
+        const activityId = element.id.replace('schedule-', '');
+        await loadClassInstanceSchedule(activityId);
+      }
+    };
+
+    window.loadClassInstanceSchedule = async function(activityId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+        const events = await response.json();
+        
+        const scheduleElement = document.getElementById(`schedule-${activityId}`);
+        if (!scheduleElement) return;
+        
+        if (events && events.length > 0) {
+          let scheduleHtml = '<div class="text-gray-700">';
+          
+          events.forEach((event, index) => {
+            if (index > 0) scheduleHtml += '<br>';
+            
+            if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+              const pattern = event.recurrence_patterns;
+              const weekdays = pattern.weekdays ? pattern.weekdays.join(', ') : '';
+              scheduleHtml += `<span class="font-medium">${event.name || 'Recurring Event'}</span><br>`;
+              scheduleHtml += `<span>🕐 ${pattern.start_time} - ${pattern.end_time} • ${pattern.freq}</span><br>`;
+              scheduleHtml += `<span>📅 ${weekdays} • Every ${pattern.interval} ${pattern.freq.toLowerCase()}</span>`;
+              if (pattern.until) {
+                scheduleHtml += `<br><span>⏰ Until: ${pattern.until}</span>`;
+              }
+            } else if (event.event_type === 'ONE_OFF') {
+              const startDate = new Date(event.start_datetime).toLocaleDateString();
+              const startTime = new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+              const endTime = new Date(event.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+              scheduleHtml += `<span class="font-medium">${event.name || 'One-off Event'}</span><br>`;
+              scheduleHtml += `<span>📅 ${startDate} • ${startTime} - ${endTime}</span>`;
+            }
+          });
+          
+          scheduleHtml += '</div>';
+          scheduleElement.innerHTML = scheduleHtml;
+        } else {
+          scheduleElement.innerHTML = '<span class="text-gray-400 italic">No schedule defined</span>';
+        }
+      } catch (error) {
+        console.error('Error loading schedule for class instance:', activityId, error);
+        const scheduleElement = document.getElementById(`schedule-${activityId}`);
+        if (scheduleElement) {
+          scheduleElement.innerHTML = '<span class="text-red-400">Error loading schedule</span>';
+        }
+      }
+    };
+
+    window.loadEventsForEdit = async function(activityId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+        const events = await response.json();
+        
+        console.log('Loaded events for edit:', events);
+        
+        // Show/hide schedule display
+        const scheduleDisplay = document.getElementById('currentScheduleDisplay');
+        const scheduleContent = document.getElementById('scheduleContent');
+        
+        if (events && events.length > 0) {
+          // Display current schedule
+          scheduleDisplay.classList.remove('hidden');
+          let scheduleHtml = '<div class="space-y-2">';
+          
+          events.forEach((event, index) => {
+            scheduleHtml += `<div class="border-l-4 border-blue-400 pl-3 py-2">`;
+            scheduleHtml += `<div class="font-medium">${event.name || 'Unnamed Event'}</div>`;
+            
+            if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+              const pattern = event.recurrence_patterns;
+              const weekdays = pattern.weekdays ? pattern.weekdays.join(', ') : '';
+              scheduleHtml += `<div class="text-xs">🕐 ${pattern.start_time} - ${pattern.end_time} • ${pattern.freq}</div>`;
+              scheduleHtml += `<div class="text-xs">📅 ${weekdays} • Every ${pattern.interval} ${pattern.freq.toLowerCase()}</div>`;
+              if (pattern.until) {
+                scheduleHtml += `<div class="text-xs">⏰ Until: ${pattern.until}</div>`;
+              }
+            } else if (event.event_type === 'ONE_OFF') {
+              const startDate = new Date(event.start_datetime).toLocaleDateString();
+              const startTime = new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+              const endTime = new Date(event.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+              scheduleHtml += `<div class="text-xs">📅 ${startDate} • ${startTime} - ${endTime}</div>`;
+            }
+            
+            if (event.description) {
+              scheduleHtml += `<div class="text-xs text-gray-600">${event.description}</div>`;
+            }
+            scheduleHtml += '</div>';
+          });
+          
+          scheduleHtml += '</div>';
+          scheduleContent.innerHTML = scheduleHtml;
+          
+          // Populate the form with the first event's data
+          const event = events[0]; // For now, just use the first event
+          
+          // Set event type
+          const eventTypeRadios = document.querySelectorAll('input[name="event_type"]');
+          eventTypeRadios.forEach(radio => {
+            if (radio.value === event.event_type) {
+              radio.checked = true;
+            }
+          });
+          
+          // Trigger the event type change to show appropriate fields
+          toggleClassInstanceEventTypeFields();
+          
+          // Set event name and description
+          document.getElementById('eventName').value = event.name || '';
+          document.getElementById('eventDescription').value = event.description || '';
+          document.getElementById('ignoreExceptions').checked = event.ignore_exceptions || false;
+          
+          if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+            const pattern = event.recurrence_patterns;
+            document.getElementById('startTime').value = pattern.start_time || '';
+            document.getElementById('endTime').value = pattern.end_time || '';
+            document.getElementById('frequency').value = pattern.freq || 'WEEKLY';
+            document.getElementById('interval').value = pattern.interval || 1;
+            document.getElementById('until').value = pattern.until || '';
+            
+            // Set weekdays
+            document.querySelectorAll('input[name="weekdays"]').forEach(cb => {
+              cb.checked = pattern.weekdays && pattern.weekdays.includes(cb.value);
+            });
+          } else if (event.event_type === 'ONE_OFF') {
+            document.getElementById('startDatetime').value = event.start_datetime ? event.start_datetime.slice(0, 16) : '';
+            document.getElementById('endDatetime').value = event.end_datetime ? event.end_datetime.slice(0, 16) : '';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading events for edit:', error);
+      }
+    };
+
+    window.loadEvents = async function(activityId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+        const events = await response.json();
+        
+        const eventsList = document.getElementById('eventsList');
+        if (events.length === 0) {
+          eventsList.innerHTML = '<div class="bg-gray-50 p-4 rounded"><p class="text-sm text-gray-600">No activity events yet</p></div>';
+          return;
+        }
+        
+        eventsList.innerHTML = events.map(event => {
+          const timeInfo = event.event_type === 'RECURRING' ? 
+            `Time: ${event.recurrence_patterns?.start_time} - ${event.recurrence_patterns?.end_time}` :
+            `Date: ${new Date(event.start_datetime).toLocaleString()} - ${new Date(event.end_datetime).toLocaleString()}`;
+          
+          const waitlistInfo = ''; // Waitlist status is handled at class instance level, not event level
+          
+          const ignoreInfo = event.ignore_exceptions ? 
+            `<p class="text-xs text-blue-600 mt-1">Ignores parent exceptions</p>` : '';
+          
+          return `
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h4 class="font-semibold">${event.name}</h4>
+                  <p class="text-sm text-gray-600">${event.description || 'No description'}</p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Type: ${event.event_type} | ${timeInfo}
+                  </p>
+                  ${waitlistInfo}
+                  ${ignoreInfo}
+                </div>
+                <div class="flex gap-2">
+                  <button 
+                    onclick="editEvent('${activityId}', '${event.event_id}')"
+                    class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onclick="deleteEvent('${activityId}', '${event.event_id}')"
+                    class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+              } catch (error) {
+          console.error('Error loading activity events:', error);
+          const eventsList = document.getElementById('eventsList');
+          eventsList.innerHTML = '<div class="bg-red-50 p-4 rounded"><p class="text-sm text-red-600">Error loading activity events</p></div>';
+        }
+    };
+
+    window.showAddEventForm = function() {
+      document.getElementById('addEventForm').classList.remove('hidden');
+      document.getElementById('eventForm').reset();
+      document.getElementById('eventId').value = '';
+    };
+
+    window.hideAddEventForm = function() {
+      document.getElementById('addEventForm').classList.add('hidden');
+    };
+
+    window.toggleEventTypeFields = function() {
+      const eventType = document.getElementById('eventType').value;
+      const recurringFields = document.getElementById('recurringFields');
+      const oneOffFields = document.getElementById('oneOffFields');
+      
+      if (recurringFields) recurringFields.classList.add('hidden');
+      if (oneOffFields) oneOffFields.classList.add('hidden');
+      
+      if (eventType === 'RECURRING') {
+        if (recurringFields) recurringFields.classList.remove('hidden');
+      } else if (eventType === 'ONE_OFF') {
+        if (oneOffFields) oneOffFields.classList.remove('hidden');
+      }
+    };
+
+
+
+    // Function to handle schedule type selection in the new UI
+    window.selectScheduleType = function(type) {
+      const recurringBtn = document.getElementById('recurringBtn');
+      const oneOffBtn = document.getElementById('oneOffBtn');
+      const recurringForm = document.getElementById('recurringForm');
+      const oneOffForm = document.getElementById('oneOffForm');
+      const scheduleType = document.getElementById('scheduleType');
+      
+      // Update button styles
+      if (type === 'RECURRING') {
+        recurringBtn.classList.add('border-green-500', 'bg-green-50');
+        oneOffBtn.classList.remove('border-green-500', 'bg-green-50');
+        recurringForm.classList.remove('hidden');
+        oneOffForm.classList.add('hidden');
+      } else {
+        oneOffBtn.classList.add('border-green-500', 'bg-green-50');
+        recurringBtn.classList.remove('border-green-500', 'bg-green-50');
+        oneOffForm.classList.remove('hidden');
+        recurringForm.classList.add('hidden');
+      }
+      
+      // Set the hidden input value
+      scheduleType.value = type;
+      
+      // Remove required attributes from datetime fields to prevent validation errors
+      if (type === 'RECURRING') {
+        document.getElementById('startDatetime').removeAttribute('required');
+        document.getElementById('endDatetime').removeAttribute('required');
+      } else {
+        document.getElementById('startTime').removeAttribute('required');
+        document.getElementById('endTime').removeAttribute('required');
+        document.getElementById('frequency').removeAttribute('required');
+        document.getElementById('interval').removeAttribute('required');
+      }
+    };
+
+    // Function to handle event type fields in the class instance form
+    window.toggleClassInstanceEventTypeFields = function() {
+      const selectedType = document.querySelector('input[name="event_type"]:checked');
+      const recurringFields = document.getElementById('recurringEventFields');
+      const oneOffFields = document.getElementById('oneOffEventFields');
+      
+      if (recurringFields) recurringFields.classList.add('hidden');
+      if (oneOffFields) oneOffFields.classList.add('hidden');
+      
+      if (selectedType && selectedType.value === 'RECURRING') {
+        if (recurringFields) recurringFields.classList.remove('hidden');
+      } else if (selectedType && selectedType.value === 'ONE_OFF') {
+        if (oneOffFields) oneOffFields.classList.remove('hidden');
+      }
+    };
+
+    window.editEvent = async function(activityId, eventId) {
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+        const events = await response.json();
+        const event = events.find(e => e.event_id === eventId);
+        
+        if (!event) {
+          alert('Activity event not found');
+          return;
+        }
+        
+        // Make sure the events modal is open and the form is visible
+        showAddEventForm();
+        
+        // Wait a moment for the DOM to update, then populate the form
+        setTimeout(() => {
+          try {
+            // Populate form fields
+            const eventIdField = document.getElementById('eventId');
+            const eventTypeField = document.getElementById('eventType');
+            const eventNameField = document.getElementById('eventName');
+            const eventDescriptionField = document.getElementById('eventDescription');
+            const ignoreExceptionsField = document.getElementById('ignoreExceptions');
+            
+            if (eventIdField) eventIdField.value = event.event_id;
+            if (eventTypeField) eventTypeField.value = event.event_type;
+            if (eventNameField) eventNameField.value = event.name;
+            if (eventDescriptionField) eventDescriptionField.value = event.description || '';
+            if (ignoreExceptionsField) ignoreExceptionsField.checked = event.ignore_exceptions || false;
+            
+            if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+              const pattern = event.recurrence_patterns;
+              
+              const startTimeField = document.getElementById('startTime');
+              const endTimeField = document.getElementById('endTime');
+              const frequencyField = document.getElementById('frequency');
+              const intervalField = document.getElementById('interval');
+              const untilField = document.getElementById('until');
+              
+              if (startTimeField) startTimeField.value = pattern.start_time || '';
+              if (endTimeField) endTimeField.value = pattern.end_time || '';
+              if (frequencyField) frequencyField.value = pattern.freq || 'WEEKLY';
+              if (intervalField) intervalField.value = pattern.interval || 1;
+              if (untilField) untilField.value = pattern.until || '';
+              
+              // Set weekdays
+              document.querySelectorAll('input[name="weekdays"]').forEach(cb => {
+                cb.checked = pattern.weekdays && pattern.weekdays.includes(cb.value);
+              });
+            } else if (event.event_type === 'ONE_OFF') {
+              const startDatetimeField = document.getElementById('startDatetime');
+              const endDatetimeField = document.getElementById('endDatetime');
+              
+              if (startDatetimeField) startDatetimeField.value = event.start_datetime ? event.start_datetime.slice(0, 16) : '';
+              if (endDatetimeField) endDatetimeField.value = event.end_datetime ? event.end_datetime.slice(0, 16) : '';
+            }
+            
+            // Trigger the change event to show appropriate fields
+            if (eventTypeField) {
+              const changeEvent = new Event('change');
+              eventTypeField.dispatchEvent(changeEvent);
+            }
+          } catch (populateError) {
+            console.error('Error populating form fields:', populateError);
+            alert('Error loading activity event details');
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error editing activity event:', error);
+        alert('Error loading activity event details');
+      }
+    };
+
+    window.deleteEvent = async function(activityId, eventId) {
+      if (!confirm('Are you sure you want to delete this activity event?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/admin/kid-activities/${activityId}/activity-events/${eventId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete activity event');
+        }
+        
+        loadEvents(activityId);
+      } catch (error) {
+        console.error('Error deleting activity event:', error);
+        alert('Error deleting activity event');
+      }
+    };
+
+    window.exportCalendar = function(activityId) {
+      const activity = initialActivities.find(a => a.id === activityId);
+      if (!activity) {
+        alert('Activity not found');
+        return;
+      }
+      
+      // Create a download link for the calendar export
+      const link = document.createElement('a');
+      link.href = `/api/admin/kid-activities/${activityId}/calendar-export`;
+      link.download = `${activity.name.replace(/[^a-zA-Z0-9]/g, '_')}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // Activity Event form submission
+    document.addEventListener('submit', async function(e) {
+      if (e.target.id === 'eventForm') {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const eventId = formData.get('event_id');
+        const activityId = document.getElementById('calendarManagementContent').getAttribute('data-activity-id');
+        
+        const method = eventId ? 'PUT' : 'POST';
+        const url = eventId ? 
+          `/api/admin/kid-activities/${activityId}/activity-events/${eventId}` : 
+          `/api/admin/kid-activities/${activityId}/activity-events`;
+
+        const data = {
+          event_type: formData.get('event_type'),
+          name: formData.get('name'),
+          description: formData.get('description'),
+          ignore_exceptions: formData.get('ignore_exceptions') === 'on'
+        };
+
+        if (data.event_type === 'RECURRING') {
+          data.start_time = formData.get('start_time');
+          data.end_time = formData.get('end_time');
+          data.freq = formData.get('freq');
+          data.interval = parseInt(formData.get('interval'));
+          data.weekdays = Array.from(e.target.querySelectorAll('input[name="weekdays"]:checked')).map(cb => cb.value);
+          data.until = formData.get('until') || null;
+        } else if (data.event_type === 'ONE_OFF') {
+          data.start_datetime = formData.get('start_datetime');
+          data.end_datetime = formData.get('end_datetime');
+        }
+
+        try {
+          const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save activity event');
+          }
+          
+          hideAddEventForm();
+          loadEvents(activityId);
+        } catch (error) {
+          console.error('Error saving activity event:', error);
+          alert(error.message || 'Error saving activity event');
+        }
+      }
+    });
+
+    window.manageMeetingPatterns = function(activityId) {
+      // Redirect to the new events management system
+      console.log('manageMeetingPatterns called with activityId:', activityId);
+      console.log('Redirecting to events management...');
+      
+      // Call the events management function instead
+      manageEvents(activityId);
+    };
+
+    window.duplicateActivity = async function(activityId) {
+      const activity = initialActivities.find(a => a.id === activityId);
+      if (!activity) {
+        console.error('Activity not found for duplication:', activityId);
+        return;
+      }
+
+      // For CLASS_INSTANCE, open a smart duplicate form
+      if (activity.activity_hierarchy_type === 'CLASS_INSTANCE') {
+        try {
+          // Get the original events to pre-populate the form
+          const eventsResponse = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+          const events = await eventsResponse.json();
+          
+          if (events && events.length > 0) {
+            const originalEvent = events[0]; // Use the first event
+            
+            // Pre-populate the form with the original data
+            document.getElementById('modalTitle').textContent = 'Duplicate & Edit Class Instance';
+            document.getElementById('activityId').value = ''; // New activity
+            document.getElementById('parentActivityId').value = activity.parent_activity_id || '';
+            document.getElementById('activityHierarchyType').value = 'CLASS_INSTANCE';
+            document.getElementById('activityName').value = ''; // Leave name empty - will be auto-generated
+            document.getElementById('activityDescription').value = activity.description || '';
+            
+            // Show class instance section
+            toggleFormSections('CLASS_INSTANCE');
+            
+            // Pre-populate the schedule form
+            if (originalEvent.event_type === 'RECURRING' && originalEvent.recurrence_patterns) {
+              const pattern = originalEvent.recurrence_patterns;
+              
+              // Set schedule type to recurring
+              selectScheduleType('RECURRING');
+              
+              // Wait a moment for the form to update, then populate fields
+              setTimeout(() => {
+                // Pre-populate recurring fields
+                const startTimeField = document.getElementById('startTime');
+                const endTimeField = document.getElementById('endTime');
+                const frequencyField = document.getElementById('frequency');
+                const intervalField = document.getElementById('interval');
+                const untilField = document.getElementById('until');
+                const eventNameField = document.getElementById('eventName');
+                const eventDescriptionField = document.getElementById('eventDescription');
+                const waitlistStatusField = document.getElementById('waitlistStatus');
+                const ignoreExceptionsField = document.getElementById('ignoreExceptions');
+                
+                if (startTimeField) startTimeField.value = pattern.start_time || '';
+                if (endTimeField) endTimeField.value = pattern.end_time || '';
+                if (frequencyField) frequencyField.value = pattern.freq || 'WEEKLY';
+                if (intervalField) intervalField.value = pattern.interval || 1;
+                if (untilField) untilField.value = pattern.until || '';
+                if (eventNameField) eventNameField.value = ''; // Clear event name for duplication
+                if (eventDescriptionField) eventDescriptionField.value = originalEvent.description || '';
+                if (waitlistStatusField) waitlistStatusField.value = activity.waitlist_status || '';
+                if (ignoreExceptionsField) ignoreExceptionsField.checked = originalEvent.ignore_exceptions || false;
+                
+                // Pre-select the original weekdays
+                document.querySelectorAll('input[name="weekdays"]').forEach(cb => {
+                  cb.checked = pattern.weekdays && pattern.weekdays.includes(cb.value);
+                });
+              }, 100);
+            } else if (originalEvent.event_type === 'ONE_OFF') {
+              // Set schedule type to one-off
+              selectScheduleType('ONE_OFF');
+              
+              // Wait a moment for the form to update, then populate fields
+              setTimeout(() => {
+                // Pre-populate one-off fields
+                const startDatetimeField = document.getElementById('startDatetime');
+                const endDatetimeField = document.getElementById('endDatetime');
+                const eventNameField = document.getElementById('eventName');
+                const eventDescriptionField = document.getElementById('eventDescription');
+                const waitlistStatusField = document.getElementById('waitlistStatus');
+                const ignoreExceptionsField = document.getElementById('ignoreExceptions');
+                
+                if (startDatetimeField) startDatetimeField.value = originalEvent.start_datetime ? originalEvent.start_datetime.slice(0, 16) : '';
+                if (endDatetimeField) endDatetimeField.value = originalEvent.end_datetime ? originalEvent.end_datetime.slice(0, 16) : '';
+                if (eventNameField) eventNameField.value = ''; // Clear event name for duplication
+                if (eventDescriptionField) eventDescriptionField.value = originalEvent.description || '';
+                if (waitlistStatusField) waitlistStatusField.value = activity.waitlist_status || '';
+                if (ignoreExceptionsField) ignoreExceptionsField.checked = originalEvent.ignore_exceptions || false;
+              }, 100);
+            }
+            
+            // Show the modal
+            showModal('activityModal');
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading events for smart duplicate:', error);
+        }
+      }
+
+      // Fallback to old behavior for non-CLASS_INSTANCE activities
+      if (confirm(`Are you sure you want to duplicate "${activity.name}"?`)) {
+        // Create a copy of the activity data, removing the ID and adding "Copy" to the name
+        const duplicateData = {
+          ...activity,
+          id: undefined, // Remove the ID so a new one is generated
+          name: `${activity.name} (Copy)`,
+          created_at: undefined,
+          updated_at: undefined
+        };
+
+        fetch('/api/admin/kid-activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(duplicateData)
+        })
+        .then(response => response.json())
+        .then(async (data) => {
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // If this is a CLASS_INSTANCE, also duplicate its events
+          if (activity.activity_hierarchy_type === 'CLASS_INSTANCE') {
+            try {
+              // Fetch the original activity's events
+              const eventsResponse = await fetch(`/api/admin/kid-activities/${activityId}/activity-events`);
+              const events = await eventsResponse.json();
+              
+              console.log('Original events found:', events);
+              
+              if (events && events.length > 0) {
+                console.log(`Duplicating ${events.length} events for the new class instance`);
+                
+                // Duplicate each event for the new activity
+                for (const event of events) {
+                  const eventData = {
+                    event_type: event.event_type,
+                    name: event.name,
+                    description: event.description,
+                    ignore_exceptions: event.ignore_exceptions
+                  };
+
+                  if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+                    const pattern = event.recurrence_patterns;
+                    eventData.start_time = pattern.start_time;
+                    eventData.end_time = pattern.end_time;
+                    eventData.freq = pattern.freq;
+                    eventData.interval = pattern.interval;
+                    eventData.weekdays = pattern.weekdays;
+                    eventData.until = pattern.until;
+                  } else if (event.event_type === 'ONE_OFF') {
+                    eventData.start_datetime = event.start_datetime;
+                    eventData.end_datetime = event.end_datetime;
+                  }
+
+                  const eventResponse = await fetch(`/api/admin/kid-activities/${data.id}/activity-events`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(eventData)
+                  });
+                  
+                  if (!eventResponse.ok) {
+                    const eventError = await eventResponse.json();
+                    console.error('Failed to create event:', eventError);
+                  } else {
+                    const createdEvent = await eventResponse.json();
+                    console.log('Successfully created event:', createdEvent);
+                  }
+                }
+              }
+            } catch (eventError) {
+              console.warn('Error duplicating events:', eventError);
+              // Don't fail the whole operation if event duplication fails
+            }
+          }
+          
+          // Reload the page to show the new activity
+          window.location.reload();
+        })
+        .catch(error => {
+          console.error('Error duplicating activity:', error);
+          alert('Error duplicating activity: ' + error.message);
+        });
+      }
+    };
+
+    window.deleteActivity = function(activityId) {
+      const activity = initialActivities.find(a => a.id === activityId);
+      if (!activity) {
+        console.error('Activity not found for deletion:', activityId);
+        return;
+      }
+
+      // Check if this activity has children
+      const children = initialActivities.filter(a => a.parent_activity_id === activityId);
+      const hasChildren = children.length > 0;
+      
+      const activityType = activity.activity_hierarchy_type || 'Activity';
+      let message = `Are you sure you want to delete "${activity.name}"?`;
+      
+      if (hasChildren) {
+        message += `\n\nThis will also delete ${children.length} child ${children.length === 1 ? 'activity' : 'activities'}:`;
+        children.forEach(child => {
+          message += `\n• ${child.name} (${child.activity_hierarchy_type || 'Unknown type'})`;
+        });
+      }
+      
+      message += '\n\nThis action cannot be undone.';
+      
+      if (confirm(message)) {
+        fetch(`/api/admin/kid-activities/${activityId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // Remove the activity and its children from the initialActivities array
+          const activityIdsToRemove = [activityId, ...children.map(child => child.id)];
+          console.log('Before filter - initialActivities length:', initialActivities.length);
+          console.log('Activity IDs to remove:', activityIdsToRemove);
+          
+          try {
+            initialActivities = initialActivities.filter(a => !activityIdsToRemove.includes(a.id));
+            console.log('After filter - initialActivities length:', initialActivities.length);
+          } catch (error) {
+            console.error('Error filtering initialActivities:', error);
+            throw error;
+          }
+          
+          // Update the DOM based on the activity type
+          if (activity.activity_hierarchy_type === 'CLASS_INSTANCE') {
+            // Remove from class instances section
+            const classInstanceElement = document.getElementById(`classInstance-${activityId}`);
+            if (classInstanceElement) {
+              classInstanceElement.remove();
+            }
+            
+            // Update the class instances count
+            const classInstances = initialActivities.filter(a => a.activity_hierarchy_type === 'CLASS_INSTANCE');
+            const classInstancesCount = document.querySelector('[data-count="class-instances"]');
+            if (classInstancesCount) {
+              classInstancesCount.textContent = classInstances.length;
+            }
+            
+            // For class instances, we need to refresh the page since they're now displayed under their parent class types
+            window.location.reload();
+          } else if (activity.activity_hierarchy_type === 'PROGRAM') {
+            // For programs, we need to refresh the entire page since they affect the hierarchy
+            window.location.reload();
+          } else if (activity.activity_hierarchy_type === 'SESSION') {
+            // For sessions, we need to refresh the entire page since they affect the hierarchy
+            window.location.reload();
+          } else if (activity.activity_hierarchy_type === 'CLASS_TYPE') {
+            // For class types, we need to refresh the entire page since they affect the hierarchy
+            window.location.reload();
+          }
+          
+          // Show success message
+          const successMessage = document.createElement('div');
+          successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+          successMessage.textContent = `Successfully deleted ${activity.name}`;
+          document.body.appendChild(successMessage);
+          
+          // Remove success message after 3 seconds
+          setTimeout(() => {
+            if (successMessage.parentNode) {
+              successMessage.remove();
+            }
+          }, 3000);
+        })
+        .catch(error => {
+          console.error('Error deleting activity:', error);
+          alert('Error deleting activity: ' + error.message);
+        });
+      }
+    };
+
+    // Handle pattern form submission
+    document.addEventListener('submit', function(e) {
+      if (e.target.id === 'patternForm') {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const weekdays = Array.from(e.target.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        
+        if (weekdays.length === 0) {
+          alert('Please select at least one day of the week.');
+          return;
+        }
+
+        const activityId = document.querySelector('#calendarManagementContent').getAttribute('data-activity-id');
+        const patternId = document.getElementById('patternId').value;
+        const isEditing = patternId && patternId.trim() !== '';
+        
+        const patternData = {
+          start_time: document.getElementById('startTime').value,
+          end_time: document.getElementById('endTime').value,
+          freq: document.getElementById('frequency').value,
+          interval: parseInt(document.getElementById('interval').value),
+          weekdays: weekdays
+        };
+
+        const url = isEditing 
+          ? `/api/admin/kid-activities/${activityId}/meeting-patterns/${patternId}`
+          : `/api/admin/kid-activities/${activityId}/meeting-patterns`;
+        
+        const method = isEditing ? 'PUT' : 'POST';
+
+        fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patternData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          hideAddPatternForm();
+          loadPatterns(activityId);
+        })
+        .catch(error => {
+          console.error(`Error ${isEditing ? 'updating' : 'creating'} pattern:`, error);
+          alert(`Error ${isEditing ? 'updating' : 'creating'} pattern: ` + error.message);
+        });
+      }
+    });
+
+    window.manageSchedules = function(activityId) {
+      const activity = initialActivities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      const content = document.getElementById('schedulesManagementContent');
+      content.innerHTML = `
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold">Activity Schedules for: ${activity.name}</h3>
+          <p class="text-sm text-gray-600">Activity ID: ${activity.id} | Type: ${activity.activity_hierarchy_type}</p>
+          <p class="text-sm text-blue-600 mt-2">Activity schedules define specific time slots with capacity limits (e.g., "Monday 3-4pm, max 15 students")</p>
+        </div>
+        <div id="scheduleFormContainer"></div>
+      `;
+
+      // Load the ActivityScheduleForm component
+      fetch(`/api/admin/kid-activities/${activityId}/schedules`)
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('scheduleFormContainer');
+          if (container) {
+            container.innerHTML = `
+              <div class="space-y-4">
+                <h4 class="font-medium">Activity Schedules</h4>
+                <div class="bg-gray-50 p-4 rounded">
+                  <p class="text-sm text-gray-600">Activity schedule management will be implemented here.</p>
+                  <p class="text-sm text-gray-500 mt-2">This will allow you to define specific time slots with capacity limits for this activity.</p>
+                </div>
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading schedules:', error);
+        });
+
+      showModal('schedulesModal');
+    };
+
+    window.bulkMigrateCalendarData = function() {
+      alert('Bulk migration feature will be implemented here.');
+    };
+
+    window.bulkCreateSessions = function() {
+      alert('Bulk session creation feature will be implemented here.');
+    };
+
+    window.exportCalendarData = function() {
+      alert('Calendar data export feature will be implemented here.');
+    };
+
+    window.bulkDuplicatePrograms = function() {
+      const programs = initialActivities.filter(a => a.activity_hierarchy_type === 'PROGRAM');
+      
+      if (programs.length === 0) {
+        alert('No programs found to duplicate.');
+        return;
+      }
+
+      const message = `Are you sure you want to duplicate all ${programs.length} programs? This will create copies of all programs with "(Copy)" added to their names.`;
+      
+      if (confirm(message)) {
+        let completed = 0;
+        let errors = 0;
+        
+        programs.forEach((program, index) => {
+          const duplicateData = {
+            ...program,
+            id: undefined,
+            name: `${program.name} (Copy)`,
+            created_at: undefined,
+            updated_at: undefined
+          };
+
+          fetch('/api/admin/kid-activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(duplicateData)
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            completed++;
+            if (completed + errors === programs.length) {
+              alert(`Bulk duplication complete! ${completed} programs duplicated successfully.${errors > 0 ? ` ${errors} errors occurred.` : ''}`);
+              window.location.reload();
+            }
+          })
+          .catch(error => {
+            console.error(`Error duplicating program ${program.name}:`, error);
+            errors++;
+            if (completed + errors === programs.length) {
+              alert(`Bulk duplication complete! ${completed} programs duplicated successfully.${errors > 0 ? ` ${errors} errors occurred.` : ''}`);
+              window.location.reload();
+            }
+          });
+        });
+      }
+    };
+
+
+
+    // Initialize form sections on page load
+    document.addEventListener('DOMContentLoaded', function() {
+          // Set default visibility for PROGRAM type
+    toggleFormSections('PROGRAM');
+    
+    // Load schedules for all class instances
+    loadAllClassInstanceSchedules();
+    
+    // Load locations for dropdown
+    loadLocations();
+    
+    // Load effective locations for all activities
+    loadAllEffectiveLocations();
+    
+    // Add event listener for parent activity changes
+    const parentSelect = document.getElementById('parentActivityId');
+    if (parentSelect) {
+      parentSelect.addEventListener('change', function() {
+        const hierarchyType = document.getElementById('activityHierarchyType').value;
+        if (this.value && hierarchyType !== 'PROGRAM') {
+          showInheritedLocation(this.value);
+        } else {
+          hideInheritedLocation();
+        }
+        
+        // Check if we need to show session selector for class instances
+        if (hierarchyType === 'CLASS_INSTANCE') {
+          showSessionSelectorIfNeeded(this.value);
+        }
+      });
+    }
+  });
+
+    // Handle activity form submission
+    document.getElementById('activityForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const activityId = formData.get('id');
+      const method = activityId ? 'PUT' : 'POST';
+      const url = activityId ? `/api/admin/kid-activities/${activityId}` : '/api/admin/kid-activities';
+
+      // Get schedule data for smart name generation
+      const eventType = formData.get('event_type');
+      let scheduleData = {};
+      
+      if (eventType === 'RECURRING') {
+        const weekdays = Array.from(e.target.querySelectorAll('input[name="weekdays"]:checked')).map(cb => cb.value);
+        scheduleData = {
+          start_time: formData.get('start_time'),
+          end_time: formData.get('end_time'),
+          weekdays: weekdays
+        };
+      } else if (eventType === 'ONE_OFF') {
+        const startDatetime = formData.get('start_datetime');
+        const endDatetime = formData.get('end_datetime');
+        if (startDatetime && endDatetime) {
+          const startDate = new Date(startDatetime);
+          const endDate = new Date(endDatetime);
+          scheduleData = {
+            start_time: startDate.toTimeString().slice(0, 8),
+            end_time: endDate.toTimeString().slice(0, 8),
+            weekdays: [startDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase().slice(0, 2)]
+          };
+        }
+      }
+
+      // For CLASS_INSTANCE, allow empty name and let the API generate it
+      const activityName = formData.get('name');
+      const hierarchyType = formData.get('activity_hierarchy_type');
+      
+      const data = {
+        name: hierarchyType === 'CLASS_INSTANCE' ? (activityName || '') : activityName,
+        description: formData.get('description'),
+        activity_type: formData.get('activity_type'),
+        min_age: formData.get('min_age') ? parseInt(formData.get('min_age')) : null,
+        max_age: formData.get('max_age') ? parseInt(formData.get('max_age')) : null,
+        min_grade: formData.get('min_grade') ? parseInt(formData.get('min_grade')) : null,
+        max_grade: formData.get('max_grade') ? parseInt(formData.get('max_grade')) : null,
+        cost: formData.get('cost'),
+        commitment_level: formData.get('commitment_level'),
+        parent_activity_id: formData.get('parent_activity_id') && formData.get('parent_activity_id').trim() !== '' ? formData.get('parent_activity_id') : null,
+        activity_hierarchy_type: formData.get('activity_hierarchy_type') && formData.get('activity_hierarchy_type').trim() !== '' ? formData.get('activity_hierarchy_type') : null,
+        // Session assignment for class instances
+        session_id: formData.get('session_id') && formData.get('session_id').trim() !== '' ? formData.get('session_id') : null,
+        // Gear fields
+        required_gear: formData.get('required_gear'),
+        gear_assistance_available: formData.get('gear_assistance_available') === 'on',
+        gear_assistance_details: formData.get('gear_assistance_details'),
+        // Session fields
+        start_datetime: formData.get('start_datetime') || null,
+        end_datetime: formData.get('end_datetime') || null,
+        registration_opens: formData.get('registration_opens') || null,
+        registration_closes: formData.get('registration_closes') || null,
+        registration_info: formData.get('registration_info'),
+        registration_link: formData.get('registration_link'),
+        registration_required: formData.get('registration_required') === 'on',
+        // Schedule fields
+        waitlist_status: formData.get('waitlist_status') || null,
+        // Location fields
+        location_id: formData.get('location_id') && formData.get('location_id').trim() !== '' ? formData.get('location_id') : null,
+        location_details: formData.get('location_details')
+      };
+
+      try {
+        console.log('Sending data:', data); // Debug log
+        console.log('Activity name:', data.name);
+        console.log('Hierarchy type:', data.activity_hierarchy_type);
+        console.log('Session ID:', data.session_id);
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save activity');
+        }
+
+        const result = await response.json();
+        const newActivityId = result.id || activityId;
+
+        // If this is a CLASS_INSTANCE, check if we need to create/update events
+        if (data.activity_hierarchy_type === 'CLASS_INSTANCE' && newActivityId) {
+          const eventType = formData.get('event_type');
+          
+          // Check if user has selected an event type (indicating they want to modify schedule)
+          const wantsToModifySchedule = eventType && eventType.trim() !== '';
+          
+          // If user hasn't selected an event type, skip event creation/update
+          if (!wantsToModifySchedule) {
+            console.log('No event type selected, skipping event creation/update');
+            closeModal('activityModal');
+            location.reload();
+            return;
+          }
+          
+          // Generate a name based on schedule and parent if not provided
+          if (!data.name || data.name.trim() === '') {
+            const parentActivity = initialActivities.find(a => a.id === data.parent_activity_id);
+            const eventType = formData.get('event_type');
+            
+            if (eventType === 'RECURRING') {
+              const weekdays = Array.from(e.target.querySelectorAll('input[name="weekdays"]:checked')).map(cb => cb.value);
+              const startTime = formData.get('start_time');
+              const endTime = formData.get('end_time');
+              
+              if (weekdays.length > 0 && startTime && endTime) {
+                const dayNames = weekdays.map(day => {
+                  const dayMap = { 'MO': 'Mon', 'TU': 'Tue', 'WE': 'Wed', 'TH': 'Thu', 'FR': 'Fri', 'SA': 'Sat', 'SU': 'Sun' };
+                  return dayMap[day] || day;
+                }).join('/');
+                
+                const timeRange = `${startTime.slice(0, 5)}-${endTime.slice(0, 5)}`;
+                data.name = `${dayNames} ${timeRange}`;
+              } else {
+                data.name = parentActivity ? `${parentActivity.name} Class` : 'Class Instance';
+              }
+            } else {
+              data.name = parentActivity ? `${parentActivity.name} Class` : 'Class Instance';
+            }
+          }
+          
+          // Validate session selection for class instances
+          const sessionId = formData.get('session_id');
+          const sessionSelectionSection = document.getElementById('sessionSelectionSection');
+          if (sessionSelectionSection && !sessionSelectionSection.classList.contains('hidden') && !sessionId) {
+            alert('Please select a session for this class instance.');
+            return;
+          }
+          
+          // Validate required fields based on event type
+          if (eventType === 'RECURRING') {
+            const startTime = formData.get('start_time');
+            const endTime = formData.get('end_time');
+            const weekdays = formData.getAll('weekdays');
+            
+            if (!startTime || !endTime || weekdays.length === 0) {
+              alert('Please fill in all required fields for recurring schedule: start time, end time, and at least one day of the week.');
+              return;
+            }
+          } else if (eventType === 'ONE_OFF') {
+            const startDatetime = formData.get('start_datetime');
+            const endDatetime = formData.get('end_datetime');
+            
+            if (!startDatetime || !endDatetime) {
+              alert('Please fill in start and end date/time for the one-time event.');
+              return;
+            }
+          }
+          
+          console.log('Creating event for class instance:', newActivityId);
+          
+          // Generate smart name for the event based on schedule
+          let eventName = formData.get('event_name');
+          if (!eventName || eventName.trim() === '') {
+            if (eventType === 'RECURRING') {
+              const weekdays = Array.from(e.target.querySelectorAll('input[name="weekdays"]:checked')).map(cb => cb.value);
+              const startTime = formData.get('start_time');
+              const endTime = formData.get('end_time');
+              
+              if (weekdays.length > 0 && startTime && endTime) {
+                const dayNames = weekdays.map(day => {
+                  const dayMap = { 'MO': 'Mon', 'TU': 'Tue', 'WE': 'Wed', 'TH': 'Thu', 'FR': 'Fri', 'SA': 'Sat', 'SU': 'Sun' };
+                  return dayMap[day] || day;
+                }).join('/');
+                
+                const timeRange = `${startTime.slice(0, 5)}-${endTime.slice(0, 5)}`;
+                eventName = `${dayNames} ${timeRange}`;
+              } else {
+                eventName = data.name; // Fallback to class instance name
+              }
+            } else {
+              eventName = data.name; // Fallback to class instance name
+            }
+          }
+
+          const eventData = {
+            event_type: eventType,
+            name: eventName,
+            description: formData.get('event_description'),
+            ignore_exceptions: formData.get('ignore_exceptions') === 'on'
+          };
+
+          if (eventType === 'RECURRING') {
+            eventData.start_time = formData.get('start_time');
+            eventData.end_time = formData.get('end_time');
+            eventData.freq = formData.get('freq');
+            eventData.interval = parseInt(formData.get('interval'));
+            eventData.weekdays = Array.from(e.target.querySelectorAll('input[name="weekdays"]:checked')).map(cb => cb.value);
+            
+            // Get the until date, or default to session end date
+            let untilDate = formData.get('until');
+            if (!untilDate || untilDate.trim() === '') {
+              // Find the parent session to get its end date
+              const parentActivityId = formData.get('parent_activity_id');
+              if (parentActivityId) {
+                const parentActivity = initialActivities.find(a => a.id === parentActivityId);
+                if (parentActivity && parentActivity.end_datetime) {
+                  // Extract just the date part from the session end datetime
+                  untilDate = parentActivity.end_datetime.split('T')[0];
+                }
+              }
+            }
+            // Only set until if we have a valid date, otherwise set to null
+            eventData.until = untilDate && untilDate.trim() !== '' ? untilDate : null;
+          } else if (eventType === 'ONE_OFF') {
+            eventData.start_datetime = formData.get('start_datetime');
+            eventData.end_datetime = formData.get('end_datetime');
+          }
+
+          try {
+            const eventResponse = await fetch(`/api/admin/kid-activities/${newActivityId}/activity-events`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(eventData)
+            });
+
+            if (!eventResponse.ok) {
+              const eventErrorData = await eventResponse.json();
+              throw new Error(`Failed to create event: ${eventErrorData.error}`);
+            } else {
+              console.log('Event created successfully');
+            }
+          } catch (eventError) {
+            console.error('Error creating event:', eventError);
+            alert(`Error creating event: ${eventError.message}`);
+            return; // Fail the whole operation if event creation fails
+          }
+        }
+        
+        closeModal('activityModal');
+        
+        // Refresh the page to show new data
+        location.reload();
+      } catch (error) {
+        console.error('Error saving activity:', error);
+        alert(error.message || 'Error saving activity');
+      }
+    });
+
+    // Scroll to functions for navigation
+    window.scrollToSession = function(sessionId) {
+      const element = document.getElementById(`session-${sessionId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary highlight effect
+        element.style.backgroundColor = '#fef3c7';
+        setTimeout(() => {
+          element.style.backgroundColor = '';
+        }, 2000);
+      } else {
+        console.error('Session element not found:', sessionId);
+      }
+    };
+
+    window.scrollToClassType = function(classTypeId) {
+      const element = document.getElementById(`classType-${classTypeId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary highlight effect
+        element.style.backgroundColor = '#fef3c7';
+        setTimeout(() => {
+          element.style.backgroundColor = '';
+        }, 2000);
+      } else {
+        console.error('Class type element not found:', classTypeId);
+      }
+    };
+
+    window.scrollToClassInstance = function(classInstanceId) {
+      const element = document.getElementById(`classInstance-${classInstanceId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary highlight effect
+        element.style.backgroundColor = '#fef3c7';
+        setTimeout(() => {
+          element.style.backgroundColor = '';
+        }, 2000);
+      } else {
+        console.error('Class instance element not found:', classInstanceId);
+      }
+    };
+
+
+  </script>
+</Layout> 

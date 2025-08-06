@@ -1,0 +1,64 @@
+---
+interface Props {
+  activeView?: 'program' | 'schedule';
+  class?: string;
+}
+
+const { activeView = 'program', class: className = '' } = Astro.props;
+---
+
+<div class={`view-toggle-container ${className}`}>
+  <div class="flex space-x-4 border-b border-gray-200">
+    <button 
+      id="programView" 
+      class={`view-toggle px-4 py-2 border-b-2 font-medium transition-colors ${
+        activeView === 'program' 
+          ? 'border-blue-500 text-blue-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700'
+      }`} 
+      data-view="program"
+    >
+      <span class="material-symbols-outlined mr-1">list</span>
+      Program Overview
+    </button>
+    <button 
+      id="scheduleView" 
+      class={`view-toggle px-4 py-2 border-b-2 font-medium transition-colors ${
+        activeView === 'schedule' 
+          ? 'border-blue-500 text-blue-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700'
+      }`} 
+      data-view="schedule"
+    >
+      <span class="material-symbols-outlined mr-1">calendar_view_week</span>
+      Schedule View
+    </button>
+  </div>
+</div>
+
+<script>
+  // Initialize view toggle functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const viewToggles = document.querySelectorAll('.view-toggle');
+    viewToggles.forEach(toggle => {
+      toggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        const view = this.getAttribute('data-view');
+        
+        // Update active state
+        viewToggles.forEach(t => {
+          t.classList.remove('border-blue-500', 'text-blue-600');
+          t.classList.add('border-transparent', 'text-gray-500');
+        });
+        this.classList.remove('border-transparent', 'text-gray-500');
+        this.classList.add('border-blue-500', 'text-blue-600');
+        
+        // Dispatch custom event for parent component to handle
+        const event = new CustomEvent('viewChange', {
+          detail: { view }
+        });
+        document.dispatchEvent(event);
+      });
+    });
+  });
+</script> 

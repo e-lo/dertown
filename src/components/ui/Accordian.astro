@@ -23,8 +23,13 @@ const { title, sectionId, icon } = Astro.props;
     document.addEventListener('DOMContentLoaded', function() {
       // Make sure the function is available globally
       (window as any).toggleAccordion = function(sectionId: string) {
-        const content = document.getElementById(sectionId + '-content')!;
-        const icon = document.getElementById(sectionId + '-expand-icon')!;
+        const content = document.getElementById(sectionId + '-content');
+        const icon = document.getElementById(sectionId + '-expand-icon');
+        
+        if (!content || !icon) {
+          console.warn(`Accordion elements not found for section: ${sectionId}`);
+          return;
+        }
         
         if (content.classList.contains('hidden')) {
           content.classList.remove('hidden');

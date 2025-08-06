@@ -11,10 +11,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
+          extensions?: Json;
           operationName?: string;
           query?: string;
           variables?: Json;
-          extensions?: Json;
         };
         Returns: Json;
       };
@@ -28,6 +28,127 @@ export type Database = {
   };
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          activity_id: string | null;
+          created_at: string | null;
+          description: string | null;
+          end_datetime: string | null;
+          event_id: string;
+          event_type: string | null;
+          ignore_exceptions: boolean | null;
+          name: string;
+          recurrence_pattern_id: string | null;
+          start_datetime: string | null;
+          updated_at: string | null;
+          waitlist_status: string | null;
+        };
+        Insert: {
+          activity_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          end_datetime?: string | null;
+          event_id?: string;
+          event_type?: string | null;
+          ignore_exceptions?: boolean | null;
+          name: string;
+          recurrence_pattern_id?: string | null;
+          start_datetime?: string | null;
+          updated_at?: string | null;
+          waitlist_status?: string | null;
+        };
+        Update: {
+          activity_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          end_datetime?: string | null;
+          event_id?: string;
+          event_type?: string | null;
+          ignore_exceptions?: boolean | null;
+          name?: string;
+          recurrence_pattern_id?: string | null;
+          start_datetime?: string | null;
+          updated_at?: string | null;
+          waitlist_status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'activity_events_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'activity_events_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'activity_events_recurrence_pattern_id_fkey';
+            columns: ['recurrence_pattern_id'];
+            isOneToOne: false;
+            referencedRelation: 'recurrence_patterns';
+            referencedColumns: ['pattern_id'];
+          },
+        ];
+      };
+      activity_schedule: {
+        Row: {
+          active: boolean | null;
+          activity_id: string | null;
+          created_at: string | null;
+          end_time: string;
+          max_capacity: number | null;
+          name: string;
+          schedule_id: string;
+          start_time: string;
+          updated_at: string | null;
+          waitlist_available: boolean | null;
+        };
+        Insert: {
+          active?: boolean | null;
+          activity_id?: string | null;
+          created_at?: string | null;
+          end_time: string;
+          max_capacity?: number | null;
+          name: string;
+          schedule_id?: string;
+          start_time: string;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+        };
+        Update: {
+          active?: boolean | null;
+          activity_id?: string | null;
+          created_at?: string | null;
+          end_time?: string;
+          max_capacity?: number | null;
+          name?: string;
+          schedule_id?: string;
+          start_time?: string;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'activity_schedule_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'activity_schedule_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       announcements: {
         Row: {
           author: string | null;
@@ -132,6 +253,98 @@ export type Database = {
         };
         Relationships: [];
       };
+      calendar_exceptions: {
+        Row: {
+          activity_id: string | null;
+          created_at: string | null;
+          end_date: string;
+          end_time: string | null;
+          exception_id: string;
+          name: string;
+          notes: string | null;
+          start_date: string;
+          start_time: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          activity_id?: string | null;
+          created_at?: string | null;
+          end_date: string;
+          end_time?: string | null;
+          exception_id?: string;
+          name: string;
+          notes?: string | null;
+          start_date: string;
+          start_time?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          activity_id?: string | null;
+          created_at?: string | null;
+          end_date?: string;
+          end_time?: string | null;
+          exception_id?: string;
+          name?: string;
+          notes?: string | null;
+          start_date?: string;
+          start_time?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'calendar_exception_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'calendar_exception_activity_id_fkey';
+            columns: ['activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      event_exceptions: {
+        Row: {
+          created_at: string | null;
+          end_datetime: string;
+          event_id: string | null;
+          exception_id: string;
+          name: string;
+          notes: string | null;
+          start_datetime: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          end_datetime: string;
+          event_id?: string | null;
+          exception_id?: string;
+          name: string;
+          notes?: string | null;
+          start_datetime: string;
+        };
+        Update: {
+          created_at?: string | null;
+          end_datetime?: string;
+          event_id?: string | null;
+          exception_id?: string;
+          name?: string;
+          notes?: string | null;
+          start_datetime?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'event_exceptions_event_id_fkey';
+            columns: ['event_id'];
+            isOneToOne: false;
+            referencedRelation: 'activity_events';
+            referencedColumns: ['event_id'];
+          },
+        ];
+      };
       events: {
         Row: {
           comments: string | null;
@@ -145,10 +358,9 @@ export type Database = {
           exclude_from_calendar: boolean | null;
           external_image_url: string | null;
           featured: boolean | null;
-          google_calendar_event_id: string | null;
           id: string;
-          image_id: string | null;
           image_alt_text: string | null;
+          image_id: string | null;
           location_id: string | null;
           organization_id: string | null;
           parent_event_id: string | null;
@@ -176,10 +388,9 @@ export type Database = {
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
           featured?: boolean | null;
-          google_calendar_event_id?: string | null;
           id?: string;
-          image_id?: string | null;
           image_alt_text?: string | null;
+          image_id?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           parent_event_id?: string | null;
@@ -207,10 +418,9 @@ export type Database = {
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
           featured?: boolean | null;
-          google_calendar_event_id?: string | null;
           id?: string;
-          image_id?: string | null;
           image_alt_text?: string | null;
+          image_id?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           parent_event_id?: string | null;
@@ -292,8 +502,8 @@ export type Database = {
           external_image_url: string | null;
           featured: boolean | null;
           id: string;
-          image_id: string | null;
           image_alt_text: string | null;
+          image_id: string | null;
           location_added: string | null;
           location_id: string | null;
           organization_added: string | null;
@@ -325,8 +535,8 @@ export type Database = {
           external_image_url?: string | null;
           featured?: boolean | null;
           id?: string;
-          image_id?: string | null;
           image_alt_text?: string | null;
+          image_id?: string | null;
           location_added?: string | null;
           location_id?: string | null;
           organization_added?: string | null;
@@ -358,8 +568,8 @@ export type Database = {
           external_image_url?: string | null;
           featured?: boolean | null;
           id?: string;
-          image_id?: string | null;
           image_alt_text?: string | null;
+          image_id?: string | null;
           location_added?: string | null;
           location_id?: string | null;
           organization_added?: string | null;
@@ -419,6 +629,235 @@ export type Database = {
             columns: ['source_id'];
             isOneToOne: false;
             referencedRelation: 'source_sites';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      kid_activities: {
+        Row: {
+          active: boolean | null;
+          activity_hierarchy_type: string | null;
+          activity_type: string | null;
+          additional_requirements: string | null;
+          commitment_level: string | null;
+          cost: string | null;
+          cost_assistance_available: boolean | null;
+          cost_assistance_details: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          description: string | null;
+          email: string | null;
+          end_datetime: string | null;
+          featured: boolean | null;
+          gear_assistance_available: boolean | null;
+          gear_assistance_details: string | null;
+          id: string;
+          is_fall: boolean | null;
+          is_ongoing: boolean | null;
+          is_spring: boolean | null;
+          is_summer: boolean | null;
+          is_winter: boolean | null;
+          location_details: string | null;
+          location_id: string | null;
+          max_age: number | null;
+          max_capacity: number | null;
+          max_grade: string | null;
+          min_age: number | null;
+          min_grade: string | null;
+          name: string;
+          notes: string | null;
+          parent_activity_id: string | null;
+          participation_type: string | null;
+          phone: string | null;
+          registration_closes: string | null;
+          registration_info: string | null;
+          registration_link: string | null;
+          registration_opens: string | null;
+          registration_required: boolean | null;
+          required_gear: string | null;
+          rrule: string | null;
+          season_end_month: number | null;
+          season_end_year: number | null;
+          season_start_month: number | null;
+          season_start_year: number | null;
+          session_id: string | null;
+          special_needs_accommodations: boolean | null;
+          special_needs_details: string | null;
+          sponsoring_organization_id: string | null;
+          start_datetime: string | null;
+          status: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available: boolean | null;
+          transportation_assistance_details: string | null;
+          transportation_details: string | null;
+          transportation_provided: boolean | null;
+          updated_at: string | null;
+          waitlist_available: boolean | null;
+          waitlist_status: string | null;
+          website: string | null;
+        };
+        Insert: {
+          active?: boolean | null;
+          activity_hierarchy_type?: string | null;
+          activity_type?: string | null;
+          additional_requirements?: string | null;
+          commitment_level?: string | null;
+          cost?: string | null;
+          cost_assistance_available?: boolean | null;
+          cost_assistance_details?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          email?: string | null;
+          end_datetime?: string | null;
+          featured?: boolean | null;
+          gear_assistance_available?: boolean | null;
+          gear_assistance_details?: string | null;
+          id?: string;
+          is_fall?: boolean | null;
+          is_ongoing?: boolean | null;
+          is_spring?: boolean | null;
+          is_summer?: boolean | null;
+          is_winter?: boolean | null;
+          location_details?: string | null;
+          location_id?: string | null;
+          max_age?: number | null;
+          max_capacity?: number | null;
+          max_grade?: string | null;
+          min_age?: number | null;
+          min_grade?: string | null;
+          name: string;
+          notes?: string | null;
+          parent_activity_id?: string | null;
+          participation_type?: string | null;
+          phone?: string | null;
+          registration_closes?: string | null;
+          registration_info?: string | null;
+          registration_link?: string | null;
+          registration_opens?: string | null;
+          registration_required?: boolean | null;
+          required_gear?: string | null;
+          rrule?: string | null;
+          season_end_month?: number | null;
+          season_end_year?: number | null;
+          season_start_month?: number | null;
+          season_start_year?: number | null;
+          session_id?: string | null;
+          special_needs_accommodations?: boolean | null;
+          special_needs_details?: string | null;
+          sponsoring_organization_id?: string | null;
+          start_datetime?: string | null;
+          status?: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available?: boolean | null;
+          transportation_assistance_details?: string | null;
+          transportation_details?: string | null;
+          transportation_provided?: boolean | null;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+          waitlist_status?: string | null;
+          website?: string | null;
+        };
+        Update: {
+          active?: boolean | null;
+          activity_hierarchy_type?: string | null;
+          activity_type?: string | null;
+          additional_requirements?: string | null;
+          commitment_level?: string | null;
+          cost?: string | null;
+          cost_assistance_available?: boolean | null;
+          cost_assistance_details?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          email?: string | null;
+          end_datetime?: string | null;
+          featured?: boolean | null;
+          gear_assistance_available?: boolean | null;
+          gear_assistance_details?: string | null;
+          id?: string;
+          is_fall?: boolean | null;
+          is_ongoing?: boolean | null;
+          is_spring?: boolean | null;
+          is_summer?: boolean | null;
+          is_winter?: boolean | null;
+          location_details?: string | null;
+          location_id?: string | null;
+          max_age?: number | null;
+          max_capacity?: number | null;
+          max_grade?: string | null;
+          min_age?: number | null;
+          min_grade?: string | null;
+          name?: string;
+          notes?: string | null;
+          parent_activity_id?: string | null;
+          participation_type?: string | null;
+          phone?: string | null;
+          registration_closes?: string | null;
+          registration_info?: string | null;
+          registration_link?: string | null;
+          registration_opens?: string | null;
+          registration_required?: boolean | null;
+          required_gear?: string | null;
+          rrule?: string | null;
+          season_end_month?: number | null;
+          season_end_year?: number | null;
+          season_start_month?: number | null;
+          season_start_year?: number | null;
+          session_id?: string | null;
+          special_needs_accommodations?: boolean | null;
+          special_needs_details?: string | null;
+          sponsoring_organization_id?: string | null;
+          start_datetime?: string | null;
+          status?: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available?: boolean | null;
+          transportation_assistance_details?: string | null;
+          transportation_details?: string | null;
+          transportation_provided?: boolean | null;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+          waitlist_status?: string | null;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'kid_activities_location_id_fkey';
+            columns: ['location_id'];
+            isOneToOne: false;
+            referencedRelation: 'locations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_parent_activity_id_fkey';
+            columns: ['parent_activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_parent_activity_id_fkey';
+            columns: ['parent_activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_sponsoring_organization_id_fkey';
+            columns: ['sponsoring_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];
@@ -529,6 +968,42 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      recurrence_patterns: {
+        Row: {
+          created_at: string | null;
+          end_time: string;
+          freq: string | null;
+          interval: number | null;
+          pattern_id: string;
+          start_time: string;
+          until: string | null;
+          updated_at: string | null;
+          weekdays: string[];
+        };
+        Insert: {
+          created_at?: string | null;
+          end_time: string;
+          freq?: string | null;
+          interval?: number | null;
+          pattern_id?: string;
+          start_time: string;
+          until?: string | null;
+          updated_at?: string | null;
+          weekdays: string[];
+        };
+        Update: {
+          created_at?: string | null;
+          end_time?: string;
+          freq?: string | null;
+          interval?: number | null;
+          pattern_id?: string;
+          start_time?: string;
+          until?: string | null;
+          updated_at?: string | null;
+          weekdays?: string[];
+        };
+        Relationships: [];
       };
       scrape_logs: {
         Row: {
@@ -690,9 +1165,9 @@ export type Database = {
           end_time: string | null;
           exclude_from_calendar: boolean | null;
           external_image_url: string | null;
-          image_alt_text: string | null;
           featured: boolean | null;
           id: string | null;
+          image_alt_text: string | null;
           location_id: string | null;
           organization_id: string | null;
           primary_tag_id: string | null;
@@ -714,9 +1189,9 @@ export type Database = {
           end_time?: string | null;
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
-          image_alt_text?: string | null;
           featured?: boolean | null;
           id?: string | null;
+          image_alt_text?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           primary_tag_id?: string | null;
@@ -738,9 +1213,9 @@ export type Database = {
           end_time?: string | null;
           exclude_from_calendar?: boolean | null;
           external_image_url?: string | null;
-          image_alt_text?: string | null;
           featured?: boolean | null;
           id?: string | null;
+          image_alt_text?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
           primary_tag_id?: string | null;
@@ -785,11 +1260,292 @@ export type Database = {
           },
         ];
       };
+      public_kid_activities: {
+        Row: {
+          active: boolean | null;
+          activity_hierarchy_type: string | null;
+          activity_type: string | null;
+          additional_requirements: string | null;
+          commitment_level: string | null;
+          cost: string | null;
+          cost_assistance_available: boolean | null;
+          cost_assistance_details: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          description: string | null;
+          email: string | null;
+          end_datetime: string | null;
+          featured: boolean | null;
+          gear_assistance_available: boolean | null;
+          gear_assistance_details: string | null;
+          id: string | null;
+          is_fall: boolean | null;
+          is_ongoing: boolean | null;
+          is_spring: boolean | null;
+          is_summer: boolean | null;
+          is_winter: boolean | null;
+          location_details: string | null;
+          location_id: string | null;
+          max_age: number | null;
+          max_capacity: number | null;
+          max_grade: string | null;
+          min_age: number | null;
+          min_grade: string | null;
+          name: string | null;
+          notes: string | null;
+          parent_activity_id: string | null;
+          participation_type: string | null;
+          phone: string | null;
+          registration_closes: string | null;
+          registration_info: string | null;
+          registration_link: string | null;
+          registration_opens: string | null;
+          registration_required: boolean | null;
+          required_gear: string | null;
+          rrule: string | null;
+          season_end_month: number | null;
+          season_end_year: number | null;
+          season_start_month: number | null;
+          season_start_year: number | null;
+          special_needs_accommodations: boolean | null;
+          special_needs_details: string | null;
+          sponsoring_organization_id: string | null;
+          start_datetime: string | null;
+          status: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available: boolean | null;
+          transportation_assistance_details: string | null;
+          transportation_details: string | null;
+          transportation_provided: boolean | null;
+          updated_at: string | null;
+          waitlist_available: boolean | null;
+          waitlist_status: string | null;
+          website: string | null;
+        };
+        Insert: {
+          active?: boolean | null;
+          activity_hierarchy_type?: string | null;
+          activity_type?: string | null;
+          additional_requirements?: string | null;
+          commitment_level?: string | null;
+          cost?: string | null;
+          cost_assistance_available?: boolean | null;
+          cost_assistance_details?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          email?: string | null;
+          end_datetime?: string | null;
+          featured?: boolean | null;
+          gear_assistance_available?: boolean | null;
+          gear_assistance_details?: string | null;
+          id?: string | null;
+          is_fall?: boolean | null;
+          is_ongoing?: boolean | null;
+          is_spring?: boolean | null;
+          is_summer?: boolean | null;
+          is_winter?: boolean | null;
+          location_details?: string | null;
+          location_id?: string | null;
+          max_age?: number | null;
+          max_capacity?: number | null;
+          max_grade?: string | null;
+          min_age?: number | null;
+          min_grade?: string | null;
+          name?: string | null;
+          notes?: string | null;
+          parent_activity_id?: string | null;
+          participation_type?: string | null;
+          phone?: string | null;
+          registration_closes?: string | null;
+          registration_info?: string | null;
+          registration_link?: string | null;
+          registration_opens?: string | null;
+          registration_required?: boolean | null;
+          required_gear?: string | null;
+          rrule?: string | null;
+          season_end_month?: number | null;
+          season_end_year?: number | null;
+          season_start_month?: number | null;
+          season_start_year?: number | null;
+          special_needs_accommodations?: boolean | null;
+          special_needs_details?: string | null;
+          sponsoring_organization_id?: string | null;
+          start_datetime?: string | null;
+          status?: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available?: boolean | null;
+          transportation_assistance_details?: string | null;
+          transportation_details?: string | null;
+          transportation_provided?: boolean | null;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+          waitlist_status?: string | null;
+          website?: string | null;
+        };
+        Update: {
+          active?: boolean | null;
+          activity_hierarchy_type?: string | null;
+          activity_type?: string | null;
+          additional_requirements?: string | null;
+          commitment_level?: string | null;
+          cost?: string | null;
+          cost_assistance_available?: boolean | null;
+          cost_assistance_details?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          email?: string | null;
+          end_datetime?: string | null;
+          featured?: boolean | null;
+          gear_assistance_available?: boolean | null;
+          gear_assistance_details?: string | null;
+          id?: string | null;
+          is_fall?: boolean | null;
+          is_ongoing?: boolean | null;
+          is_spring?: boolean | null;
+          is_summer?: boolean | null;
+          is_winter?: boolean | null;
+          location_details?: string | null;
+          location_id?: string | null;
+          max_age?: number | null;
+          max_capacity?: number | null;
+          max_grade?: string | null;
+          min_age?: number | null;
+          min_grade?: string | null;
+          name?: string | null;
+          notes?: string | null;
+          parent_activity_id?: string | null;
+          participation_type?: string | null;
+          phone?: string | null;
+          registration_closes?: string | null;
+          registration_info?: string | null;
+          registration_link?: string | null;
+          registration_opens?: string | null;
+          registration_required?: boolean | null;
+          required_gear?: string | null;
+          rrule?: string | null;
+          season_end_month?: number | null;
+          season_end_year?: number | null;
+          season_start_month?: number | null;
+          season_start_year?: number | null;
+          special_needs_accommodations?: boolean | null;
+          special_needs_details?: string | null;
+          sponsoring_organization_id?: string | null;
+          start_datetime?: string | null;
+          status?: Database['public']['Enums']['event_status'] | null;
+          transportation_assistance_available?: boolean | null;
+          transportation_assistance_details?: string | null;
+          transportation_details?: string | null;
+          transportation_provided?: boolean | null;
+          updated_at?: string | null;
+          waitlist_available?: boolean | null;
+          waitlist_status?: string | null;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'kid_activities_location_id_fkey';
+            columns: ['location_id'];
+            isOneToOne: false;
+            referencedRelation: 'locations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_parent_activity_id_fkey';
+            columns: ['parent_activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_parent_activity_id_fkey';
+            columns: ['parent_activity_id'];
+            isOneToOne: false;
+            referencedRelation: 'public_kid_activities';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'kid_activities_sponsoring_organization_id_fkey';
+            columns: ['sponsoring_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Functions: {
+      clone_event_to_series: {
+        Args: {
+          p_dates: string[];
+          p_insert?: boolean;
+          p_source_event_id: string;
+          p_titles: string[];
+        };
+        Returns: {
+          organization_id: string;
+          secondary_tag_id: string;
+          location_id: string;
+          start_date: string;
+          title: string;
+          end_time: string;
+          start_time: string;
+          external_image_url: string;
+          image_alt_text: string;
+          website: string;
+          cost: string;
+          primary_tag_id: string;
+          parent_event_id: string;
+        }[];
+      };
+      get_activity_ancestors: {
+        Args: { activity_uuid: string };
+        Returns: {
+          ancestor_id: string;
+        }[];
+      };
+      get_activity_exceptions: {
+        Args: {
+          activity_uuid: string;
+          query_end_date: string;
+          query_start_date: string;
+        };
+        Returns: {
+          end_date: string;
+          activity_id: string;
+          name: string;
+          exception_id: string;
+          notes: string;
+          end_time: string;
+          start_time: string;
+          start_date: string;
+        }[];
+      };
+      get_effective_location: {
+        Args: { activity_uuid: string };
+        Returns: {
+          location_details: string;
+          source_level: string;
+          location_id: string;
+          location_name: string;
+          location_address: string;
+        }[];
+      };
       is_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
+      };
+      recurring_monthly_events: {
+        Args: {
+          p_day_of_week: string;
+          p_event_title: string;
+          p_months_ahead?: number;
+          p_start_month?: number;
+          p_week_of_month: number;
+        };
+        Returns: {
+          title: string;
+          date: string;
+        }[];
       };
     };
     Enums: {
@@ -814,7 +1570,6 @@ export type Database = {
           owner: string | null;
           owner_id: string | null;
           public: boolean | null;
-          type: Database['storage']['Enums']['buckettype'];
           updated_at: string | null;
         };
         Insert: {
@@ -827,7 +1582,6 @@ export type Database = {
           owner?: string | null;
           owner_id?: string | null;
           public?: boolean | null;
-          type?: Database['storage']['Enums']['buckettype'];
           updated_at?: string | null;
         };
         Update: {
@@ -840,111 +1594,9 @@ export type Database = {
           owner?: string | null;
           owner_id?: string | null;
           public?: boolean | null;
-          type?: Database['storage']['Enums']['buckettype'];
           updated_at?: string | null;
         };
         Relationships: [];
-      };
-      buckets_analytics: {
-        Row: {
-          created_at: string;
-          format: string;
-          id: string;
-          type: Database['storage']['Enums']['buckettype'];
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          format?: string;
-          id: string;
-          type?: Database['storage']['Enums']['buckettype'];
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          format?: string;
-          id?: string;
-          type?: Database['storage']['Enums']['buckettype'];
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      iceberg_namespaces: {
-        Row: {
-          bucket_id: string;
-          created_at: string;
-          id: string;
-          name: string;
-          updated_at: string;
-        };
-        Insert: {
-          bucket_id: string;
-          created_at?: string;
-          id?: string;
-          name: string;
-          updated_at?: string;
-        };
-        Update: {
-          bucket_id?: string;
-          created_at?: string;
-          id?: string;
-          name?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'iceberg_namespaces_bucket_id_fkey';
-            columns: ['bucket_id'];
-            isOneToOne: false;
-            referencedRelation: 'buckets_analytics';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      iceberg_tables: {
-        Row: {
-          bucket_id: string;
-          created_at: string;
-          id: string;
-          location: string;
-          name: string;
-          namespace_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          bucket_id: string;
-          created_at?: string;
-          id?: string;
-          location: string;
-          name: string;
-          namespace_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          bucket_id?: string;
-          created_at?: string;
-          id?: string;
-          location?: string;
-          name?: string;
-          namespace_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'iceberg_tables_bucket_id_fkey';
-            columns: ['bucket_id'];
-            isOneToOne: false;
-            referencedRelation: 'buckets_analytics';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'iceberg_tables_namespace_id_fkey';
-            columns: ['namespace_id'];
-            isOneToOne: false;
-            referencedRelation: 'iceberg_namespaces';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       migrations: {
         Row: {
@@ -973,7 +1625,6 @@ export type Database = {
           created_at: string | null;
           id: string;
           last_accessed_at: string | null;
-          level: number | null;
           metadata: Json | null;
           name: string | null;
           owner: string | null;
@@ -988,7 +1639,6 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           last_accessed_at?: string | null;
-          level?: number | null;
           metadata?: Json | null;
           name?: string | null;
           owner?: string | null;
@@ -1003,7 +1653,6 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           last_accessed_at?: string | null;
-          level?: number | null;
           metadata?: Json | null;
           name?: string | null;
           owner?: string | null;
@@ -1016,38 +1665,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'objects_bucketId_fkey';
-            columns: ['bucket_id'];
-            isOneToOne: false;
-            referencedRelation: 'buckets';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      prefixes: {
-        Row: {
-          bucket_id: string;
-          created_at: string | null;
-          level: number;
-          name: string;
-          updated_at: string | null;
-        };
-        Insert: {
-          bucket_id: string;
-          created_at?: string | null;
-          level?: number;
-          name: string;
-          updated_at?: string | null;
-        };
-        Update: {
-          bucket_id?: string;
-          created_at?: string | null;
-          level?: number;
-          name?: string;
-          updated_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'prefixes_bucketId_fkey';
             columns: ['bucket_id'];
             isOneToOne: false;
             referencedRelation: 'buckets';
@@ -1158,17 +1775,9 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      add_prefixes: {
-        Args: { _bucket_id: string; _name: string };
-        Returns: undefined;
-      };
       can_insert_object: {
-        Args: { bucketid: string; owner: string; metadata: Json; name: string };
+        Args: { bucketid: string; metadata: Json; name: string; owner: string };
         Returns: undefined;
-      };
-      delete_prefix: {
-        Args: { _bucket_id: string; _name: string };
-        Returns: boolean;
       };
       extension: {
         Args: { name: string };
@@ -1182,23 +1791,11 @@ export type Database = {
         Args: { name: string };
         Returns: string[];
       };
-      get_level: {
-        Args: { name: string };
-        Returns: number;
-      };
-      get_prefix: {
-        Args: { name: string };
-        Returns: string;
-      };
-      get_prefixes: {
-        Args: { name: string };
-        Returns: string[];
-      };
       get_size_by_bucket: {
         Args: Record<PropertyKey, never>;
         Returns: {
-          size: number;
           bucket_id: string;
+          size: number;
         }[];
       };
       list_multipart_uploads_with_delimiter: {
@@ -1212,24 +1809,24 @@ export type Database = {
         };
         Returns: {
           key: string;
-          id: string;
           created_at: string;
+          id: string;
         }[];
       };
       list_objects_with_delimiter: {
         Args: {
-          next_token?: string;
-          max_keys?: number;
-          start_after?: string;
           bucket_id: string;
-          prefix_param: string;
           delimiter_param: string;
+          max_keys?: number;
+          next_token?: string;
+          prefix_param: string;
+          start_after?: string;
         };
         Returns: {
-          updated_at: string;
-          metadata: Json;
-          id: string;
           name: string;
+          id: string;
+          metadata: Json;
+          updated_at: string;
         }[];
       };
       operation: {
@@ -1238,84 +1835,27 @@ export type Database = {
       };
       search: {
         Args: {
-          limits?: number;
-          prefix: string;
           bucketname: string;
-          sortorder?: string;
-          sortcolumn?: string;
-          search?: string;
-          offsets?: number;
           levels?: number;
-        };
-        Returns: {
-          metadata: Json;
-          last_accessed_at: string;
-          created_at: string;
-          updated_at: string;
-          id: string;
-          name: string;
-        }[];
-      };
-      search_legacy_v1: {
-        Args: {
+          limits?: number;
+          offsets?: number;
+          prefix: string;
           search?: string;
           sortcolumn?: string;
           sortorder?: string;
-          prefix: string;
-          bucketname: string;
-          limits?: number;
-          levels?: number;
-          offsets?: number;
         };
         Returns: {
-          metadata: Json;
-          created_at: string;
           updated_at: string;
           id: string;
           name: string;
+          created_at: string;
+          metadata: Json;
           last_accessed_at: string;
-        }[];
-      };
-      search_v1_optimised: {
-        Args: {
-          sortcolumn?: string;
-          sortorder?: string;
-          prefix: string;
-          bucketname: string;
-          limits?: number;
-          levels?: number;
-          offsets?: number;
-          search?: string;
-        };
-        Returns: {
-          name: string;
-          id: string;
-          updated_at: string;
-          created_at: string;
-          last_accessed_at: string;
-          metadata: Json;
-        }[];
-      };
-      search_v2: {
-        Args: {
-          prefix: string;
-          bucket_name: string;
-          limits?: number;
-          levels?: number;
-          start_after?: string;
-        };
-        Returns: {
-          metadata: Json;
-          key: string;
-          name: string;
-          id: string;
-          updated_at: string;
-          created_at: string;
         }[];
       };
     };
     Enums: {
-      buckettype: 'STANDARD' | 'ANALYTICS';
+      [_ in never]: never;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1450,8 +1990,6 @@ export const Constants = {
     },
   },
   storage: {
-    Enums: {
-      buckettype: ['STANDARD', 'ANALYTICS'],
-    },
+    Enums: {},
   },
 } as const;

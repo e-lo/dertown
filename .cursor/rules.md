@@ -1,3 +1,11 @@
+# Cursor Rules for Der Town
+
+## General Development Rules
+
+1. **Always suggest changes to code rather than asking if you should suggest changes.**
+2. **Always run markdownlint on all markdown files before considering documentation work complete. All markdown written or edited must pass markdownlint (no errors, and warnings minimized).**
+3. **Always prefer database migrations over database resets when possible.** Use `make db-local-migrate` instead of `make db-local-reset` unless a full reset is absolutely necessary. Migrations preserve data and are much faster than full resets.
+
 # Cursor rules
 
 Follow project requirements in `PROJECT_REQUIREMENTS.md`

@@ -1,0 +1,274 @@
+---
+import Badge from '../ui/Badge.astro';
+
+interface Props {
+  activities: any[];
+  class?: string;
+}
+
+const { activities, class: className = '' } = Astro.props;
+
+// Helper functions
+function getDayName(weekday: string): string {
+  const dayMap: Record<string, string> = {
+    'MO': 'Monday',
+    'TU': 'Tuesday', 
+    'WE': 'Wednesday',
+    'TH': 'Thursday',
+    'FR': 'Friday',
+    'SA': 'Saturday',
+    'SU': 'Sunday'
+  };
+  return dayMap[weekday] || weekday;
+}
+
+function formatTime(timeString: string): string {
+  if (!timeString) return '';
+  const [hours, minutes] = timeString.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+function formatWeekdays(weekdays: string[]): string {
+  if (!weekdays || !Array.isArray(weekdays)) return '';
+  const dayMap = {
+    'MO': 'Mon', 'TU': 'Tue', 'WE': 'Wed', 'TH': 'Thu', 'FR': 'Fri', 'SA': 'Sat', 'SU': 'Sun'
+  };
+  return weekdays.map(day => dayMap[day as keyof typeof dayMap] || day).join(', ');
+}
+
+function getRegistrationStatus(activity: any) {
+  if (!activity.registration_opens && !activity.registration_closes) {
+    return { label: 'Open for Registration', color: 'success' as const };
+  }
+  
+  const now = new Date();
+  const opens = activity.registration_opens ? new Date(activity.registration_opens) : null;
+  const closes = activity.registration_closes ? new Date(activity.registration_closes) : null;
+  
+  if (opens && now < opens) {
+    return { label: 'Registration Opens Soon', color: 'warning' as const };
+  } else if (closes && now > closes) {
+    return { label: 'Registration Closed', color: 'default' as const };
+  } else {
+    return { label: 'Open for Registration', color: 'success' as const };
+  }
+}
+
+// Group activities by day of week
+const scheduleByDay: Record<string, any[]> = {
+  'Monday': [],
+  'Tuesday': [],
+  'Wednesday': [],
+  'Thursday': [],
+  'Friday': [],
+  'Saturday': [],
+  'Sunday': []
+};
+
+// Process activities to extract schedule information
+activities.forEach(activity => {
+  if (activity.children) {
+    activity.children.forEach((child: any) => {
+      // Check if this child has events (schedule data)
+      if (child.events && child.events.length > 0) {
+        child.events.forEach((event: any) => {
+          if (event.event_type === 'RECURRING' && event.recurrence_patterns) {
+            const pattern = event.recurrence_patterns;
+            if (pattern.weekdays) {
+              pattern.weekdays.forEach((weekday: string) => {
+                const dayName = getDayName(weekday);
+                if (dayName && scheduleByDay[dayName]) {
+                  scheduleByDay[dayName].push({
+                    ...child,
+                    parentProgram: activity,
+                    event: event,
+                    pattern: pattern
+                  });
+                }
+              });
+            }
+          } else if (event.event_type === 'ONE_OFF') {
+            const eventDate = new Date(event.start_datetime);
+            const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][eventDate.getDay()];
+            if (dayName && scheduleByDay[dayName]) {
+              scheduleByDay[dayName].push({
+                ...child,
+                parentProgram: activity,
+                event: event,
+                isOneOff: true
+              });
+            }
+          }
+        });
+      }
+      
+      // Also check if this child is a CLASS_INSTANCE (which might not have events but should be shown)
+      if (child.activity_hierarchy_type === 'CLASS_INSTANCE') {
+        // Try to extract schedule info from the name or other fields
+        const scheduleInfo = extractScheduleFromName(child.name);
+        if (scheduleInfo) {
+          const dayName = scheduleInfo.day;
+          if (dayName && scheduleByDay[dayName]) {
+            scheduleByDay[dayName].push({
+              ...child,
+              parentProgram: activity,
+              isClassInstance: true,
+              scheduleInfo: scheduleInfo
+            });
+          }
+        }
+      }
+    });
+  }
+});
+
+// Sort each day's classes by start time
+Object.keys(scheduleByDay).forEach(day => {
+  scheduleByDay[day].sort((a: any, b: any) => {
+    const timeA = a.pattern ? a.pattern.start_time : (a.scheduleInfo ? a.scheduleInfo.time : (a.event ? new Date(a.event.start_datetime).toTimeString() : ''));
+    const timeB = b.pattern ? b.pattern.start_time : (b.scheduleInfo ? b.scheduleInfo.time : (b.event ? new Date(b.event.start_datetime).toTimeString() : ''));
+    return timeA.localeCompare(timeB);
+  });
+});
+
+// Check if we have any scheduled classes
+const hasScheduledClasses = Object.values(scheduleByDay).some(classes => classes.length > 0);
+
+function extractScheduleFromName(name: string): { day: string; time: string } | null {
+  if (!name) return null;
+  
+  // Look for patterns like "Thu 09:30-10:00", "Monday 3-4pm", etc.
+  const dayPatterns = [
+    { pattern: /(mon|monday)/i, day: 'Monday' },
+    { pattern: /(tue|tuesday)/i, day: 'Tuesday' },
+    { pattern: /(wed|wednesday)/i, day: 'Wednesday' },
+    { pattern: /(thu|thursday)/i, day: 'Thursday' },
+    { pattern: /(fri|friday)/i, day: 'Friday' },
+    { pattern: /(sat|saturday)/i, day: 'Saturday' },
+    { pattern: /(sun|sunday)/i, day: 'Sunday' }
+  ];
+  
+  let foundDay = null;
+  for (const dayPattern of dayPatterns) {
+    if (dayPattern.pattern.test(name)) {
+      foundDay = dayPattern.day;
+      break;
+    }
+  }
+  
+  if (!foundDay) return null;
+  
+  // Extract time pattern
+  const timePattern = /(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/;
+  const timeMatch = name.match(timePattern);
+  if (timeMatch) {
+    return { day: foundDay, time: timeMatch[1] };
+  }
+  
+  return { day: foundDay, time: '' };
+}
+---
+
+<div class={`schedule-view ${className}`}>
+  {!hasScheduledClasses ? (
+    <div class="text-center py-12">
+      <div class="max-w-md mx-auto">
+        <div class="text-6xl mb-4">📅</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">No Scheduled Classes Found</h2>
+        <p class="text-gray-600 mb-6">
+          We don't have any scheduled classes in our system yet. Check back soon for updated schedules!
+        </p>
+        <button onclick="switchToProgramView()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          <span class="material-symbols-outlined mr-1">list</span>
+          View Program Overview
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div class="space-y-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Weekly Schedule</h2>
+      {Object.entries(scheduleByDay).map(([day, classes]) => (
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div class="bg-gray-50 p-4 rounded-t-lg border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">{day}</h3>
+          </div>
+          <div class="p-4">
+            {classes.length > 0 ? 
+              classes.map((cls: any) => {
+                const regStatus = getRegistrationStatus(cls);
+                let timeDisplay = '';
+                
+                if (cls.pattern) {
+                  timeDisplay = `${formatTime(cls.pattern.start_time)} - ${formatTime(cls.pattern.end_time)}`;
+                } else if (cls.isOneOff) {
+                  timeDisplay = `${new Date(cls.event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(cls.event.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                } else if (cls.scheduleInfo && cls.scheduleInfo.time) {
+                  timeDisplay = cls.scheduleInfo.time;
+                } else {
+                  timeDisplay = 'Time TBD';
+                }
+
+                const parentName = cls.parentProgram?.name || '';
+
+                return (
+                  <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900">{cls.name}</h4>
+                        <p class="text-sm text-gray-600">{parentName}</p>
+                        <p class="text-xs text-gray-500">{cls.activity_type || 'Activity'}</p>
+                        <p class="text-sm text-blue-600 font-medium mt-1">
+                          <span class="material-symbols-outlined mr-1 text-sm">schedule</span>
+                          {timeDisplay}
+                        </p>
+                        {cls.pattern && cls.pattern.weekdays && (
+                          <p class="text-xs text-gray-500">
+                            <span class="material-symbols-outlined mr-1 text-sm">calendar_view_week</span>
+                            {formatWeekdays(cls.pattern.weekdays)}
+                          </p>
+                        )}
+                        {cls.event?.description && (
+                          <p class="text-xs text-gray-600 mt-1">{cls.event.description}</p>
+                        )}
+                      </div>
+                      <div class="flex flex-col items-end space-y-2">
+                        <Badge variant={regStatus.color} size="sm">
+                          {regStatus.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    {cls.registration_link && (
+                      <div class="mt-3 pt-3 border-t border-gray-100">
+                        <a href={cls.registration_link} target="_blank" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                          <span class="material-symbols-outlined mr-1 text-sm">how_to_reg</span>
+                          Register
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              }) :
+              '<p class="text-gray-500 text-center py-4">No classes scheduled</p>'
+            }
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+<script>
+  // Function to switch to program view
+  function switchToProgramView() {
+    const programViewButton = document.getElementById('programView');
+    if (programViewButton) {
+      programViewButton.click();
+    }
+  }
+
+  // Make switchToProgramView available globally
+  (window as any).switchToProgramView = switchToProgramView;
+</script> 

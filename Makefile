@@ -26,6 +26,12 @@ help:
 	@echo "  db-local-seed          - Seed local DB with local/test data (including staged data)"
 	@echo "  db-local-update-events - Update local event dates, etc."
 	@echo "  db-backup              - Backup current database state (local)"
+	@echo "  db-link-remote         - Link to remote project (uses REMOTE_SB_PROJECT_REF from .env)"
+	@echo "  db-pull-schema         - Pull schema from remote to local"
+	@echo "  db-sync-remote         - Sync data from remote to local database"
+	@echo "  db-sync-full           - Full sync: schema + data from remote"
+	@echo "  db-diff                - Check schema differences"
+	@echo "  db-push-schema         - Push local schema changes to remote"
 
 # Development server
 dev:
@@ -126,7 +132,7 @@ db-local-seed:
 
 db-local-seed-from-remote:
 	supabase db dump --data-only --schema public > seed_data/db_dump.sql
-	psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f remote_data_dump.sql
+	psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f seed_data/db_dump.sql --set ON_ERROR_STOP=off
 
 # Update local events (dates, etc.)
 db-local-update-events:
@@ -141,6 +147,80 @@ db-backup:
 	@timestamp=$$(date +%Y%m%d_%H%M%S); \
 	supabase db dump --data-only > backups/db_backup_$$timestamp.sql; \
 	echo "Database backup saved to backups/db_backup_$$timestamp.sql"
+
+# Link to remote project (first time setup)
+db-link-remote:
+	@echo "[LINK] Linking to remote Supabase project..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs); \
+	fi; \
+	if [ -z "$$REMOTE_SB_PROJECT_REF" ]; then \
+		echo "Error: REMOTE_SB_PROJECT_REF not found in .env file"; \
+		echo ""; \
+		echo "Please add your project ref to your .env file:"; \
+		echo "  REMOTE_SB_PROJECT_REF=your-project-ref"; \
+		echo ""; \
+		echo "You can find your project ref by running:"; \
+		echo "  supabase projects list"; \
+		echo ""; \
+		echo "Or from the Supabase dashboard URL:"; \
+		echo "  https://supabase.com/dashboard/project/your-project-ref"; \
+		exit 1; \
+	fi; \
+	supabase link --project-ref $$REMOTE_SB_PROJECT_REF
+
+# Pull schema from remote to local
+db-pull-schema:
+	@echo "[SCHEMA] Pulling schema from remote to local..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs); \
+	fi; \
+	supabase db pull --linked
+	@echo "[SCHEMA] Resetting local database to apply schema changes..."
+	supabase db reset
+
+# Sync data from remote to local
+db-sync-remote:
+	@echo "[SYNC] Syncing data from remote to local database..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs); \
+	fi
+	@mkdir -p backups
+	@timestamp=$$(date +%Y%m%d_%H%M%S); \
+	echo "[SYNC] Dumping remote data..."; \
+	supabase db dump --data-only > backups/remote_dump_$$timestamp.sql; \
+	echo "[SYNC] Restoring data to local database..."; \
+	psql "postgresql://postgres:postgres@localhost:54322/postgres" -f backups/remote_dump_$$timestamp.sql --set ON_ERROR_STOP=off; \
+	echo "[SYNC] Cleaning up..."; \
+	rm backups/remote_dump_$$timestamp.sql; \
+	echo "[SYNC] Data sync completed!"
+
+# Full sync: pull schema and data from remote
+db-sync-full:
+	@echo "[SYNC] Full sync from remote to local..."
+	$(MAKE) db-pull-schema
+	$(MAKE) db-sync-remote
+
+# Quick sync: just pull schema (no data)
+db-sync-schema-only:
+	@echo "[SYNC] Pulling schema only from remote..."
+	$(MAKE) db-pull-schema
+
+# Check schema differences between local and remote
+db-diff:
+	@echo "[DIFF] Checking schema differences..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs); \
+	fi; \
+	supabase db diff --local --linked
+
+# Push local schema changes to remote
+db-push-schema:
+	@echo "[PUSH] Pushing local schema changes to remote..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs); \
+	fi; \
+	supabase db push --linked
 
 # Seed ALL reference and content data (tags, organizations, locations, events, announcements) from /seed_data to the current database
 db-initial-seed:
