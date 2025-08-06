@@ -1,0 +1,86 @@
+---
+import ActivityCard from './ActivityCard.astro';
+
+interface Props {
+  activities: any[];
+  class?: string;
+}
+
+const { activities, class: className = '' } = Astro.props;
+
+// Group activities by category
+const categories: Record<string, any[]> = {};
+activities.forEach(activity => {
+  const category = activity.activity_type || 'Other';
+  if (!categories[category]) {
+    categories[category] = [];
+  }
+  categories[category].push(activity);
+});
+
+const sortedCategories = Object.keys(categories).sort();
+
+function getCategoryIcon(category: string): string {
+  const icons: Record<string, string> = {
+    'Gymnastics': 'fitness_center',
+    'Sports': 'sports_soccer',
+    'Martial Arts': 'sports_martial_arts',
+    'Arts': 'palette',
+    'Music': 'music_note',
+    'Dance': 'dance',
+    'Theater': 'theater_comedy',
+    'STEM': 'science',
+    'Outdoor': 'hiking',
+    'Academic': 'school',
+    'Social': 'groups',
+    'Scouting': 'camping'
+  };
+  return icons[category] || 'sports';
+}
+
+function getCategoryColor(category: string): string {
+  const colors: Record<string, string> = {
+    'Gymnastics': 'purple',
+    'Sports': 'blue',
+    'Martial Arts': 'red',
+    'Arts': 'pink',
+    'Music': 'indigo',
+    'Dance': 'purple',
+    'Theater': 'yellow',
+    'STEM': 'green',
+    'Outdoor': 'emerald',
+    'Academic': 'blue',
+    'Social': 'gray',
+    'Scouting': 'orange'
+  };
+  return colors[category] || 'gray';
+}
+---
+
+<div class={`program-view ${className}`}>
+  <div class="space-y-8">
+    {sortedCategories.map(category => {
+      const categoryActivities = categories[category];
+      const categoryIcon = getCategoryIcon(category);
+      const categoryColor = getCategoryColor(category);
+      
+      return (
+        <div class={`bg-white border border-${categoryColor}-200 rounded-lg shadow-sm`}>
+          <div class={`bg-${categoryColor}-50 p-4 rounded-t-lg border-b border-${categoryColor}-200`}>
+            <h3 class={`text-lg font-semibold text-${categoryColor}-800 flex items-center`}>
+              <span class="material-symbols-outlined mr-2">{categoryIcon}</span>
+              {category} ({categoryActivities.length})
+            </h3>
+          </div>
+          <div class="p-4">
+            <div class="space-y-4">
+              {categoryActivities.map((activity: any) => (
+                <ActivityCard activity={activity} />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div> 

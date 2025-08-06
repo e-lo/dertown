@@ -1,0 +1,377 @@
+---
+import Layout from '../components/Layout.astro';
+import SectionHeader from '../components/ui/SectionHeader.astro';
+import QuickNavItem from '../components/ui/QuickNavItem.astro';
+import LinkListItem from '../components/ui/LinkListItem.astro';
+import LinkBox from '../components/ui/LinkBox.astro';
+import Disclaimer from '../components/ui/Disclaimer.astro';
+import Accordian from '../components/ui/Accordian.astro';
+
+---
+
+<Layout title="Things to Do - Families | Der Town" description="Family activities, programs, and recreational opportunities in Der Town">
+  <div class="bg-white min-h-screen">
+    <!-- Hero Section -->
+      <div class=" max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        <SectionHeader
+          title="Things to Do"
+          text="Discover fun activities, programs, and events for families of all ages in Der Town."
+        />
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-wrap justify-center gap-2">
+        <QuickNavItem title="Sports" link="#sports" icon="sports_soccer" />
+        <QuickNavItem title="Recreation" link="#recreation" icon="hiking" />
+        <QuickNavItem title="Aquatics" link="#aquatics" icon="pool" />
+        <QuickNavItem title="Parks" link="#parks" icon="park" />
+        <QuickNavItem title="Arts & Culture" link="#arts-culture" icon="brush" />
+        <QuickNavItem title="Community" link="#community" icon="groups" />
+        <QuickNavItem title="Seasonal" link="#seasonal" icon="calendar_month" />
+      </div>
+  </div>
+
+    <!-- Sports Section -->
+    <div id="sports" class="bg-yellow py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Sports"
+          icon="sports_soccer"
+          text="Organized sports and recreational activities for families."
+        />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Pickup Soccer"
+              text="Adult pickup soccer games at Icicle River Middle School gym"
+              subtext="Tuesdays & Thursdays at 6am, Sunday evenings"
+              link="#"
+              icon="sports_soccer"
+              external={false}
+            />
+            <LinkBox
+              title="Pickup Basketball"
+              text="Adult pickup basketball games"
+              subtext="Details coming soon"
+              link="#"
+              icon="sports_basketball"
+              external={false}
+            />
+            <LinkBox
+              title="Bavarian Adults Mixed Softball (BAMS)"
+              text="Adult mixed softball league"
+              subtext="Join the BAMS community for fun and competitive softball"
+              link="https://www.facebook.com/BAMSLeavenworth/"
+              icon="sports_baseball"
+              external={true}
+            />
+          </div>
+
+      </div>
+    </div>
+
+    <!-- Recreation Section -->
+    <div id="recreation" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Recreation"
+          icon="hiking"
+          text="Outdoor recreation, cycling, and adventure activities for all skill levels."
+        />
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Women's Mountain Biking"
+              text="Group ride for women mountain bikers"
+              subtext="Thursdays at 6pm at Ski Hill, open to all skill levels"
+              link="#"
+              icon="pedal_bike"
+              external={false}
+            />
+            <LinkBox
+              title="Wenatchee Valley Velo Club"
+              text="Cycling club for road cyclists and mountain bikers. Promotes cycling through advocacy, education, and social rides."
+              subtext="Annual membership $40 single, $50 family. Multiple weekly rides from social to serious"
+              link="https://wenatcheevalleyvelo.org/"
+              icon="pedal_bike"
+              external={true}
+            />
+            <LinkBox
+              title="Central Chapter of Evergreen Mountain Biking"
+              text="Mountain biking advocacy and trail maintenance organization"
+              subtext="Local chapter focused on mountain biking trails and community"
+              link="https://www.evergreenmtb.org/chapters/central"
+              icon="pedal_bike"
+              external={true}
+            />
+            <LinkBox
+              title="Wenatchee Kayak Chat"
+              text="Group of whitewater kayakers who chat about conditions and organize group events"
+              subtext="Facebook community group for local kayaking enthusiasts"
+              link="https://www.facebook.com/groups/wenatcheekayakchat/"
+              icon="kayaking"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Mountain Association (LMA)"
+              text="Climbers supporting Leavenworth's canyons and mountains through stewardship, education, and partnership"
+              subtext="Community organization focused on climbing stewardship and education"
+              link="https://www.leavenworthma.org/"
+              icon="landscape"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Climbing Community"
+              text="Facebook community group for local climbers to connect, share beta, and organize climbing trips"
+              subtext="Facebook community group for climbing enthusiasts"
+              link="https://www.facebook.com/groups/leavenworthclimbingcommunity/"
+              icon="landscape"
+              external={true}
+            />
+            <LinkBox
+              title="Hike Leavenworth"
+              text="Facebook community group for hikers in the Leavenworth area to share trail conditions and organize group hikes"
+              subtext="Facebook community group for local hikers"
+              link="https://www.facebook.com/groups/hikeleavenworth/"
+              icon="hiking"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aquatics Section -->
+    <div id="aquatics" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+        title="Aquatics"
+        icon="pool"
+        text="Swimming pools, beaches, and water activities for families."
+      />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <Accordian title="Pools" sectionId="pools" icon="pool">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Howard Hopkins Pool"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://cityofleavenworth.com/pool/"
+                icon="pool"
+              />
+              <LinkBox
+                title="Wenatchee YMCA"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.wenymca.org/aquatics"
+                icon="pool"
+              />
+              <LinkBox
+                title="Cashmere Pool"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://www.cityofcashmere.org/services/parks-recreation"
+                icon="pool"
+              />
+              <LinkBox
+                title="Kahler Glen Athletic Club"
+                text="Public pool with indoor and outdoor pools"
+                subtext="Public facility, daily admission & season passes"
+                link="https://kahlerglencommunity.org/kahler-glen-athletic-club/"
+                icon="pool"
+              />
+              <LinkBox
+                title="Wenatchee Racquet & Athletic Club (WRAC)"
+                text="Private athletic club with indoor pool, tennis courts, pickleball, and fitness facilities"
+                subtext="Membership required. 6 indoor pickleball courts coming in 2025"
+                link="https://www.wrac.org/"
+                icon="pool"
+                external={true}
+              />
+            </div>
+          </Accordian>
+          <Accordian title="Beaches" sectionId="beaches" icon="beach_access">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <LinkBox
+                title="Barn Beach Swimming Beach"
+                text="Public swimming beach"
+                subtext="",
+                link="https://www.leavenworth.org/barn-beach"
+                icon="pool"
+              />
+              <LinkBox
+                title="Shore Street Public River Access"
+                text="Public swimming beach"
+                subtext="Street parking. Sandbar and beach fun in late season."
+                link="https://www.leavenworth.org/shore-street-river-access"
+                icon="pool"
+              />
+              <LinkBox
+                title="Dog Beach Swimming Area"
+                text="Public swimming beach"
+                subtext="NW Forest Service Pass required for parking."
+                link="https://www.leavenworth.org/dog-beach-swimming-area"
+                icon="pool"
+              />
+            </div>
+          </Accordian>
+         
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+
+    <!-- Arts & Culture Section -->
+    <div id="arts-culture" class="bg-fandango py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Arts & Culture"
+          icon="brush"
+          text="Creative opportunities, performances, and cultural experiences for families."
+        />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <LinkBox
+              title="Edelweiss Dance Acadamie"
+              text="Ballet, Jazz, Modern & Pointe. For ages 3 through Adult. Nutcracker performance, spring recital."
+              link="https://edelweissdanceacadamie.com/"
+              icon="music_note"
+              external={true}
+            />
+            <LinkBox
+              title="Icicle Creek Center for the Arts"
+              text="Music, theater, writing, and visual arts. Summer camps, workshops, and youth symphony."
+              link="https://icicle.org/arts-education/"
+              icon="music_note"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Art Haus"
+              text="Family-friendly art studio in Leavenworth with classes and camps.  While no current aftr-school program exists, responsible children are welcome to come and work on a project by themselves."
+              link="https://www.leavenwortharthaus.com/"
+              icon="brush"
+              external={true}
+            />
+            <LinkBox
+              title="Cascade SD Spring School Play"
+              text="Spring play at Cascade School District featuring  students from ALE and IRMS."
+              link="#"
+              icon="theater_comedy"
+            /> 
+          </div>
+      </div>
+    </div>
+
+    <!-- Community Programs Section -->
+    <div id="community" class="bg-green py-8 full-width-section">
+          <SectionHeader
+            title="Community Programs"
+            icon="groups"
+            text="Connect with local organizations and build community relationships."
+          />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <!-- Leavenworth Lions Club -->
+             <LinkListItem
+              title="Leavenworth Lions Club"
+              text="Community service organization serving Leavenworth since 1951. Provides highway cleanup, wheelchair ramps, health screenings, community events, and supports local youth programs."
+              subtext="Meets 1st Thursday 6:30 PM & 3rd Thursday 9:00 AM at Kristall's Restaurant"
+              link="https://e-clubhouse.org/sites/leavenworthwa/"
+              icon="volunteer_activism"
+              iconColor="text-green-600"
+              external={true}
+            />
+            <LinkListItem
+              title="Rotary Club of Leavenworth"
+              text="International service organization focused on community service, youth development, and international understanding. Part of Rotary International District 5060."
+              subtext="Weekly meetings and community service projects"
+              link="https://leavenworthrotarywa.com/"
+              icon="groups"
+              iconColor="text-green-600"
+              external={true}
+            />
+            <LinkListItem
+              title="Leavenworth Seniors"
+              text="Community group for seniors in the Leavenworth area. Connect with other seniors, share information, and stay updated on local events and activities."
+              subtext="Facebook community group for local seniors"
+              link="https://www.facebook.com/leavenworthseniors/"
+              icon="elderly"
+              iconColor="text-green-600"
+              external={true}
+            />
+        </div>
+    </div>
+<!-- Parks Section -->
+<div id="parks" class="bg-blue-green py-8">
+  <div class="w-full px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-white mb-3 flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl mr-3">park</span>
+        Parks
+      </h2>
+      <p class="text-lg text-blue-100">
+        Local parks, playgrounds, and outdoor recreation areas.
+      </p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <LinkListItem
+          title="Enchantment Park"
+          text="Pump track, skate park, playground, play fields, picnic tables,trails, kids fishing pond, and river access."
+          link="https://www.leavenworth.org/enchantment-park"
+          icon="park"
+        />
+        <LinkListItem
+          title="Waterfront Park"
+          text="Playground equipment, trails, picnic tables, and river access."
+          link="https://www.leavenworth.org/waterfront-park"
+          icon="park"
+        />
+        <LinkListItem
+          title="Osborn Park"
+          text="All-abilities playground, field, tennis courts."
+          link="https://www.leavenworth.org/osborn-park"
+          icon="park"
+        />
+
+      </div>
+    </div>
+  </div>
+</div>
+    <!-- Seasonal Activities Section -->
+    <div id="seasonal" class="floating-section-background">
+      <div class="floating-section-foreground bg-yellow">
+          <SectionHeader
+            title="Seasonal Activities"
+            icon="calendar_month"
+            text="Information Coming Soon"
+          />
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <p class="text-gray-600">
+              We're gathering information about summer camps, holiday events, and seasonal activities. 
+              Check back soon for details about seasonal programs and opportunities for families.
+            </p>
+          </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <Disclaimer />
+
+    <!-- Call to Action -->
+    <div class="mt-8 text-center">
+      <div class="bg-blue-green p-8">
+        <h2 class="text-2xl font-semibold mb-4">Have some information you think we should add?</h2>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Let Us Know
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout> 

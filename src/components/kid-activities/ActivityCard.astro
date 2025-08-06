@@ -1,0 +1,234 @@
+---
+import Badge from '../ui/Badge.astro';
+import Button from '../ui/Button.astro';
+
+interface Props {
+  activity: {
+    id: string;
+    name: string;
+    description?: string | null;
+    activity_type?: string | null;
+    activity_hierarchy_type?: string | null;
+    min_age?: number | null;
+    max_age?: number | null;
+    min_grade?: string | null;
+    max_grade?: string | null;
+    cost?: string | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
+    commitment_level?: string | null;
+    website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    registration_link?: string | null;
+    registration_opens?: string | null;
+    registration_closes?: string | null;
+    registration_required?: boolean | null;
+    location?: {
+      name?: string | null;
+      address?: string | null;
+    } | null;
+    sponsoring_organization?: {
+      name?: string | null;
+      website?: string | null;
+    } | null;
+    children?: any[];
+    events?: any[];
+  };
+  showChildren?: boolean;
+  class?: string;
+}
+
+const { activity, showChildren = true, class: className = '' } = Astro.props;
+
+// Helper functions
+function getRegistrationStatus(activity: Props['activity']) {
+  if (!activity.registration_opens && !activity.registration_closes) {
+    return { label: 'Open for Registration', color: 'success' as const };
+  }
+  
+  const now = new Date();
+  const opens = activity.registration_opens ? new Date(activity.registration_opens) : null;
+  const closes = activity.registration_closes ? new Date(activity.registration_closes) : null;
+  
+  if (opens && now < opens) {
+    return { label: 'Registration Opens Soon', color: 'warning' as const };
+  } else if (closes && now > closes) {
+    return { label: 'Registration Closed', color: 'default' as const };
+  } else {
+    return { label: 'Open for Registration', color: 'success' as const };
+  }
+}
+
+function getAgeRange(activity: Props['activity']) {
+  const minAge = activity.min_age;
+  const maxAge = activity.max_age;
+  
+  if (minAge && maxAge) {
+    return `${minAge}-${maxAge} years`;
+  } else if (minAge) {
+    return `${minAge}+ years`;
+  } else if (maxAge) {
+    return `Up to ${maxAge} years`;
+  } else if (activity.min_grade || activity.max_grade) {
+    const minGrade = activity.min_grade || '';
+    const maxGrade = activity.max_grade || '';
+    return `${minGrade}${minGrade && maxGrade ? '-' : ''}${maxGrade}`;
+  }
+  
+  return 'All ages';
+}
+
+function getCategoryIcon(activityType: string | null | undefined) {
+  const icons: Record<string, string> = {
+    'Gymnastics': 'fitness_center',
+    'Sports': 'sports_soccer',
+    'Martial Arts': 'sports_martial_arts',
+    'Arts': 'palette',
+    'Music': 'music_note',
+    'Dance': 'dance',
+    'Theater': 'theater_comedy',
+    'STEM': 'science',
+    'Outdoor': 'hiking',
+    'Academic': 'school',
+    'Social': 'groups',
+    'Scouting': 'camping'
+  };
+  return icons[activityType || ''] || 'sports';
+}
+
+function getCategoryColor(activityType: string | null | undefined) {
+  const colors: Record<string, string> = {
+    'Gymnastics': 'purple',
+    'Sports': 'blue',
+    'Martial Arts': 'red',
+    'Arts': 'pink',
+    'Music': 'indigo',
+    'Dance': 'purple',
+    'Theater': 'yellow',
+    'STEM': 'green',
+    'Outdoor': 'emerald',
+    'Academic': 'blue',
+    'Social': 'gray',
+    'Scouting': 'orange'
+  };
+  return colors[activityType || ''] || 'gray';
+}
+
+const regStatus = getRegistrationStatus(activity);
+const ageRange = getAgeRange(activity);
+const categoryIcon = getCategoryIcon(activity.activity_type);
+const categoryColor = getCategoryColor(activity.activity_type);
+---
+
+<div class={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+  <div class="flex justify-between items-start mb-4">
+    <div class="flex-1">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-gray-600">{categoryIcon}</span>
+        <h3 class="text-xl font-semibold text-gray-900">{activity.name}</h3>
+        {activity.activity_hierarchy_type && (
+          <Badge variant="info" size="sm">
+            {activity.activity_hierarchy_type.replace('_', ' ')}
+          </Badge>
+        )}
+      </div>
+      <p class="text-sm text-gray-600">
+        <span><strong>Organization:</strong> {activity.sponsoring_organization?.name || 'TBD'}</span>
+        {activity.location?.name && (
+          <span class="ml-2"><strong>Location:</strong> {activity.location.name}</span>
+        )}
+      </p>
+    </div>
+    <div class="flex flex-col items-end space-y-2">
+      <Badge variant={regStatus.color} size="sm">
+        {regStatus.label}
+      </Badge>
+    </div>
+  </div>
+  
+  {activity.description && (
+    <p class="text-gray-700 mb-4">{activity.description}</p>
+  )}
+  
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
+    <div>
+      <p><strong>Age Range:</strong> {ageRange}</p>
+      {activity.cost && <p><strong>Cost:</strong> {activity.cost}</p>}
+    </div>
+    <div>
+      {activity.start_datetime && (
+        <p><strong>Start:</strong> {new Date(activity.start_datetime).toLocaleDateString()}</p>
+      )}
+      {activity.end_datetime && (
+        <p><strong>End:</strong> {new Date(activity.end_datetime).toLocaleDateString()}</p>
+      )}
+      {activity.commitment_level && (
+        <p><strong>Commitment:</strong> {activity.commitment_level}</p>
+      )}
+    </div>
+    <div>
+      {activity.website && (
+        <p><strong>Website:</strong> <a href={activity.website} target="_blank" class="text-blue-600 hover:underline">Visit Site</a></p>
+      )}
+      {activity.email && (
+        <p><strong>Email:</strong> <a href={`mailto:${activity.email}`} class="text-blue-600 hover:underline">{activity.email}</a></p>
+      )}
+      {activity.phone && (
+        <p><strong>Phone:</strong> <a href={`tel:${activity.phone}`} class="text-blue-600 hover:underline">{activity.phone}</a></p>
+      )}
+    </div>
+  </div>
+  
+  {showChildren && activity.children && activity.children.length > 0 && (
+    <div class="mt-4 pt-4 border-t border-gray-200">
+      <h4 class="font-semibold text-gray-800 mb-3">Current & Upcoming Sessions:</h4>
+      <div class="space-y-3">
+        {activity.children
+          .filter((child: any) => {
+            if (!child.end_datetime) return true;
+            const endDate = new Date(child.end_datetime);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return endDate >= today;
+          })
+          .map((child: any) => {
+            const childRegStatus = getRegistrationStatus(child);
+            return (
+              <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h5 class="font-medium text-gray-900">{child.name}</h5>
+                    {child.start_datetime && child.end_datetime && (
+                      <p class="text-sm text-gray-600">
+                        {new Date(child.start_datetime).toLocaleDateString()} - {new Date(child.end_datetime).toLocaleDateString()}
+                      </p>
+                    )}
+                    {child.commitment_level && (
+                      <p class="text-sm text-gray-600">{child.commitment_level}</p>
+                    )}
+                  </div>
+                  <div class="flex flex-col items-end space-y-2">
+                    <Badge variant={childRegStatus.color} size="sm">
+                      {childRegStatus.label}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  )}
+  
+  {activity.registration_link && (
+    <div class="mt-4">
+      <Button variant="primary" size="md">
+        <a href={activity.registration_link} target="_blank" class="inline-flex items-center">
+          <span class="material-symbols-outlined mr-1">how_to_reg</span>
+          Register Now
+        </a>
+      </Button>
+    </div>
+  )}
+</div> 
