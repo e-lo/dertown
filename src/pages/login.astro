@@ -1,5 +1,12 @@
 ---
 import Layout from '../components/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+// Check if user is already logged in
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  return Astro.redirect('/admin');
+}
 ---
 <Layout title="Login - Der Town">
   <main class="min-h-screen flex items-center justify-center bg-gray-50">
@@ -23,30 +30,38 @@ import Layout from '../components/Layout.astro';
       </form>
     </div>
   </main>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
-    const supabaseAnonKey = import.meta.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    console.log('[LOGIN DEBUG] Supabase URL:', supabaseUrl);
-    console.log('[LOGIN DEBUG] Supabase Anon Key:', supabaseAnonKey);
+  
+  <script>
+    // Secure client-side script - no environment variables exposed
     document.getElementById('login-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const emailInput = document.getElementById('email');
-      const passwordInput = document.getElementById('password');
+      const emailInput = document.getElementById('email') as HTMLInputElement;
+      const passwordInput = document.getElementById('password') as HTMLInputElement;
       const errorBox = document.getElementById('login-error');
       if (!emailInput || !passwordInput || !errorBox) return;
+      
       errorBox.classList.add('hidden');
       const email = emailInput.value;
       const password = passwordInput.value;
+      
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        console.log('[LOGIN DEBUG] signInWithPassword result:', data, error);
-        if (error || !data.session) {
-          throw new Error(error?.message || 'Login failed.');
+        // Use a secure API endpoint for authentication
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include',
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Login failed.');
         }
-        // Save session (should be automatic, but log for debug)
-        console.log('[LOGIN DEBUG] Session after login:', data.session);
+        
+        // Redirect to admin page on successful login
         window.location.href = '/admin';
       } catch (err) {
         let msg = 'Login failed. Please try again.';

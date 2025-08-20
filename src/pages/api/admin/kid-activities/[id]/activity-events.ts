@@ -1,8 +1,45 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../../../../../types/database';
 
-export const GET: APIRoute = async ({ params }) => {
+const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+
+// Function to check authentication and admin status
+async function checkAuth(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { error: 'Missing or invalid Authorization header', status: 401 };
+  }
+  const token = authHeader.replace('Bearer ', '');
+
+  // Create a Supabase client with the user's JWT
+  const supabase = createClient<Database>(supabaseUrl, token);
+  const { data: user, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { error: 'Invalid or expired token', status: 401 };
+  }
+
+  // Check if the user is an admin using the is_admin Postgres function
+  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+  if (adminError || !isAdmin) {
+    return { error: 'Forbidden: Admins only', status: 403 };
+  }
+
+  return { supabase, user };
+}
+
+export const GET: APIRoute = async ({ params, request }) => {
   try {
+    // Check authentication
+    const authResult = await checkAuth(request);
+    if ('error' in authResult) {
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { supabase } = authResult;
     const { id } = params;
 
     if (!id) {
@@ -13,7 +50,7 @@ export const GET: APIRoute = async ({ params }) => {
     }
 
     // Get events for the activity
-    const { data: events, error: eventsError } = await supabaseAdmin
+    const { data: events, error: eventsError } = await supabase
       .from('activity_events')
       .select(
         `
@@ -55,6 +92,16 @@ export const GET: APIRoute = async ({ params }) => {
 
 export const POST: APIRoute = async ({ params, request }) => {
   try {
+    // Check authentication
+    const authResult = await checkAuth(request);
+    if ('error' in authResult) {
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { supabase } = authResult;
     const { id } = params;
 
     if (!id) {
@@ -119,7 +166,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     // Create recurrence pattern if needed
     if (event_type === 'RECURRING') {
-      const { data: pattern, error: patternError } = await supabaseAdmin
+      const { data: pattern, error: patternError } = await supabase
         .from('recurrence_patterns')
         .insert({
           start_time,
@@ -156,7 +203,7 @@ export const POST: APIRoute = async ({ params, request }) => {
       ignore_exceptions: ignore_exceptions || false,
     };
 
-    const { data: event, error: eventError } = await supabaseAdmin
+    const { data: event, error: eventError } = await supabase
       .from('activity_events')
       .insert(eventData)
       .select(
