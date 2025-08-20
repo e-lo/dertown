@@ -1,5 +1,64 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../../../../types/database';
+
+const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// Function to check authentication and admin status using server-side auth
+async function checkAuth(request: Request) {
+  try {
+    // Create a Supabase client with service role key for server-side operations
+    const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
+
+    // Get the session from cookies or headers
+    const authHeader = request.headers.get('Authorization');
+    const session = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser(token);
+      if (userError || !user) {
+        return { error: 'Invalid or expired token', status: 401 };
+      }
+
+      // Check if the user is an admin using the is_admin Postgres function
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (adminError || !isAdmin) {
+        return { error: 'Forbidden: Admins only', status: 403 };
+      }
+
+      return { supabase, user };
+    } else {
+      // Try to get session from cookies (for server-side rendering)
+      const cookieHeader = request.headers.get('cookie');
+      if (cookieHeader) {
+        const {
+          data: { session: cookieSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError || !cookieSession) {
+          return { error: 'No valid session found', status: 401 };
+        }
+
+        const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+        if (adminError || !isAdmin) {
+          return { error: 'Forbidden: Admins only', status: 403 };
+        }
+
+        return { supabase, user: cookieSession.user };
+      }
+    }
+
+    return { error: 'Authentication required', status: 401 };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { error: 'Authentication failed', status: 401 };
+  }
+}
 
 // Function to generate smart names for class instances and sessions based on schedule data
 function generateSmartName(activityData: any): string {
@@ -42,9 +101,19 @@ function generateSmartName(activityData: any): string {
   return 'Activity';
 }
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
   try {
-    const { data: activities, error } = await supabaseAdmin
+    // Check authentication
+    const authResult = await checkAuth(request);
+    if ('error' in authResult) {
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { supabase } = authResult;
+    const { data: activities, error } = await supabase
       .from('kid_activities')
       .select('*')
       .order('name');
@@ -72,6 +141,16 @@ export const GET: APIRoute = async () => {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Check authentication
+    const authResult = await checkAuth(request);
+    if ('error' in authResult) {
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { supabase } = authResult;
     const body = await request.json();
     console.log('API received body:', body); // Debug log
 
@@ -146,7 +225,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('Cleaned activityData:', activityData); // Debug log
 
-    const { data: activity, error } = await supabaseAdmin
+    const { data: activity, error } = await supabase
       .from('kid_activities')
       .insert(activityData)
       .select()
