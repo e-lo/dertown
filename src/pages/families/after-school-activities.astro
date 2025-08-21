@@ -33,7 +33,6 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
         <SectionHeader
           title="Peshastin Dryden Elementary"
           icon="school"
-          text="After school programs designed specifically for our youngest learners."
         />
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -87,8 +86,7 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
         <SectionHeader
           title="Alpine Lakes Elementary"
           icon="school"
-          text="Engaging programs for upper elementary students to explore interests and develop skills."
-        />
+    />
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="relative">
@@ -134,8 +132,8 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               <LinkBox
                 title="Leavenworth Library"
                 text="Spend your afternoons at the library reading, doing homework, and playing games."
-                subtext="For responsible children who can work independently."
-                link="#"
+                subtext="For responsible children who can work independently. Tuesday thru Friday."
+                link="https://www.ncwlibraries.org/locations/leavenworth-public-library/"
                 icon="book"
                 external={false}
               />
@@ -206,7 +204,6 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
         <SectionHeader
           title="Icicle River Middle School"
           icon="school"
-          text="Programs designed for middle school students to explore interests and develop independence."
         />
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,6 +218,45 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               />
               <div class="absolute top-2 right-2">
                 <span class="status-badge status-badge--blue status-badge--md">Ongoing</span>
+              </div>
+            </div>
+            <div class="relative">
+              <LinkBox
+                title="Technology Student Association (TSA)"
+                text="National organization for students interested in technology, engineering, and design. Students compete in various technology challenges and develop STEM skills."
+                subtext="After school in room 205."
+                link="https://www.cascadesd.org/o/irms/page/technology-student-association"
+                icon="precision_manufacturing"
+                external={true}
+              />
+              <div class="absolute top-2 right-2">
+                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+              </div>
+            </div>
+            <div class="relative">
+              <LinkBox
+                title="Sustainability Club"
+                text="Environmental awareness and sustainability program where students learn about conservation, recycling, and environmental stewardship."
+                subtext="Mondays after school:3-4PM"
+                link="https://www.cascadesd.org/o/irms/page/sustainability-club"
+                icon="eco"
+                external={true}
+              />
+              <div class="absolute top-2 right-2">
+                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+              </div>
+            </div>
+            <div class="relative">
+              <LinkBox
+                title="Athletics"
+                text="School sports programs including cross country, basketball, wrestling, track and field, and other seasonal sports."
+                subtext="Seasonal sports programs with tryouts and regular practices. Contact athletic director for current season information."
+                link="https://www.cascadesd.org/o/irms/page/athletics"
+                icon="sports_soccer"
+                external={true}
+              />
+              <div class="absolute top-2 right-2">
+                <span class="status-badge status-badge--orange status-badge--md">Seasonal</span>
               </div>
             </div>
             <div class="relative">
@@ -250,6 +286,19 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               </div>
             </div>
             <div class="relative">
+                <LinkBox
+                  title="Leavenworth Library"
+                  text="Spend your afternoons at the library reading, doing homework, and playing games."
+                  subtext="For responsible children who can work independently. Tuesday thru Friday."
+                  link="https://www.ncwlibraries.org/locations/leavenworth-public-library/"
+                  icon="book"
+                  external={false}
+                />
+                <div class="absolute top-2 right-2">
+                  <span class="status-badge status-badge--blue status-badge--md">Ongoing</span>
+                </div>
+              </div>
+            <div class="relative">
               <LinkBox
                 title="Ski Club"
                 text="Weekly skiing program for students to develop skills and enjoy winter sports in the beautiful Cascade Mountains."
@@ -275,29 +324,6 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
                 <span class="status-badge status-badge--yellow status-badge--md">Spring</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Registration Status Legend -->
-    <div class="bg-gray-50 py-6">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Registration Status</h3>
-        </div>
-        <div class="flex flex-wrap justify-center gap-4">
-          <div class="flex items-center">
-            <span class="status-badge status-badge--green status-badge--md mr-2">OPEN</span>
-            <span class="text-sm text-gray-600">Registration currently open</span>
-          </div>
-          <div class="flex items-center">
-            <span class="status-badge status-badge--yellow status-badge--md mr-2">UPCOMING</span>
-            <span class="text-sm text-gray-600">Registration opening soon</span>
-          </div>
-          <div class="flex items-center">
-            <span class="status-badge status-badge--blue status-badge--md mr-2">ONGOING</span>
-            <span class="text-sm text-gray-600">Program runs continuously</span>
           </div>
         </div>
       </div>
