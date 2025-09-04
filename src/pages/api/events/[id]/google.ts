@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
+import { parseEventTimesUTC, formatDateForGoogleUTC } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -22,24 +23,20 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response('Event not found', { status: 404 });
     }
 
-    // Format dates for Google Calendar
-    const startDate = new Date(event.start_date + (event.start_time ? 'T' + event.start_time : ''));
-    const endDate = event.end_date
-      ? new Date(event.end_date + (event.end_time ? 'T' + event.end_time : ''))
-      : new Date(startDate.getTime() + 60 * 60 * 1000); // Default 1 hour if no end time
+    // Parse event times with UTC timezone handling (recommended approach)
+    const { startDate, endDate } = parseEventTimesUTC(event);
 
-    const formatDate = (date: Date) => {
-      return date
-        .toISOString()
-        .replace(/[-:]/g, '')
-        .replace(/\.\d{3}/, '');
-    };
+    // If no end time specified, default to 1 hour after start
+    const eventEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
     // Build Google Calendar URL
     const googleCalendarUrl = new URL('https://calendar.google.com/calendar/render');
     googleCalendarUrl.searchParams.set('action', 'TEMPLATE');
-    googleCalendarUrl.searchParams.set('text', event.title);
-    googleCalendarUrl.searchParams.set('dates', `${formatDate(startDate)}/${formatDate(endDate)}`);
+    googleCalendarUrl.searchParams.set('text', event.title || 'Untitled Event');
+    googleCalendarUrl.searchParams.set(
+      'dates',
+      `${formatDateForGoogleUTC(startDate)}/${formatDateForGoogleUTC(eventEndDate)}`
+    );
 
     if (event.description) {
       googleCalendarUrl.searchParams.set('details', event.description);

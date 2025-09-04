@@ -1,34 +1,48 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../types/database';
+import { supabase } from '../../../lib/supabase';
 
-const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({
-        error:
-          'You must be logged in as an admin to view staged announcements. Please log in with an admin account.',
-      }),
-      {
-        status: 403,
+export const GET: APIRoute = async ({ request, cookies }) => {
+  try {
+    // Verify authentication using server-side Supabase client
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
+
+    if (authError || !session) {
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required. Please log in.',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Fetch staged announcements using server-side client
+    const { data, error } = await supabase.from('announcements_staged').select('*');
+
+    if (error) {
+      console.error('Database error:', error);
+      return new Response(JSON.stringify({ error: 'Failed to fetch staged announcements' }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-  const token = authHeader.replace('Bearer ', '');
-  const supabase = createClient<Database>(supabaseUrl, token);
-  const { data, error } = await supabase.from('announcements_staged').select('*');
-  if (error) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch staged announcements' }), {
+      });
+    }
+
+    return new Response(JSON.stringify({ announcements: data }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error in admin announcements-staged API:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  return new Response(JSON.stringify({ announcements: data }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
 };

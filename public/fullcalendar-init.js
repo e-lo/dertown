@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
       eventDidMount: function(info) {
         const event = info.event;
         // Color events by category in all views
-        const category = event.extendedProps.category;
+        const category = event.extendedProps.primaryTag;
         if (category) {
           const kebab = toKebabCase(category);
           info.el.classList.add(`bg-event-${kebab}`);
@@ -123,6 +123,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add location if it exists (as a string)
         if (event.extendedProps.location) {
           html += `<div class='fc-tooltip-location'><span>⚲ </span> ${event.extendedProps.location}</div>`;
+        }
+
+        if (event.extendedProps.primaryTag) {
+          html += `<div class='fc-tooltip-tag'>${event.extendedProps.primaryTag}</div>`;
+        }
+        if (event.extendedProps.secondaryTag) {
+          html += `<div class='fc-tooltip-tag'>${event.extendedProps.secondaryTag}</div>`;
         }
 
         if (event.start && info.view.type !== 'dayGridMonth') {
@@ -398,6 +405,15 @@ class Tooltip {
       font-size: 0.95em;
       color: #b3e5fc;
       margin-bottom: 2px;
+    }
+    .fc-tooltip-tag {
+      background-color: #333;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.85em;
+      display: inline-block;
+      margin-top: 5px;
+      margin-right: 5px;
     }
     .fc-tooltip-time span, .fc-tooltip-location span {
       color: #90caf9;

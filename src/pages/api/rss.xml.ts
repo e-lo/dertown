@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
+import { parseEventTimes } from '../../lib/calendar-utils.ts';
 
 export const prerender = false;
 
@@ -58,94 +59,79 @@ function generateRSSContent(events: EventData[]): string {
 `;
 
   events.forEach((event) => {
-    // Properly construct datetime strings for parsing
-    const startDateTime =
-      event.start_date && event.start_time
-        ? `${event.start_date}T${event.start_time}`
-        : event.start_date
-          ? `${event.start_date}T00:00:00`
-          : null;
+    try {
+      // Parse event times with proper timezone handling
+      const { startDate, endDate } = parseEventTimes(event);
 
-    const endDateTime =
-      event.end_date && event.end_time
-        ? `${event.end_date}T${event.end_time}`
-        : event.end_date
-          ? `${event.end_date}T23:59:59`
-          : null;
+      // Skip events with invalid dates
+      if (!startDate || isNaN(startDate.getTime())) {
+        console.warn(
+          `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
+        );
+        return;
+      }
 
-    // Parse dates safely
-    const startDate = startDateTime ? new Date(startDateTime) : null;
-    const endDate = endDateTime ? new Date(endDateTime) : null;
+      // Clean description for XML
+      const description = (event.description ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 
-    // Skip events with invalid dates
-    if (!startDate || isNaN(startDate.getTime())) {
-      console.warn(
-        `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
-      );
-      return;
-    }
+      const title = (event.title ?? 'Untitled Event')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 
-    // Clean description for XML
-    const description = (event.description ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      // Format dates for display
+      const startDateFormatted = startDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
 
-    const title = (event.title ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-    // Format dates for display
-    const startDateFormatted = startDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const startTimeFormatted = event.start_time
-      ? startDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })
-      : 'All day';
-
-    const endDateFormatted =
-      endDate && !isNaN(endDate.getTime())
-        ? endDate.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-        : null;
-
-    const endTimeFormatted =
-      endDate && event.end_time && !isNaN(endDate.getTime())
-        ? endDate.toLocaleTimeString('en-US', {
+      const startTimeFormatted = event.start_time
+        ? startDate.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true,
           })
-        : null;
+        : 'All day';
 
-    // Build description with location if available
-    let fullDescription = description;
-    if (event.location?.name) {
-      fullDescription += `<br/><strong>Location:</strong> ${event.location.name}`;
-    }
-    fullDescription += `<br/><strong>Date:</strong> ${startDateFormatted} at ${startTimeFormatted}`;
-    if (endDateFormatted) {
-      fullDescription += `<br/><strong>Ends:</strong> ${endDateFormatted}${endTimeFormatted ? ` at ${endTimeFormatted}` : ''}`;
-    }
+      const endDateFormatted =
+        endDate && !isNaN(endDate.getTime())
+          ? endDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+          : null;
 
-    rss += `    <item>
+      const endTimeFormatted =
+        endDate && event.end_time && !isNaN(endDate.getTime())
+          ? endDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })
+          : null;
+
+      // Build description with location if available
+      let fullDescription = description;
+      if (event.location?.name) {
+        fullDescription += `<br/><strong>Location:</strong> ${event.location.name}`;
+      }
+      fullDescription += `<br/><strong>Date:</strong> ${startDateFormatted} at ${startTimeFormatted}`;
+      if (endDateFormatted) {
+        fullDescription += `<br/><strong>Ends:</strong> ${endDateFormatted}${endTimeFormatted ? ` at ${endTimeFormatted}` : ''}`;
+      }
+
+      rss += `    <item>
       <title>${title}</title>
       <link>${event.website ?? `${siteUrl}/events/${event.id}`}</link>
       <guid>${event.id}</guid>
@@ -153,6 +139,10 @@ function generateRSSContent(events: EventData[]): string {
       <description><![CDATA[${fullDescription}]]></description>
     </item>
 `;
+    } catch (error) {
+      console.warn(`Error processing event ${event.id}:`, error);
+      return;
+    }
   });
 
   rss += `  </channel>
