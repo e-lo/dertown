@@ -7,12 +7,14 @@ This document outlines the comprehensive solution implemented to fix timezone is
 ## Problem Analysis
 
 ### Original Issues
+
 1. **Google Calendar exports** showed events 2 hours later than expected
 2. **iCal exports** displayed times in UTC instead of Pacific timezone
 3. **Complex timezone handling** with DST calculations was error-prone
 4. **Inconsistent behavior** across different export formats
 
 ### Root Causes
+
 1. **Date object manipulation** with timezone offsets caused double-conversion
 2. **JavaScript Date objects** don't store timezone information (always UTC internally)
 3. **DST calculations** were complex and unreliable
@@ -24,6 +26,7 @@ This document outlines the comprehensive solution implemented to fix timezone is
 ### 1. UTC Approach (RECOMMENDED) ⭐
 
 **Benefits:**
+
 - ✅ Simple and reliable
 - ✅ No DST calculations needed (handled by `date-fns-tz`)
 - ✅ Consistent across all export formats
@@ -31,6 +34,7 @@ This document outlines the comprehensive solution implemented to fix timezone is
 - ✅ Calendar applications handle timezone conversion automatically
 
 **Implementation:**
+
 ```typescript
 // Create UTC dates using date-fns-tz
 import { toZonedTime } from 'date-fns-tz';
@@ -58,28 +62,33 @@ export function formatDateForOutlookUTC(date: Date): string
 ```
 
 **How it works:**
+
 1. **Input**: Date string (e.g., "2024-01-15") + Time string (e.g., "14:00:00")
 2. **Processing**: Uses `date-fns-tz`'s `toZonedTime` to interpret the local time string in the 'America/Los_Angeles' timezone and create a corresponding JavaScript Date object, which is inherently UTC.
 3. **Output**: UTC Date object that can be formatted consistently.
 4. **Result**: All exports show the same UTC time, calendar apps convert to user's timezone.
 
 ### Integration of `date-fns-tz`
+
 To ensure robust and accurate timezone handling, especially with Daylight Saving Time (DST) changes, the `date-fns-tz` library will be integrated. This library leverages the IANA Time Zone Database, providing a reliable way to convert between timezones without manual, error-prone calculations.
 
 ### 2. Pacific Timezone Approach (ALTERNATIVE)
 
 **Benefits:**
+
 - ✅ Users see times in Pacific timezone
 - ✅ Maintains local time representation (managed by `date-fns-tz` for accuracy)
 - ✅ Supports TZID in iCal exports
 
 **Drawbacks:**
+
 - ❌ Complex DST calculations
 - ❌ Error-prone timezone conversions
 - ❌ Slower performance
 - ❌ Different behavior in different calendar apps
 
 **Implementation:**
+
 ```typescript
 // Create Pacific timezone dates
 export function createPacificDateTime(dateStr: string, timeStr?: string): Date
@@ -119,6 +128,7 @@ All calendar export APIs now use the **UTC approach by default**:
 ### Timezone Conversion Logic
 
 #### UTC Approach (Revised with `date-fns-tz`)
+
 ```typescript
 import { toZonedTime } from 'date-fns-tz';
 
@@ -137,6 +147,7 @@ export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
 ```
 
 #### Pacific Timezone Approach
+
 ```typescript
 function getPacificTimezoneOffset(date: Date): number {
   const month = date.getMonth();
@@ -179,15 +190,18 @@ The solution includes a complete test suite covering:
 ### Test Scenarios
 
 #### PST Dates (November - March)
+
 - **Winter**: January 15, 2024 (PST)
 - **Spring**: March 10, 2024 (PST, before DST)
 
 #### PDT Dates (March - November)
+
 - **Spring**: March 15, 2024 (PDT, after DST starts)
 - **Summer**: July 15, 2024 (PDT)
 - **Fall**: October 15, 2024 (PDT, before DST ends)
 
 #### Test Times
+
 - **Morning**: 09:00:00
 - **Afternoon**: 14:00:00
 - **Evening**: 19:00:00
@@ -196,11 +210,13 @@ The solution includes a complete test suite covering:
 ### Running Tests
 
 #### With Jest (if available)
+
 ```bash
 npm test src/lib/calendar-utils.test.ts
 ```
 
 #### Simple Test Runner
+
 ```typescript
 import { runAllTests, quickTest } from './calendar-utils-simple-test';
 
@@ -216,13 +232,15 @@ quickTest();
 ### UTC Approach Results
 
 **Input**: 2:00 PM on January 15, 2024 (PST)
-**Output**: 
+**Output**:
+
 - **Google Calendar**: Shows as 10:00 PM UTC (calendar app converts to user's timezone)
 - **iCal**: `DTSTART:20240115T220000Z` (UTC time with Z suffix)
 - **Outlook**: ISO string ending with Z
 
 **Input**: 2:00 PM on July 15, 2024 (PDT)
 **Output**:
+
 - **Google Calendar**: Shows as 9:00 PM UTC (calendar app converts to user's timezone)
 - **iCal**: `DTSTART:20240715T210000Z` (UTC time with Z suffix)
 - **Outlook**: ISO string ending with Z
@@ -231,6 +249,7 @@ quickTest();
 
 **Input**: 2:00 PM on January 15, 2024 (PST)
 **Output**:
+
 - **Google Calendar**: Shows as 2:00 PM Pacific time
 - **iCal**: `DTSTART;TZID=America/Los_Angeles:20240115T140000`
 - **Outlook**: ISO string with -08:00 offset
@@ -238,11 +257,13 @@ quickTest();
 ## Performance Comparison
 
 ### UTC Approach
+
 - **Speed**: ~2-3x faster than Pacific timezone approach
 - **Memory**: Lower memory usage
 - **Complexity**: Simple, linear operations
 
 ### Pacific Timezone Approach
+
 - **Speed**: Slower due to DST calculations
 - **Memory**: Higher memory usage
 - **Complexity**: Complex DST logic and timezone conversions
@@ -252,10 +273,13 @@ quickTest();
 ### For Existing Code
 
 1. **Install `date-fns-tz`**:
+
    ```bash
    npm install date-fns-tz date-fns # date-fns is a peer dependency
    ```
+
 2. **Update imports** to use UTC functions and `date-fns-tz` for `createUTCDateTime`:
+
    ```typescript
    // Before
    import { parseEventTimes, formatDateForGoogle } from './calendar-utils';
@@ -266,6 +290,7 @@ quickTest();
    ```
 
 3. **Update function calls** (e.g., ensure `createUTCDateTime` is used where appropriate):
+
    ```typescript
    // Before
    const { startDate, endDate } = parseEventTimes(event);
@@ -281,6 +306,7 @@ quickTest();
 ### For New Code
 
 Use the UTC approach by default, leveraging `date-fns-tz` for date creation:
+
 ```typescript
 import { 
   createUTCDateTime, 
@@ -319,6 +345,7 @@ const icalFormat = formatDateForICalUTC(startDate);
 ### Debug Mode
 
 Enable debug logging in Pacific timezone functions:
+
 ```typescript
 // Add console.log statements to see timezone calculations
 console.log('Timezone conversion:', {
@@ -361,6 +388,7 @@ The **Pacific timezone approach** is maintained as an alternative for cases wher
 The implementation is complete and ready for testing with the live site. All API endpoints have been updated to use the UTC approach by default, and comprehensive tests are available to verify functionality.
 
 **Next Steps:**
+
 1. Test calendar exports on the live site
 2. Verify times are displayed correctly in different calendar applications
 3. Monitor for any remaining timezone issues

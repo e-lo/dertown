@@ -31,11 +31,19 @@ export const GET: APIRoute = async ({ url }) => {
     let filteredEvents = events || [];
 
     if (query) {
-      filteredEvents = filteredEvents.filter(
-        (event) =>
-          event.title.toLowerCase().includes(query.toLowerCase()) ||
-          (event.description && event.description.toLowerCase().includes(query.toLowerCase()))
-      );
+      filteredEvents = filteredEvents.filter((event) => {
+        const queryLower = query.toLowerCase();
+        const titleMatch = event.title && event.title.toLowerCase().includes(queryLower);
+        const descriptionMatch =
+          event.description && event.description.toLowerCase().includes(queryLower);
+        const locationMatch =
+          event.location && event.location.name.toLowerCase().includes(queryLower);
+        const tagMatch =
+          (event.primary_tag && event.primary_tag.name.toLowerCase().includes(queryLower)) ||
+          (event.secondary_tag && event.secondary_tag.name.toLowerCase().includes(queryLower));
+
+        return titleMatch || descriptionMatch || locationMatch || tagMatch;
+      });
     }
 
     if (category) {

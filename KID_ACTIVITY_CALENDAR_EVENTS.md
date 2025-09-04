@@ -252,7 +252,7 @@ PROGRAM (Apple Capital Gymnastics)
 ### **Data Entry Workflow:**
 
 1. Create PROGRAM (e.g., "Apple Capital Gymnastics")
-2. Optionally create SESSION (e.g., "2025-26 School Year") 
+2. Optionally create SESSION (e.g., "2025-26 School Year")
 3. Create CLASS_TYPE (e.g., "Apple Buds") with CLASS_INSTANCE(s) (e.g., "Monday 3-4pm", "Tuesday 3-4pm")
 4. Add events to CLASS_INSTANCE (e.g., "Weekly Practice" recurring event)
 5. Add one-off events (e.g., "Spring Recital")

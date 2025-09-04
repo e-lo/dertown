@@ -7,10 +7,10 @@ import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
 import { db } from '../lib/supabase';
 
 // Fetch all approved events
-const { data: allEvents, error: allEventsError } = await db.events.getCurrentAndFuture();
+const { data: events, error } = await db.events.getCurrentAndFuture();
 
-if (allEventsError) {
-  console.error('Error fetching events:', allEventsError);
+if (error) {
+  console.error('Error fetching events:', error);
 }
 
 // Fetch published announcements
@@ -19,10 +19,6 @@ const { data: announcements, error: announcementsError } = await db.announcement
 if (announcementsError) {
   console.error('Error fetching announcements:', announcementsError);
 }
-
-// Fetch featured events from the current/future set
-const events = allEvents || [];
-const featured = events.filter(e => e.featured);
 ---
 
 <Layout title="Der Town Community Events">

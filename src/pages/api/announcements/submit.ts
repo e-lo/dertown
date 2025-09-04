@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/supabase.ts';
+import { db } from '../../../lib/supabase';
+import type { TablesInsert } from '../../../lib/supabase';
 import { validateAnnouncementForm } from '../../../lib/validation';
 
 export const prerender = false;
@@ -76,8 +77,35 @@ export const POST: APIRoute = async ({ request }) => {
       announcementData.organization_added = formData.organization_added;
     }
 
-    const { error } = await db.announcementsStaged.create(announcementData);
+    // Add logic to handle cases where announcementData is just a generic object
+    const { message, title, author, email } = announcementData as {
+      message: string;
+      title: string;
+      author?: string;
+      email?: string;
+    };
+
+    if (!message || !title) {
+      return new Response(
+        JSON.stringify({
+          error: 'Title and message are required',
+        }),
+        { status: 400 }
+      );
+    }
+
+    const insertData: TablesInsert<'announcements_staged'> = {
+      message,
+      title,
+      author,
+      email,
+      status: 'pending',
+    };
+
+    const { error } = await db.announcementsStaged.create(insertData);
+
     if (error) {
+      console.error('Error inserting announcement:', error);
       return new Response(
         JSON.stringify({ error: 'Database insert failed', details: error.message }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }

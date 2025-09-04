@@ -2,7 +2,6 @@
  * Date and time formatting utilities
  */
 import { createUTCDateTime } from './calendar-utils';
-import type { Tables } from './supabase';
 
 export function formatEventDate(date: string | Date): {
   month: string;
@@ -104,7 +103,18 @@ export function getCategoryBadgeVariant(
  * Transform event data for FullCalendar by combining dates and times
  * and handling cases where end times are not provided
  */
-export function transformEventForCalendar(event: Tables<'public_events'>): {
+export function transformEventForCalendar(event: {
+  id: string;
+  title: string | null;
+  start_date: string | null;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+  description?: string | null;
+  location?: { name: string } | null;
+  primary_tag?: { name: string } | null;
+  [key: string]: any;
+}): {
   id: string;
   title: string;
   description?: string;

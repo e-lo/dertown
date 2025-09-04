@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async (_) => {
   try {
     // Verify authentication using server-side Supabase client
     const {

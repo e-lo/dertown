@@ -41,8 +41,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (staged.organization_added) {
       const { data: newOrg, error: orgError } = await db.organizations.create({
         name: staged.organization_added,
-        status: 'active',
-      } as unknown as { name: string; status: string });
+        status: 'approved',
+      } as any);
       if (orgError) {
         return new Response(JSON.stringify({ error: 'Failed to create new organization' }), {
           status: 500,
@@ -84,10 +84,9 @@ export const POST: APIRoute = async ({ request }) => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+  } catch {
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
     });
   }
 };

@@ -84,6 +84,7 @@ const adultActivities = [
 ## Activity Types
 
 Supported activity types:
+
 - `Sports` - General sports activities
 - `Gymnastics` - Gymnastics and tumbling
 - `Martial Arts` - Martial arts and self-defense
@@ -102,6 +103,7 @@ Supported activity types:
 ## Participation Types
 
 Supported participation types:
+
 - `Recreational` - Casual, non-competitive
 - `Competitive` - Competitive leagues and teams
 - `Tryouts Required` - Requires tryouts or auditions
@@ -117,6 +119,7 @@ Supported participation types:
 ## Seasons
 
 Set the appropriate boolean fields:
+
 - `is_ongoing` - Year-round activities
 - `is_fall` - Fall activities (September-November)
 - `is_winter` - Winter activities (December-February)
@@ -134,6 +137,7 @@ Set the appropriate boolean fields:
 ## Examples
 
 ### Recreational Softball League
+
 ```typescript
 {
   id: 'adult-softball-1',
@@ -158,6 +162,7 @@ Set the appropriate boolean fields:
 ```
 
 ### Pickup Soccer
+
 ```typescript
 {
   id: 'adult-soccer-1',
@@ -179,4 +184,4 @@ Set the appropriate boolean fields:
   children: [],
   is_adult: true
 }
-``` 
+```

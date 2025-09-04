@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../lib/supabase';
+import { supabase, db } from '../../../lib/supabase';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async (_) => {
   try {
     // Verify authentication using server-side Supabase client
     const {
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     }
 
     // Fetch staged announcements using server-side client
-    const { data, error } = await supabase.from('announcements_staged').select('*');
+    const { data, error } = await db.announcementsStaged.getAll();
 
     if (error) {
       console.error('Database error:', error);
