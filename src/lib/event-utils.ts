@@ -1,6 +1,7 @@
 /**
  * Date and time formatting utilities
  */
+import { createUTCDateTime } from './calendar-utils';
 
 export function formatEventDate(date: string | Date): {
   month: string;
@@ -122,22 +123,20 @@ export function transformEventForCalendar(event: {
   end: string | null;
 } {
   // Combine date and time for start
-  let start = event.start_date;
-  if (event.start_time) {
-    start = `${event.start_date}T${event.start_time}`;
-  }
+  const startDateTime = createUTCDateTime(event.start_date, event.start_time || undefined);
 
-  // Combine date and time for end (if both exist)
-  let end = null;
+  // Determine end date and time
+  let endDateTime: Date | null = null;
   if (event.end_date && event.end_time) {
-    end = `${event.end_date}T${event.end_time}`;
+    // Both end_date and end_time specified
+    endDateTime = createUTCDateTime(event.end_date, event.end_time);
   } else if (event.end_date) {
-    end = event.end_date;
+    // Only end_date specified, use end of day for the end date
+    endDateTime = createUTCDateTime(event.end_date, '23:59:59');
   } else if (event.start_time && !event.end_time) {
     // If we have start time but no end time, assume 1 hour duration
-    const startDate = new Date(start);
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
-    end = endDate.toISOString();
+    const endTimeStr = calculateEndTime(event.start_time);
+    endDateTime = createUTCDateTime(event.start_date, endTimeStr);
   }
 
   return {
@@ -146,9 +145,20 @@ export function transformEventForCalendar(event: {
     description: event.description || undefined,
     location: event.location?.name || '',
     category: event.primary_tag?.name || '',
-    start: start,
-    end: end,
+    start: startDateTime.toISOString(),
+    end: endDateTime ? endDateTime.toISOString() : null,
   };
+}
+
+// Helper function to calculate end time for 1-hour duration
+function calculateEndTime(startTime: string): string {
+  const [hours, minutes] = startTime.split(':').map(Number);
+  const date = new Date();
+  date.setUTCHours(hours, minutes, 0, 0);
+  date.setUTCHours(date.getUTCHours() + 1);
+  const endHours = String(date.getUTCHours()).padStart(2, '0');
+  const endMinutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${endHours}:${endMinutes}:00`;
 }
 
 /**
@@ -167,17 +177,20 @@ export function filterFutureEvents(
   end_date: string | null;
   end_time: string | null;
 }[] {
-  const now = new Date();
+  const now = createUTCDateTime(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[1].substring(0, 8));
   return events.filter((e) => {
     if (!e.start_date) return false;
-    const startDate = new Date(e.start_date + (e.start_time ? 'T' + e.start_time : ''));
+    const startDate = createUTCDateTime(e.start_date, e.start_time || undefined);
     // If end_date or end_time exists, use it for comparison
     let endDate: Date | null = null;
-    if (e.end_date) {
-      endDate = new Date(e.end_date + (e.end_time ? 'T' + e.end_time : ''));
-    } else if (e.end_time) {
-      // If only end_time exists, use start_date with end_time
-      endDate = new Date(e.start_date + 'T' + e.end_time);
+    if (e.end_date && e.end_time) {
+      endDate = createUTCDateTime(e.end_date, e.end_time);
+    } else if (e.end_date) {
+      endDate = createUTCDateTime(e.end_date, '23:59:59');
+    } else if (e.start_time) {
+      // If only end_time exists (or derived from start_time), use start_date with calculated end_time
+      const endTimeStr = calculateEndTime(e.start_time);
+      endDate = createUTCDateTime(e.start_date, endTimeStr);
     }
     // Show if event hasn't started yet, or is ongoing (endDate in future)
     if (endDate) {
