@@ -2,6 +2,7 @@
  * Date and time formatting utilities
  */
 import { createUTCDateTime } from './calendar-utils';
+import type { Tables } from './supabase';
 
 export function formatEventDate(date: string | Date): {
   month: string;
@@ -103,17 +104,7 @@ export function getCategoryBadgeVariant(
  * Transform event data for FullCalendar by combining dates and times
  * and handling cases where end times are not provided
  */
-export function transformEventForCalendar(event: {
-  id: string;
-  title: string;
-  description: string | null;
-  start_date: string;
-  start_time: string | null;
-  end_date: string | null;
-  end_time: string | null;
-  location: { name: string } | null;
-  primary_tag: { name: string } | null;
-}): {
+export function transformEventForCalendar(event: Tables<'public_events'>): {
   id: string;
   title: string;
   description?: string;
@@ -121,7 +112,10 @@ export function transformEventForCalendar(event: {
   category: string;
   start: string;
   end: string | null;
-} {
+} | null {
+  if (!event.start_date || !event.title) {
+    return null; // Skip events without a start date or title
+  }
   // Combine date and time for start
   const startDateTime = createUTCDateTime(event.start_date, event.start_time || undefined);
 
@@ -177,7 +171,10 @@ export function filterFutureEvents(
   end_date: string | null;
   end_time: string | null;
 }[] {
-  const now = createUTCDateTime(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[1].substring(0, 8));
+  const now = createUTCDateTime(
+    new Date().toISOString().split('T')[0],
+    new Date().toISOString().split('T')[1].substring(0, 8)
+  );
   return events.filter((e) => {
     if (!e.start_date) return false;
     const startDate = createUTCDateTime(e.start_date, e.start_time || undefined);

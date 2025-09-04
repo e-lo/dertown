@@ -2,6 +2,7 @@
 import { db } from '../lib/supabase';
 import { parseEventTimesUTC } from '../lib/calendar-utils';
 import { getCategoryBadgeVariant } from '../lib/event-utils';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // Fetch all approved events
 const { data: allEvents, error: allEventsError } = await db.events.getCurrentAndFuture();
@@ -18,8 +19,8 @@ const calendarEvents = (allEvents || []).map((event) => {
     return {
       id: event.id,
       title: event.title || 'Untitled Event',
-      start: startDate.toISOString(),
-      end: endDate ? endDate.toISOString() : null,
+      start: formatInTimeZone(startDate, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss"),
+      end: endDate ? formatInTimeZone(endDate, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss") : null,
       url: `/events/${event.id}`,
       allDay: !event.start_time,
       extendedProps: {

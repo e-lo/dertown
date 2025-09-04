@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesUTC, formatDateForICalUTC } from '../../../../lib/calendar-utils.ts';
+import { parseEventTimesUTC, formatDateForICal } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -36,11 +36,29 @@ export const GET: APIRoute = async ({ params }) => {
       'PRODID:-//Der Town//Event Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
+      'BEGIN:VTIMEZONE',
+      'TZID:America/Los_Angeles',
+      'X-LIC-LOCATION:America/Los_Angeles',
+      'BEGIN:DAYLIGHT',
+      'TZOFFSETFROM:-0800',
+      'TZOFFSETTO:-0700',
+      'TZNAME:PDT',
+      'DTSTART:19700308T020000',
+      'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+      'END:DAYLIGHT',
+      'BEGIN:STANDARD',
+      'TZOFFSETFROM:-0700',
+      'TZOFFSETTO:-0800',
+      'TZNAME:PST',
+      'DTSTART:19701101T020000',
+      'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+      'END:STANDARD',
+      'END:VTIMEZONE',
       'BEGIN:VEVENT',
       `UID:${event.id}@dertown.org`,
-      `DTSTAMP:${formatDateForICalUTC(new Date())}`,
-      `DTSTART:${formatDateForICalUTC(startDate)}`,
-      `DTEND:${formatDateForICalUTC(eventEndDate)}`,
+      `DTSTAMP:${formatDateForICal(new Date())}`,
+      `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(startDate)}`,
+      `DTEND;TZID=America/Los_Angeles:${formatDateForICal(eventEndDate)}`,
       `SUMMARY:${(event.title || 'Untitled Event').replace(/\n/g, '\\n')}`,
       event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : '',
       event.location?.name ? `LOCATION:${event.location.name}` : '',
