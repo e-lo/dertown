@@ -16,10 +16,7 @@ const allTags = tagsResult.data || [];
 
 // Get unique tags that are used as either primary or secondary tags
 const usedTagIds = new Set(
-  [
-    ...events.map((event: any) => event.primary_tag_id),
-    ...events.map((event: any) => event.secondary_tag_id),
-  ].filter(Boolean)
+  events.flatMap((event: any) => [event.primary_tag_id, event.secondary_tag_id]).filter(Boolean)
 );
 
 const usedTags = allTags.filter((tag) => usedTagIds.has(tag.id));
@@ -48,14 +45,9 @@ const eventsByTag = events.reduce(
 // Create a map of event IDs to their tag information
 const eventTags = events.reduce(
   (acc, event: any) => {
-    const primaryTag = allTags.find((t) => t.id === event.primary_tag_id);
-    const secondaryTag = event.secondary_tag_id
-      ? allTags.find((t) => t.id === event.secondary_tag_id)
-      : null;
-
     acc[event.id] = {
-      primary: primaryTag?.name || null,
-      secondary: secondaryTag?.name || null,
+      primary: event.primary_tag?.name || null,
+      secondary: event.secondary_tag?.name || null,
     };
     return acc;
   },

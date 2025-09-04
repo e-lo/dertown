@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../../types/database';
 
 const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseAnonKey = import.meta.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const supabaseAnonKey =
+  import.meta.env.SUPABASE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -42,14 +44,16 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Return success response
-    return new Response(JSON.stringify({ 
-      message: 'Login successful',
-      user: data.user 
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        message: 'Login successful',
+        user: data.user,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Login error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -57,4 +61,4 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}; 
+};

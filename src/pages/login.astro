@@ -5,7 +5,9 @@ import { supabase } from '../lib/supabase';
 // Check if user is already logged in
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
-  return Astro.redirect('/admin');
+  // Get the redirect URL from query params or default to /admin
+  const redirectTo = Astro.url.searchParams.get('redirect') || '/admin';
+  return Astro.redirect(redirectTo);
 }
 ---
 <Layout title="Login - Der Town">
@@ -62,7 +64,9 @@ if (session) {
         }
         
         // Redirect to admin page on successful login
-        window.location.href = '/admin';
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTo = urlParams.get('redirect') || '/admin';
+        window.location.href = redirectTo;
       } catch (err) {
         let msg = 'Login failed. Please try again.';
         if (err instanceof Error) msg = err.message;

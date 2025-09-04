@@ -1,45 +1,50 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../types/database';
+import { supabase } from '../../../lib/supabase';
 
-const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
-  // Get the JWT from the Authorization header
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  const token = authHeader.replace('Bearer ', '');
+export const GET: APIRoute = async ({ request, cookies }) => {
+  try {
+    // Verify authentication using server-side Supabase client
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
 
-  // Create a Supabase client with the user's JWT
-  const supabase = createClient<Database>(supabaseUrl, token);
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Check if the user is an admin using the is_admin Postgres function
-  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-  if (adminError || !isAdmin) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Return protected resource
-  return new Response(
-    JSON.stringify({ message: 'You are an admin and can access this resource.' }),
-    {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    if (authError || !session) {
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required. Please log in.',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
-  );
+
+    // Check if the user is an admin using the is_admin Postgres function
+    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+    if (adminError || !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Return protected resource
+    return new Response(
+      JSON.stringify({ message: 'You are an admin and can access this resource.' }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    console.error('Error in protected-example API:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 };

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
+import { parseEventTimesUTC, formatDateForICalUTC } from '../../../lib/calendar-utils.ts';
 
 export const prerender = false;
 
@@ -28,7 +29,7 @@ export const GET: APIRoute = async ({ url }) => {
         }) || [];
     }
 
-    // Generate iCal content
+    // Generate iCal content with UTC timezone
     const icalContent = generateICalContent(
       filteredEvents || [],
       tagNames.length > 0 ? tagNames[0] : null
@@ -82,85 +83,61 @@ function generateICalContent(events: EventData[], tagName?: string | null): stri
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${calendarName}`,
       `X-WR-CALDESC:${calendarDesc}`,
-      'X-WR-TIMEZONE:America/Los_Angeles',
     ].join('\r\n') + '\r\n';
 
   events.forEach((event, index) => {
-    const eventId = `${calendarId}-${index}`;
+    try {
+      const eventId = `${calendarId}-${index}`;
 
-    // Properly construct datetime strings for parsing
-    const startDateTime =
-      event.start_date && event.start_time
-        ? `${event.start_date}T${event.start_time}`
-        : event.start_date
-          ? `${event.start_date}T00:00:00`
-          : null;
+      // Parse event times with UTC timezone handling (recommended approach)
+      const { startDate, endDate } = parseEventTimesUTC(event);
 
-    const endDateTime =
-      event.end_date && event.end_time
-        ? `${event.end_date}T${event.end_time}`
-        : event.end_date
-          ? `${event.end_date}T23:59:59`
-          : null;
+      // Skip events with invalid dates
+      if (!startDate || isNaN(startDate.getTime())) {
+        console.warn(
+          `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
+        );
+        return;
+      }
 
-    // Parse dates safely - treat as Pacific time
-    const startDate = startDateTime ? new Date(startDateTime + '-07:00') : null;
-    const endDate = endDateTime ? new Date(endDateTime + '-07:00') : null;
+      const eventDetailUrl = `${siteUrl}/events/${event.id}`;
+      const externalUrl = event.website ?? eventDetailUrl;
 
-    // Skip events with invalid dates
-    if (!startDate || isNaN(startDate.getTime())) {
-      console.warn(
-        `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
-      );
+      // Compose description with optional learn more link
+      let description = (event.description ?? '').replace(/\n/g, '\\n');
+      if (externalUrl) {
+        // iCal line folding: max 75 octets per line, but for simplicity, just add the link
+        description += `\\nLearn more: ${externalUrl}`;
+      }
+      const location = (event.location?.name ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
+      const title = (event.title ?? 'Untitled Event').replace(/;/g, '\\;').replace(/,/g, '\\,');
+
+      // Determine end date - if no end date/time, default to 1 hour after start
+      const eventEndDate =
+        endDate && !isNaN(endDate.getTime())
+          ? endDate
+          : new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
+
+      ical +=
+        [
+          'BEGIN:VEVENT',
+          `UID:${eventId}`,
+          `DTSTAMP:${formatDateForICalUTC(now)}`,
+          `DTSTART:${formatDateForICalUTC(startDate)}`,
+          `DTEND:${formatDateForICalUTC(eventEndDate)}`,
+          `SUMMARY:${title}`,
+          `DESCRIPTION:${description}`,
+          location ? `LOCATION:${location}` : '',
+          // Always use event detail page for URL (per iCal spec)
+          `URL:${eventDetailUrl}`,
+          'END:VEVENT',
+        ]
+          .filter((line) => line !== '')
+          .join('\r\n') + '\r\n';
+    } catch (error) {
+      console.warn(`Error processing event ${event.id}:`, error);
       return;
     }
-
-    // Format dates for iCal (YYYYMMDDTHHMMSSZ)
-    const formatDate = (date: Date) => {
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(date.getUTCDate()).padStart(2, '0');
-      const hour = String(date.getUTCHours()).padStart(2, '0');
-      const minute = String(date.getUTCMinutes()).padStart(2, '0');
-      const second = String(date.getUTCSeconds()).padStart(2, '0');
-
-      return `${year}${month}${day}T${hour}${minute}${second}Z`;
-    };
-
-    const eventDetailUrl = `${siteUrl}/events/${event.id}`;
-    const externalUrl = event.website ?? eventDetailUrl;
-
-    // Compose description with optional learn more link
-    let description = (event.description ?? '').replace(/\n/g, '\\n');
-    if (externalUrl) {
-      // iCal line folding: max 75 octets per line, but for simplicity, just add the link
-      description += `\\nLearn more: ${externalUrl}`;
-    }
-    const location = (event.location?.name ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
-    const title = (event.title ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
-
-    // Determine end date - if no end date/time, default to 1 hour after start
-    const eventEndDate =
-      endDate && !isNaN(endDate.getTime())
-        ? endDate
-        : new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
-
-    ical +=
-      [
-        'BEGIN:VEVENT',
-        `UID:${eventId}`,
-        `DTSTAMP:${formatDate(now)}`,
-        `DTSTART:${formatDate(startDate)}`,
-        `DTEND:${formatDate(eventEndDate)}`,
-        `SUMMARY:${title}`,
-        `DESCRIPTION:${description}`,
-        location ? `LOCATION:${location}` : '',
-        // Always use event detail page for URL (per iCal spec)
-        `URL:${eventDetailUrl}`,
-        'END:VEVENT',
-      ]
-        .filter((line) => line !== '')
-        .join('\r\n') + '\r\n';
   });
 
   ical += 'END:VCALENDAR\r\n';

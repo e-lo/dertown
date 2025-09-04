@@ -55,6 +55,7 @@ export function initializeCalendar(calendarEl: HTMLElement, initialView: string 
     selectable: false,
     nowIndicator: true,
     scrollTime: '08:00:00',
+    timeZone: 'America/Los_Angeles',
   });
 
   calendar.render();

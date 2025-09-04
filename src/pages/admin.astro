@@ -1,5 +1,17 @@
 ---
 // Server-side logic for admin page
+import { supabase } from '../lib/supabase';
+
+// Check if user is already logged in
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  // Redirect to login with current URL as redirect parameter
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+// Get user info for display
+const user = session.user;
 ---
 
 <style>
@@ -146,8 +158,14 @@
 
 <div class="admin-card">
   <div class="header">
-    <h1>Admin Dashboard</h1>
-    <button onclick="logout()" class="logout-btn"><span>🚪</span> Logout</button>
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p class="text-sm text-gray-600">Welcome, {user.email}</p>
+    </div>
+    <button class="logout-btn" onclick="logout()">
+      <span class="material-symbols-outlined">logout</span>
+      Logout
+    </button>
   </div>
 
   <div id="message"></div>
@@ -166,14 +184,9 @@
 </div>
 
 <script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-  const supabaseUrl = import.meta.env.SUPABASE_URL || 'http://127.0.0.1:54321';
-  const supabaseAnonKey = import.meta.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-  console.log('[ADMIN DEBUG] Supabase URL:', supabaseUrl);
-  console.log('[ADMIN DEBUG] Supabase Anon Key:', supabaseAnonKey);
+  // Secure client-side script - no Supabase credentials exposed
+  // All operations go through server-side API endpoints
+  
   // Message display function
   function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
@@ -208,25 +221,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    let token = null;
-    let user = null;
     try {
-      const { data: sessionData, error } = await supabase.auth.getSession();
-      token = sessionData.session?.access_token;
-      user = sessionData.session?.user;
-      console.log('[ADMIN DEBUG] Supabase session:', sessionData);
-      console.log('[ADMIN DEBUG] Access token:', token);
-      if (!user) {
-        window.location.href = '/login';
-        return;
-      }
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      console.log('[ADMIN DEBUG] Fetching staged events and announcements...');
-      loadStagedEvents();
-      loadStagedAnnouncements();
+      console.log('[ADMIN DEBUG] Loading admin dashboard...');
+      await loadStagedEvents();
+      await loadStagedAnnouncements();
     } catch (err) {
       showMessage('Error loading admin dashboard: ' + err.message, 'error');
       document.getElementById('loading').style.display = 'none';
@@ -236,11 +234,15 @@
     async function loadStagedEvents() {
       try {
         const response = await fetch('/api/admin/events-staged', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // Include cookies for session
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            // Unauthorized - redirect to login
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
@@ -315,11 +317,16 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Include cookies for session
           body: JSON.stringify({ eventId }),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         await response.json();
@@ -337,11 +344,16 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Include cookies for session
           body: JSON.stringify({ eventId, reason }),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         await response.json();
@@ -355,11 +367,15 @@
     async function loadStagedAnnouncements() {
       try {
         const response = await fetch('/api/admin/announcements-staged', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // Include cookies for session
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            // Unauthorized - redirect to login
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
@@ -422,11 +438,16 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Include cookies for session
           body: JSON.stringify({ announcementId }),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         await response.json();
@@ -436,6 +457,7 @@
         showMessage('Error approving announcement: ' + error.message, 'error');
       }
     }
+    
     async function rejectAnnouncement(announcementId) {
       const reason = prompt('Reason for rejection (optional):');
       try {
@@ -443,11 +465,16 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Include cookies for session
           body: JSON.stringify({ announcementId, reason }),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         await response.json();
@@ -463,8 +490,22 @@
     window.approveAnnouncement = approveAnnouncement;
     window.rejectAnnouncement = rejectAnnouncement;
     window.logout = async function() {
-      await supabase.auth.signOut();
-      window.location.href = '/';
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (response.ok) {
+          window.location.href = '/';
+        } else {
+          // Even if logout fails, redirect to home
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        // Redirect anyway
+        window.location.href = '/';
+      }
     };
   });
 </script>

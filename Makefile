@@ -114,7 +114,6 @@ db-local-reset:
 	@echo "[LOCAL] Resetting, migrating, and seeding local database..."
 	supabase db reset
 	make db-local-migrate
-	make db-local-seed
 	@echo "[LOCAL] Local database fully reset, migrated, and seeded."
 
 # Run migrations on local DB only (no data loss)
@@ -123,22 +122,9 @@ db-local-migrate:
 	supabase db push --include-all --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 	@echo "[LOCAL] Local database migrations complete."
 
-# Seed local DB with local/test data (locations, orgs, tags, announcements, and local events with randomized dates)
-db-local-seed:
-	@echo "[LOCAL] Seeding local database with local/test data..."
-	.venv/bin/python3 scripts/seed_local_base.py
-	.venv/bin/python3 scripts/seed_staged_data.py
-	@echo "[LOCAL] Local database seeding complete."
-
 db-local-seed-from-remote:
-	supabase db dump --data-only --schema public > seed_data/db_dump.sql
-	psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f seed_data/db_dump.sql --set ON_ERROR_STOP=off
-
-# Update local events (dates, etc.)
-db-local-update-events:
-	@echo "[LOCAL] Updating local events..."
-	.venv/bin/python3 scripts/update_local_events.py
-	@echo "[LOCAL] Local events updated."
+	supabase db dump --data-only --schema public > backups/db_dump$$timestamp.sql
+	psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f backups/db_dump$$timestamp.sql --set ON_ERROR_STOP=off
 
 # Backup current database state (local)
 db-backup:

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
+import { parseEventTimesUTC, formatDateForICalUTC } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -22,20 +23,13 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response('Event not found', { status: 404 });
     }
 
-    // Format dates for iCal
-    const startDate = new Date(event.start_date + (event.start_time ? 'T' + event.start_time : ''));
-    const endDate = event.end_date
-      ? new Date(event.end_date + (event.end_time ? 'T' + event.end_time : ''))
-      : new Date(startDate.getTime() + 60 * 60 * 1000); // Default 1 hour if no end time
+    // Parse event times with UTC timezone handling (recommended approach)
+    const { startDate, endDate } = parseEventTimesUTC(event);
 
-    const formatDate = (date: Date) => {
-      return date
-        .toISOString()
-        .replace(/[-:]/g, '')
-        .replace(/\.\d{3}/, '');
-    };
+    // If no end time specified, default to 1 hour after start
+    const eventEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
-    // Generate iCal content
+    // Generate iCal content with UTC timezone
     const icalContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -44,10 +38,10 @@ export const GET: APIRoute = async ({ params }) => {
       'METHOD:PUBLISH',
       'BEGIN:VEVENT',
       `UID:${event.id}@dertown.org`,
-      `DTSTAMP:${formatDate(new Date())}`,
-      `DTSTART:${formatDate(startDate)}`,
-      `DTEND:${formatDate(endDate)}`,
-      `SUMMARY:${event.title.replace(/\n/g, '\\n')}`,
+      `DTSTAMP:${formatDateForICalUTC(new Date())}`,
+      `DTSTART:${formatDateForICalUTC(startDate)}`,
+      `DTEND:${formatDateForICalUTC(eventEndDate)}`,
+      `SUMMARY:${(event.title || 'Untitled Event').replace(/\n/g, '\\n')}`,
       event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : '',
       event.location?.name ? `LOCATION:${event.location.name}` : '',
       event.website ? `URL:${event.website}` : '',
@@ -62,7 +56,7 @@ export const GET: APIRoute = async ({ params }) => {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${event.title.replace(/[^a-z0-9]/gi, '_')}.ics"`,
+        'Content-Disposition': `attachment; filename="${(event.title || 'event').replace(/[^a-z0-9]/gi, '_')}.ics"`,
         'Cache-Control': 'no-cache',
       },
     });

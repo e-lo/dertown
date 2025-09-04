@@ -17,42 +17,10 @@ export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseService
 export const db = {
   // Events
   events: {
-    getAll: () =>
-      supabase.from('public_events').select(
-        `
-          *,
-          primary_tag:tags!events_primary_tag_id_fkey(name),
-          secondary_tag:tags!events_secondary_tag_id_fkey(name)
-        `
-      ),
-    getById: (id: string) =>
-      supabase
-        .from('public_events')
-        .select(
-          `
-          *,
-          primary_tag:tags!events_primary_tag_id_fkey(name),
-          secondary_tag:tags!events_secondary_tag_id_fkey(name),
-          location:locations!events_location_id_fkey(name, address),
-          organization:organizations!events_organization_id_fkey(name)
-        `
-        )
-        .eq('id', id)
-        .single(),
+    getAll: () => supabase.from('public_events').select('*'),
+    getById: (id: string) => supabase.from('public_events').select('*').eq('id', id).single(),
     getRelated: (eventId: string, organizationId: string | null, locationId: string | null) => {
-      let query = supabase
-        .from('public_events')
-        .select(
-          `
-          *,
-          primary_tag:tags!events_primary_tag_id_fkey(name),
-          secondary_tag:tags!events_secondary_tag_id_fkey(name),
-          location:locations!events_location_id_fkey(name, address),
-          organization:organizations!events_organization_id_fkey(name)
-        `
-        )
-        .neq('id', eventId)
-        .limit(6);
+      let query = supabase.from('public_events').select('*').neq('id', eventId).limit(6);
 
       if (organizationId) {
         query = query.eq('organization_id', organizationId);
@@ -62,17 +30,7 @@ export const db = {
 
       return query;
     },
-    getFeatured: () =>
-      supabase
-        .from('public_events')
-        .select(
-          `
-          *,
-          primary_tag:tags!events_primary_tag_id_fkey(name),
-          secondary_tag:tags!events_secondary_tag_id_fkey(name)
-        `
-        )
-        .eq('featured', true),
+    getFeatured: () => supabase.from('public_events').select('*').eq('featured', true),
     getCurrentAndFuture: async () => {
       const { data, error } = await supabase
         .from('public_events')
@@ -189,9 +147,8 @@ export const db = {
 
   // Announcements
   announcements: {
-    getPublished: () => supabase.from('public_announcements').select('*'),
-    getById: (id: string) =>
-      supabase.from('public_announcements').select('*').eq('id', id).single(),
+    getPublished: () => supabase.from('announcements').select('*').eq('status', 'published'),
+    getById: (id: string) => supabase.from('announcements').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['announcements']['Insert']) =>
       supabase.from('announcements').insert(data),
     update: (id: string, data: Database['public']['Tables']['announcements']['Update']) =>
