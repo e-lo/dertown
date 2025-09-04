@@ -459,7 +459,7 @@ const initialView = (url.searchParams.get('view') as 'program' | 'schedule') || 
         filters.quickFilters.forEach((filter: { type: string; value: string }) => {
           const { type, value } = filter;
           switch (type) {
-            case 'season':
+            case 'season': {
               if (value === 'ongoing-or-soon') {
                 const twoMonthsFromNow = new Date();
                 twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
@@ -475,7 +475,8 @@ const initialView = (url.searchParams.get('view') as 'program' | 'schedule') || 
                 });
               }
               break;
-            case 'age':
+            }
+            case 'age': {
               const ageRanges: Record<string, { min: number; max: number }> = {
                 'toddlers': { min: 1, max: 3 },
                 'preschool': { min: 3, max: 5 },
@@ -497,6 +498,7 @@ const initialView = (url.searchParams.get('view') as 'program' | 'schedule') || 
                 });
               }
               break;
+            }
           }
         });
       }

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
-import { parseEventTimes } from '../../lib/calendar-utils.ts';
+import { parseEventTimesUTC } from '../../lib/calendar-utils.ts';
 
 export const prerender = false;
 
@@ -61,7 +61,7 @@ function generateRSSContent(events: EventData[]): string {
   events.forEach((event) => {
     try {
       // Parse event times with proper timezone handling
-      const { startDate, endDate } = parseEventTimes(event);
+      const { startDate, endDate } = parseEventTimesUTC(event);
 
       // Skip events with invalid dates
       if (!startDate || isNaN(startDate.getTime())) {

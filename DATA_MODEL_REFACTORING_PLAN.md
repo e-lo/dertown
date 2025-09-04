@@ -221,6 +221,7 @@ const { data: activities } = await supabase
 ```
 
 #### 2.3 Update Frontend Components
+
 ```typescript
 // Update all references from kid_activities to activities
 // Update all references from public_kid_activities to public_activities
@@ -229,6 +230,7 @@ const { data: activities } = await supabase
 ### Phase 3: Enhanced Features
 
 #### 3.1 Add Activity Tags System
+
 ```sql
 -- Create activity_tags table for flexible tagging
 CREATE TABLE activity_tags (
@@ -253,6 +255,7 @@ CREATE INDEX idx_activity_tag_assignments_tag_id ON activity_tag_assignments(tag
 ```
 
 #### 3.2 Add Activity Reviews/Ratings
+
 ```sql
 -- Create activity_reviews table
 CREATE TABLE activity_reviews (
@@ -292,12 +295,14 @@ CREATE INDEX idx_activities_image_id ON activities(image_id);
 ```
 
 ### Step 2: Update Codebase
+
 1. Update all TypeScript types
 2. Update all API endpoints
 3. Update all frontend components
 4. Update all documentation
 
 ### Step 3: Test and Deploy
+
 1. Test all functionality with new schema
 2. Deploy migration
 3. Monitor for any issues
@@ -320,4 +325,4 @@ If we want to do a complete restructure in the future, we could:
 3. **Better Hierarchy** - More flexible parent-child relationships
 4. **Enhanced Metadata** - More sophisticated tagging and categorization
 
-But for now, Option 1 provides the best balance of improvements with minimal risk. 
+But for now, Option 1 provides the best balance of improvements with minimal risk.

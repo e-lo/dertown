@@ -8,7 +8,6 @@ export const GET: APIRoute = async ({ url }) => {
     const participationType = searchParams.get('participation_type');
     const ageRange = searchParams.get('age_range');
     const gradeLevel = searchParams.get('grade_level');
-    const season = searchParams.get('season');
 
     // Build the main query with all necessary joins
     let query = supabase

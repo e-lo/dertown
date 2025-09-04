@@ -51,8 +51,8 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('[APPROVE DEBUG] Creating new location:', stagedEvent.location_added);
       const { data: newLocation, error: locationError } = await db.locations.create({
         name: stagedEvent.location_added,
-        status: 'active',
-      } as unknown as { name: string; status: string });
+        status: 'approved',
+      } as any);
 
       if (locationError) {
         console.error('[APPROVE DEBUG] Location creation error:', locationError);
@@ -76,8 +76,8 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('[APPROVE DEBUG] Creating new organization:', stagedEvent.organization_added);
       const { data: newOrganization, error: orgError } = await db.organizations.create({
         name: stagedEvent.organization_added,
-        status: 'active',
-      } as unknown as { name: string; status: string });
+        status: 'approved',
+      } as any);
 
       if (orgError) {
         console.error('[APPROVE DEBUG] Organization creation error:', orgError);

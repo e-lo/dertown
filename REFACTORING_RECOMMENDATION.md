@@ -15,6 +15,7 @@ After analyzing the current data model, I recommend **Option 1: Rename and Exten
 ### **Key Changes**
 
 #### **Phase 1: Database Changes (Low Risk)**
+
 - ✅ Rename `kid_activities` → `activities`
 - ✅ Rename `public_kid_activities` → `public_activities`
 - ✅ Add new fields: `audience`, `skill_level`, `activity_category`
@@ -22,12 +23,14 @@ After analyzing the current data model, I recommend **Option 1: Rename and Exten
 - ✅ Update RLS policies
 
 #### **Phase 2: Code Updates (Medium Risk)**
+
 - 🔄 Update TypeScript types in `src/types/database.ts`
 - 🔄 Update API endpoints (`src/pages/api/activities.ts`, etc.)
 - 🔄 Update frontend components
 - 🔄 Update documentation
 
 #### **Phase 3: Enhanced Features (Future)**
+
 - 🔮 Activity tags system
 - 🔮 Activity reviews/ratings
 - 🔮 Activity images
@@ -43,11 +46,13 @@ After analyzing the current data model, I recommend **Option 1: Rename and Exten
 ### **Migration Strategy**
 
 #### **Step 1: Create Migration**
+
 ```bash
 # The migration script is ready: supabase/migrations/20250101000000_rename_kid_activities_to_activities.sql
 ```
 
 #### **Step 2: Test Migration**
+
 ```bash
 # Test locally first
 npx supabase db reset
@@ -55,12 +60,14 @@ npx supabase db push
 ```
 
 #### **Step 3: Update Codebase**
+
 1. Update TypeScript types
 2. Update API endpoints
 3. Update frontend components
 4. Test all functionality
 
 #### **Step 4: Deploy**
+
 1. Deploy migration to production
 2. Monitor for issues
 3. Update any remaining references
@@ -68,17 +75,20 @@ npx supabase db push
 ### **New Fields Added**
 
 #### **`audience`** - Target audience
+
 - `'kids'` - Activities specifically for children
 - `'adults'` - Activities specifically for adults
 - `'all_ages'` - Activities for everyone (default)
 
 #### **`skill_level`** - Required skill level
+
 - `'beginner'` - Suitable for beginners
 - `'intermediate'` - Requires some experience
 - `'advanced'` - Requires significant experience
 - `'all_levels'` - Suitable for all skill levels (default)
 
 #### **`activity_category`** - Activity category
+
 - `'sports'` - Sports and athletics
 - `'arts'` - Arts and culture
 - `'education'` - Educational activities
@@ -92,6 +102,7 @@ npx supabase db push
 ### **Example Usage**
 
 #### **Filtering by Audience**
+
 ```sql
 -- Get only adult activities
 SELECT * FROM public_activities WHERE audience = 'adults';
@@ -104,6 +115,7 @@ SELECT * FROM public_activities WHERE audience = 'all_ages';
 ```
 
 #### **Filtering by Skill Level**
+
 ```sql
 -- Get beginner-friendly activities
 SELECT * FROM public_activities WHERE skill_level IN ('beginner', 'all_levels');
@@ -113,6 +125,7 @@ SELECT * FROM public_activities WHERE skill_level = 'advanced';
 ```
 
 #### **Filtering by Category**
+
 ```sql
 -- Get all sports activities
 SELECT * FROM public_activities WHERE activity_category = 'sports';
@@ -147,4 +160,4 @@ But for now, **Option 1 provides the best balance of improvements with minimal r
 3. **Any concerns about the new fields?** - We can adjust the field names or values
 4. **Should we add any other fields?** - We can easily add more fields during migration
 
-The refactoring will make the data model much clearer and more maintainable while preserving all existing functionality! 
+The refactoring will make the data model much clearer and more maintainable while preserving all existing functionality!

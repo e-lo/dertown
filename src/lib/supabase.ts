@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
-import { filterFutureEvents } from './event-utils';
 
 // Decide which Supabase credentials to use
 const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
