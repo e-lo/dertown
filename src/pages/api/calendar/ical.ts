@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/supabase.ts';
-import { parseEventTimesUTC, formatDateForICal } from '../../../lib/calendar-utils.ts';
+import { db } from '../../../lib/supabase';
+import { parseEventTimesPacific, formatDateForICal } from '../../../lib/calendar-utils';
 
 export const prerender = false;
 
@@ -107,11 +107,16 @@ function generateICalContent(events: EventData[], tagName?: string | null): stri
     try {
       const eventId = `${calendarId}-${index}`;
 
-      // Parse event times with UTC timezone handling (recommended approach)
-      const { startDate, endDate } = parseEventTimesUTC(event);
+      // Parse event times as Pacific date-time strings
+      const { startDate, endDate } = parseEventTimesPacific(event);
+      const eventEndDate =
+        endDate ||
+        new Date(new Date(startDate).getTime() + 60 * 60 * 1000)
+          .toISOString()
+          .replace(/\\.\\d+Z$/, 'Z');
 
       // Skip events with invalid dates
-      if (!startDate || isNaN(startDate.getTime())) {
+      if (!startDate || isNaN(new Date(startDate).getTime())) {
         console.warn(
           `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
         );
@@ -130,19 +135,13 @@ function generateICalContent(events: EventData[], tagName?: string | null): stri
       const location = (event.location?.name ?? '').replace(/;/g, '\\;').replace(/,/g, '\\,');
       const title = (event.title ?? 'Untitled Event').replace(/;/g, '\\;').replace(/,/g, '\\,');
 
-      // Determine end date - if no end date/time, default to 1 hour after start
-      const eventEndDate =
-        endDate && !isNaN(endDate.getTime())
-          ? endDate
-          : new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
-
       ical +=
         [
           'BEGIN:VEVENT',
           `UID:${eventId}`,
-          `DTSTAMP:${formatDateForICal(now)}`,
-          `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(startDate)}`,
-          `DTEND;TZID=America/Los_Angeles:${formatDateForICal(eventEndDate)}`,
+          `DTSTAMP:${formatDateForICal(new Date())}`,
+          `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(new Date(startDate))}`,
+          `DTEND;TZID=America/Los_Angeles:${formatDateForICal(new Date(eventEndDate))}`,
           `SUMMARY:${title}`,
           `DESCRIPTION:${description}`,
           location ? `LOCATION:${location}` : '',
