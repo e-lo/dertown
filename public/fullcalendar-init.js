@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const calendar = new window.FullCalendar.Calendar(calendarEl, {
       initialView,
       headerToolbar,
+      timeZone: 'America/Los_Angeles',
       // Height management using FullCalendar's built-in controls
       height: initialHeight, // Use the calculated height for all views initially
       contentHeight: 'auto', // Let content determine height

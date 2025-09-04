@@ -12,8 +12,6 @@ const [eventsResult, tagsResult] = await Promise.all([db.events.getCurrentAndFut
 const events = eventsResult.data || [];
 const allTags = tagsResult.data || [];
 
-
-
 // Get unique tags that are used as either primary or secondary tags
 const usedTagIds = new Set(
   events.flatMap((event: any) => [event.primary_tag_id, event.secondary_tag_id]).filter(Boolean)

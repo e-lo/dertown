@@ -2,13 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 import { filterFutureEvents } from './event-utils';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseAnonKey =
-  import.meta.env.PUBLIC_SUPABASE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-const supabaseServiceKey =
-  import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+// Decide which Supabase credentials to use
+const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
+
+const supabaseUrl = useLocalDb ? 'http://127.0.0.1:54321' : import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = useLocalDb
+  ? 'eyJhbGciOiJIJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+  : import.meta.env.PUBLIC_SUPABASE_KEY;
+const supabaseServiceKey = useLocalDb
+  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+  : import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
@@ -136,7 +139,7 @@ export const db = {
 
   // Tags
   tags: {
-    getAll: () => supabaseAdmin.from('tags').select('*'),
+    getAll: () => supabase.from('tags').select('*'),
     getById: (id: string) => supabaseAdmin.from('tags').select('*').eq('id', id).single(),
     create: (data: Database['public']['Tables']['tags']['Insert']) =>
       supabaseAdmin.from('tags').insert(data),

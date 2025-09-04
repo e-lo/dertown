@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesUTC, formatDateForGoogleUTC } from '../../../../lib/calendar-utils.ts';
+import { parseEventTimesUTC, formatDateForGoogle } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -35,8 +35,9 @@ export const GET: APIRoute = async ({ params }) => {
     googleCalendarUrl.searchParams.set('text', event.title || 'Untitled Event');
     googleCalendarUrl.searchParams.set(
       'dates',
-      `${formatDateForGoogleUTC(startDate)}/${formatDateForGoogleUTC(eventEndDate)}`
+      `${formatDateForGoogle(startDate)}/${formatDateForGoogle(eventEndDate)}`
     );
+    googleCalendarUrl.searchParams.set('ctz', 'America/Los_Angeles');
 
     if (event.description) {
       googleCalendarUrl.searchParams.set('details', event.description);

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesUTC, formatDateForOutlookUTC } from '../../../../lib/calendar-utils.ts';
+import { parseEventTimesUTC, formatDateForOutlook } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -32,8 +32,8 @@ export const GET: APIRoute = async ({ params }) => {
     // Build Outlook Calendar URL
     const outlookCalendarUrl = new URL('https://outlook.live.com/calendar/0/deeplink/compose');
     outlookCalendarUrl.searchParams.set('subject', event.title || 'Untitled Event');
-    outlookCalendarUrl.searchParams.set('startdt', formatDateForOutlookUTC(startDate));
-    outlookCalendarUrl.searchParams.set('enddt', formatDateForOutlookUTC(eventEndDate));
+    outlookCalendarUrl.searchParams.set('startdt', formatDateForOutlook(startDate));
+    outlookCalendarUrl.searchParams.set('enddt', formatDateForOutlook(eventEndDate));
 
     if (event.description) {
       outlookCalendarUrl.searchParams.set('body', event.description);
