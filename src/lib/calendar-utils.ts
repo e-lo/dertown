@@ -9,6 +9,8 @@
 // - UTC-based timezone handling (recommended)
 // - Pacific timezone handling with DST support (alternative)
 
+import { toZonedTime } from 'date-fns-tz';
+
 // ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
@@ -46,10 +48,12 @@ export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
   const time = timeStr || '00:00:00';
 
   // The date and time strings represent times in Pacific timezone
-  // Since the user is in Pacific timezone, we just create the Date object
-  // and it will automatically represent the correct Pacific time
-  const dateTimeStr = `${dateStr}T${time}`;
-  return new Date(dateTimeStr);
+  // Convert Pacific time string to a Date object representing that time in 'America/Los_Angeles'
+  const pacificDate = toZonedTime(`${dateStr}T${time}`, 'America/Los_Angeles');
+  // toZonedTime returns a Date object with its internal UTC timestamp set to the equivalent wall-clock time in the target timezone.
+  // Since we want a UTC Date object that represents the *same moment in time* as the Pacific wall-clock time,
+  // we can simply return the result of toZonedTime, as JavaScript Date objects are inherently UTC.
+  return pacificDate;
 }
 
 /**
@@ -379,13 +383,9 @@ export function generateEventsFromPatterns(
 
         if (!isCancelled) {
           // Create event for this date
-          const eventStart = new Date(currentDate);
-          const [startHour, startMinute] = pattern.start_time.split(':').map(Number);
-          eventStart.setHours(startHour, startMinute, 0, 0);
-
-          const eventEnd = new Date(currentDate);
-          const [endHour, endMinute] = pattern.end_time.split(':').map(Number);
-          eventEnd.setHours(endHour, endMinute, 0, 0);
+          const dateStr = currentDate.toISOString().split('T')[0]; // Get YYYY-MM-DD from the UTC date
+          const eventStart = createUTCDateTime(dateStr, pattern.start_time);
+          const eventEnd = createUTCDateTime(dateStr, pattern.end_time);
 
           events.push({
             id: `${pattern.pattern_id}-${currentDate.toISOString().split('T')[0]}`,
@@ -408,13 +408,8 @@ export function generateEventsFromPatterns(
   // Add one-time exceptions as events
   exceptions.forEach((exception) => {
     if (exception.start_time && exception.end_time) {
-      const eventStart = new Date(exception.start_date);
-      const [startHour, startMinute] = exception.start_time.split(':').map(Number);
-      eventStart.setHours(startHour, startMinute, 0, 0);
-
-      const eventEnd = new Date(exception.end_date);
-      const [endHour, endMinute] = exception.end_time.split(':').map(Number);
-      eventEnd.setHours(endHour, endMinute, 0, 0);
+      const eventStart = createUTCDateTime(exception.start_date, exception.start_time);
+      const eventEnd = createUTCDateTime(exception.end_date, exception.end_time);
 
       events.push({
         id: `exception-${exception.exception_id}`,

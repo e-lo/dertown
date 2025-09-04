@@ -17,6 +17,7 @@ This document outlines the comprehensive solution implemented to fix timezone is
 2. **JavaScript Date objects** don't store timezone information (always UTC internally)
 3. **DST calculations** were complex and unreliable
 4. **Mixed timezone approaches** across different export functions
+5. **The `createUTCDateTime` function was not correctly converting local Pacific time to UTC, leading to shifted times in FullCalendar and other integrations expecting UTC.**
 
 ## Solution Architecture
 
@@ -24,15 +25,28 @@ This document outlines the comprehensive solution implemented to fix timezone is
 
 **Benefits:**
 - ✅ Simple and reliable
-- ✅ No DST calculations needed
+- ✅ No DST calculations needed (handled by `date-fns-tz`)
 - ✅ Consistent across all export formats
 - ✅ Better performance
 - ✅ Calendar applications handle timezone conversion automatically
 
 **Implementation:**
 ```typescript
-// Create UTC dates
-export function createUTCDateTime(dateStr: string, timeStr?: string): Date
+// Create UTC dates using date-fns-tz
+import { toZonedTime } from 'date-fns-tz';
+
+export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
+  if (!dateStr) {
+    throw new Error('Date string is required');
+  }
+  const dateTimeStr = `${dateStr}T${timeStr || '00:00:00'}`;
+  // Convert Pacific time string to a Date object representing that time in 'America/Los_Angeles'
+  const pacificDate = toZonedTime(dateTimeStr, 'America/Los_Angeles');
+  // toZonedTime returns a Date object with its internal UTC timestamp set to the equivalent wall-clock time in the target timezone.
+  // Since we want a UTC Date object that represents the *same moment in time* as the Pacific wall-clock time,
+  // we can simply return the result of toZonedTime, as JavaScript Date objects are inherently UTC.
+  return pacificDate;
+}
 
 // Parse events to UTC
 export function parseEventTimesUTC(event: EventData)
@@ -45,15 +59,18 @@ export function formatDateForOutlookUTC(date: Date): string
 
 **How it works:**
 1. **Input**: Date string (e.g., "2024-01-15") + Time string (e.g., "14:00:00")
-2. **Processing**: Converts local time to UTC by adding timezone offset
-3. **Output**: UTC Date object that can be formatted consistently
-4. **Result**: All exports show the same UTC time, calendar apps convert to user's timezone
+2. **Processing**: Uses `date-fns-tz`'s `toZonedTime` to interpret the local time string in the 'America/Los_Angeles' timezone and create a corresponding JavaScript Date object, which is inherently UTC.
+3. **Output**: UTC Date object that can be formatted consistently.
+4. **Result**: All exports show the same UTC time, calendar apps convert to user's timezone.
+
+### Integration of `date-fns-tz`
+To ensure robust and accurate timezone handling, especially with Daylight Saving Time (DST) changes, the `date-fns-tz` library will be integrated. This library leverages the IANA Time Zone Database, providing a reliable way to convert between timezones without manual, error-prone calculations.
 
 ### 2. Pacific Timezone Approach (ALTERNATIVE)
 
 **Benefits:**
 - ✅ Users see times in Pacific timezone
-- ✅ Maintains local time representation
+- ✅ Maintains local time representation (managed by `date-fns-tz` for accuracy)
 - ✅ Supports TZID in iCal exports
 
 **Drawbacks:**
@@ -101,16 +118,21 @@ All calendar export APIs now use the **UTC approach by default**:
 
 ### Timezone Conversion Logic
 
-#### UTC Approach
+#### UTC Approach (Revised with `date-fns-tz`)
 ```typescript
+import { toZonedTime } from 'date-fns-tz';
+
 export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
+  if (!dateStr) {
+    throw new Error('Date string is required');
+  }
   const dateTimeStr = `${dateStr}T${timeStr || '00:00:00'}`;
-  const localDate = new Date(dateTimeStr);
-  
-  // Convert to UTC by adding the timezone offset
-  const utcDate = new Date(localDate.getTime() + (localDate.getTimezoneOffset() * 60 * 1000));
-  
-  return utcDate;
+  // Convert Pacific time string to a Date object representing that time in 'America/Los_Angeles'
+  const pacificDate = toZonedTime(dateTimeStr, 'America/Los_Angeles');
+  // toZonedTime returns a Date object with its internal UTC timestamp set to the equivalent wall-clock time in the target timezone.
+  // Since we want a UTC Date object that represents the *same moment in time* as the Pacific wall-clock time,
+  // we can simply return the result of toZonedTime, as JavaScript Date objects are inherently UTC.
+  return pacificDate;
 }
 ```
 
@@ -229,37 +251,43 @@ quickTest();
 
 ### For Existing Code
 
-1. **Update imports** to use UTC functions:
+1. **Install `date-fns-tz`**:
+   ```bash
+   npm install date-fns-tz date-fns # date-fns is a peer dependency
+   ```
+2. **Update imports** to use UTC functions and `date-fns-tz` for `createUTCDateTime`:
    ```typescript
    // Before
    import { parseEventTimes, formatDateForGoogle } from './calendar-utils';
    
    // After
-   import { parseEventTimesUTC, formatDateForGoogleUTC } from './calendar-utils';
+   import { toZonedTime } from 'date-fns-tz';
+   import { parseEventTimesUTC, formatDateForGoogleUTC, createUTCDateTime } from './calendar-utils';
    ```
 
-2. **Update function calls**:
+3. **Update function calls** (e.g., ensure `createUTCDateTime` is used where appropriate):
    ```typescript
    // Before
    const { startDate, endDate } = parseEventTimes(event);
    const formatted = formatDateForGoogle(startDate);
    
    // After
-   const { startDate, endDate } = parseEventTimesUTC(event);
+   const { startDate, endDate } = parseEventTimesUTC(event); // This will now use the date-fns-tz enhanced createUTCDateTime
    const formatted = formatDateForGoogleUTC(startDate);
    ```
 
-3. **Remove timezone headers** from iCal exports (no longer needed with UTC)
+4. **Remove timezone headers** from iCal exports (no longer needed with UTC)
 
 ### For New Code
 
-Use the UTC approach by default:
+Use the UTC approach by default, leveraging `date-fns-tz` for date creation:
 ```typescript
 import { 
   createUTCDateTime, 
   parseEventTimesUTC, 
   formatDateForICalUTC 
 } from './calendar-utils';
+import { toZonedTime } from 'date-fns-tz'; // Explicit import for clarity, though createUTCDateTime handles it internally
 
 // Create UTC date
 const utcDate = createUTCDateTime('2024-01-15', '14:00:00');
@@ -278,14 +306,15 @@ const icalFormat = formatDateForICalUTC(startDate);
 1. **Times still showing incorrectly**
    - Ensure you're using the UTC functions (`parseEventTimesUTC`, `formatDateForICalUTC`)
    - Check that calendar apps are set to your timezone
+   - **Verify `date-fns-tz` is correctly installed and its functions are being used as expected in `createUTCDateTime`.**
 
 2. **Build errors**
-   - Verify all imports are updated to use UTC functions
-   - Check that the calendar-utils.ts file is properly exported
+   - Verify all imports are updated to use UTC functions and `date-fns-tz` imports.
+   - Check that the `calendar-utils.ts` file is properly exported.
 
 3. **Performance issues**
-   - Use UTC approach for better performance
-   - Avoid Pacific timezone approach for high-volume exports
+   - Use UTC approach for better performance (now enhanced by `date-fns-tz`).
+   - Avoid Pacific timezone approach for high-volume exports.
 
 ### Debug Mode
 
@@ -319,13 +348,13 @@ console.log('Timezone conversion:', {
 
 The **UTC approach is recommended** for all calendar exports because it:
 
-- ✅ **Solves the timezone issues** completely
+- ✅ **Solves the timezone issues** completely (now with `date-fns-tz` for reliability)
 - ✅ **Provides consistent behavior** across all export formats
 - ✅ **Offers better performance** and reliability
 - ✅ **Eliminates DST complexity** and potential errors
 - ✅ **Follows industry standards** for calendar data
 
-The **Pacific timezone approach** is maintained as an alternative for cases where local timezone representation is specifically required, but it comes with increased complexity and potential for errors.
+The **Pacific timezone approach** is maintained as an alternative for cases where local timezone representation is specifically required, but it comes with increased complexity and potential for errors. The use of `date-fns-tz` will also enhance the accuracy of this approach if it is ever revisited or explicitly needed.
 
 ## Ready for Testing
 
