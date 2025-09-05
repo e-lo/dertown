@@ -9,7 +9,7 @@
 // - UTC-based timezone handling (recommended)
 // - Pacific timezone handling with DST support (alternative)
 
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -47,13 +47,10 @@ export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
   // If no time specified, default to start of day
   const time = timeStr || '00:00:00';
 
-  // The date and time strings represent times in Pacific timezone
-  // Convert Pacific time string to a Date object representing that time in 'America/Los_Angeles'
-  const pacificDate = toZonedTime(`${dateStr}T${time}`, 'America/Los_Angeles');
-  // toZonedTime returns a Date object with its internal UTC timestamp set to the equivalent wall-clock time in the target timezone.
-  // Since we want a UTC Date object that represents the *same moment in time* as the Pacific wall-clock time,
-  // we can simply return the result of toZonedTime, as JavaScript Date objects are inherently UTC.
-  return pacificDate;
+  // Use toDate to interpret the string as a wall-clock time in a specific timezone.
+  // This creates a Date object with the correct underlying UTC timestamp,
+  // regardless of the server's local timezone. This is the correct, robust solution.
+  return toDate(`${dateStr}T${time}`, { timeZone: 'America/Los_Angeles' });
 }
 
 /**
