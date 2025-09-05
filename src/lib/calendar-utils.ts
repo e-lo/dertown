@@ -9,7 +9,8 @@
 // - UTC-based timezone handling (recommended)
 // - Pacific timezone handling with DST support (alternative)
 
-import { toDate, formatInTimeZone } from 'date-fns-tz';
+import { TZDate, tz } from '@date-fns/tz';
+import { format } from 'date-fns';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -47,10 +48,22 @@ export function createUTCDateTime(dateStr: string, timeStr?: string): Date {
   // If no time specified, default to start of day
   const time = timeStr || '00:00:00';
 
-  // Use toDate to interpret the string as a wall-clock time in a specific timezone.
-  // This creates a Date object with the correct underlying UTC timestamp,
-  // regardless of the server's local timezone. This is the correct, robust solution.
-  return toDate(`${dateStr}T${time}`, { timeZone: 'America/Los_Angeles' });
+  // Parse the date string into components
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes, seconds] = time.split(':').map(Number);
+
+  // Create a TZDate in Pacific timezone using individual components
+  const pacificDate = new TZDate(
+    year,
+    month - 1, // months are 0-indexed in TZDate
+    day,
+    hours,
+    minutes,
+    seconds,
+    'America/Los_Angeles'
+  );
+  // Convert to a regular Date object representing the same moment in UTC
+  return new Date(pacificDate.getTime());
 }
 
 /**
@@ -96,8 +109,8 @@ export function parseEventTimesUTC(event: EventData): {
  * @returns Formatted string for iCal
  */
 export function formatDateForICal(date: Date): string {
-  // Use formatInTimeZone to get the correct Pacific time string
-  return formatInTimeZone(date, 'America/Los_Angeles', "yyyyMMdd'T'HHmmss");
+  // Use format with timezone context
+  return format(date, "yyyyMMdd'T'HHmmss", { in: tz('America/Los_Angeles') });
 }
 
 /**
@@ -106,8 +119,8 @@ export function formatDateForICal(date: Date): string {
  * @returns Formatted string for Google Calendar
  */
 export function formatDateForGoogle(date: Date): string {
-  // Use formatInTimeZone to get the correct Pacific time string
-  return formatInTimeZone(date, 'America/Los_Angeles', "yyyyMMdd'T'HHmmss");
+  // Use format with timezone context
+  return format(date, "yyyyMMdd'T'HHmmss", { in: tz('America/Los_Angeles') });
 }
 
 /**
@@ -116,8 +129,8 @@ export function formatDateForGoogle(date: Date): string {
  * @returns ISO string for Outlook
  */
 export function formatDateForOutlook(date: Date): string {
-  // Use formatInTimeZone to get the correct Pacific time string with timezone offset
-  return formatInTimeZone(date, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+  // Use format with timezone context
+  return format(date, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", { in: tz('America/Los_Angeles') });
 }
 
 // ============================================================================
@@ -128,21 +141,24 @@ export function formatDateForOutlook(date: Date): string {
  * Formats a Date object as a UTC string for Google Calendar (YYYYMMDDTHHMMSSZ).
  */
 export function formatDateForGoogleUTC(date: Date): string {
-  return formatInTimeZone(date, 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+  // Use format with UTC timezone context
+  return format(date, "yyyyMMdd'T'HHmmss'Z'", { in: tz('UTC') });
 }
 
 /**
  * Formats a Date object as a UTC string for iCal (YYYYMMDDTHHMMSSZ).
  */
 export function formatDateForICalUTC(date: Date): string {
-  return formatInTimeZone(date, 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+  // Use format with UTC timezone context
+  return format(date, "yyyyMMdd'T'HHmmss'Z'", { in: tz('UTC') });
 }
 
 /**
  * Formats a Date object as a UTC ISO string for Outlook (YYYY-MM-DDTHH:mm:ssZ).
  */
 export function formatDateForOutlookUTC(date: Date): string {
-  return formatInTimeZone(date, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'");
+  // Use format with UTC timezone context
+  return format(date, "yyyy-MM-dd'T'HH:mm:ss'Z'", { in: tz('UTC') });
 }
 
 // ============================================================================
