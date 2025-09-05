@@ -86,7 +86,9 @@ validate-all:
 	npx eslint src/ --ext .js,.ts
 	@echo "3. Prettier check..."
 	npx prettier --check src/
-	@echo "4. Build test..."
+	@echo "4. Timezone logic test..."
+	npm run test:timezone
+	@echo "5. Build test..."
 	npx astro build
 	@echo "All validations passed!"
 

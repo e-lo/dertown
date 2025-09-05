@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "start": "astro dev",
     "build": "astro build",
     "build:validate": "npm run validate-theme-colors && astro build",
     "preview": "astro preview",
@@ -12,6 +13,7 @@
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
     "test": "echo 'No tests yet'",
+    "test:timezone": "tsx scripts/validate_timezone.mjs",
     "validate-theme-colors": "node --loader ts-node/esm scripts/validate_theme_colors.ts",
     "setup-env": "echo 'Create .env.local with: SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_ANON_KEY=your-key'"
   },
@@ -51,6 +53,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.5.3",
     "prettier-plugin-astro": "^0.14.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5"
   }
 }
