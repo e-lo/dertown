@@ -1,6 +1,10 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesPacific, formatDateForICal } from '../../../../lib/calendar-utils.ts';
+import {
+  parseEventTimesUTC,
+  formatDateForICal,
+  formatDateForICalUTC,
+} from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -23,15 +27,11 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response('Event not found', { status: 404 });
     }
 
-    // Parse event times as Pacific date-time strings
-    const { startDate, endDate } = parseEventTimesPacific(event);
+    // Parse event times with UTC timezone handling
+    const { startDate, endDate } = parseEventTimesUTC(event);
 
     // If no end time specified, default to 1 hour after start
-    const eventEndDate =
-      endDate ||
-      new Date(new Date(startDate).getTime() + 60 * 60 * 1000)
-        .toISOString()
-        .replace(/\\.\\d+Z$/, 'Z');
+    const eventEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
     // Generate iCal content with UTC timezone
     const icalContent = [
@@ -59,13 +59,13 @@ export const GET: APIRoute = async ({ params }) => {
       'END:STANDARD',
       'END:VTIMEZONE',
       'BEGIN:VEVENT',
-      `UID:${event.id}@dertown.com`,
-      `DTSTAMP:${formatDateForICal(new Date())}`,
-      `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(new Date(startDate))}`,
-      `DTEND;TZID=America/Los_Angeles:${formatDateForICal(new Date(eventEndDate))}`,
       `SUMMARY:${event.title || 'Untitled Event'}`,
+      `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(startDate)}`,
+      `DTEND;TZID=America/Los_Angeles:${formatDateForICal(eventEndDate)}`,
+      `DTSTAMP:${formatDateForICalUTC(new Date())}`,
+      `UID:${event.id}@dertown.com`,
+      `LOCATION:${event.location?.name || ''}`,
       event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : '',
-      event.location?.name ? `LOCATION:${event.location.name}` : '',
       event.website ? `URL:${event.website}` : '',
       'END:VEVENT',
       'END:VCALENDAR',

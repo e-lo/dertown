@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesPacific, formatDateForGoogle } from '../../../../lib/calendar-utils.ts';
+import { parseEventTimesUTC, formatDateForGoogleUTC } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -23,15 +23,11 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response('Event not found', { status: 404 });
     }
 
-    // Parse event times as Pacific date-time strings
-    const { startDate, endDate } = parseEventTimesPacific(event);
+    // Parse event times with UTC timezone handling
+    const { startDate, endDate } = parseEventTimesUTC(event);
 
     // If no end time specified, default to 1 hour after start
-    const eventEndDate =
-      endDate ||
-      new Date(new Date(startDate).getTime() + 60 * 60 * 1000)
-        .toISOString()
-        .replace(/\\.\\d+Z$/, 'Z');
+    const eventEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
     // Build Google Calendar URL
     const googleCalendarUrl = new URL('https://calendar.google.com/calendar/render');
@@ -39,7 +35,7 @@ export const GET: APIRoute = async ({ params }) => {
     googleCalendarUrl.searchParams.set('text', event.title || 'Untitled Event');
     googleCalendarUrl.searchParams.set(
       'dates',
-      `${formatDateForGoogle(new Date(startDate))}/${formatDateForGoogle(new Date(eventEndDate))}`
+      `${formatDateForGoogleUTC(startDate)}/${formatDateForGoogleUTC(eventEndDate)}`
     );
     googleCalendarUrl.searchParams.set('ctz', 'America/Los_Angeles');
 

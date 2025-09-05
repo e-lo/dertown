@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
-import { parseEventTimesPacific } from '../../lib/calendar-utils.ts';
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { parseEventTimesUTC } from '../../lib/calendar-utils.ts';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const prerender = false;
 
@@ -61,14 +61,11 @@ function generateRSSContent(events: EventData[]): string {
 
   events.forEach((event) => {
     try {
-      // Parse event times as Pacific date-time strings
-      const { startDate, endDate } = parseEventTimesPacific(event);
-
-      // Create Date objects correctly interpreted in Pacific Time
-      const pacificStartDate = toDate(startDate, { timeZone: 'America/Los_Angeles' });
+      // Parse event times with proper timezone handling
+      const { startDate, endDate } = parseEventTimesUTC(event);
 
       // Skip events with invalid dates
-      if (!pacificStartDate || isNaN(pacificStartDate.getTime())) {
+      if (!startDate || isNaN(startDate.getTime())) {
         console.warn(
           `Skipping event ${event.id} with invalid start date: ${event.start_date} ${event.start_time}`
         );
@@ -92,29 +89,22 @@ function generateRSSContent(events: EventData[]): string {
 
       // Format dates for display in Pacific Time
       const startDateFormatted = formatInTimeZone(
-        pacificStartDate,
+        startDate,
         'America/Los_Angeles',
         'eeee, MMMM d, yyyy'
       );
 
       const startTimeFormatted = event.start_time
-        ? formatInTimeZone(pacificStartDate, 'America/Los_Angeles', 'h:mm a')
+        ? formatInTimeZone(startDate, 'America/Los_Angeles', 'h:mm a')
         : 'All day';
 
       let endDateFormatted = null;
       let endTimeFormatted = null;
 
-      if (endDate) {
-        const pacificEndDate = toDate(endDate, { timeZone: 'America/Los_Angeles' });
-        if (pacificEndDate && !isNaN(pacificEndDate.getTime())) {
-          endDateFormatted = formatInTimeZone(
-            pacificEndDate,
-            'America/Los_Angeles',
-            'eeee, MMMM d, yyyy'
-          );
-          if (event.end_time) {
-            endTimeFormatted = formatInTimeZone(pacificEndDate, 'America/Los_Angeles', 'h:mm a');
-          }
+      if (endDate && !isNaN(endDate.getTime())) {
+        endDateFormatted = formatInTimeZone(endDate, 'America/Los_Angeles', 'eeee, MMMM d, yyyy');
+        if (event.end_time) {
+          endTimeFormatted = formatInTimeZone(endDate, 'America/Los_Angeles', 'h:mm a');
         }
       }
 
@@ -132,7 +122,7 @@ function generateRSSContent(events: EventData[]): string {
       <title>${title}</title>
       <link>${event.website ?? `${siteUrl}/events/${event.id}`}</link>
       <guid>${event.id}</guid>
-      <pubDate>${pacificStartDate.toUTCString()}</pubDate>
+      <pubDate>${startDate.toUTCString()}</pubDate>
       <description><![CDATA[${fullDescription}]]></description>
     </item>
 `;

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/supabase.ts';
-import { parseEventTimesPacific, formatDateForOutlook } from '../../../../lib/calendar-utils.ts';
+import { parseEventTimesUTC, formatDateForOutlookUTC } from '../../../../lib/calendar-utils.ts';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -23,21 +23,17 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response('Event not found', { status: 404 });
     }
 
-    // Parse event times as Pacific date-time strings
-    const { startDate, endDate } = parseEventTimesPacific(event);
+    // Parse event times with UTC timezone handling
+    const { startDate, endDate } = parseEventTimesUTC(event);
 
     // If no end time specified, default to 1 hour after start
-    const eventEndDate =
-      endDate ||
-      new Date(new Date(startDate).getTime() + 60 * 60 * 1000)
-        .toISOString()
-        .replace(/\\.\\d+Z$/, 'Z');
+    const eventEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
     // Build Outlook Calendar URL
     const outlookCalendarUrl = new URL('https://outlook.live.com/calendar/0/deeplink/compose');
     outlookCalendarUrl.searchParams.set('subject', event.title || 'Untitled Event');
-    outlookCalendarUrl.searchParams.set('startdt', formatDateForOutlook(new Date(startDate)));
-    outlookCalendarUrl.searchParams.set('enddt', formatDateForOutlook(new Date(eventEndDate)));
+    outlookCalendarUrl.searchParams.set('startdt', formatDateForOutlookUTC(startDate));
+    outlookCalendarUrl.searchParams.set('enddt', formatDateForOutlookUTC(eventEndDate));
 
     if (event.description) {
       outlookCalendarUrl.searchParams.set('body', event.description);

@@ -90,51 +90,6 @@ export function parseEventTimesUTC(event: EventData): {
 }
 
 // ============================================================================
-// TIMEZONE HANDLING - PACIFIC TIME APPROACH (SIMPLIFIED)
-// ============================================================================
-
-/**
- * Creates a string representation of a Pacific date and time.
- * @param dateStr - Date string (YYYY-MM-DD)
- * @param timeStr - Time string (HH:MM:SS or HH:MM)
- * @returns A string like "YYYY-MM-DDTHH:MM:SS"
- */
-function createPacificDateTimeString(dateStr: string, timeStr?: string): string {
-  if (!dateStr) {
-    throw new Error('Date string is required');
-  }
-  const time = timeStr || '00:00:00';
-  return `${dateStr}T${time}`;
-}
-
-/**
- * Parse event start and end times as Pacific date-time strings.
- * @param event - Event data
- * @returns Object with startDate and endDate as strings
- */
-export function parseEventTimesPacific(event: EventData): {
-  startDate: string;
-  endDate: string | null;
-} {
-  if (!event.start_date) {
-    throw new Error('Event start date is required');
-  }
-
-  const startDate = createPacificDateTimeString(event.start_date, event.start_time || undefined);
-  let endDate: string | null = null;
-
-  if (event.end_date && event.end_time) {
-    endDate = createPacificDateTimeString(event.end_date, event.end_time);
-  } else if (event.end_time) {
-    endDate = createPacificDateTimeString(event.start_date, event.end_time);
-  } else if (event.end_date) {
-    endDate = createPacificDateTimeString(event.end_date, '23:59:59');
-  }
-
-  return { startDate, endDate };
-}
-
-// ============================================================================
 // DATE FORMATTING FUNCTIONS - PACIFIC TIMEZONE APPROACH (ALTERNATIVE)
 // ============================================================================
 
@@ -166,6 +121,31 @@ export function formatDateForGoogle(date: Date): string {
 export function formatDateForOutlook(date: Date): string {
   // Use formatInTimeZone to get the correct Pacific time string with timezone offset
   return formatInTimeZone(date, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+}
+
+// ============================================================================
+// DATE FORMATTING FUNCTIONS - UTC
+// ============================================================================
+
+/**
+ * Formats a Date object as a UTC string for Google Calendar (YYYYMMDDTHHMMSSZ).
+ */
+export function formatDateForGoogleUTC(date: Date): string {
+  return formatInTimeZone(date, 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+}
+
+/**
+ * Formats a Date object as a UTC string for iCal (YYYYMMDDTHHMMSSZ).
+ */
+export function formatDateForICalUTC(date: Date): string {
+  return formatInTimeZone(date, 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+}
+
+/**
+ * Formats a Date object as a UTC ISO string for Outlook (YYYY-MM-DDTHH:mm:ssZ).
+ */
+export function formatDateForOutlookUTC(date: Date): string {
+  return formatInTimeZone(date, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'");
 }
 
 // ============================================================================
