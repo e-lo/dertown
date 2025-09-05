@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
 import { parseEventTimesUTC } from '../../lib/calendar-utils.ts';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format } from 'date-fns';
+import { tz } from '@date-fns/tz';
 
 export const prerender = false;
 
@@ -88,23 +89,21 @@ function generateRSSContent(events: EventData[]): string {
         .replace(/'/g, '&#39;');
 
       // Format dates for display in Pacific Time
-      const startDateFormatted = formatInTimeZone(
-        startDate,
-        'America/Los_Angeles',
-        'eeee, MMMM d, yyyy'
-      );
+      const startDateFormatted = format(startDate, 'eeee, MMMM d, yyyy', {
+        in: tz('America/Los_Angeles'),
+      });
 
       const startTimeFormatted = event.start_time
-        ? formatInTimeZone(startDate, 'America/Los_Angeles', 'h:mm a')
+        ? format(startDate, 'h:mm a', { in: tz('America/Los_Angeles') })
         : 'All day';
 
       let endDateFormatted = null;
       let endTimeFormatted = null;
 
       if (endDate && !isNaN(endDate.getTime())) {
-        endDateFormatted = formatInTimeZone(endDate, 'America/Los_Angeles', 'eeee, MMMM d, yyyy');
+        endDateFormatted = format(endDate, 'eeee, MMMM d, yyyy', { in: tz('America/Los_Angeles') });
         if (event.end_time) {
-          endTimeFormatted = formatInTimeZone(endDate, 'America/Los_Angeles', 'h:mm a');
+          endTimeFormatted = format(endDate, 'h:mm a', { in: tz('America/Los_Angeles') });
         }
       }
 
