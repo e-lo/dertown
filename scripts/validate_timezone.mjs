@@ -8,6 +8,7 @@ import {
 } from '../src/lib/calendar-utils.ts';
 
 console.log('--- Timezone Validation Test ---');
+console.log(`\nRunning test in timezone: ${new Date().toString().match(/([A-Z]+[+-][0-9]+)/)?.[1]}`);
 
 // 1. Define our test event data (7:00 PM Pacific Time)
 const eventData = {
