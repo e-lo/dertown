@@ -1,0 +1,148 @@
+---
+import Layout from '../components/Layout.astro';
+import SectionHeader from '../components/ui/SectionHeader.astro';
+import QuickNavItem from '../components/ui/QuickNavItem.astro';
+import LinkBox from '../components/ui/LinkBox.astro';
+import Disclaimer from '../components/ui/Disclaimer.astro';
+
+---
+
+<Layout title="Community Resources | Der Town" description="Essential community services and resources for families in Der Town">
+  <div class="bg-white min-h-screen">
+    <!-- Hero Section -->
+    <div class=" max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        <SectionHeader
+          title="Community Resources"
+          text="Essential community services and resources for families in Der Town."
+        />
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-wrap justify-center gap-2">
+        <QuickNavItem title="Community Assistance" link="#community-assistance" icon="volunteer_activism" />
+        <QuickNavItem title="Waste Management" link="#waste-management" icon="recycling" />
+        <QuickNavItem title="Community Services" link="#community-services" icon="build" />
+      </div>
+    </div>
+
+    <!-- Community Assistance Section -->
+    <div id="community-assistance" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Community Assistance"
+          icon="volunteer_activism"
+          text="Healthcare and food assistance resources for families in need."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Free Weekly Medical Clinic"
+              text="Free walk-in health clinic for uninsured and underinsured people"
+              subtext="Mondays 6:30-8:00 PM at Cascade Medical Center, Leavenworth"
+              link="https://www.uvmend.org/free-clinic"
+              icon="medical_services"
+              external={true}
+            />
+            <LinkBox
+              title="Community Cupboard"
+              text="Shopping model-style food pantry serving over 1,200 individuals monthly"
+              subtext="Monday-Friday 11:00 AM-5:00 PM, Saturday 11:00 AM-2:00 PM"
+              link="https://www.uvmend.org/food"
+              icon="restaurant"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waste Management Section -->
+    <div id="waste-management" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Waste Management"
+          icon="recycling"
+          text="Recycling, composting, and sustainable waste management resources."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Leavenworth Recycling Center"
+              text="Community recycling center for single stream recycling, cardboard, yard waste, and glass"
+              subtext="Wednesday 4:30-6:30 PM, Saturday 11:00 AM-3:00 PM"
+              link="https://www.wasteloop.org/leavenworth-recycling-center"
+              icon="recycling"
+              external={true}
+            />
+            <LinkBox
+              title="Community Composting"
+              text="Community composting programs and resources for sustainable waste management"
+              subtext="Learn about composting and sustainable practices"
+              link="https://www.wasteloop.org/community-composting"
+              icon="compost"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Services Section -->
+    <div id="community-services" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Community Services"
+          icon="build"
+          text="Additional community services and resources."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Mosquito Control"
+              text="Leavenworth Mosquito Control District #2 information and services"
+              subtext="Community mosquito control services and updates"
+              link="https://leavenworthmosquitocontrol.org/"
+              icon="bug_report"
+              external={true}
+            />
+            <LinkBox
+              title="Tool Library"
+              text="Eastside Rebuild Tool Library - borrow tools for home improvement and projects"
+              subtext="Community tool sharing program"
+              link="https://www.wasteloop.org/eastside-rebuild-tool-library"
+              icon="build"
+              external={true}
+            />
+            <LinkBox
+              title="Chelan County Fire District #3"
+              text="Fire protection and emergency services for Leavenworth and surrounding areas"
+              subtext="Emergency response, wildfire mitigation, fire safety education, facility rentals"
+              link="https://www.chelanfd3.org/"
+              icon="local_fire_department"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <Disclaimer />
+
+    <!-- Call to Action -->
+    <div class="mt-8 text-center">
+      <div class="bg-blue-green p-8">
+        <h2 class="text-2xl font-semibold mb-4">Have a resource you think we should add?</h2>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Let Us Know
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
