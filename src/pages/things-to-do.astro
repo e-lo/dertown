@@ -29,6 +29,7 @@ import Accordian from '../components/ui/Accordian.astro';
         <QuickNavItem title="Arts & Culture" link="#arts-culture" icon="brush" />
         <QuickNavItem title="Community" link="#community" icon="groups" />
         <QuickNavItem title="Volunteering" link="#volunteering" icon="volunteer_activism" />
+        <QuickNavItem title="Environmental" link="#environmental" icon="nature" />
         <QuickNavItem title="Seasonal" link="#seasonal" icon="calendar_month" />
       </div>
     </div>
@@ -136,6 +137,30 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Facebook community group for local hikers"
               link="https://www.facebook.com/groups/hikeleavenworth/"
               icon="hiking"
+              external={true}
+            />
+            <LinkBox
+              title="Bavarian Boondockers"
+              text="Snowmobile club promoting responsible backcountry riding and trail maintenance in the Leavenworth area"
+              subtext="Monthly meetings, trail maintenance, charitable activities, winter recreation"
+              link="https://www.bavarianboondockers.com/"
+              icon="snowmobile"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Winter Sports Club"
+              text="Cross-country skiing and winter sports club with groomed trails and youth programs"
+              subtext="Cross-country skiing, youth programs, trail passes, winter recreation"
+              link="https://skileavenworth.com/"
+              icon="downhill_skiing"
+              external={true}
+            />
+            <LinkBox
+              title="Plain Valley Ski Trails"
+              text="Cross-country skiing trails with 25km of groomed terrain and youth education programs"
+              subtext="25km groomed trails, youth programs, Valley Pass, Adventure Women programs"
+              link="https://www.skiplain.com/"
+              icon="downhill_skiing"
               external={true}
             />
           </div>
@@ -405,6 +430,78 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Book sales, fundraising events, library programs, community outreach"
               link="https://www.facebook.com/LeavenworthFriendsOfTheLibrary/"
               icon="library_books"
+              external={true}
+            />
+            <LinkBox
+              title="North Central Washington Audubon Society"
+              text="Volunteer with bird conservation, education, and community science projects in North Central Washington"
+              subtext="Community science surveys, education programs, field trips, conservation activities"
+              link="https://ncwaudubon.org/volunteer/"
+              icon="bird"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Environmental Organizations Section -->
+    <div id="environmental" class="bg-blue-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Environmental Organizations"
+          icon="nature"
+          text="Join local conservation groups and environmental organizations."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Chelan-Douglas Land Trust"
+              text="Conserve land, water, and wildlife in Chelan and Douglas counties through stewardship and conservation programs"
+              subtext="Land conservation, trail maintenance, habitat restoration, educational programs"
+              link="https://www.cdlandtrust.org/"
+              icon="park"
+              external={true}
+            />
+            <LinkBox
+              title="Washington Native Plant Society - Wenatchee Valley"
+              text="Promote appreciation and conservation of Washington's native plants through study, education, and advocacy"
+              subtext="Plant hikes, educational talks, native plant stewardship, conservation advocacy"
+              link="https://www.wnps.org/wenatchee-valley"
+              icon="nature"
+              external={true}
+            />
+            <LinkBox
+              title="Icicle Valley Trout Unlimited"
+              text="Conserve cold-water fisheries and their watersheds through local conservation and community action"
+              subtext="River restoration, youth education, community events, fishing conservation"
+              link="https://iciclevalley.tu.org/"
+              icon="water"
+              external={true}
+            />
+            <LinkBox
+              title="Cascadia Conservation District"
+              text="Promote natural resource stewardship through voluntary conservation programs and technical assistance"
+              subtext="Soil conservation, water quality, wildlife habitat, agricultural assistance"
+              link="https://cascadiacd.org/"
+              icon="eco"
+              external={true}
+            />
+            <LinkBox
+              title="Cascade Fisheries Education Group"
+              text="Engage community members in fish habitat restoration and conservation education programs"
+              subtext="Fish habitat restoration, educational programs, community conservation projects"
+              link="https://www.ccfeg.org/"
+              icon="water"
+              external={true}
+            />
+            <LinkBox
+              title="North Central Washington Audubon Society"
+              text="Promote bird conservation and education through field trips, community science, and conservation programs"
+              subtext="Bird watching, field trips, community science surveys, conservation advocacy"
+              link="https://ncwaudubon.org/"
+              icon="bird"
               external={true}
             />
           </div>

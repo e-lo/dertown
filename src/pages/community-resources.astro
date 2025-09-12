@@ -21,8 +21,9 @@ import Disclaimer from '../components/ui/Disclaimer.astro';
     <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex flex-wrap justify-center gap-2">
         <QuickNavItem title="Community Assistance" link="#community-assistance" icon="volunteer_activism" />
-        <QuickNavItem title="Waste Management" link="#waste-management" icon="recycling" />
         <QuickNavItem title="Community Services" link="#community-services" icon="build" />
+        <QuickNavItem title="Transportation" link="#transportation" icon="directions_bus" />
+        <QuickNavItem title="Utilities" link="#utilities" icon="electrical_services" />
       </div>
     </div>
 
@@ -58,37 +59,6 @@ import Disclaimer from '../components/ui/Disclaimer.astro';
       </div>
     </div>
 
-    <!-- Waste Management Section -->
-    <div id="waste-management" class="bg-green py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <SectionHeader
-          title="Waste Management"
-          icon="recycling"
-          text="Recycling, composting, and sustainable waste management resources."
-        />
-        
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <LinkBox
-              title="Leavenworth Recycling Center"
-              text="Community recycling center for single stream recycling, cardboard, yard waste, and glass"
-              subtext="Wednesday 4:30-6:30 PM, Saturday 11:00 AM-3:00 PM"
-              link="https://www.wasteloop.org/leavenworth-recycling-center"
-              icon="recycling"
-              external={true}
-            />
-            <LinkBox
-              title="Community Composting"
-              text="Community composting programs and resources for sustainable waste management"
-              subtext="Learn about composting and sustainable practices"
-              link="https://www.wasteloop.org/community-composting"
-              icon="compost"
-              external={true}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Community Services Section -->
     <div id="community-services" class="bg-green py-8">
@@ -123,6 +93,94 @@ import Disclaimer from '../components/ui/Disclaimer.astro';
               subtext="Emergency response, wildfire mitigation, fire safety education, facility rentals"
               link="https://www.chelanfd3.org/"
               icon="local_fire_department"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Recycling Center"
+              text="Community recycling center for single stream recycling, cardboard, yard waste, and glass"
+              subtext="Wednesday 4:30-6:30 PM, Saturday 11:00 AM-3:00 PM"
+              link="https://www.wasteloop.org/leavenworth-recycling-center"
+              icon="recycling"
+              external={true}
+            />
+            <LinkBox
+              title="Community Composting"
+              text="Community composting programs and resources for sustainable waste management"
+              subtext="Learn about composting and sustainable practices"
+              link="https://www.wasteloop.org/community-composting"
+              icon="compost"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transportation Section -->
+    <div id="transportation" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Transportation"
+          icon="directions_bus"
+          text="Public transportation and travel services in the region."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Link Transit"
+              text="Public transit system serving Wenatchee Valley with routes to Leavenworth, Cashmere, and surrounding areas"
+              subtext="Route 22 Wenatchee to Leavenworth, Route 32 Leavenworth Local, Route 28 Wenatchee to Cashmere"
+              link="https://www.linktransit.com/"
+              icon="directions_bus"
+              external={true}
+            />
+            <LinkBox
+              title="Wenatchee Valley Shuttle"
+              text="Scheduled shuttle services connecting Wenatchee Valley communities"
+              subtext="Convenient transportation between local destinations"
+              link="https://www.wenatcheevalleyshuttle.com/schedules?lang=en"
+              icon="airport_shuttle"
+              external={true}
+            />
+            <LinkBox
+              title="Amtrak Empire Builder"
+              text="Long-distance passenger rail service connecting Leavenworth to major cities"
+              subtext="Daily service to Seattle, Spokane, Chicago, and Portland"
+              link="https://www.amtrak.com/empire-builder-train"
+              icon="train"
+              external={true}
+            />
+            <LinkBox
+              title="Northwestern Stagelines"
+              text="Intercity bus service connecting Leavenworth to Seattle and other Washington destinations"
+              subtext="Modern buses serving over 40 destinations throughout Washington state"
+              link="https://northwesternstagelines.com/popular-route/leavenworth-to-seattle/"
+              icon="directions_bus"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utilities Section -->
+    <div id="utilities" class="bg-green py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Utilities"
+          icon="electrical_services"
+          text="Essential utility services for residents and businesses."
+        />
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Chelan County PUD"
+              text="Public utility district providing electric, water, wastewater, and fiber-optic services"
+              subtext="Electric power, water service, wastewater treatment, broadband internet"
+              link="https://www.chelanpud.org/"
+              icon="electrical_services"
               external={true}
             />
           </div>
