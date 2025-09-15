@@ -21,7 +21,11 @@ if (announcementsError) {
 }
 ---
 
-<Layout title="Der Town Community Events">
+<Layout 
+  title="Der Town Community Events"
+  description="Discover and share community events in Der Town. Connect with neighbors and build community through local events, activities, and announcements."
+  image="/logo.svg"
+>
   <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900">
   <!-- Announcement Marquee -->
     <AnnouncementMarquee announcements={announcements || []} />

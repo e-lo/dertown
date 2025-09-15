@@ -19,7 +19,10 @@ const calendarEvents = (events || [])
   .filter(Boolean);
 ---
 
-<Layout title="Event Calendar - Der Town">
+<Layout 
+  title="Event Calendar - Der Town"
+  description="View upcoming community events in Der Town. Find local activities, festivals, meetings, and community gatherings all in one place."
+>
   <div class="container mx-auto px-4 py-8">
     <!-- Use the new Calendar component -->
     <CalendarComponent events={JSON.stringify(calendarEvents)} />

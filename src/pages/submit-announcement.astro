@@ -12,7 +12,10 @@ const organizationsResult = await db.organizations.getAll();
 const organizations = (organizationsResult.data || []).sort((a, b) => a.name.localeCompare(b.name));
 ---
 
-<Layout title="Submit Announcement - Der Town">
+<Layout 
+  title="Submit Announcement - Der Town"
+  description="Share important community announcements with Der Town. Submit news, updates, and information that helps connect our community."
+>
   <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="bg-white bg-opacity-95 rounded-lg shadow-lg max-w-4xl w-full p-8">
       <div class="text-center mb-8">
