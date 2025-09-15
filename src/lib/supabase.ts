@@ -6,7 +6,7 @@ const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
 
 const supabaseUrl = useLocalDb ? 'http://127.0.0.1:54321' : import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = useLocalDb
-  ? 'eyJhbGciOiJIJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
   : import.meta.env.PUBLIC_SUPABASE_KEY;
 const supabaseServiceKey = useLocalDb
   ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
@@ -20,7 +20,13 @@ export const db = {
   // Events
   events: {
     getAll: () => supabase.from('public_events').select('*'),
-    getById: (id: string) => supabase.from('public_events').select('*').eq('id', id).single(),
+    getById: (id: string) => supabase.from('public_events').select(`
+      *,
+      primary_tag:tags!events_primary_tag_id_fkey(name),
+      secondary_tag:tags!events_secondary_tag_id_fkey(name),
+      location:locations!events_location_id_fkey(name, address),
+      organization:organizations!events_organization_id_fkey(name)
+    `).eq('id', id).single(),
     getRelated: (eventId: string, organizationId: string | null, locationId: string | null) => {
       let query = supabase.from('public_events').select('*').neq('id', eventId).limit(6);
 
