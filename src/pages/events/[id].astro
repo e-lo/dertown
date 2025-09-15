@@ -38,7 +38,18 @@ const related = (relatedEvents || []) as Array<{
 }>;
 ---
 
-<Layout title={`${event.title} - Der Town`}>
+<Layout 
+  title={`${event.title} - Der Town`}
+  description={event.description || `Join us for ${event.title} in Der Town`}
+  image={event.external_image_url || '/logo.svg'}
+  url={Astro.url.href}
+  type="article"
+  publishedTime={event.created_at}
+  modifiedTime={event.updated_at}
+  expirationTime={event.start_date}
+  section={event.location?.name}
+  tags={[event.primary_tag?.name, event.secondary_tag?.name].filter(Boolean)}
+>
   <main class="min-h-screen bg-gradient-blues-bold py-4 sm:py-8">
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
