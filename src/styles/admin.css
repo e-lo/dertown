@@ -1,0 +1,235 @@
+/* Admin Dashboard Styles */
+/* Using Tailwind where possible, custom CSS only when needed */
+
+/* Admin-specific layout */
+.admin-card {
+  @apply bg-white rounded-3xl shadow-lg max-w-7xl mx-auto my-10 px-6 md:px-10 py-12 border border-gray-200;
+}
+
+.admin-logo-link {
+  @apply flex items-center gap-2 text-gray-900 transition-opacity hover:opacity-70 mr-6 pr-6 border-r border-gray-200;
+}
+
+.admin-logo-link img {
+  @apply h-10 flex-shrink-0 block;
+}
+
+.header {
+  @apply flex justify-between items-start mb-10 pb-6 border-b-2 border-gray-200;
+}
+
+.header-left {
+  @apply flex items-baseline flex-1 gap-0;
+}
+
+.header-title-section {
+  @apply flex flex-col justify-start;
+}
+
+.header h1 {
+  @apply text-4xl font-bold text-gray-900 m-0 mb-1 leading-tight;
+  letter-spacing: -1.5px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #3a3a5e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header p {
+  @apply text-gray-500 text-sm m-0;
+}
+
+.logout-btn {
+  @apply bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 border border-gray-300;
+}
+
+.logout-btn:hover {
+  @apply from-gray-200 to-gray-300;
+}
+
+.section {
+  @apply my-12;
+}
+
+.section-header {
+  @apply flex justify-between items-center mb-6;
+}
+
+.section-title {
+  @apply text-2xl font-semibold text-gray-900 m-0 flex items-center gap-3;
+  letter-spacing: -0.5px;
+}
+
+.section-title .material-symbols-outlined {
+  @apply text-3xl text-indigo-600;
+}
+
+/* Button styles - using existing icon-btn pattern */
+.icon-btn {
+  @apply relative p-2 rounded-lg border border-transparent cursor-pointer inline-flex items-center justify-center transition-all shadow-sm min-w-[2.5rem] h-10;
+}
+
+.icon-btn:hover {
+  @apply -translate-y-0.5 shadow-md;
+}
+
+.icon-btn .tooltip {
+  @apply invisible opacity-0 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm whitespace-nowrap rounded-md pointer-events-none transition-opacity z-[1000];
+}
+
+.icon-btn .tooltip::after {
+  content: '';
+  @apply absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900;
+}
+
+.icon-btn:hover .tooltip {
+  @apply visible opacity-100;
+}
+
+.icon-btn.btn-create {
+  @apply bg-gradient-to-br from-purple-600 to-purple-700 text-white;
+}
+
+.icon-btn.btn-create:hover {
+  @apply from-purple-700 to-purple-800;
+}
+
+.icon-btn.btn-create.btn-announcement {
+  @apply from-indigo-600 to-indigo-700;
+}
+
+.icon-btn.btn-create.btn-announcement:hover {
+  @apply from-indigo-700 to-indigo-800;
+}
+
+.icon-btn.btn-approve {
+  background: var(--pigment-green, #4daa57);
+  @apply text-white;
+}
+
+.icon-btn.btn-approve:hover {
+  @apply brightness-95;
+  background: #3d8a47;
+}
+
+.icon-btn.btn-reject {
+  background: var(--fandango, #c0268c);
+  @apply text-white;
+}
+
+.icon-btn.btn-reject:hover {
+  @apply brightness-95;
+  background: #a01f73;
+}
+
+.icon-btn.btn-edit {
+  background: var(--blue-green, #219ebc);
+  @apply text-white;
+}
+
+.icon-btn.btn-edit:hover {
+  @apply brightness-90;
+  background: #1a7a94;
+}
+
+.loading {
+  @apply text-center py-8 text-gray-500 text-base bg-gray-50 rounded-xl border border-dashed border-gray-300;
+}
+
+.error {
+  @apply text-red-900 bg-gradient-to-br from-red-100 to-red-200 border border-red-300 rounded-lg px-5 py-4 my-4 font-medium text-center shadow-sm;
+}
+
+.success {
+  @apply text-green-900 bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded-lg px-5 py-4 my-4 font-medium text-center shadow-sm;
+}
+
+.warning-badge {
+  @apply inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-900 rounded-md text-xs font-semibold uppercase tracking-wide;
+}
+
+/* Modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 z-[1000] hidden items-center justify-center;
+}
+
+.modal-overlay.flex {
+  display: flex;
+}
+
+.modal-container {
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-xl max-w-4xl w-[90%] max-h-[90vh] overflow-y-auto;
+}
+
+.modal-header {
+  @apply flex justify-between items-center mb-6;
+}
+
+.modal-title {
+  @apply m-0 text-xl font-semibold;
+}
+
+.modal-close-btn {
+  @apply bg-transparent border-none cursor-pointer p-2 flex items-center justify-center text-gray-600 rounded transition-colors hover:bg-gray-100;
+}
+
+/* Form field styles - using existing form-input from components.css */
+.form-field {
+  @apply mb-4;
+}
+
+.form-label {
+  @apply block mb-2 font-semibold text-sm;
+}
+
+.form-label-required {
+  @apply text-red-500;
+}
+
+.form-input-base {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md;
+}
+
+.form-grid-2 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4 mb-4;
+}
+
+.form-actions {
+  @apply text-right mt-6;
+}
+
+.btn-cancel {
+  @apply bg-red-500 text-white border-none px-4 py-2 rounded cursor-pointer mr-2;
+}
+
+.btn-save {
+  @apply bg-green-500 text-white border-none px-4 py-2 rounded cursor-pointer;
+}
+
+/* Autocomplete dropdown */
+.autocomplete-container {
+  @apply relative;
+}
+
+.autocomplete-dropdown {
+  @apply hidden absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 max-h-[200px] overflow-y-auto z-[1000] rounded-b-md;
+}
+
+.autocomplete-dropdown-item {
+  @apply px-3 py-2 hover:bg-gray-100 cursor-pointer;
+}
+
+@media (max-width: 700px) {
+  .admin-card {
+    @apply p-4;
+  }
+  
+  .header h1 {
+    @apply text-xl;
+  }
+  
+  .section-title {
+    @apply text-lg;
+  }
+}
+

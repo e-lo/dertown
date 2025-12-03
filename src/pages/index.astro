@@ -4,10 +4,11 @@ export const prerender = false;
 import Layout from '../components/Layout.astro';
 import EventHeroCarousel from '../components/EventHeroCarousel.astro';
 import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
-import { db } from '../lib/supabase';
+import { db, filterCurrentAndFutureEvents } from '../lib/supabase';
 
-// Fetch all approved events
-const { data: events, error } = await db.events.getCurrentAndFuture();
+// Fetch all approved events and filter to current/future for carousel
+const { data: allEvents, error } = await db.events.getAll();
+const events = filterCurrentAndFutureEvents(allEvents || []);
 
 if (error) {
   console.error('Error fetching events:', error);
@@ -26,7 +27,7 @@ if (announcementsError) {
   description="Discover and share community events in Der Town. Connect with neighbors and build community through local events, activities, and announcements."
   image="/logo.svg"
 >
-  <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900">
+  <main class="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-900 pb-8 md:pb-12">
   <!-- Announcement Marquee -->
     <AnnouncementMarquee announcements={announcements || []} />
 

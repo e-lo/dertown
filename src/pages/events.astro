@@ -4,12 +4,13 @@ export const prerender = false;
 import Layout from '../components/Layout.astro';
 import EventList from '../components/EventList.astro';
 import TagFilter from '../components/TagFilter.astro';
-import { db } from '../lib/supabase';
+import { db, filterCurrentAndFutureEvents } from '../lib/supabase';
 
-// Fetch all approved events and tags
-const [eventsResult, tagsResult] = await Promise.all([db.events.getCurrentAndFuture(), db.tags.getAll()]);
+// Fetch all approved events and tags, then filter to current/future for events list
+const [eventsResult, tagsResult] = await Promise.all([db.events.getAll(), db.tags.getAll()]);
 
-const events = eventsResult.data || [];
+const allEvents = eventsResult.data || [];
+const events = filterCurrentAndFutureEvents(allEvents);
 const allTags = tagsResult.data || [];
 
 // Get unique tags that are used as either primary or secondary tags

@@ -1,0 +1,164 @@
+---
+export interface Props {
+  title?: string; // Modal title
+  description?: string; // Modal description text
+  redirectUrl?: string; // URL to redirect to after successful login
+  editEventId?: string; // Optional event ID to edit after login (redirects to admin with edit modal)
+  onSuccessCallback?: string; // JavaScript function name to call on success
+  reloadOnSuccess?: boolean; // Whether to reload the page on success (default: false)
+}
+
+const { 
+  title = "Login",
+  description = "Please log in to continue.",
+  redirectUrl,
+  editEventId,
+  onSuccessCallback,
+  reloadOnSuccess = false
+} = Astro.props;
+---
+
+<div id="loginModal" 
+     data-redirect-url={redirectUrl}
+     data-edit-event-id={editEventId}
+     data-on-success-callback={onSuccessCallback}
+     data-reload-on-success={reloadOnSuccess}
+     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 10px; max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
+    <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">{title}</h3>
+    <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">
+      {description}
+    </p>
+    <form id="loginModalForm">
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email:</label>
+        <input type="email" id="loginModalEmail" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Password:</label>
+        <input type="password" id="loginModalPassword" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      <div id="loginModalError" style="margin-bottom: 1rem; display: none; color: #d32f2f; background: #ffeaea; padding: 0.7rem 1rem; border-radius: 6px; font-size: 0.9rem;"></div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" onclick="closeLoginModal()" style="background: #f44336; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button type="submit" style="background: #4caf50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Login</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script is:inline>
+  // Define functions immediately so they're available globally
+  // Use a self-executing function to ensure it runs
+  (function() {
+    window.openLoginModal = function() {
+      // Close the suggest edit modal if it's open
+      var suggestModal = document.getElementById('suggestEditEventModal');
+      if (suggestModal) {
+        suggestModal.style.display = 'none';
+      }
+      
+      const modal = document.getElementById('loginModal');
+      if (modal) {
+        modal.style.display = 'block';
+        // Focus on email input
+        const emailInput = document.getElementById('loginModalEmail');
+        if (emailInput) emailInput.focus();
+      } else {
+        console.error('LoginModal element not found');
+      }
+    };
+
+    window.closeLoginModal = function() {
+      const modal = document.getElementById('loginModal');
+      const form = document.getElementById('loginModalForm');
+      const errorDiv = document.getElementById('loginModalError');
+      if (modal) modal.style.display = 'none';
+      if (form) form.reset();
+      if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+      }
+    };
+    
+    console.log('LoginModal functions defined');
+  })();
+  
+  // Handle form submission
+  document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginModalForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const emailInput = document.getElementById('loginModalEmail');
+        const passwordInput = document.getElementById('loginModalPassword');
+        const errorDiv = document.getElementById('loginModalError');
+        
+        if (!emailInput || !passwordInput || !errorDiv) return;
+        
+        errorDiv.style.display = 'none';
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include',
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Login failed.');
+          }
+          
+          // Close modal
+          window.closeLoginModal();
+          
+          // Get configuration from data attributes
+          const modalElement = document.getElementById('loginModal');
+          if (!modalElement) return;
+          
+          const redirectUrl = modalElement.getAttribute('data-redirect-url');
+          const editEventId = modalElement.getAttribute('data-edit-event-id');
+          const onSuccessCallback = modalElement.getAttribute('data-on-success-callback');
+          const reloadOnSuccess = modalElement.getAttribute('data-reload-on-success') === 'true';
+          
+          // Handle success based on configuration
+          if (editEventId) {
+            // Priority 1: Redirect to admin with edit modal
+            window.location.href = '/admin?editEvent=' + editEventId;
+          } else if (redirectUrl) {
+            // Priority 2: Redirect to specified URL
+            window.location.href = redirectUrl;
+          } else if (onSuccessCallback && typeof window[onSuccessCallback] === 'function') {
+            // Priority 3: Call JavaScript callback function
+            window[onSuccessCallback]();
+          } else if (reloadOnSuccess) {
+            // Priority 4: Reload page
+            window.location.reload();
+          } else {
+            // Default: Redirect to admin
+            window.location.href = '/admin';
+          }
+        } catch (err) {
+          let msg = 'Login failed. Please try again.';
+          if (err instanceof Error) msg = err.message;
+          errorDiv.textContent = msg;
+          errorDiv.style.display = 'block';
+        }
+      });
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('loginModal');
+      if (modal && e.target === modal) {
+        window.closeLoginModal();
+      }
+    });
+  });
+</script>
+

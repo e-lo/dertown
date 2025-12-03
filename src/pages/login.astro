@@ -1,10 +1,10 @@
 ---
 import Layout from '../components/Layout.astro';
-import { supabase } from '../lib/supabase';
+import { checkAdminAccess } from '../lib/session';
 
-// Check if user is already logged in
-const { data: { session } } = await supabase.auth.getSession();
-if (session) {
+// Check if user is already logged in via cookies (works in SSR)
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (isAdmin) {
   // Get the redirect URL from query params or default to /admin
   const redirectTo = Astro.url.searchParams.get('redirect') || '/admin';
   return Astro.redirect(redirectTo);
@@ -69,7 +69,14 @@ if (session) {
         // Redirect to admin page on successful login
         const urlParams = new URLSearchParams(window.location.search);
         const redirectTo = urlParams.get('redirect') || '/admin';
-        window.location.href = redirectTo;
+        const editEventId = urlParams.get('editEvent');
+        
+        // If we have an editEvent parameter, redirect to admin with edit modal
+        if (editEventId) {
+          window.location.href = `/admin?editEvent=${editEventId}`;
+        } else {
+          window.location.href = redirectTo;
+        }
       } catch (err) {
         let msg = 'Login failed. Please try again.';
         if (err instanceof Error) msg = err.message;

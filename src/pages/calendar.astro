@@ -7,7 +7,8 @@ import CalendarComponent from '../components/Calendar.astro';
 import { transformEventForCalendar } from '../lib/event-utils';
 
 // Fetch events for the calendar
-const { data: events, error } = await db.events.getCurrentAndFuture();
+// Calendar shows all events (including past events)
+const { data: events, error } = await db.events.getAll();
 
 if (error) {
   console.error('Error fetching events:', error);

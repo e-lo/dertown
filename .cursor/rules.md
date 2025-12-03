@@ -9,7 +9,6 @@
 # Cursor rules
 
 Follow project requirements in `PROJECT_REQUIREMENTS.md`
-Reference previous Django implementation in `/reference` but don't follow it strictly if it is inefficient or conflicts with the plan in `PROJECT_REQUIREMENTS.md`.
 
 ## Core Persona & Approach
 
@@ -40,6 +39,7 @@ Minimal Interruptions: Only ask the user questions when an ambiguity cannot be r
 Should contain all instructions/help for developers including:
 
 **Initial Setup:**
+
 - Development environment setup (Node.js, Python, Supabase CLI, etc.)
 - Project initialization and first-time setup
 - Environment variable configuration
@@ -47,6 +47,7 @@ Should contain all instructions/help for developers including:
 - Local development server startup
 
 **Development Process:**
+
 - Code style and formatting guidelines
 - Git workflow and branching strategy
 - Testing procedures and test coverage requirements
@@ -121,6 +122,7 @@ If none of the above apply, proceed autonomously, document your reasoning, and v
 ## Sub-Phase Completion Requirements
 
 ### Testing & Validation Checkpoints
+
 At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST:
 
 1. **Run All Validation Tools**:
@@ -149,6 +151,7 @@ At the end of each sub-phase (e.g., 1.1, 1.2, 1.3), you MUST:
    - Update any related documentation (DEVELOPING.md, README.md) if needed
 
 ### Summary Reporting
+
 After completing each sub-phase and resolving all issues, provide:
 
 1. **Implementation Summary**: What was implemented and how
@@ -157,6 +160,7 @@ After completing each sub-phase and resolving all issues, provide:
 4. **TODO Status Update**: Confirmation that all completed items have been checked off
 
 **Format**:
+
 ```
 ## ✅ Sub-Phase [X.Y] Complete
 
@@ -172,6 +176,7 @@ After completing each sub-phase and resolving all issues, provide:
 - [ ] Item 3 - Still pending
 
 ### Suggested Commit Message
+
 ```
 feat: [concise description of changes]
 ```

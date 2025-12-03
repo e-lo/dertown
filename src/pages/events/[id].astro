@@ -5,9 +5,15 @@ import Layout from '../../components/Layout.astro';
 import Badge from '../../components/ui/Badge.astro';
 import ShareButton from '../../components/ui/ShareButton.astro';
 import CalendarAddButton from '../../components/ui/CalendarAddButton.astro';
+import EditButton from '../../components/ui/EditButton.astro';
+import LoginModal from '../../components/ui/LoginModal.astro';
 import { db } from '../../lib/supabase';
 import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-utils';
 import EventListCard from '../../components/EventListCard.astro';
+import { checkAdminAccess } from '../../lib/session';
+
+// Check if user is logged in
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
 
 export async function getStaticPaths() {
   // This function is not used when prerender = false, but we keep it for type safety
@@ -64,17 +70,25 @@ const related = (relatedEvents || []) as Array<{
         <div class="p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative">
           <!-- Share Button in top-right -->
           <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
+            {event.id && (
+              <EditButton 
+                eventId={event.id}
+                tooltipText="Edit event"
+              />
+            )}
             <ShareButton 
               title={event.title || 'Event'}
               url={Astro.url.href}
               tooltipText="Share event with your neighbors"
             />
             <!-- Calendar Add Button -->
-            <CalendarAddButton 
-              eventId={event.id}
-              eventTitle={event.title || 'Event'}
-              tooltipText="Add this event to your own calendar"
-            />
+            {event.id && (
+              <CalendarAddButton 
+                eventId={event.id}
+                eventTitle={event.title || 'Event'}
+                tooltipText="Add this event to your own calendar"
+              />
+            )}
           </div>
           <h1 class="text-2xl sm:text-3xl font-bold mb-4 pr-20 sm:pr-24">{event.title || 'Event'}</h1>
           
@@ -174,52 +188,275 @@ const related = (relatedEvents || []) as Array<{
       )}
     </div>
   </main>
+
+  <!-- Pass isAdmin to client via data attribute -->
+  <div id="admin-status" data-is-admin={isAdmin} style="display: none;"></div>
+
+  <!-- Login Modal -->
+  {event.id && (
+    <LoginModal 
+      title="Login to Edit Event"
+      description="Please log in to edit this event directly."
+      editEventId={event.id}
+    />
+  )}
+
+  <!-- Edit Event Modal (for logged-in users) -->
+  <div id="editEventModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 10px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem;">Edit Event</h3>
+      <div id="editEventModalContent">
+        <p>Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggest Edit Event Form (for non-logged-in users) -->
+  <div id="suggestEditEventModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 10px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem;">Suggest Event Changes</h3>
+      <p style="margin-bottom: 1.5rem; color: #666;">Help us improve this event by suggesting changes. We'll review your suggestions and update the event if appropriate.</p>
+      <form id="suggestEditEventForm">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Your Name: <span style="color: red;">*</span></label>
+          <input type="text" id="suggestName" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Your Email: <span style="color: red;">*</span></label>
+          <input type="email" id="suggestEmail" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Suggested Changes: <span style="color: red;">*</span></label>
+          <textarea id="suggestChanges" rows="6" required placeholder="Please describe what should be changed and why..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+        </div>
+        <div id="suggestEditEventMessage" style="margin-bottom: 1rem; display: none;"></div>
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button type="button" onclick="closeSuggestEditEventModal()" style="background: #f44336; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button type="button" onclick="goToLogin()" style="background: #2196f3; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem;">login</span>
+            Login to Edit Directly
+          </button>
+          <button type="submit" style="background: #4caf50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Submit Suggestion</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </Layout>
 
 <script is:inline>
-  // All calendar functionality is now handled by the CalendarAddButton component
-  
-  // Share functionality
-  function shareEvent() {
-    const button = event.target.closest('button');
-    const url = button.getAttribute('data-share-url');
-    const title = button.getAttribute('data-share-title');
+  // Define goToLogin globally immediately (before DOMContentLoaded)
+  // This needs to be inline so it's available for onclick handlers
+  window.goToLogin = function() {
+    console.log('goToLogin called');
     
-    if (navigator.share) {
-      navigator.share({
-        title: title || 'Event',
-        url: url || window.location.href
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(url || window.location.href).then(() => {
-        // Show a brief notification
-        const notification = document.createElement('div');
-        notification.textContent = 'Link copied to clipboard!';
-        notification.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #10b981;
-          color: white;
-          padding: 12px 16px;
-          border-radius: 8px;
-          z-index: 1000;
-          font-size: 14px;
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
-      });
+    // Close the suggest edit modal first
+    var suggestModal = document.getElementById('suggestEditEventModal');
+    if (suggestModal) {
+      suggestModal.style.display = 'none';
     }
-  }
+    
+    // Try to open login modal, with retry in case script hasn't loaded yet
+    var tryOpenModal = function() {
+      if (typeof window.openLoginModal === 'function') {
+        console.log('Calling openLoginModal');
+        window.openLoginModal();
+        return true;
+      }
+      console.log('openLoginModal not found yet');
+      return false;
+    };
+    
+    // Try immediately
+    if (tryOpenModal()) {
+      return;
+    }
+    
+    // If not available, wait a bit and try again (script might still be loading)
+    setTimeout(function() {
+      if (!tryOpenModal()) {
+        console.warn('openLoginModal not available after retry, falling back to redirect');
+        // Fallback: redirect to login page
+        var currentUrl = window.location.pathname + window.location.search;
+        var eventId = window.location.pathname.split('/').pop();
+        window.location.href = '/login?redirect=' + encodeURIComponent(currentUrl) + '&editEvent=' + eventId;
+      }
+    }, 100);
+  };
   
-  // Calendar dropdown functionality
-  function toggleCalendarDropdown() {
-    const dropdown = document.getElementById('calendar-dropdown');
-    if (dropdown) {
-      dropdown.classList.toggle('hidden');
+  console.log('goToLogin function defined');
+</script>
+
+<script>
+  // Wait for DOM to be ready
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get isAdmin from data attribute
+    const isAdminElement = document.getElementById('admin-status');
+    const isAdmin = isAdminElement?.getAttribute('data-is-admin') === 'true';
+    
+    // Check if we should redirect to admin after login (from URL params)
+    const urlParams = new URLSearchParams(window.location.search);
+    const editEventId = urlParams.get('editEvent');
+    if (editEventId && isAdmin) {
+      // User just logged in and wants to edit - redirect to admin with edit modal
+      window.location.href = `/admin?editEvent=${editEventId}`;
+      return; // Don't continue with other initialization
     }
-  }
+    
+    // All calendar functionality is now handled by the CalendarAddButton component
+    
+    // Make openEditEvent globally accessible
+    (window as any).openEditEvent = async function(eventId: string) {
+      if (isAdmin) {
+        // User is logged in - redirect to admin page with event ID
+        window.location.href = `/admin?editEvent=${eventId}`;
+      } else {
+      // User is not logged in - show suggest edit form
+      const modal = document.getElementById('suggestEditEventModal');
+      const form = document.getElementById('suggestEditEventForm');
+      if (modal) modal.style.display = 'block';
+      if (form) form.setAttribute('data-event-id', eventId);
+      }
+    };
+    
+    // Share functionality
+    (window as any).shareEvent = function() {
+      const button = (event as any)?.target?.closest('button');
+      if (!button) return;
+      const url = button.getAttribute('data-share-url');
+      const title = button.getAttribute('data-share-title');
+      
+      if (navigator.share) {
+        navigator.share({
+          title: title || 'Event',
+          url: url || window.location.href
+        });
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(url || window.location.href).then(() => {
+          // Show a brief notification
+          const notification = document.createElement('div');
+          notification.textContent = 'Link copied to clipboard!';
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 14px;
+          `;
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 2000);
+        });
+      }
+    };
+    
+    // Calendar dropdown functionality
+    (window as any).toggleCalendarDropdown = function() {
+      const dropdown = document.getElementById('calendar-dropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('hidden');
+      }
+    };
+
+    (window as any).closeSuggestEditEventModal = function() {
+      const modal = document.getElementById('suggestEditEventModal');
+      const form = document.getElementById('suggestEditEventForm') as HTMLFormElement;
+      const message = document.getElementById('suggestEditEventMessage');
+      if (modal) modal.style.display = 'none';
+      if (form) form.reset();
+      if (message) message.style.display = 'none';
+    };
+
+    // Handle suggest edit form submission
+    const suggestForm = document.getElementById('suggestEditEventForm');
+    if (suggestForm) {
+      suggestForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const eventId = form.getAttribute('data-event-id');
+        const nameInput = document.getElementById('suggestName') as HTMLInputElement;
+        const emailInput = document.getElementById('suggestEmail') as HTMLInputElement;
+        const suggestionsInput = document.getElementById('suggestChanges') as HTMLTextAreaElement;
+        const messageDiv = document.getElementById('suggestEditEventMessage');
+        
+        if (!nameInput || !emailInput || !suggestionsInput || !messageDiv) return;
+        
+        const name = nameInput.value;
+        const email = emailInput.value;
+        const suggestions = suggestionsInput.value;
+
+        if (!eventId || !name || !email || !suggestions) {
+          messageDiv.textContent = 'Please fill in all required fields.';
+          messageDiv.style.display = 'block';
+          messageDiv.style.color = '#d32f2f';
+          messageDiv.style.background = '#ffeaea';
+          messageDiv.style.padding = '0.7rem 1rem';
+          messageDiv.style.borderRadius = '6px';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/events/suggest-edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId,
+              eventTitle: document.querySelector('h1')?.textContent || 'Event',
+              eventUrl: window.location.href,
+              name,
+              email,
+              suggestions
+            })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            messageDiv.textContent = data.message || 'Thank you for your suggestion!';
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#388e3c';
+            messageDiv.style.background = '#e8f5e9';
+            messageDiv.style.padding = '0.7rem 1rem';
+            messageDiv.style.borderRadius = '6px';
+            form.reset();
+            setTimeout(() => {
+              (window as any).closeSuggestEditEventModal();
+            }, 3000);
+          } else {
+            messageDiv.textContent = data.error || 'Failed to submit suggestion. Please try again.';
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#d32f2f';
+            messageDiv.style.background = '#ffeaea';
+            messageDiv.style.padding = '0.7rem 1rem';
+            messageDiv.style.borderRadius = '6px';
+          }
+        } catch (error) {
+          messageDiv.textContent = 'An error occurred. Please try again.';
+          messageDiv.style.display = 'block';
+          messageDiv.style.color = '#d32f2f';
+          messageDiv.style.background = '#ffeaea';
+          messageDiv.style.padding = '0.7rem 1rem';
+          messageDiv.style.borderRadius = '6px';
+        }
+      });
+    }
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+      const suggestModal = document.getElementById('suggestEditEventModal');
+      const editModal = document.getElementById('editEventModal');
+      
+      if (suggestModal && e.target === suggestModal) {
+        (window as any).closeSuggestEditEventModal();
+      }
+      if (editModal && e.target === editModal) {
+        editModal.style.display = 'none';
+      }
+    });
+  });
 </script>
 
 <style>

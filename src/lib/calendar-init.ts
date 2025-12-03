@@ -3,6 +3,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import { localeTimeZone } from './calendar-utils';
 
 // Import FullCalendar styles
 import '@fullcalendar/core/main.css';
@@ -55,7 +56,7 @@ export function initializeCalendar(calendarEl: HTMLElement, initialView: string 
     selectable: false,
     nowIndicator: true,
     scrollTime: '08:00:00',
-    timeZone: 'America/Los_Angeles',
+    timeZone: localeTimeZone,
   });
 
   calendar.render();

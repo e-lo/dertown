@@ -1,30 +1,22 @@
 import type { APIRoute } from 'astro';
-import { supabase, db } from '../../../lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+import { checkAdminAccess } from '@/lib/session';
 
 export const prerender = false;
 
-export const GET: APIRoute = async (_) => {
+export const GET: APIRoute = async ({ cookies }) => {
   try {
-    // Verify authentication using server-side Supabase client
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-
-    if (authError || !session) {
-      return new Response(
-        JSON.stringify({
-          error: 'Authentication required. Please log in.',
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+    // Check authentication
+    const { isAdmin, error: authError } = await checkAdminAccess(cookies);
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // Fetch staged announcements using server-side client
-    const { data, error } = await db.announcementsStaged.getAll();
+    // Fetch staged announcements using admin client (bypasses RLS)
+    const { data, error } = await supabaseAdmin.from('announcements_staged').select('*');
 
     if (error) {
       console.error('Database error:', error);

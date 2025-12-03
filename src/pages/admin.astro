@@ -1,216 +1,483 @@
 ---
 // Server-side logic for admin page
 import { supabase } from '../lib/supabase';
+import { checkAdminAccess, getSessionFromCookies } from '../lib/session';
+import LoginModal from '../components/ui/LoginModal.astro';
 
-// Check if user is already logged in
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
+// Check if user is already logged in using cookies
+const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
+
+if (!isAdmin) {
   // Redirect to login with current URL as redirect parameter
   const currentUrl = Astro.url.pathname + Astro.url.search;
   return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
 }
 
-// Get user info for display
-const user = session.user;
+// Get user info for display - we need to get the session to display user info
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../styles/global.css';
+import '../styles/admin.css';
+import EditEventModal from '../components/ui/EditEventModal.astro';
+import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro';
 ---
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Der Town</title>
+  <!-- Material Symbols & Icons Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+</head>
+<body>
+
 <style>
+  /* Material Symbols Outlined font styling */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
   body {
-    font-family: 'Inter', Arial, sans-serif;
-    background: #f6f8fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
     margin: 0;
     min-height: 100vh;
+    color: #1a1a2e;
+    line-height: 1.6;
   }
   .admin-card {
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
-    max-width: 900px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    max-width: 1200px;
     margin: 40px auto;
-    padding: 2.5rem 2rem 2rem 2rem;
-    border: 1px solid #e5e7eb;
+    padding: 3rem 2.5rem;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+  }
+  .admin-logo-link {
+    display: flex;
+    gap: 0.5rem;
+    color: #1a1a2e;
+    transition: opacity 0.2s;
+    margin-right: 1.5rem;
+    padding-right: 1.5rem;
+    border-right: 1px solid #e8ecf1;
+  }
+  .admin-logo-link:hover {
+    opacity: 0.7;
+  }
+  .admin-logo-link img {
+    height: 2.5rem;
+    flex-shrink: 0;
+    display: block;
   }
   .header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 1rem;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+    border-bottom: 2px solid #e8ecf1;
+    padding-bottom: 1.5rem;
+  }
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    flex: 1;
+    gap: 0;
+  }
+  .header-title-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
   .header h1 {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    color: #22223b;
+    color: #1a1a2e;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #3a3a5e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+  }
+  .header p {
+    color: #6b7280;
+    font-size: 0.95rem;
     margin: 0;
-    letter-spacing: -1px;
   }
   .logout-btn {
-    background: #f3f4f6;
-    color: #22223b;
-    border: none;
-    border-radius: 6px;
-    padding: 0.5rem 1.2rem;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background 0.2s;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    color: #374151;
+    border: 1px solid #d1d5db;
   }
   .logout-btn:hover {
-    background: #e0e7ef;
+    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   }
   .section {
-    margin-top: 2.5rem;
-    margin-bottom: 2.5rem;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
   }
   .section-title {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    color: #3a3a4a;
-    margin-bottom: 1rem;
+    color: #1a1a2e;
+    margin: 0;
     letter-spacing: -0.5px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
-  .event-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #f9fafb;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 0.5rem;
-    font-size: 1rem;
-  }
-  .event-table th,
-  .event-table td {
-    border: 1px solid #e5e7eb;
-    padding: 0.7rem 0.8rem;
-    text-align: left;
-  }
-  .event-table th {
-    background-color: #f3f4f6;
-    font-weight: 600;
-    color: #22223b;
-  }
-  .event-table td {
-    background: #fff;
+  .section-title .material-symbols-outlined {
+    font-size: 1.75rem;
+    color: #4f46e5;
   }
   .action-btn {
-    padding: 0.4rem 0.9rem;
+    padding: 0.5rem 1rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
-    margin-right: 0.3rem;
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    transition: background 0.2s;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    text-decoration: none;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .action-btn:active {
+    transform: translateY(0);
   }
   .btn-approve {
-    background-color: #4caf50;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
   }
   .btn-approve:hover {
-    background-color: #388e3c;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  }
+  .action-btn.btn-approve {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+  }
+  .action-btn.btn-approve:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
   }
   .btn-reject {
-    background-color: #f44336;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
   }
   .btn-reject:hover {
-    background-color: #c62828;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  }
+  .action-btn.btn-reject {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: white !important;
+  }
+  .action-btn.btn-reject:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  }
+  .btn-edit {
+    background: var(--blue-green, #219ebc);
+    color: white;
+  }
+  .btn-edit:hover {
+    background: #1a7a94;
+    filter: brightness(0.9);
+  }
+  .action-btn.btn-edit {
+    background: var(--blue-green, #219ebc) !important;
+    color: white !important;
+  }
+  .action-btn.btn-edit:hover {
+    background: #1a7a94 !important;
+    filter: brightness(0.9);
+  }
+  .icon-btn.btn-edit {
+    background: var(--blue-green, #219ebc);
+    color: white;
+  }
+  .icon-btn.btn-edit:hover {
+    background: #1a7a94;
+    filter: brightness(0.9);
+  }
+  .btn-create {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 0.65rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .btn-create:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  }
+  .icon-btn {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    min-width: 2.5rem;
+    height: 2.5rem;
+  }
+  .icon-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .icon-btn .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #1a1a2e;
+    color: white;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    border-radius: 6px;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 1000;
+  }
+  .icon-btn .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1a1a2e;
+  }
+  .icon-btn:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+  .icon-btn.btn-approve {
+    background: var(--pigment-green, #4daa57);
+    color: white;
+  }
+  .icon-btn.btn-approve:hover {
+    background: #3d8a47;
+    filter: brightness(0.95);
+  }
+  .icon-btn.btn-reject {
+    background: var(--fandango, #c0268c);
+    color: white;
+  }
+  .icon-btn.btn-reject:hover {
+    background: #a01f73;
+    filter: brightness(0.95);
   }
   .loading {
     text-align: center;
-    padding: 1.5rem;
-    color: #888;
-    font-size: 1.1rem;
+    padding: 2rem;
+    color: #6b7280;
+    font-size: 1rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px dashed #d1d5db;
   }
   .error {
-    color: #c62828;
-    background: #ffeaea;
-    border-radius: 6px;
-    padding: 0.7rem 1rem;
+    color: #991b1b;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
     margin: 1rem 0;
     font-weight: 500;
     text-align: center;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
   }
   .success {
-    color: #388e3c;
-    background: #e8f5e9;
-    border-radius: 6px;
-    padding: 0.7rem 1rem;
+    color: #065f46;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #6ee7b7;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
     margin: 1rem 0;
     font-weight: 500;
     text-align: center;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+  }
+  .warning-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   @media (max-width: 700px) {
     .admin-card { padding: 1rem; }
     .header h1 { font-size: 1.3rem; }
-    .event-table th, .event-table td { font-size: 0.95rem; padding: 0.5rem; }
     .section-title { font-size: 1.1rem; }
   }
 </style>
 
 <div class="admin-card">
   <div class="header">
-    <div>
-      <h1>Admin Dashboard</h1>
-      <p class="text-sm text-gray-600">Welcome, {user.email}</p>
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Admin Dashboard</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
     </div>
-    <button class="logout-btn" onclick="logout()">
-      <span class="material-symbols-outlined">logout</span>
-      Logout
+    <div class="flex gap-2 items-center">
+      <button class="icon-btn btn-create" onclick="openCreateEventModal()" aria-label="Create New Event">
+        <span class="material-symbols-outlined text-2xl">event</span>
+        <span class="tooltip">Create New Event</span>
+      </button>
+      <button class="icon-btn btn-create btn-announcement" onclick="openCreateAnnouncementModal()" aria-label="Create New Announcement">
+        <span class="material-symbols-outlined text-2xl">campaign</span>
+        <span class="tooltip">Create New Announcement</span>
+      </button>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
     </button>
+    </div>
   </div>
 
   <div id="message"></div>
 
+  <!-- Modals -->
+  <EditEventModal />
+  <EditAnnouncementModal />
+
   <div class="section">
-    <div class="section-title">Staged Events for Review</div>
-    <div id="loading" class="loading">Loading staged events...</div>
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">pending_actions</span>
+        Approve Events
+      </div>
+    </div>
+    <div id="loading" class="loading">Loading events...</div>
     <div id="events-container"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">Staged Announcements for Review</div>
-    <div id="announcements-loading" class="loading">Loading staged announcements...</div>
+    <div class="section-title">
+      <span class="material-symbols-outlined">warning</span>
+      Add Missing Location or Primary Tag to Events
+  </div>
+    <div id="incomplete-loading" class="loading">Loading incomplete events...</div>
+    <div id="incomplete-events-container"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">campaign</span>
+        Approve Announcements
+      </div>
+    </div>
+    <div id="announcements-loading" class="loading">Loading announcements...</div>
     <div id="announcements-container"></div>
   </div>
 </div>
 
+<!-- Login Modal (for session expiration scenarios) -->
+<LoginModal 
+  title="Session Expired"
+  description="Your session has expired. Please log in again to continue."
+  redirectUrl={Astro.url.pathname + Astro.url.search}
+  reloadOnSuccess={true}
+/>
+
 <script type="module">
-  // Secure client-side script - no Supabase credentials exposed
-  // All operations go through server-side API endpoints
+  /**
+   * Admin Dashboard Client-Side Script
+   * 
+   * This script handles all client-side interactions for the admin dashboard:
+   * - Loading and displaying events and announcements for approval
+   * - Editing events and announcements via modals
+   * - Approving/rejecting items
+   * - Creating new events
+   * - Autocomplete functionality for locations, organizations, and parent events
+   * 
+   * All operations go through server-side API endpoints for security.
+   * No Supabase credentials are exposed to the client.
+   */
   
-  // Message display function
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Normalizes URLs by adding https:// protocol if missing
+   * @param {string|null} url - The URL to normalize
+   * @returns {string|null} - Normalized URL or null if input is empty
+   */
+  function normalizeUrl(url) {
+    if (!url || url.trim() === '') return null;
+    const trimmed = url.trim();
+    // If it already has a protocol (http:// or https://), return as is
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    // Otherwise, add https://
+    return 'https://' + trimmed;
+  }
+
+  /**
+   * Displays a temporary message notification to the user
+   * @param {string} message - The message to display
+   * @param {string} type - Message type: 'info', 'success', or 'error'
+   */
   function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
     messageDiv.textContent = message;
-    messageDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 4px;
-      color: white;
-      font-weight: 500;
-      z-index: 1000;
-      max-width: 300px;
-      word-wrap: break-word;
-    `;
-    
-    if (type === 'error') {
-      messageDiv.style.backgroundColor = '#d32f2f';
-    } else if (type === 'success') {
-      messageDiv.style.backgroundColor = '#388e3c';
-    } else {
-      messageDiv.style.backgroundColor = '#1976d2';
-    }
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+      type === 'error' ? 'bg-red-600' : 
+      type === 'success' ? 'bg-green-600' : 
+      'bg-blue-600'
+    }`;
     
     document.body.appendChild(messageDiv);
     setTimeout(() => {
@@ -220,49 +487,434 @@ const user = session.user;
     }, 5000);
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      console.log('[ADMIN DEBUG] Loading admin dashboard...');
-      await loadStagedEvents();
-      await loadStagedAnnouncements();
-    } catch (err) {
-      showMessage('Error loading admin dashboard: ' + err.message, 'error');
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('announcements-loading').style.display = 'none';
-    }
+  // ============================================================================
+  // GLOBAL DATA STORES
+  // ============================================================================
+  
+  // Reference data for autocomplete dropdowns
+  let allLocations = [];
+  let allOrganizations = [];
+  let allTags = [];
+  let allParentEvents = [];
 
-    async function loadStagedEvents() {
-      try {
-        const response = await fetch('/api/admin/events-staged', {
-          credentials: 'include', // Include cookies for session
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Unauthorized - redirect to login
+  // ============================================================================
+  // DATA LOADING FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Loads reference data (locations, organizations, tags, parent events) for autocomplete
+   */
+  async function loadReferenceData() {
+    try {
+      const [locationsRes, orgsRes, tagsRes, parentEventsRes] = await Promise.all([
+        fetch('/api/admin/locations', { credentials: 'include' }),
+        fetch('/api/admin/organizations', { credentials: 'include' }),
+        fetch('/api/admin/tags', { credentials: 'include' }),
+        fetch('/api/admin/parent-events', { credentials: 'include' })
+      ]);
+
+      if (locationsRes.ok) {
+        allLocations = await locationsRes.json();
+      }
+      if (orgsRes.ok) {
+        allOrganizations = await orgsRes.json();
+      }
+      if (tagsRes.ok) {
+        allTags = await tagsRes.json();
+        // Populate tag dropdowns
+        const primaryTagSelect = document.getElementById('editEventPrimaryTag');
+        const secondaryTagSelect = document.getElementById('editEventSecondaryTag');
+        if (primaryTagSelect && secondaryTagSelect) {
+          allTags.forEach(tag => {
+            const option1 = document.createElement('option');
+            option1.value = tag.id;
+            option1.textContent = tag.name;
+            primaryTagSelect.appendChild(option1);
+            
+            const option2 = document.createElement('option');
+            option2.value = tag.id;
+            option2.textContent = tag.name;
+            secondaryTagSelect.appendChild(option2);
+          });
+        }
+      }
+      if (parentEventsRes.ok) {
+        allParentEvents = await parentEventsRes.json();
+      }
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+    }
+  }
+
+  // ============================================================================
+  // AUTOCOMPLETE SETUP FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Sets up autocomplete functionality for location selection in event forms
+   */
+  function setupLocationAutocomplete() {
+    const searchInput = document.getElementById('editEventLocationSearch');
+    const hiddenInput = document.getElementById('editEventLocationId');
+    const dropdown = document.getElementById('editEventLocationDropdown');
+    const newLocationInput = document.getElementById('editEventLocationAdded');
+
+    if (!searchInput || !hiddenInput || !dropdown) return;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        hiddenInput.value = '';
+        return;
+      }
+
+      const matches = allLocations.filter(loc => 
+        loc.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+
+      dropdown.innerHTML = matches.map(loc => `
+        <div class="autocomplete-dropdown-item" 
+             onclick="selectLocation('${loc.id}', '${loc.name.replace(/'/g, "\\'")}')">
+          ${loc.name}${loc.address ? ` - ${loc.address}` : ''}
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    window.selectLocation = function(id, name) {
+      searchInput.value = name;
+      hiddenInput.value = id;
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      newLocationInput.value = ''; // Clear new location if existing one selected
+    };
+  }
+
+  /**
+   * Sets up autocomplete functionality for organization selection in event forms
+   */
+  function setupOrganizationAutocomplete() {
+    const searchInput = document.getElementById('editEventOrganizationSearch');
+    const hiddenInput = document.getElementById('editEventOrganizationId');
+    const dropdown = document.getElementById('editEventOrganizationDropdown');
+    const newOrgInput = document.getElementById('editEventOrganizationAdded');
+
+    if (!searchInput || !hiddenInput || !dropdown) return;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        hiddenInput.value = '';
+        return;
+      }
+
+      const matches = allOrganizations.filter(org => 
+        org.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+
+      dropdown.innerHTML = matches.map(org => `
+        <div class="autocomplete-dropdown-item" 
+             onclick="selectOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
+          ${org.name}
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    window.selectOrganization = function(id, name) {
+      searchInput.value = name;
+      hiddenInput.value = id;
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      newOrgInput.value = ''; // Clear new organization if existing one selected
+    };
+  }
+
+  /**
+   * Sets up autocomplete functionality for organization selection in announcement forms
+   */
+  function setupAnnouncementOrganizationAutocomplete() {
+    const searchInput = document.getElementById('editAnnouncementOrganizationSearch');
+    const hiddenInput = document.getElementById('editAnnouncementOrganizationId');
+    const dropdown = document.getElementById('editAnnouncementOrganizationDropdown');
+    const newOrgInput = document.getElementById('editAnnouncementOrganizationAdded');
+
+    if (!searchInput || !hiddenInput || !dropdown) return;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        hiddenInput.value = '';
+        return;
+      }
+
+      const matches = allOrganizations.filter(org => 
+        org.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+
+      if (matches.length > 0) {
+        dropdown.innerHTML = matches.map(org => `
+          <div class="autocomplete-dropdown-item" 
+               onclick="selectAnnouncementOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
+            ${org.name}
+          </div>
+        `).join('');
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('block');
+      } else {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    window.selectAnnouncementOrganization = function(id, name) {
+      searchInput.value = name;
+      hiddenInput.value = id;
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      if (newOrgInput) newOrgInput.value = ''; // Clear new organization if existing one selected
+    };
+
+    // Clear selection when typing in "add new" field
+    if (newOrgInput) {
+      newOrgInput.addEventListener('input', () => {
+        if (newOrgInput.value.trim()) {
+          searchInput.value = '';
+          hiddenInput.value = '';
+          dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        }
+      });
+    }
+  }
+
+  /**
+   * Sets up autocomplete functionality for parent event selection in event forms
+   */
+  function setupParentEventAutocomplete() {
+    const searchInput = document.getElementById('editEventParentEventSearch');
+    const hiddenInput = document.getElementById('editEventParentEventId');
+    const dropdown = document.getElementById('editEventParentEventDropdown');
+
+    if (!searchInput || !hiddenInput || !dropdown) return;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        hiddenInput.value = '';
+        return;
+      }
+
+      const matches = allParentEvents.filter(event => 
+        event.title.toLowerCase().includes(query)
+      ).slice(0, 10);
+
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+
+      dropdown.innerHTML = matches.map(event => {
+        const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : '';
+        const timeStr = event.start_time ? event.start_time.substring(0, 5) : '';
+        const displayStr = `${event.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+        return `
+          <div class="autocomplete-dropdown-item" 
+               onclick="selectParentEvent('${event.id}', '${event.title.replace(/'/g, "\\'")}')">
+            ${displayStr}
+          </div>
+        `;
+      }).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    window.selectParentEvent = function(id, title) {
+      searchInput.value = title;
+      hiddenInput.value = id;
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+    };
+  }
+
+  // ============================================================================
+  // DATA DISPLAY FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Loads and displays events that need approval (both staged and existing)
+   */
+  async function loadEventsToApprove() {
+    try {
+      const loading = document.getElementById('loading');
+      // Load both staged and existing events in parallel
+      const [stagedResponse, existingResponse] = await Promise.all([
+        fetch('/api/admin/events-staged', { credentials: 'include' }),
+        fetch('/api/admin/events', { credentials: 'include' })
+      ]);
+
+      if (!stagedResponse.ok || !existingResponse.ok) {
+        if (stagedResponse.status === 401 || existingResponse.status === 401) {
+          if (typeof window.openLoginModal === 'function') {
+            window.openLoginModal();
+          } else {
             const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
             window.location.href = `/login?redirect=${currentUrl}`;
+          }
             return;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${stagedResponse.status || existingResponse.status}`);
+      }
+
+      const stagedData = await stagedResponse.json();
+      const existingData = await existingResponse.json();
+      
+      // Combine both arrays, marking staged events
+      const stagedEvents = (stagedData.events || []).map(e => ({ ...e, isStaged: true }));
+      const existingEvents = (existingData.events || []).map(e => ({ ...e, isStaged: false }));
+      const allEvents = [...stagedEvents, ...existingEvents].sort((a, b) => {
+        // Sort by start_date, then staged events first
+        if (a.start_date !== b.start_date) {
+          return (a.start_date || '').localeCompare(b.start_date || '');
         }
-        const data = await response.json();
-        displayEvents(data.events || []);
+        return a.isStaged ? -1 : 1;
+      });
+
+      displayEvents(allEvents);
+      if (loading) loading.classList.add('hidden');
       } catch (error) {
-        showMessage('Error loading staged events: ' + error.message, 'error');
+      const loading = document.getElementById('loading');
+      if (loading) loading.classList.add('hidden');
+      showMessage('Error loading events: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * Loads and displays announcements that need approval (both staged and existing)
+   */
+  async function loadAnnouncementsToApprove() {
+    try {
+      const loading = document.getElementById('announcements-loading');
+      // Load both staged and existing announcements in parallel
+      const [stagedResponse, existingResponse] = await Promise.all([
+        fetch('/api/admin/announcements-staged', { credentials: 'include' }),
+        fetch('/api/admin/announcements', { credentials: 'include' })
+      ]);
+
+      if (!stagedResponse.ok || !existingResponse.ok) {
+        if (stagedResponse.status === 401 || existingResponse.status === 401) {
+          if (typeof window.openLoginModal === 'function') {
+            window.openLoginModal();
+          } else {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+          }
+            return;
+          }
+        throw new Error(`HTTP error! status: ${stagedResponse.status || existingResponse.status}`);
+      }
+
+      const stagedData = await stagedResponse.json();
+      const existingData = await existingResponse.json();
+      
+      // Combine both arrays, marking staged announcements
+      const stagedAnnouncements = (stagedData.announcements || []).map(a => ({ ...a, isStaged: true }));
+      const existingAnnouncements = (existingData.announcements || []).map(a => ({ ...a, isStaged: false }));
+      const allAnnouncements = [...stagedAnnouncements, ...existingAnnouncements].sort((a, b) => {
+        // Sort by created_at, then staged announcements first
+        const aDate = a.created_at || '';
+        const bDate = b.created_at || '';
+        if (aDate !== bDate) {
+          return bDate.localeCompare(aDate); // Most recent first
+        }
+        return a.isStaged ? -1 : 1;
+      });
+
+      displayAnnouncements(allAnnouncements);
+      if (loading) loading.classList.add('hidden');
+      } catch (error) {
+      const loading = document.getElementById('announcements-loading');
+      if (loading) loading.classList.add('hidden');
+      showMessage('Error loading announcements: ' + error.message, 'error');
       }
     }
 
-    function displayEvents(events) {
-      const container = document.getElementById('events-container');
-      const loading = document.getElementById('loading');
-      loading.style.display = 'none';
+  /**
+   * Displays events in a table format
+   * @param {Array} events - Array of event objects to display
+   * @param {string} containerId - ID of the container element
+   * @param {string} loadingId - ID of the loading indicator
+   * @param {boolean} isStaged - Whether these are staged events (for date column header)
+   */
+  function displayEvents(events, containerId = 'events-container', loadingId = 'loading', isStaged = true) {
+      const container = document.getElementById(containerId);
+    if (!container) {
+      console.error('Container not found:', containerId);
+      return;
+    }
+      const loading = document.getElementById(loadingId);
+    if (loading) loading.classList.add('hidden');
       if (events.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#888;">No staged events to review.</p>' +
-          '<div style="color:#c62828;text-align:center;font-size:0.95rem;margin-top:0.5rem;">If you expect to see events, check your authentication and API permissions.</div>';
+        container.innerHTML = '<p style="text-align:center;color:#888;">No events to review.</p>';
         return;
       }
       const table =
-        '<table class="event-table">' +
+      '<table class="data-table">' +
         '<thead>' +
         '<tr>' +
         '<th>Title</th>' +
@@ -273,19 +925,27 @@ const user = session.user;
         '<th>Email</th>' +
         '<th>Comments</th>' +
         '<th>Description</th>' +
-        '<th>Submitted</th>' +
+      '<th>Created</th>' +
         '<th>Actions</th>' +
         '</tr>' +
         '</thead>' +
         '<tbody>' +
         events
           .map(function (event) {
+          // Use isStaged property if available, otherwise fall back to parameter
+          const eventIsStaged = event.isStaged !== undefined ? event.isStaged : isStaged;
+          
             const locationDisplay = event.location_added ? 
               `<span style="color: #f57c00; font-weight: 500;">NEW: ${event.location_added}</span>` : 
               (event.location?.name || 'N/A');
             const organizationDisplay = event.organization_added ? 
               `<span style="color: #f57c00; font-weight: 500;">NEW: ${event.organization_added}</span>` : 
               (event.organization?.name || 'N/A');
+            
+          const dateField = eventIsStaged ? 'submitted_at' : 'created_at';
+          const editFunction = eventIsStaged ? 'editStagedEvent' : 'editExistingEvent';
+          const approveFunction = eventIsStaged ? 'approveEvent' : 'approveExistingEvent';
+          const rejectFunction = eventIsStaged ? 'rejectEvent' : 'rejectExistingEvent';
             
             return (
               '<tr>' +
@@ -297,10 +957,261 @@ const user = session.user;
               '<td>' + (event.email || 'N/A') + '</td>' +
               '<td>' + (event.comments || '').substring(0, 50) + (event.comments && event.comments.length > 50 ? '...' : '') + '</td>' +
               '<td>' + (event.description || '').substring(0, 100) + (event.description && event.description.length > 100 ? '...' : '') + '</td>' +
-              '<td>' + (event.submitted_at ? new Date(event.submitted_at).toLocaleDateString() : 'N/A') + '</td>' +
-              '<td>' +
-              '<button onclick="approveEvent(\'' + event.id + '\')" class="action-btn btn-approve">✔ Approve</button>' +
-              '<button onclick="rejectEvent(\'' + event.id + '\')" class="action-btn btn-reject">✖ Reject</button>' +
+              '<td>' + (event[dateField] ? new Date(event[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
+            '<td style="text-align: center; white-space: nowrap;">' +
+            '<button onclick="' + editFunction + '(\'' + event.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit event">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+            '<span class="tooltip">Edit</span>' +
+            '</button>' +
+            '<button onclick="' + approveFunction + '(\'' + event.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve event">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
+            '<span class="tooltip">Approve</span>' +
+            '</button>' +
+            '<button onclick="' + rejectFunction + '(\'' + event.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Reject event">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>' +
+            '<span class="tooltip">Reject</span>' +
+            '</button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody>' +
+      '</table>';
+    container.innerHTML = table;
+  }
+
+  function displayAnnouncements(announcements, containerId = 'announcements-container', loadingId = 'announcements-loading', isStaged = true) {
+    const container = document.getElementById(containerId);
+    const loading = document.getElementById(loadingId);
+    if (loading) loading.classList.add('hidden');
+    if (announcements.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#888;">No announcements to review.</p>';
+      return;
+    }
+    const table =
+      '<table class="data-table">' +
+      '<thead>' +
+      '<tr>' +
+      '<th>Title</th>' +
+      '<th>Message</th>' +
+      '<th>Email</th>' +
+      '<th>Comments</th>' +
+      '<th>Show At</th>' +
+      '<th>Expires At</th>' +
+      '<th>Created</th>' +
+      '<th>Actions</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      announcements
+        .map(function (a) {
+          // Use isStaged property if available, otherwise fall back to checking if it's a staged announcement
+          const announcementIsStaged = a.isStaged !== undefined ? a.isStaged : isStaged;
+          const dateField = 'created_at';
+          const editFunction = announcementIsStaged ? 'editStagedAnnouncement' : 'editExistingAnnouncement';
+          const approveFunction = announcementIsStaged ? 'approveAnnouncement' : 'approveExistingAnnouncement';
+          const rejectFunction = announcementIsStaged ? 'rejectAnnouncement' : 'rejectExistingAnnouncement';
+          
+          return (
+            '<tr>' +
+            '<td>' + (a.title || 'N/A') + '</td>' +
+            '<td>' + (a.message || '').substring(0, 100) + (a.message && a.message.length > 100 ? '...' : '') + '</td>' +
+            '<td>' + (a.email || 'N/A') + '</td>' +
+            '<td>' + (a.comments || '').substring(0, 50) + (a.comments && a.comments.length > 50 ? '...' : '') + '</td>' +
+            '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : 'N/A') + '</td>' +
+            '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : 'N/A') + '</td>' +
+            '<td>' + (a[dateField] ? new Date(a[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
+            '<td style="text-align: center; white-space: nowrap;">' +
+            '<button onclick="' + editFunction + '(\'' + a.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit announcement">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+            '<span class="tooltip">Edit</span>' +
+            '</button>' +
+            '<button onclick="' + approveFunction + '(\'' + a.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve announcement">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
+            '<span class="tooltip">Approve</span>' +
+            '</button>' +
+            '<button onclick="' + rejectFunction + '(\'' + a.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Reject announcement">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>' +
+            '<span class="tooltip">Reject</span>' +
+            '</button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody>' +
+      '</table>';
+    container.innerHTML = table;
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      // Load reference data first
+      await loadReferenceData();
+      setupLocationAutocomplete();
+      setupOrganizationAutocomplete();
+      setupParentEventAutocomplete();
+      setupAnnouncementOrganizationAutocomplete();
+      
+      await Promise.all([
+        loadEventsToApprove(),
+        loadIncompleteEvents(),
+        loadAnnouncementsToApprove()
+      ]);
+
+      // Check if we should open edit modal for a specific event (from URL query param)
+      const urlParams = new URLSearchParams(window.location.search);
+      const editEventId = urlParams.get('editEvent');
+      if (editEventId) {
+        // Wait for functions to be defined and data to be loaded
+        const tryOpenEditModal = async () => {
+          try {
+            // Verify functions are available
+            if (typeof editExistingEvent !== 'function' || typeof editStagedEvent !== 'function') {
+              return false;
+            }
+            
+            // Try to fetch the event directly first (works for all statuses including approved)
+            try {
+              const directResponse = await fetch(`/api/admin/events/${editEventId}`, { credentials: 'include' });
+              if (directResponse.ok) {
+                const directData = await directResponse.json();
+                if (directData.event) {
+                  await editExistingEvent(editEventId);
+                  window.history.replaceState({}, '', window.location.pathname);
+                  return true;
+                }
+              }
+            } catch (err) {
+              console.error('Error fetching event:', err);
+            }
+            
+            // Fallback: Try to find the event in existing events first, then staged events
+            const existingResponse = await fetch('/api/admin/events', { credentials: 'include' });
+            const existingData = await existingResponse.json();
+            const existingEvent = existingData.events && existingData.events.find(function(e) { return e.id === editEventId; });
+            
+            if (existingEvent) {
+              await editExistingEvent(editEventId);
+              window.history.replaceState({}, '', window.location.pathname);
+              return true;
+            }
+            
+            // Try staged events
+            const stagedResponse = await fetch('/api/admin/events-staged', { credentials: 'include' });
+            const stagedData = await stagedResponse.json();
+            const stagedEvent = stagedData.events && stagedData.events.find(function(e) { return e.id === editEventId; });
+            
+            if (stagedEvent) {
+              await editStagedEvent(editEventId);
+              window.history.replaceState({}, '', window.location.pathname);
+              return true;
+            }
+            
+            showMessage('Event not found.', 'error');
+            return false;
+          } catch (err) {
+            console.error('Error opening edit modal:', err);
+            showMessage('Error opening edit modal: ' + err.message, 'error');
+            return false;
+          }
+        };
+        
+        // Try immediately, then retry if needed
+        setTimeout(async () => {
+          if (!(await tryOpenEditModal())) {
+            // Retry after a bit more time
+            setTimeout(async () => {
+              await tryOpenEditModal();
+            }, 500);
+          }
+        }, 500);
+      }
+    } catch (err) {
+      showMessage('Error loading admin dashboard: ' + err.message, 'error');
+      // Hide all loading indicators
+      ['loading', 'incomplete-loading', 'announcements-loading'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
+
+    async function loadIncompleteEvents() {
+      try {
+        const loading = document.getElementById('incomplete-loading');
+        const response = await fetch('/api/admin/events/incomplete', {
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            if (typeof window.openLoginModal === 'function') {
+              window.openLoginModal();
+            } else {
+              const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+              window.location.href = `/login?redirect=${currentUrl}`;
+            }
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayIncompleteEvents(data.events || []);
+        if (loading) loading.classList.add('hidden');
+      } catch (error) {
+        const loading = document.getElementById('incomplete-loading');
+        if (loading) loading.classList.add('hidden');
+        const container = document.getElementById('incomplete-events-container');
+        if (container) {
+          container.innerHTML = '<p style="text-align:center;color:#888;">Error loading incomplete events: ' + error.message + '</p>';
+        }
+      }
+    }
+
+    function displayIncompleteEvents(events) {
+      const container = document.getElementById('incomplete-events-container');
+      if (!container) return;
+      
+      if (events.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#888;padding:2rem;">All approved events have locations and primary tags. Great job! 🎉</p>';
+        return;
+      }
+      
+      const table =
+        '<table class="data-table">' +
+        '<thead>' +
+        '<tr>' +
+        '<th>Title</th>' +
+        '<th>Start Date</th>' +
+        '<th>Location</th>' +
+        '<th>Primary Tag</th>' +
+        '<th style="text-align: center; width: 60px;"></th>' +
+        '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+        events
+          .map(function (event) {
+            const missingLocation = !event.location_id;
+            const missingPrimaryTag = !event.primary_tag_id;
+            
+            const locationDisplay = missingLocation 
+              ? '<span class="material-symbols-outlined" style="color: #f59e0b; font-size: 1.25rem; vertical-align: middle;" title="Missing location">warning</span>' 
+              : (event.location?.name || 'N/A');
+            
+            const primaryTagDisplay = missingPrimaryTag 
+              ? '<span class="material-symbols-outlined" style="color: #f59e0b; font-size: 1.25rem; vertical-align: middle;" title="Missing primary tag">warning</span>' 
+              : (event.primary_tag?.name || 'N/A');
+            
+            return (
+              '<tr>' +
+              '<td><strong>' + (event.title || 'N/A') + '</strong></td>' +
+              '<td>' + (event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A') + '</td>' +
+              '<td>' + locationDisplay + '</td>' +
+              '<td>' + primaryTagDisplay + '</td>' +
+              '<td style="text-align: center;">' +
+              '<button onclick="editExistingEvent(\'' + event.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit event">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+              '</button>' +
               '</td>' +
               '</tr>'
             );
@@ -311,9 +1222,28 @@ const user = session.user;
       container.innerHTML = table;
     }
 
-    async function approveEvent(eventId) {
-      try {
-        const response = await fetch('/api/admin/events-staged/approve', {
+  /**
+   * Approves a staged event, moving it to the events table
+   * @param {string} eventId - The ID of the staged event to approve
+   */
+  async function approveEvent(eventId) {
+    try {
+      // First check if event has primary_tag
+        const response = await fetch('/api/admin/events-staged', { credentials: 'include' });
+        const data = await response.json();
+        const event = data.events.find(e => e.id === eventId);
+        
+        if (!event) {
+          showMessage('Event not found', 'error');
+          return;
+        }
+        
+        if (!event.primary_tag_id) {
+          showMessage('Event must have a primary tag selected before approval. Please edit the event first.', 'error');
+          return;
+        }
+        
+        const approveResponse = await fetch('/api/admin/events-staged/approve', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -321,25 +1251,30 @@ const user = session.user;
           credentials: 'include', // Include cookies for session
           body: JSON.stringify({ eventId }),
         });
-        if (!response.ok) {
-          if (response.status === 401) {
+        if (!approveResponse.ok) {
+          if (approveResponse.status === 401) {
             const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
             window.location.href = `/login?redirect=${currentUrl}`;
             return;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await approveResponse.json();
+          throw new Error(errorData.error || `HTTP error! status: ${approveResponse.status}`);
         }
-        await response.json();
+        await approveResponse.json();
         showMessage('Event approved successfully!', 'success');
-        loadStagedEvents();
+        loadEventsToApprove();
       } catch (error) {
         showMessage('Error approving event: ' + error.message, 'error');
       }
     }
 
-    async function rejectEvent(eventId) {
-      const reason = prompt('Reason for rejection (optional):');
-      try {
+  /**
+   * Rejects a staged event
+   * @param {string} eventId - The ID of the staged event to reject
+   */
+  async function rejectEvent(eventId) {
+    const reason = prompt('Reason for rejection (optional):');
+    try {
         const response = await fetch('/api/admin/events-staged/reject', {
           method: 'POST',
           headers: {
@@ -358,43 +1293,29 @@ const user = session.user;
         }
         await response.json();
         showMessage('Event rejected successfully!', 'success');
-        loadStagedEvents();
+        loadEventsToApprove();
       } catch (error) {
         showMessage('Error rejecting event: ' + error.message, 'error');
       }
     }
 
-    async function loadStagedAnnouncements() {
-      try {
-        const response = await fetch('/api/admin/announcements-staged', {
-          credentials: 'include', // Include cookies for session
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Unauthorized - redirect to login
-            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
-            window.location.href = `/login?redirect=${currentUrl}`;
-            return;
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        displayAnnouncements(data.announcements || []);
-      } catch (error) {
-        showMessage('Error loading staged announcements: ' + error.message, 'error');
-      }
-    }
-    function displayAnnouncements(announcements) {
-      const container = document.getElementById('announcements-container');
-      const loading = document.getElementById('announcements-loading');
-      loading.style.display = 'none';
+  /**
+   * Displays announcements in a table format
+   * @param {Array} announcements - Array of announcement objects to display
+   * @param {string} containerId - ID of the container element
+   * @param {string} loadingId - ID of the loading indicator
+   * @param {boolean} isStaged - Whether these are staged announcements (for date column header)
+   */
+  function displayAnnouncements(announcements, containerId = 'announcements-container', loadingId = 'announcements-loading', isStaged = true) {
+      const container = document.getElementById(containerId);
+      const loading = document.getElementById(loadingId);
+      if (loading) loading.classList.add('hidden');
       if (announcements.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#888;">No staged announcements to review.</p>' +
-          '<div style="color:#c62828;text-align:center;font-size:0.95rem;margin-top:0.5rem;">If you expect to see announcements, check your authentication and API permissions.</div>';
+        container.innerHTML = '<p style="text-align:center;color:#888;">No announcements to review.</p>';
         return;
       }
       const table =
-        '<table class="event-table">' +
+        '<table class="data-table">' +
         '<thead>' +
         '<tr>' +
         '<th>Title</th>' +
@@ -403,13 +1324,20 @@ const user = session.user;
         '<th>Comments</th>' +
         '<th>Show At</th>' +
         '<th>Expires At</th>' +
-        '<th>Submitted</th>' +
+        '<th>Created</th>' +
         '<th>Actions</th>' +
         '</tr>' +
         '</thead>' +
         '<tbody>' +
         announcements
           .map(function (a) {
+            // Use isStaged property if available, otherwise fall back to checking if it's a staged announcement
+            const announcementIsStaged = a.isStaged !== undefined ? a.isStaged : isStaged;
+            const dateField = 'created_at';
+            const editFunction = announcementIsStaged ? 'editStagedAnnouncement' : 'editExistingAnnouncement';
+            const approveFunction = announcementIsStaged ? 'approveAnnouncement' : 'approveExistingAnnouncement';
+            const rejectFunction = announcementIsStaged ? 'rejectAnnouncement' : 'rejectExistingAnnouncement';
+            
             return (
               '<tr>' +
               '<td>' + (a.title || 'N/A') + '</td>' +
@@ -418,10 +1346,20 @@ const user = session.user;
               '<td>' + (a.comments || '').substring(0, 50) + (a.comments && a.comments.length > 50 ? '...' : '') + '</td>' +
               '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : 'N/A') + '</td>' +
               '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : 'N/A') + '</td>' +
-              '<td>' + (a.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A') + '</td>' +
-              '<td>' +
-              '<button onclick="approveAnnouncement(\'' + a.id + '\')" class="action-btn btn-approve">✔ Approve</button>' +
-              '<button onclick="rejectAnnouncement(\'' + a.id + '\')" class="action-btn btn-reject">✖ Reject</button>' +
+              '<td>' + (a[dateField] ? new Date(a[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
+              '<td style="text-align: center; white-space: nowrap;">' +
+              '<button onclick="' + editFunction + '(\'' + a.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit announcement">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+              '<span class="tooltip">Edit</span>' +
+              '</button>' +
+              '<button onclick="' + approveFunction + '(\'' + a.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve announcement">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
+              '<span class="tooltip">Approve</span>' +
+              '</button>' +
+              '<button onclick="' + rejectFunction + '(\'' + a.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Reject announcement">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>' +
+              '<span class="tooltip">Reject</span>' +
+              '</button>' +
               '</td>' +
               '</tr>'
             );
@@ -432,7 +1370,11 @@ const user = session.user;
       container.innerHTML = table;
     }
 
-    async function approveAnnouncement(announcementId) {
+  /**
+   * Approves a staged announcement, moving it to the announcements table
+   * @param {string} announcementId - The ID of the staged announcement to approve
+   */
+  async function approveAnnouncement(announcementId) {
       try {
         const response = await fetch('/api/admin/announcements-staged/approve', {
           method: 'POST',
@@ -452,13 +1394,17 @@ const user = session.user;
         }
         await response.json();
         showMessage('Announcement approved successfully!', 'success');
-        loadStagedAnnouncements();
+        loadAnnouncementsToApprove();
       } catch (error) {
         showMessage('Error approving announcement: ' + error.message, 'error');
       }
     }
     
-    async function rejectAnnouncement(announcementId) {
+  /**
+   * Rejects a staged announcement
+   * @param {string} announcementId - The ID of the staged announcement to reject
+   */
+  async function rejectAnnouncement(announcementId) {
       const reason = prompt('Reason for rejection (optional):');
       try {
         const response = await fetch('/api/admin/announcements-staged/reject', {
@@ -479,7 +1425,443 @@ const user = session.user;
         }
         await response.json();
         showMessage('Announcement rejected successfully!', 'success');
-        loadStagedAnnouncements();
+        loadAnnouncementsToApprove();
+      } catch (error) {
+        showMessage('Error rejecting announcement: ' + error.message, 'error');
+      }
+    }
+
+  // ============================================================================
+  // EDIT MODAL STATE MANAGEMENT
+  // ============================================================================
+  
+  // Track which item is currently being edited
+  let currentEditId = null;
+  let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
+
+  // ============================================================================
+  // EDIT FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Opens the edit modal for a staged event
+   * @param {string} eventId - The ID of the event to edit
+   */
+
+    async function editStagedEvent(eventId) {
+      currentEditId = eventId;
+      currentEditType = 'staged-event';
+      
+      // Find the event data from the already loaded events
+      const response = await fetch('/api/admin/events-staged', { credentials: 'include' });
+      const data = await response.json();
+      const event = data.events.find(e => e.id === eventId);
+      
+      if (event) {
+        document.getElementById('editEventModalTitle').textContent = 'Edit Staged Event';
+        document.getElementById('editEventTitle').value = event.title || '';
+        document.getElementById('editEventDescription').value = event.description || '';
+        document.getElementById('editEventStartDate').value = event.start_date || '';
+        document.getElementById('editEventEndDate').value = event.end_date || '';
+        document.getElementById('editEventStartTime').value = event.start_time || '';
+        document.getElementById('editEventEndTime').value = event.end_time || '';
+        document.getElementById('editEventEmail').value = event.email || '';
+        document.getElementById('editEventWebsite').value = event.website || '';
+        document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+        document.getElementById('editEventCost').value = event.cost || '';
+        document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
+        document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+        
+        // Show "add new" fields for staged events (they support location_added/organization_added)
+        const locationContainer = document.getElementById('editEventLocationAddedContainer');
+        const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
+        if (locationContainer) locationContainer.classList.remove('hidden');
+        if (orgContainer) orgContainer.classList.remove('hidden');
+        
+        // Set location
+        if (event.location_id && event.location) {
+          document.getElementById('editEventLocationSearch').value = event.location.name || '';
+          document.getElementById('editEventLocationId').value = event.location_id;
+          document.getElementById('editEventLocationAdded').value = '';
+        } else if (event.location_added) {
+          document.getElementById('editEventLocationSearch').value = '';
+          document.getElementById('editEventLocationId').value = '';
+          document.getElementById('editEventLocationAdded').value = event.location_added;
+        } else {
+          document.getElementById('editEventLocationSearch').value = '';
+          document.getElementById('editEventLocationId').value = '';
+          document.getElementById('editEventLocationAdded').value = '';
+        }
+        
+        // Set organization
+        if (event.organization_id && event.organization) {
+          document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
+          document.getElementById('editEventOrganizationId').value = event.organization_id;
+          document.getElementById('editEventOrganizationAdded').value = '';
+        } else if (event.organization_added) {
+          document.getElementById('editEventOrganizationSearch').value = '';
+          document.getElementById('editEventOrganizationId').value = '';
+          document.getElementById('editEventOrganizationAdded').value = event.organization_added;
+        } else {
+          document.getElementById('editEventOrganizationSearch').value = '';
+          document.getElementById('editEventOrganizationId').value = '';
+          document.getElementById('editEventOrganizationAdded').value = '';
+        }
+        
+        // Set parent event
+        if (event.parent_event_id) {
+          // Find the parent event in our loaded list
+          const parentEvent = allParentEvents.find(e => e.id === event.parent_event_id);
+          if (parentEvent) {
+            document.getElementById('editEventParentEventSearch').value = parentEvent.title || '';
+            document.getElementById('editEventParentEventId').value = event.parent_event_id;
+          } else {
+            // If not found, we'll need to fetch it or just show the ID
+            document.getElementById('editEventParentEventSearch').value = '';
+            document.getElementById('editEventParentEventId').value = event.parent_event_id;
+          }
+        } else {
+          document.getElementById('editEventParentEventSearch').value = '';
+          document.getElementById('editEventParentEventId').value = '';
+        }
+        
+        document.getElementById('editEventComments').value = event.comments || '';
+        const modal = document.getElementById('editEventModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          // Scroll to top of page to ensure modal is visible
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        showMessage('Event not found', 'error');
+      }
+    }
+
+  /**
+   * Opens the edit modal for an existing (approved) event
+   * @param {string} eventId - The ID of the event to edit
+   */
+  async function editExistingEvent(eventId) {
+      currentEditId = eventId;
+      currentEditType = 'existing-event';
+      
+      // Try to find the event data from the already loaded events first
+      let response = await fetch('/api/admin/events', { credentials: 'include' });
+      let data = await response.json();
+      let event = data.events && data.events.find(function(e) { return e.id === eventId; });
+      
+      // If not found, try fetching directly (might be an approved event)
+      if (!event) {
+        response = await fetch(`/api/admin/events/${eventId}`, { credentials: 'include' });
+        if (response.ok) {
+          data = await response.json();
+          event = data.event;
+        }
+      }
+      
+      if (event) {
+        document.getElementById('editEventModalTitle').textContent = 'Edit Existing Event';
+        document.getElementById('editEventTitle').value = event.title || '';
+        document.getElementById('editEventDescription').value = event.description || '';
+        document.getElementById('editEventStartDate').value = event.start_date || '';
+        document.getElementById('editEventEndDate').value = event.end_date || '';
+        document.getElementById('editEventStartTime').value = event.start_time || '';
+        document.getElementById('editEventEndTime').value = event.end_time || '';
+        document.getElementById('editEventEmail').value = event.email || '';
+        document.getElementById('editEventWebsite').value = event.website || '';
+        document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+        document.getElementById('editEventCost').value = event.cost || '';
+        document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
+        document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+        
+        // Show "add new" fields for existing events too (we'll create them on the backend)
+        const locationContainer = document.getElementById('editEventLocationAddedContainer');
+        const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
+        if (locationContainer) locationContainer.classList.remove('hidden');
+        if (orgContainer) orgContainer.classList.remove('hidden');
+        
+        // Set location
+        if (event.location_id && event.location) {
+          document.getElementById('editEventLocationSearch').value = event.location.name || '';
+          document.getElementById('editEventLocationId').value = event.location_id;
+          document.getElementById('editEventLocationAdded').value = '';
+        } else {
+          document.getElementById('editEventLocationSearch').value = '';
+          document.getElementById('editEventLocationId').value = '';
+          document.getElementById('editEventLocationAdded').value = '';
+        }
+        
+        // Set organization
+        if (event.organization_id && event.organization) {
+          document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
+          document.getElementById('editEventOrganizationId').value = event.organization_id;
+          document.getElementById('editEventOrganizationAdded').value = '';
+        } else {
+          document.getElementById('editEventOrganizationSearch').value = '';
+          document.getElementById('editEventOrganizationId').value = '';
+          document.getElementById('editEventOrganizationAdded').value = '';
+        }
+        
+        // Set parent event
+        if (event.parent_event_id) {
+          // Find the parent event in our loaded list
+          const parentEvent = allParentEvents.find(e => e.id === event.parent_event_id);
+          if (parentEvent) {
+            const dateStr = parentEvent.start_date ? new Date(parentEvent.start_date).toLocaleDateString() : '';
+            const timeStr = parentEvent.start_time ? parentEvent.start_time.substring(0, 5) : '';
+            const displayStr = `${parentEvent.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+            document.getElementById('editEventParentEventSearch').value = displayStr;
+            document.getElementById('editEventParentEventId').value = event.parent_event_id;
+          } else {
+            // If not found in parent events list, try to find it in the current events list
+            const allEvents = data.events || [];
+            const parentInList = allEvents.find(e => e.id === event.parent_event_id);
+            if (parentInList) {
+              document.getElementById('editEventParentEventSearch').value = parentInList.title || '';
+              document.getElementById('editEventParentEventId').value = event.parent_event_id;
+            } else {
+              // If still not found, just set the ID (user can search for it)
+              document.getElementById('editEventParentEventSearch').value = '';
+              document.getElementById('editEventParentEventId').value = event.parent_event_id;
+            }
+          }
+        } else {
+          document.getElementById('editEventParentEventSearch').value = '';
+          document.getElementById('editEventParentEventId').value = '';
+        }
+        
+        document.getElementById('editEventComments').value = event.comments || '';
+        const modal = document.getElementById('editEventModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          // Scroll to top of page to ensure modal is visible
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        showMessage('Event not found', 'error');
+      }
+    }
+
+
+  /**
+   * Opens the edit modal for a staged announcement
+   * @param {string} announcementId - The ID of the announcement to edit
+   */
+  async function editStagedAnnouncement(announcementId) {
+      currentEditId = announcementId;
+      currentEditType = 'staged-announcement';
+      
+      // Find the announcement data from the already loaded announcements
+      const response = await fetch('/api/admin/announcements-staged', { credentials: 'include' });
+      const data = await response.json();
+      const announcement = data.announcements.find(a => a.id === announcementId);
+      
+      if (announcement) {
+        document.getElementById('editAnnouncementModalTitle').textContent = 'Edit Staged Announcement';
+        document.getElementById('editAnnouncementTitle').value = announcement.title || '';
+        document.getElementById('editAnnouncementMessage').value = announcement.message || '';
+        document.getElementById('editAnnouncementLink').value = announcement.link || '';
+        document.getElementById('editAnnouncementEmail').value = announcement.email || '';
+        document.getElementById('editAnnouncementAuthor').value = announcement.author || '';
+        
+        if (announcement.show_at) {
+          const showAt = new Date(announcement.show_at);
+          document.getElementById('editAnnouncementShowAtDate').value = showAt.toISOString().split('T')[0];
+          document.getElementById('editAnnouncementShowAtTime').value = showAt.toTimeString().substring(0, 5);
+        } else {
+          document.getElementById('editAnnouncementShowAtDate').value = '';
+          document.getElementById('editAnnouncementShowAtTime').value = '';
+        }
+        
+        if (announcement.expires_at) {
+          const expiresAt = new Date(announcement.expires_at);
+          document.getElementById('editAnnouncementExpiresAtDate').value = expiresAt.toISOString().split('T')[0];
+          document.getElementById('editAnnouncementExpiresAtTime').value = expiresAt.toTimeString().substring(0, 5);
+        } else {
+          document.getElementById('editAnnouncementExpiresAtDate').value = '';
+          document.getElementById('editAnnouncementExpiresAtTime').value = '';
+        }
+        
+        // Handle organization (staged announcements use organization string, not ID)
+        if (announcement.organization) {
+          document.getElementById('editAnnouncementOrganizationSearch').value = announcement.organization;
+        } else if (announcement.organization_id) {
+          // Try to find organization name
+          const org = allOrganizations.find(o => o.id === announcement.organization_id);
+          if (org) {
+            document.getElementById('editAnnouncementOrganizationSearch').value = org.name;
+            document.getElementById('editAnnouncementOrganizationId').value = org.id;
+          }
+        }
+        
+        document.getElementById('editAnnouncementComments').value = announcement.comments || '';
+        const modal = document.getElementById('editAnnouncementModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        showMessage('Announcement not found', 'error');
+      }
+    }
+
+  /**
+   * Opens the edit modal for an existing (published) announcement
+   * @param {string} announcementId - The ID of the announcement to edit
+   */
+  async function editExistingAnnouncement(announcementId) {
+      currentEditId = announcementId;
+      currentEditType = 'existing-announcement';
+      
+      // Find the announcement data from the already loaded announcements
+      const response = await fetch('/api/admin/announcements', { credentials: 'include' });
+      const data = await response.json();
+      const announcement = data.announcements.find(a => a.id === announcementId);
+      
+      if (announcement) {
+        document.getElementById('editAnnouncementModalTitle').textContent = 'Edit Existing Announcement';
+        document.getElementById('editAnnouncementTitle').value = announcement.title || '';
+        document.getElementById('editAnnouncementMessage').value = announcement.message || '';
+        document.getElementById('editAnnouncementLink').value = announcement.link || '';
+        document.getElementById('editAnnouncementEmail').value = announcement.email || '';
+        document.getElementById('editAnnouncementAuthor').value = announcement.author || '';
+        
+        if (announcement.show_at) {
+          const showAt = new Date(announcement.show_at);
+          document.getElementById('editAnnouncementShowAtDate').value = showAt.toISOString().split('T')[0];
+          document.getElementById('editAnnouncementShowAtTime').value = showAt.toTimeString().substring(0, 5);
+        } else {
+          document.getElementById('editAnnouncementShowAtDate').value = '';
+          document.getElementById('editAnnouncementShowAtTime').value = '';
+        }
+        
+        if (announcement.expires_at) {
+          const expiresAt = new Date(announcement.expires_at);
+          document.getElementById('editAnnouncementExpiresAtDate').value = expiresAt.toISOString().split('T')[0];
+          document.getElementById('editAnnouncementExpiresAtTime').value = expiresAt.toTimeString().substring(0, 5);
+        } else {
+          document.getElementById('editAnnouncementExpiresAtDate').value = '';
+          document.getElementById('editAnnouncementExpiresAtTime').value = '';
+        }
+        
+        // Handle organization
+        if (announcement.organization_id) {
+          const org = allOrganizations.find(o => o.id === announcement.organization_id);
+          if (org) {
+            document.getElementById('editAnnouncementOrganizationSearch').value = org.name;
+            document.getElementById('editAnnouncementOrganizationId').value = org.id;
+          }
+        }
+        
+        document.getElementById('editAnnouncementComments').value = announcement.comments || '';
+        const modal = document.getElementById('editAnnouncementModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        showMessage('Announcement not found', 'error');
+      }
+    }
+
+  /**
+   * Approves an existing (non-staged) event by changing its status to 'approved'
+   * @param {string} eventId - The ID of the event to approve
+   */
+  async function approveExistingEvent(eventId) {
+      try {
+        // First check if event has primary_tag
+        const response = await fetch('/api/admin/events', { credentials: 'include' });
+        const data = await response.json();
+        const event = data.events.find(e => e.id === eventId);
+        
+        if (!event) {
+          showMessage('Event not found', 'error');
+          return;
+        }
+        
+        if (!event.primary_tag_id) {
+          showMessage('Event must have a primary tag selected before approval. Please edit the event first.', 'error');
+          return;
+        }
+        
+        const approveResponse = await fetch('/api/admin/events/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ eventId }),
+        });
+        if (approveResponse.ok) {
+          showMessage('Event approved successfully!', 'success');
+          loadEventsToApprove();
+        } else {
+          const errorData = await approveResponse.json();
+          throw new Error(errorData.error || 'Failed to approve event');
+        }
+      } catch (error) {
+        showMessage('Error approving event: ' + error.message, 'error');
+      }
+    }
+
+    async function approveExistingAnnouncement(announcementId) {
+      try {
+        const response = await fetch('/api/admin/announcements/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ announcementId }),
+        });
+        if (response.ok) {
+          showMessage('Announcement approved successfully!', 'success');
+          loadAnnouncementsToApprove();
+        } else {
+          throw new Error('Failed to approve announcement');
+        }
+      } catch (error) {
+        showMessage('Error approving announcement: ' + error.message, 'error');
+      }
+    }
+
+    // Reject existing events/announcements
+    async function rejectExistingEvent(eventId) {
+      const reason = prompt('Reason for rejection (optional):');
+      try {
+        const response = await fetch('/api/admin/events/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ eventId, reason }),
+        });
+        if (response.ok) {
+          showMessage('Event rejected successfully!', 'success');
+          loadEventsToApprove();
+        } else {
+          throw new Error('Failed to reject event');
+        }
+      } catch (error) {
+        showMessage('Error rejecting event: ' + error.message, 'error');
+      }
+    }
+
+    async function rejectExistingAnnouncement(announcementId) {
+      const reason = prompt('Reason for rejection (optional):');
+      try {
+        const response = await fetch('/api/admin/announcements/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ announcementId, reason }),
+        });
+        if (response.ok) {
+          showMessage('Announcement rejected successfully!', 'success');
+          loadAnnouncementsToApprove();
+        } else {
+          throw new Error('Failed to reject announcement');
+        }
       } catch (error) {
         showMessage('Error rejecting announcement: ' + error.message, 'error');
       }
@@ -489,6 +1871,530 @@ const user = session.user;
     window.rejectEvent = rejectEvent;
     window.approveAnnouncement = approveAnnouncement;
     window.rejectAnnouncement = rejectAnnouncement;
+    window.editStagedEvent = editStagedEvent;
+    window.editExistingEvent = editExistingEvent;
+    window.editStagedAnnouncement = editStagedAnnouncement;
+    window.editExistingAnnouncement = editExistingAnnouncement;
+    window.approveExistingEvent = approveExistingEvent;
+    window.approveExistingAnnouncement = approveExistingAnnouncement;
+    window.rejectExistingEvent = rejectExistingEvent;
+    window.rejectExistingAnnouncement = rejectExistingAnnouncement;
+    
+    // Modal functions
+  /**
+   * Opens the announcement edit modal in "create new announcement" mode
+   */
+  window.openCreateAnnouncementModal = function() {
+      currentEditId = null;
+      currentEditType = 'new-announcement';
+      
+      // Clear all form fields
+      document.getElementById('editAnnouncementModalTitle').textContent = 'Create New Announcement';
+      document.getElementById('editAnnouncementTitle').value = '';
+      document.getElementById('editAnnouncementMessage').value = '';
+      document.getElementById('editAnnouncementShowAtDate').value = '';
+      document.getElementById('editAnnouncementShowAtTime').value = '';
+      document.getElementById('editAnnouncementExpiresAtDate').value = '';
+      document.getElementById('editAnnouncementExpiresAtTime').value = '';
+      document.getElementById('editAnnouncementLink').value = '';
+      document.getElementById('editAnnouncementEmail').value = '';
+      document.getElementById('editAnnouncementAuthor').value = '';
+      document.getElementById('editAnnouncementOrganizationSearch').value = '';
+      document.getElementById('editAnnouncementOrganizationId').value = '';
+      document.getElementById('editAnnouncementOrganizationAdded').value = '';
+      document.getElementById('editAnnouncementComments').value = '';
+      
+      // Show "add new" fields
+      const orgContainer = document.getElementById('editAnnouncementOrganizationAddedContainer');
+      if (orgContainer) orgContainer.classList.remove('hidden');
+      
+      // Open modal
+      const modal = document.getElementById('editAnnouncementModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+  /**
+   * Opens the event edit modal in "create new event" mode
+   */
+  window.openCreateEventModal = function() {
+      currentEditId = null;
+      currentEditType = 'new-event';
+      
+      // Clear all form fields
+      document.getElementById('editEventModalTitle').textContent = 'Create New Event';
+      document.getElementById('editEventTitle').value = '';
+      document.getElementById('editEventDescription').value = '';
+      document.getElementById('editEventStartDate').value = '';
+      document.getElementById('editEventEndDate').value = '';
+      document.getElementById('editEventStartTime').value = '';
+      document.getElementById('editEventEndTime').value = '';
+      document.getElementById('editEventEmail').value = '';
+      document.getElementById('editEventWebsite').value = '';
+      document.getElementById('editEventRegistrationLink').value = '';
+      document.getElementById('editEventCost').value = '';
+      document.getElementById('editEventPrimaryTag').value = '';
+      document.getElementById('editEventSecondaryTag').value = '';
+      document.getElementById('editEventLocationSearch').value = '';
+      document.getElementById('editEventLocationId').value = '';
+      document.getElementById('editEventLocationAdded').value = '';
+      document.getElementById('editEventOrganizationSearch').value = '';
+      document.getElementById('editEventOrganizationId').value = '';
+      document.getElementById('editEventOrganizationAdded').value = '';
+      document.getElementById('editEventParentEventSearch').value = '';
+      document.getElementById('editEventParentEventId').value = '';
+      document.getElementById('editEventComments').value = '';
+      
+      // Show "add new" fields
+      const locationContainer = document.getElementById('editEventLocationAddedContainer');
+      const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
+      if (locationContainer) locationContainer.classList.remove('hidden');
+      if (orgContainer) orgContainer.classList.remove('hidden');
+      
+      // Open modal
+      const modal = document.getElementById('editEventModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    
+  // ============================================================================
+  // MODAL MANAGEMENT FUNCTIONS
+  // ============================================================================
+  
+  /**
+   * Closes the event edit modal and resets state
+   */
+  window.closeEditEventModal = function() {
+      const modal = document.getElementById('editEventModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      currentEditId = null;
+      currentEditType = null;
+    };
+
+  /**
+   * Closes the announcement edit modal and resets state
+   */
+  window.closeEditAnnouncementModal = function() {
+      const modal = document.getElementById('editAnnouncementModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      currentEditId = null;
+      currentEditType = null;
+    };
+    
+    // Handle form submission
+    // Event form submission handler
+    const editEventForm = document.getElementById('editEventForm');
+    if (editEventForm) {
+      editEventForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!currentEditType) return;
+      
+      // Handle creating new event
+      if (currentEditType === 'new-event') {
+      const formData = {
+          title: document.getElementById('editEventTitle').value,
+          description: document.getElementById('editEventDescription').value,
+          start_date: document.getElementById('editEventStartDate').value,
+          end_date: document.getElementById('editEventEndDate').value || null,
+          start_time: document.getElementById('editEventStartTime').value || null,
+          end_time: document.getElementById('editEventEndTime').value || null,
+          email: document.getElementById('editEventEmail').value || null,
+          website: normalizeUrl(document.getElementById('editEventWebsite').value),
+          registration_link: normalizeUrl(document.getElementById('editEventRegistrationLink').value),
+          cost: document.getElementById('editEventCost').value || null,
+          primary_tag_id: document.getElementById('editEventPrimaryTag').value || null,
+          secondary_tag_id: document.getElementById('editEventSecondaryTag').value || null,
+          location_id: document.getElementById('editEventLocationId').value || null,
+          organization_id: document.getElementById('editEventOrganizationId').value || null,
+          parent_event_id: document.getElementById('editEventParentEventId').value || null,
+          comments: document.getElementById('editEventComments').value || null,
+          location_added: document.getElementById('editEventLocationAdded').value || null,
+          organization_added: document.getElementById('editEventOrganizationAdded').value || null,
+        };
+        
+        // Validate required fields
+        if (!formData.title || !formData.start_date) {
+          showMessage('Title and start date are required', 'error');
+          return;
+        }
+        
+        if (!formData.primary_tag_id) {
+          showMessage('Primary tag is required', 'error');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/admin/events/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            showMessage('Event created successfully!', 'success');
+            closeEditEventModal();
+            // Reload all event lists
+            await Promise.all([
+              loadEventsToApprove(),
+              loadIncompleteEvents()
+            ]);
+            // Redirect to event detail page if we have the ID
+            if (data.event && data.event.id) {
+              setTimeout(() => {
+                window.location.href = `/events/${data.event.id}`;
+              }, 500);
+            }
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create event');
+          }
+        } catch (error) {
+          showMessage('Error creating event: ' + error.message, 'error');
+        }
+        return;
+      }
+      
+      if (!currentEditId) return;
+      
+      let formData = {
+        id: currentEditId,
+        title: document.getElementById('editEventTitle').value,
+      };
+      
+      // Event-specific fields
+      formData.description = document.getElementById('editEventDescription').value;
+      formData.email = document.getElementById('editEventEmail').value;
+      formData.comments = document.getElementById('editEventComments').value;
+      // Validate primary tag is selected
+      const primaryTag = document.getElementById('editEventPrimaryTag').value;
+      if (!primaryTag) {
+        showMessage('Primary tag is required before saving', 'error');
+        return;
+      }
+      
+      formData.start_date = document.getElementById('editEventStartDate').value;
+      formData.end_date = document.getElementById('editEventEndDate').value || null;
+      formData.start_time = document.getElementById('editEventStartTime').value || null;
+      formData.end_time = document.getElementById('editEventEndTime').value || null;
+        formData.website = normalizeUrl(document.getElementById('editEventWebsite').value);
+        formData.registration_link = normalizeUrl(document.getElementById('editEventRegistrationLink').value);
+        formData.cost = document.getElementById('editEventCost').value || null;
+      formData.primary_tag_id = primaryTag || null;
+      formData.secondary_tag_id = document.getElementById('editEventSecondaryTag').value || null;
+      
+      // Handle location - either existing or new
+      const locationId = document.getElementById('editEventLocationId').value;
+      const locationAdded = document.getElementById('editEventLocationAdded').value.trim();
+      if (locationId) {
+        formData.location_id = locationId;
+        // Only include location_added for staged events
+        if (currentEditType === 'staged-event') {
+          formData.location_added = null;
+        }
+      } else if (locationAdded) {
+        formData.location_id = null;
+        formData.location_added = locationAdded;
+      } else {
+        formData.location_id = null;
+        formData.location_added = null;
+      }
+      
+      // Handle organization - either existing or new
+      const organizationId = document.getElementById('editEventOrganizationId').value;
+      const organizationAdded = document.getElementById('editEventOrganizationAdded').value.trim();
+      if (organizationId) {
+        formData.organization_id = organizationId;
+        formData.organization_added = null;
+      } else if (organizationAdded) {
+        formData.organization_id = null;
+        formData.organization_added = organizationAdded;
+      } else {
+        formData.organization_id = null;
+        formData.organization_added = null;
+      }
+      
+      // Handle parent event
+      const parentEventId = document.getElementById('editEventParentEventId').value;
+      formData.parent_event_id = parentEventId || null;
+      
+      try {
+        let endpoint = '';
+        let reloadFunction = null;
+        
+        switch (currentEditType) {
+          case 'staged-event':
+            endpoint = '/api/admin/events-staged/edit';
+            reloadFunction = loadEventsToApprove;
+            break;
+          case 'existing-event':
+            endpoint = '/api/admin/events';
+            reloadFunction = loadEventsToApprove;
+            break;
+          case 'staged-announcement':
+            endpoint = '/api/admin/announcements-staged/edit';
+            reloadFunction = loadAnnouncementsToApprove;
+            break;
+          case 'existing-announcement':
+            endpoint = '/api/admin/announcements';
+            reloadFunction = loadAnnouncementsToApprove;
+            break;
+        }
+        
+        const response = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+          showMessage('Updated successfully!', 'success');
+          
+          // Store values before closing modal (which might clear them)
+          const editType = currentEditType;
+          const editId = currentEditId;
+          
+          closeEditEventModal();
+          
+          // For events, redirect to the event detail page to see the changes
+          if (editType && editType.includes('event') && editId) {
+            // Small delay to show success message, then redirect
+            setTimeout(() => {
+              window.location.href = `/events/${editId}`;
+            }, 500);
+          } else {
+            // For announcements, just reload the list
+          if (reloadFunction) reloadFunction();
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('Edit failed:', errorText);
+          throw new Error('Failed to update: ' + errorText);
+        }
+      } catch (error) {
+        console.error('Edit error:', error);
+        showMessage('Error updating: ' + error.message, 'error');
+      }
+    });
+    }
+
+    // Announcement form submission handler
+    const editAnnouncementForm = document.getElementById('editAnnouncementForm');
+    if (editAnnouncementForm) {
+      editAnnouncementForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!currentEditType) return;
+      
+      // Handle creating new announcement
+      if (currentEditType === 'new-announcement') {
+        const formData = {
+          title: document.getElementById('editAnnouncementTitle').value,
+          message: document.getElementById('editAnnouncementMessage').value,
+          link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
+          email: document.getElementById('editAnnouncementEmail').value || null,
+          author: document.getElementById('editAnnouncementAuthor').value || null,
+          comments: document.getElementById('editAnnouncementComments').value || null,
+        };
+        
+        // Handle show_at
+        const showAtDate = document.getElementById('editAnnouncementShowAtDate').value;
+        const showAtTime = document.getElementById('editAnnouncementShowAtTime').value;
+        if (showAtDate && showAtTime) {
+          formData.show_at = showAtDate + 'T' + showAtTime + ':00';
+        } else if (showAtDate) {
+          formData.show_at = showAtDate + 'T00:00:00';
+        } else {
+          formData.show_at = null;
+        }
+        
+        // Handle expires_at
+        const expiresAtDate = document.getElementById('editAnnouncementExpiresAtDate').value;
+        const expiresAtTime = document.getElementById('editAnnouncementExpiresAtTime').value;
+        if (expiresAtDate && expiresAtTime) {
+          formData.expires_at = expiresAtDate + 'T' + expiresAtTime + ':00';
+        } else if (expiresAtDate) {
+          formData.expires_at = expiresAtDate + 'T23:59:59';
+        } else {
+          formData.expires_at = null;
+        }
+        
+        // Handle organization - for new announcements, use organization_added if provided
+        const orgId = document.getElementById('editAnnouncementOrganizationId').value;
+        const orgAdded = document.getElementById('editAnnouncementOrganizationAdded').value.trim();
+        
+        if (orgId) {
+          // Look up the organization name for staged announcements
+          const org = allOrganizations.find(o => o.id === orgId);
+          if (org) {
+            formData.organization = org.name;
+            formData.organization_added = null;
+          }
+        } else if (orgAdded) {
+          formData.organization = null;
+          formData.organization_added = orgAdded;
+        }
+        
+        // Validate required fields
+        if (!formData.title || !formData.message) {
+          showMessage('Title and message are required', 'error');
+          return;
+        }
+        
+        try {
+          // Create as staged announcement
+          const response = await fetch('/api/admin/announcements-staged/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData)
+          });
+          
+          if (response.ok) {
+            closeEditAnnouncementModal();
+            showMessage('Announcement created successfully! It will appear in the approval queue.', 'success');
+            if (typeof loadAnnouncementsToApprove === 'function') {
+              loadAnnouncementsToApprove();
+            }
+          } else {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to create announcement' }));
+            throw new Error(errorData.error || 'Failed to create announcement');
+          }
+        } catch (error) {
+          console.error('Create error:', error);
+          showMessage('Error creating announcement: ' + error.message, 'error');
+        }
+        return;
+      }
+      
+      if (!currentEditId || !currentEditType || !currentEditType.includes('announcement')) return;
+      
+      let formData = {
+        id: currentEditId,
+        title: document.getElementById('editAnnouncementTitle').value,
+        message: document.getElementById('editAnnouncementMessage').value,
+        link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
+        email: document.getElementById('editAnnouncementEmail').value || null,
+        author: document.getElementById('editAnnouncementAuthor').value || null,
+        comments: document.getElementById('editAnnouncementComments').value || null,
+      };
+      
+      // Handle show_at
+      const showAtDate = document.getElementById('editAnnouncementShowAtDate').value;
+      const showAtTime = document.getElementById('editAnnouncementShowAtTime').value;
+      if (showAtDate && showAtTime) {
+        formData.show_at = showAtDate + 'T' + showAtTime + ':00';
+      } else if (showAtDate) {
+        formData.show_at = showAtDate + 'T00:00:00';
+      } else {
+        formData.show_at = null;
+      }
+      
+      // Handle expires_at
+      const expiresAtDate = document.getElementById('editAnnouncementExpiresAtDate').value;
+      const expiresAtTime = document.getElementById('editAnnouncementExpiresAtTime').value;
+      if (expiresAtDate && expiresAtTime) {
+        formData.expires_at = expiresAtDate + 'T' + expiresAtTime + ':00';
+      } else if (expiresAtDate) {
+        formData.expires_at = expiresAtDate + 'T23:59:59';
+      } else {
+        formData.expires_at = null;
+      }
+      
+      // Handle organization - different for staged vs existing announcements
+      const orgId = document.getElementById('editAnnouncementOrganizationId').value;
+      const orgAdded = document.getElementById('editAnnouncementOrganizationAdded').value.trim();
+      
+      if (currentEditType === 'staged-announcement') {
+        // Staged announcements use 'organization' (text) and 'organization_added' (text), not organization_id
+        if (orgId) {
+          // Look up the organization name
+          const org = allOrganizations.find(o => o.id === orgId);
+          if (org) {
+            formData.organization = org.name;
+            formData.organization_added = null;
+          } else {
+            formData.organization = null;
+            formData.organization_added = null;
+          }
+        } else if (orgAdded) {
+          formData.organization = null;
+          formData.organization_added = orgAdded;
+        } else {
+          formData.organization = null;
+          formData.organization_added = null;
+        }
+        // Don't include organization_id for staged announcements
+        delete formData.organization_id;
+      } else {
+        // Existing announcements use organization_id (uuid)
+        if (orgId) {
+          formData.organization_id = orgId;
+        } else {
+          formData.organization_id = null;
+        }
+        // Don't include organization or organization_added for existing announcements
+        delete formData.organization;
+        delete formData.organization_added;
+      }
+      
+      try {
+        let endpoint = '';
+        let reloadFunction = null;
+        
+        switch (currentEditType) {
+          case 'staged-announcement':
+            endpoint = '/api/admin/announcements-staged/edit';
+            reloadFunction = loadAnnouncementsToApprove;
+            break;
+          case 'existing-announcement':
+            endpoint = '/api/admin/announcements';
+            reloadFunction = loadAnnouncementsToApprove;
+            break;
+        }
+        
+        const response = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+          const savedEditType = currentEditType;
+          const savedEditId = currentEditId;
+          closeEditAnnouncementModal();
+          showMessage('Announcement updated successfully!', 'success');
+          
+          // Reload the announcements list
+          if (reloadFunction) reloadFunction();
+        } else {
+          const errorText = await response.text();
+          console.error('Edit failed:', errorText);
+          throw new Error('Failed to update: ' + errorText);
+        }
+      } catch (error) {
+        console.error('Edit error:', error);
+        showMessage('Error updating: ' + error.message, 'error');
+      }
+      });
+    }
+    
     window.logout = async function() {
       try {
         const response = await fetch('/api/auth/logout', {
@@ -509,3 +2415,5 @@ const user = session.user;
     };
   });
 </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+---
+import ErrorLayout from './ErrorLayout.astro';
+import { getCurrentSeason, type Season } from '../lib/season-utils';
+
+const {
+  statusCode = 404,
+  title = 'Page Not Found',
+  season = getCurrentSeason(),
+} = Astro.props;
+
+// Seasonal error messages
+const seasonalMessages: Record<number, Record<Season, string>> = {
+  404: {
+    winter: "This page has drifted away in the beautiful snow.",
+    spring: "This page has biked away through the arrowleaf balsam.",
+    summer: "This page is off enjoying the endlesssummer sun.",
+    fall: "This page has fallen away like autumn leaves.",
+  },
+  500: {
+    winter: "Something's frozen up on our end.",
+    spring: "Something's sprouted unexpectedly.",
+    summer: "We've hit a heat wave.",
+    fall: "Something's fallen through the cracks.",
+  },
+  403: {
+    winter: "Closed without authorized access.",
+    spring: "Closed without authorized access.",
+    summer: "Closed without authorized access.",
+    fall: "Closed without authorized access.",
+  },
+};
+
+// Default message if status code not found
+const getMessage = (code: number, season: Season): string => {
+  return seasonalMessages[code]?.[season] || 
+         `Something went wrong (${code}). We're working on it!`;
+};
+
+const message = getMessage(statusCode, season);
+const backgroundImage = `/images/generic/${season}.jpg`;
+---
+
+<ErrorLayout 
+  title={`${statusCode} - ${title} | Der Town`}
+  description={message}
+>
+  <div class="relative">
+    <!-- Background image spanning full width with natural height - scrolls -->
+    <img 
+      src={backgroundImage} 
+      alt="" 
+      class="w-full h-auto"
+    />
+    
+    <!-- Fixed overlay for better text readability -->
+    <div class="fixed inset-0 bg-black/40 pointer-events-none z-10"></div>
+    
+    <!-- Fixed content centered in viewport -->
+    <div class="fixed inset-0 flex items-center justify-center z-10 pointer-events-none pt-16">
+      <div class="text-center px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+        <h1 class="text-8xl sm:text-9xl font-bold text-white mb-4 drop-shadow-lg">
+          {statusCode}
+        </h1>
+        <h2 class="text-3xl sm:text-4xl font-semibold text-white mb-6 drop-shadow-lg">
+          {title}
+        </h2>
+        <p class="text-xl sm:text-2xl text-white drop-shadow-md leading-relaxed">
+          {message}
+        </p>
+      </div>
+    </div>
+  </div>
+</ErrorLayout>
+

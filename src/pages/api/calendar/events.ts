@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
-import { parseEventTimesUTC } from '../../../lib/calendar-utils.ts';
+import { transformEventForCalendar, getCategoryBadgeVariant } from '../../../lib/event-utils.ts';
 
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
   try {
-    const { data: events, error } = await db.events.getCurrentAndFuture();
+    // Calendar API returns all events (including past events)
+    const { data: events, error } = await db.events.getAll();
 
     if (error) {
       return new Response(JSON.stringify({ error: 'Failed to fetch events' }), {
@@ -15,29 +16,26 @@ export const GET: APIRoute = async () => {
       });
     }
 
-    // Transform events for FullCalendar with UTC timezone handling
+    // Transform events for FullCalendar using the same function as Calendar.astro
+    // This ensures consistency and uses timezone-aware ISO strings
     const calendarEvents = (events || [])
+      .filter((event): event is typeof event & { id: string } => event.id !== null && event.id !== undefined) // Filter out events with null IDs
       .map((event) => {
         try {
-          // Parse event times with UTC timezone handling (recommended approach)
-          const { startDate, endDate } = parseEventTimesUTC(event);
-
+          const transformed = transformEventForCalendar(event);
+          if (!transformed) return null;
+          
           return {
-            id: event.id,
-            title: event.title || 'Untitled Event',
-            start: startDate.toISOString(),
-            end: endDate ? endDate.toISOString() : null,
-            url: `/events/${event.id}`,
-            allDay: !event.start_time,
+            ...transformed,
             extendedProps: {
               description: event.description,
-              locationName: '',
+              locationName: event.location?.name || '',
               organizationName: '',
               primaryTag: event.primary_tag?.name || '',
               secondaryTag: event.secondary_tag?.name || '',
               organizationId: event.organization_id,
               locationId: event.location_id,
-              bgClass: getCategoryBgClass(event.primary_tag?.name || ''),
+              bgClass: `bg-event-${getCategoryBadgeVariant(event.primary_tag?.name || '')}`,
             },
           };
         } catch (error) {
@@ -59,14 +57,3 @@ export const GET: APIRoute = async () => {
     });
   }
 };
-
-function getCategoryBgClass(category: string): string {
-  const categoryMap: { [key: string]: string } = {
-    Family: 'bg-blue-500',
-    'Arts+Culture': 'bg-purple-500',
-    Nature: 'bg-green-500',
-    Town: 'bg-yellow-500',
-    School: 'bg-red-500',
-  };
-  return categoryMap[category] || 'bg-gray-500';
-}

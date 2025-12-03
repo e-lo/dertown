@@ -46,6 +46,87 @@
   @apply opacity-50 cursor-not-allowed;
 }
 
+/* Data table styles - for admin and general data display */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid #e5e7eb;
+}
+
+.data-table thead {
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+}
+
+.data-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #1a1a2e;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 2px solid #d1d5db;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+  white-space: nowrap;
+}
+
+.data-table th:not(:last-child) {
+  border-right: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(33, 158, 188, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(33, 158, 188, 0.2);
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  color: #374151;
+  border-right: 1px solid #f3f4f6;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+.data-table td:last-child {
+  border-right: none;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .data-table th, .data-table td {
+    font-size: 0.8rem;
+    padding: 0.625rem 0.875rem;
+  }
+}
+
 /* Badge base styles */
 .badge {
   @apply inline-flex items-center rounded-full font-medium;

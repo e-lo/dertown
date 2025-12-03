@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
+import { localeTimeZone } from './calendar-utils';
 
 // Decide which Supabase credentials to use
 const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
@@ -15,11 +16,66 @@ const supabaseServiceKey = useLocalDb
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
 
+// Constants
+const RELATED_EVENTS_LIMIT = 6;
+const FEATURED_EVENTS_LIMIT = 8;
+
+/**
+ * Gets today's date in locale timezone as a date string (YYYY-MM-DD)
+ * @returns {string} Today's date in locale timezone
+ */
+export function getTodayLocale(): string {
+  // Get current UTC time
+  const nowUtc = new Date();
+  
+  // Convert to locale timezone date string (YYYY-MM-DD format)
+  // Use 'en-CA' locale which gives us YYYY-MM-DD format directly
+  const todayLocaleDateStr = nowUtc.toLocaleDateString('en-CA', { 
+    timeZone: localeTimeZone 
+  });
+  
+  return todayLocaleDateStr;
+}
+
+/**
+ * Filters events to only include those that are current or future
+ * An event is included if:
+ * - start_date >= today (Pacific time), OR
+ * - end_date >= today (Pacific time)
+ * 
+ * @param {any[]} events - Array of event objects to filter
+ * @returns {any[]} Filtered array of events
+ */
+export function filterCurrentAndFutureEvents(events: any[]): any[] {
+  if (!events) return [];
+  
+  const todayLocale = getTodayLocale();
+  
+  return events.filter((event: any) => {
+    // Must have at least a start_date
+    if (!event.start_date) return false;
+    
+    // Check if start_date >= today (date comparison in locale time)
+    const startDateStr = event.start_date;
+    const startDateIsTodayOrFuture = startDateStr >= todayLocale;
+    
+    // Check if end_date >= today (if end_date exists)
+    if (event.end_date) {
+      const endDateStr = event.end_date;
+      const endDateIsTodayOrFuture = endDateStr >= todayLocale;
+      // Include if either start_date or end_date is today or future
+      return startDateIsTodayOrFuture || endDateIsTodayOrFuture;
+    }
+    
+    // If no end_date, only check start_date
+    return startDateIsTodayOrFuture;
+  });
+}
+
 // Helper functions for common database operations
 export const db = {
   // Events
   events: {
-    getAll: () => supabase.from('public_events').select('*'),
     getById: (id: string) => supabase.from('public_events').select(`
       *,
       primary_tag:tags!events_primary_tag_id_fkey(name),
@@ -27,62 +83,90 @@ export const db = {
       location:locations!events_location_id_fkey(name, address),
       organization:organizations!events_organization_id_fkey(name)
     `).eq('id', id).single(),
-    getRelated: (eventId: string, organizationId: string | null, locationId: string | null) => {
-      let query = supabase.from('public_events').select('*').neq('id', eventId).limit(6);
-
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      } else if (locationId) {
-        query = query.eq('location_id', locationId);
-      }
-
-      return query;
-    },
-    getFeatured: () => supabase.from('public_events').select('*').eq('featured', true),
-    getCurrentAndFuture: async () => {
+    getByParentEventId: async (parentEventId: string) => {
       const { data, error } = await supabase
         .from('public_events')
-        .select(
-          `
+        .select(`
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
-        `
-        )
+        `)
+        .eq('parent_event_id', parentEventId)
         .order('start_date', { ascending: true });
 
-      // Filter to only current and future events, but return the full data
-      const filteredData = data
-        ? data.filter((event: any) => {
-            if (!event.start_date) return false;
-            const startDate = new Date(
-              event.start_date + (event.start_time ? 'T' + event.start_time : '')
-            );
-            const now = new Date();
+      return { data: data || [], error };
+    },
+    getRelated: async (eventId: string, organizationId: string | null, locationId: string | null) => {
+      // First, try to get the parent event to find sibling events
+      const { data: currentEvent } = await supabase
+        .from('public_events')
+        .select('parent_event_id')
+        .eq('id', eventId)
+        .single();
 
-            // If end_date or end_time exists, use it for comparison
-            if (event.end_date) {
-              const endDate = new Date(
-                event.end_date + (event.end_time ? 'T' + event.end_time : '')
-              );
-              return endDate >= now;
-            } else if (event.end_time) {
-              // If only end_time exists, use start_date with end_time
-              const endDate = new Date(event.start_date + 'T' + event.end_time);
-              return endDate >= now;
-            } else {
-              // If event has a time, compare full datetime; otherwise, compare date only
-              if (event.start_time) {
-                return startDate >= now;
-              } else {
-                return startDate.toDateString() >= now.toDateString();
-              }
-            }
-          })
-        : [];
+      let query = supabase
+        .from('public_events')
+        .select(`
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address)
+        `)
+        .neq('id', eventId)
+        .limit(RELATED_EVENTS_LIMIT);
 
-      return { data: filteredData, error };
+      // If current event has a parent_event_id, find sibling events
+      if (currentEvent?.parent_event_id) {
+        query = query.eq('parent_event_id', currentEvent.parent_event_id);
+      } else {
+        // Only use organization/location matching when parent_event_id is NULL
+        if (organizationId) {
+          query = query.eq('organization_id', organizationId);
+        } else if (locationId) {
+          query = query.eq('location_id', locationId);
+        }
+      }
+
+      const { data, error } = await query;
+
+      return { data: data || [], error };
+    },
+    getFeatured: async () => {
+      const { data, error } = await supabase
+        .from('public_events')
+        .select(`
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address)
+        `)
+        .eq('featured', true);
+
+      return { data: data || [], error };
+    },
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('public_events')
+        .select(`
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(name),
+          location:locations!events_location_id_fkey(name, address)
+        `)
+        .order('start_date', { ascending: true });
+
+      return { data: data || [], error };
+    },
+    getCurrentAndFuture: async () => {
+      // Get all events and filter client-side
+      const result = await db.events.getAll();
+      if (result.error) return { data: null, error: result.error };
+      
+      // Filter to only current and future events
+      const filteredData = filterCurrentAndFutureEvents(result.data || []);
+
+      return { data: filteredData, error: null };
     },
     create: (data: Database['public']['Tables']['events']['Insert']) =>
       supabase.from('events').insert(data),
@@ -100,24 +184,6 @@ export const db = {
     update: (id: string, data: Database['public']['Tables']['events_staged']['Update']) =>
       supabase.from('events_staged').update(data).eq('id', id),
     delete: (id: string) => supabase.from('events_staged').delete().eq('id', id),
-  },
-
-  // Admin functions that include private fields
-  admin: {
-    // Get events with private fields for admin use
-    getEventsWithPrivateFields: () =>
-      supabaseAdmin.from('events').select(
-        `
-          *,
-          primary_tag:tags!events_primary_tag_id_fkey(name),
-          secondary_tag:tags!events_secondary_tag_id_fkey(name),
-          location:locations!events_location_id_fkey(name, address),
-          organization:organizations!events_organization_id_fkey(name)
-        `
-      ),
-
-    // Get announcements with private fields for admin use
-    getAnnouncementsWithPrivateFields: () => supabaseAdmin.from('announcements').select('*'),
   },
 
   // Locations

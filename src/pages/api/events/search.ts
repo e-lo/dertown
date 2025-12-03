@@ -10,7 +10,8 @@ export const GET: APIRoute = async ({ url }) => {
     const category = searchParams.get('category') || '';
 
     // Build the search query (using public view that excludes private fields)
-    const searchQuery = db.events.getCurrentAndFuture();
+    // Search returns all events, filtering happens client-side if needed
+    const searchQuery = db.events.getAll();
 
     // Add filters based on search parameters
     if (query) {
