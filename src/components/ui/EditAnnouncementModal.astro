@@ -1,0 +1,70 @@
+---
+// EditAnnouncementModal component for admin dashboard
+// This modal is used for editing both staged and existing announcements
+---
+
+<div id="editAnnouncementModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 id="editAnnouncementModalTitle" class="modal-title">Edit Announcement</h3>
+      <button type="button" onclick="closeEditAnnouncementModal()" class="modal-close-btn" aria-label="Close modal">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <form id="editAnnouncementForm">
+      <div class="form-field">
+        <label class="form-label">Title: <span class="form-label-required">*</span></label>
+        <input type="text" id="editAnnouncementTitle" required class="form-input-base">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Message: <span class="form-label-required">*</span></label>
+        <textarea id="editAnnouncementMessage" rows="3" required class="form-input-base"></textarea>
+      </div>
+      <div class="form-grid-2">
+        <div>
+          <label class="form-label">Show At:</label>
+          <input type="date" id="editAnnouncementShowAtDate" class="form-input-base">
+          <input type="time" id="editAnnouncementShowAtTime" class="form-input-base mt-2">
+        </div>
+        <div>
+          <label class="form-label">Expires At:</label>
+          <input type="date" id="editAnnouncementExpiresAtDate" class="form-input-base">
+          <input type="time" id="editAnnouncementExpiresAtTime" class="form-input-base mt-2">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Link:</label>
+        <input type="text" id="editAnnouncementLink" placeholder="www.example.com or https://..." class="form-input-base">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email:</label>
+        <input type="email" id="editAnnouncementEmail" class="form-input-base">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Author:</label>
+        <input type="text" id="editAnnouncementAuthor" class="form-input-base">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Organization:</label>
+        <div class="autocomplete-container">
+          <input type="text" id="editAnnouncementOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
+          <input type="hidden" id="editAnnouncementOrganizationId">
+          <div id="editAnnouncementOrganizationDropdown" class="autocomplete-dropdown hidden"></div>
+        </div>
+        <div id="editAnnouncementOrganizationAddedContainer" class="mt-2 hidden">
+          <label class="block mb-2 font-medium text-sm">Or add new organization:</label>
+          <input type="text" id="editAnnouncementOrganizationAdded" placeholder="Leave empty if using existing organization" class="form-input-base">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Admin Comments:</label>
+        <textarea id="editAnnouncementComments" rows="2" placeholder="Internal notes (not published)" class="form-input-base"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" onclick="closeEditAnnouncementModal()" class="btn-cancel">Cancel</button>
+        <button type="submit" class="btn-save">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+

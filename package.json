@@ -12,7 +12,9 @@
     "lint": "eslint src/ --ext .js,.ts,.astro",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "test": "echo 'No tests yet'",
+    "test": "tsx src/lib/__tests__/date-time-formatting.test.ts",
+    "test:filtering": "tsx src/lib/__tests__/event-filtering.test.ts",
+    "test:fullcalendar": "tsx src/lib/__tests__/fullcalendar-utc.test.ts",
     "test:timezone": "TZ=UTC tsx scripts/validate_timezone.mjs",
     "validate-theme-colors": "node --loader ts-node/esm scripts/validate_theme_colors.ts",
     "setup-env": "echo 'Create .env.local with: SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_ANON_KEY=your-key'"
@@ -32,6 +34,7 @@
     "astro": "^4.14.0",
     "date-fns": "^4.1.0",
     "embla-carousel": "^8.6.0",
+    "resend": "^6.5.2",
     "rollup-plugin-copy": "^3.5.0",
     "rrule": "^2.8.1",
     "solid-js": "^1.9.7",

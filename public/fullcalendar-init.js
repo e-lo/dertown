@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
   const calendarEl = document.getElementById('calendar');
+  
+  // Get locale timezone from data attribute (set by Calendar.astro)
+  // Default to 'America/Los_Angeles' if not provided
+  const localeTimeZone = calendarEl?.dataset.localeTimezone || 'America/Los_Angeles';
+  
   // Read events from the data-events attribute
   let events = [];
   if (calendarEl && calendarEl.dataset.events) {
@@ -53,10 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Calculate initial height based on view type
     const initialHeight = calculateCalendarHeight(initialView);
+    
     const calendar = new window.FullCalendar.Calendar(calendarEl, {
       initialView,
       headerToolbar,
-      timeZone: 'America/Los_Angeles',
+      timeZone: localeTimeZone,
       // Height management using FullCalendar's built-in controls
       height: initialHeight, // Use the calculated height for all views initially
       contentHeight: 'auto', // Let content determine height
@@ -92,17 +98,13 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       eventDidMount: function(info) {
         const event = info.event;
+        
         // Color events by category in all views
         const category = event.extendedProps.primaryTag;
         if (category) {
           const kebab = toKebabCase(category);
           info.el.classList.add(`bg-event-${kebab}`);
           // Don't add text-white - let the CSS classes handle text colors
-          // Debug logging (remove in production)
-          console.log(`Event "${event.title}" with category "${category}" -> class "bg-event-${kebab}"`);
-        } else {
-          // Debug logging for events without categories
-          console.log(`Event "${event.title}" has no category`);
         }
         // Remove the event dot in dayGridWeek view
         if (info.view.type === 'dayGridWeek') {
@@ -133,15 +135,19 @@ document.addEventListener('DOMContentLoaded', function() {
           html += `<div class='fc-tooltip-tag'>${event.extendedProps.secondaryTag}</div>`;
         }
 
-        if (event.start && info.view.type !== 'dayGridMonth') {
-          const startDate = new Date(event.start);
-          let hour = startDate.getHours();
-          let minute = startDate.getMinutes();
-          let ampm = hour >= 12 ? 'PM' : 'AM';
-          hour = hour % 12;
-          hour = hour ? hour : 12;
-          const minuteStr = minute < 10 ? '0' + minute : minute;
-          const timeString = `${hour}:${minuteStr} ${ampm}`;
+        // Only show time if event is not all-day
+        // FullCalendar sets allDay: true for events without start_time
+        if (event.start && !event.allDay && info.view.type !== 'dayGridMonth') {
+          // event.start is already a Date object in the calendar's configured timezone (localeTimeZone)
+          // FullCalendar handles the timezone conversion, so we can format it directly
+          // However, to be safe, we'll still use toLocaleTimeString with the timezone
+          // since the Date object might be in UTC internally
+          const timeString = event.start.toLocaleTimeString('en-US', {
+            timeZone: localeTimeZone,
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
           html += `<div class='fc-tooltip-time'>${timeString}</div>`;
         }
         const tooltip = new Tooltip(info.el, { html });

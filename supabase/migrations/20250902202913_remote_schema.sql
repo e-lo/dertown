@@ -302,15 +302,39 @@ COMMENT ON FUNCTION "public"."get_effective_location"("activity_uuid" "uuid") IS
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_admin"("user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    -- Check if user exists in the auth.users table
+    -- For now, all users in the users table are considered admins
+    RETURN EXISTS(
+        SELECT 1 
+        FROM auth.users 
+        WHERE id = user_id 
+        AND email_confirmed_at IS NOT NULL
+    );
+END;
+$$;
+
+-- Create a version without parameters for RLS policies
 CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-    -- For now, allow all authenticated users admin access
-    -- In production, you would check for specific admin roles
-    RETURN auth.role() = 'authenticated';
+    -- Check if current user exists in the auth.users table
+    -- For now, all users in the users table are considered admins
+    RETURN EXISTS(
+        SELECT 1 
+        FROM auth.users 
+        WHERE id = auth.uid()
+        AND email_confirmed_at IS NOT NULL
+    );
 END;
 $$;
+
+
+ALTER FUNCTION "public"."is_admin"("user_id" "uuid") OWNER TO "postgres";
 
 
 ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";

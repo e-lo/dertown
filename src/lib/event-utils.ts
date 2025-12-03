@@ -1,107 +1,63 @@
 /**
- * Date and time formatting utilities
+ * Event-specific utilities
+ * Date/time formatting is handled in calendar-utils.ts
  */
-import { createUTCDateTime } from './calendar-utils';
+import { 
+  createUTCDateTime,
+  formatEventDate,
+  formatTime,
+  isToday,
+  formatEventDateTime,
+  localeTimeZone
+} from './calendar-utils';
+import { TZDate } from '@date-fns/tz';
 
-export function formatEventDate(date: string | Date): {
-  month: string;
-  day: string;
-  dayOfWeek: string;
-} {
-  // Handle date strings by ensuring they're treated as local dates
-  let eventDate: Date;
-  if (typeof date === 'string') {
-    // For date strings like "2024-07-23", create a local date
-    // by adding a time component to avoid timezone conversion
-    const [year, month, day] = date.split('-').map(Number);
-    eventDate = new Date(year, month - 1, day); // month is 0-indexed
-  } else {
-    eventDate = date;
-  }
-
-  return {
-    month: eventDate.toLocaleDateString('en-US', { month: 'short' }),
-    day: eventDate.toLocaleDateString('en-US', { day: 'numeric' }),
-    dayOfWeek: eventDate.toLocaleDateString('en-US', { weekday: 'short' }),
-  };
-}
-
-export function formatTime(time: string): string {
-  return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
-export function isToday(date: string | Date): boolean {
-  const today = new Date();
-
-  // Handle date strings by ensuring they're treated as local dates
-  let eventDate: Date;
-  if (typeof date === 'string') {
-    // For date strings like "2024-07-23", create a local date
-    // by adding a time component to avoid timezone conversion
-    const [year, month, day] = date.split('-').map(Number);
-    eventDate = new Date(year, month - 1, day); // month is 0-indexed
-  } else {
-    eventDate = date;
-  }
-
-  return today.toDateString() === eventDate.toDateString();
-}
+// Re-export date/time formatting functions for convenience
+export { formatEventDate, formatTime, isToday, formatEventDateTime };
 
 export function getEventUrl(eventId: string): string {
   return `/events/${eventId}`;
 }
 
 /**
- * Map category name to badge variant for consistent styling
+ * Convert category name to a slug-based variant for consistent styling
+ * Simple approach: known variants list with logging for unknown categories
  */
-export function getCategoryBadgeVariant(
-  categoryName: string
-):
-  | 'default'
-  | 'arts-culture'
-  | 'civic'
-  | 'family'
-  | 'nature'
-  | 'outdoors'
-  | 'school'
-  | 'sports'
-  | 'town' {
-  //console.log('getCategoryBadgeVariant called with:', categoryName);
-
-  const categoryMap: Record<
-    string,
-    | 'default'
-    | 'arts-culture'
-    | 'civic'
-    | 'family'
-    | 'nature'
-    | 'outdoors'
-    | 'school'
-    | 'sports'
-    | 'town'
-  > = {
-    'Arts+Culture': 'arts-culture',
-    Civic: 'civic',
-    Family: 'family',
-    Nature: 'nature',
-    Outdoors: 'outdoors',
-    School: 'school',
-    Sports: 'sports',
-    Town: 'town',
-  };
-
-  const result = categoryMap[categoryName] || 'default';
-  //console.log('getCategoryBadgeVariant result:', result);
-  return result;
+export function getCategoryBadgeVariant(categoryName: string): 'default' | 'featured' | 'success' | 'warning' | 'info' | 'white' | 'today' | 'arts-culture' | 'civic' | 'family' | 'nature' | 'outdoors' | 'school' | 'sports' | 'town' {
+  if (!categoryName) return 'default';
+  
+  // Convert to slug: lowercase, replace spaces/special chars with hyphens
+  const slug = categoryName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  
+  // Define available color variants (matching theme.css classes)
+  const knownVariants = [
+    'arts-culture',
+    'civic', 
+    'family',
+    'nature',
+    'outdoors',
+    'school',
+    'sports',
+    'town'
+  ];
+  
+  // If the slug matches a known variant, use it
+  if (knownVariants.includes(slug)) {
+    return slug as 'arts-culture' | 'civic' | 'family' | 'nature' | 'outdoors' | 'school' | 'sports' | 'town';
+  }
+  
+  // Use default for unmapped categories
+  return 'default';
 }
 
 /**
  * Transform event data for FullCalendar by combining dates and times
- * and handling cases where end times are not provided
+ * FullCalendar requires UTC dates, so we convert locale dates/times to UTC
+ * @param event - Event data with locale date/time strings (stored in locale timezone)
+ * @returns Event data formatted for FullCalendar with UTC ISO strings
  */
 export function transformEventForCalendar(event: {
   id: string;
@@ -122,25 +78,115 @@ export function transformEventForCalendar(event: {
   category: string;
   start: string;
   end: string | null;
+  allDay: boolean;
+  url: string;
 } | null {
   if (!event.start_date || !event.title) {
     return null; // Skip events without a start date or title
   }
-  // Combine date and time for start
-  const startDateTime = createUTCDateTime(event.start_date, event.start_time || undefined);
-
-  // Determine end date and time
-  let endDateTime: Date | null = null;
-  if (event.end_date && event.end_time) {
-    // Both end_date and end_time specified
-    endDateTime = createUTCDateTime(event.end_date, event.end_time);
-  } else if (event.end_date) {
-    // Only end_date specified, use end of day for the end date
-    endDateTime = createUTCDateTime(event.end_date, '23:59:59');
-  } else if (event.start_time && !event.end_time) {
-    // If we have start time but no end time, assume 1 hour duration
-    const endTimeStr = calculateEndTime(event.start_time);
-    endDateTime = createUTCDateTime(event.start_date, endTimeStr);
+  
+  // Check if this is an all-day event
+  // All-day: start_time is null or undefined (no time specified)
+  // Timed event: start_time is a string, even if it's "00:00:00" (midnight is still a specific time)
+  const isAllDay = event.start_time === null || event.start_time === undefined;
+  
+  let start: string;
+  let end: string | null = null;
+  
+  if (isAllDay) {
+    // For all-day events, send ISO 8601 strings with locale timezone offset at midnight
+    // Format: '2025-12-02T00:00:00-08:00' for midnight Pacific Dec 2
+    const [year, month, day] = event.start_date.split('-').map(Number);
+    
+    // Create TZDate at midnight in locale timezone
+    const localeTZDate = new TZDate(year, month - 1, day, 0, 0, 0, localeTimeZone);
+    
+    // Get timezone offset
+    const offsetMinutes = localeTZDate.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const offsetMins = Math.abs(offsetMinutes) % 60;
+    const offsetSign = offsetMinutes > 0 ? '-' : '+';
+    const offsetStr = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
+    
+    // Format as ISO 8601 with locale timezone offset
+    start = `${event.start_date}T00:00:00${offsetStr}`;
+    
+    // For all-day events, end should be the end_date if specified, or null
+    if (event.end_date) {
+      const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+      // For end date, use midnight of the day after (exclusive end)
+      const endLocaleTZDate = new TZDate(endYear, endMonth - 1, endDay + 1, 0, 0, 0, localeTimeZone);
+      const endOffsetMinutes = endLocaleTZDate.getTimezoneOffset();
+      const endOffsetHours = Math.floor(Math.abs(endOffsetMinutes) / 60);
+      const endOffsetMins = Math.abs(endOffsetMinutes) % 60;
+      const endOffsetSign = endOffsetMinutes > 0 ? '-' : '+';
+      const endOffsetStr = `${endOffsetSign}${String(endOffsetHours).padStart(2, '0')}:${String(endOffsetMins).padStart(2, '0')}`;
+      end = `${event.end_date}T00:00:00${endOffsetStr}`;
+    }
+  } else {
+    // For timed events, send ISO 8601 strings with locale timezone offset
+    // Format: '2025-12-02T16:00:00-08:00' for 4pm Pacific
+    // This is ISO 8601 compliant and FullCalendar can interpret it correctly
+    
+    const [year, month, day] = event.start_date.split('-').map(Number);
+    const [hours, minutes, seconds] = event.start_time!.split(':').map(Number);
+    
+    // Create TZDate in locale timezone to get the correct offset
+    const localeTZDate = new TZDate(year, month - 1, day, hours, minutes, seconds || 0, localeTimeZone);
+    
+    // Get timezone offset in minutes (positive for PST/PDT means we're behind UTC)
+    const offsetMinutes = localeTZDate.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const offsetMins = Math.abs(offsetMinutes) % 60;
+    // ISO 8601 uses negative offset for timezones behind UTC (PST/PDT)
+    const offsetSign = offsetMinutes > 0 ? '-' : '+';
+    const offsetStr = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
+    
+    // Format as ISO 8601 with locale timezone offset
+    const timeStr = event.start_time!.padEnd(8, '00').substring(0, 8);
+    start = `${event.start_date}T${timeStr}${offsetStr}`;
+    
+    // Determine end date and time
+    if (event.end_date && event.end_time) {
+      const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+      const [endHours, endMinutes, endSeconds] = event.end_time.split(':').map(Number);
+      const endLocaleTZDate = new TZDate(endYear, endMonth - 1, endDay, endHours, endMinutes, endSeconds || 0, localeTimeZone);
+      const endOffsetMinutes = endLocaleTZDate.getTimezoneOffset();
+      const endOffsetHours = Math.floor(Math.abs(endOffsetMinutes) / 60);
+      const endOffsetMins = Math.abs(endOffsetMinutes) % 60;
+      const endOffsetSign = endOffsetMinutes > 0 ? '-' : '+';
+      const endOffsetStr = `${endOffsetSign}${String(endOffsetHours).padStart(2, '0')}:${String(endOffsetMins).padStart(2, '0')}`;
+      end = `${event.end_date}T${event.end_time.padEnd(8, '00').substring(0, 8)}${endOffsetStr}`;
+    } else if (event.end_date) {
+      const [endYear, endMonth, endDay] = event.end_date.split('-').map(Number);
+      const endLocaleTZDate = new TZDate(endYear, endMonth - 1, endDay, 23, 59, 59, localeTimeZone);
+      const endOffsetMinutes = endLocaleTZDate.getTimezoneOffset();
+      const endOffsetHours = Math.floor(Math.abs(endOffsetMinutes) / 60);
+      const endOffsetMins = Math.abs(endOffsetMinutes) % 60;
+      const endOffsetSign = endOffsetMinutes > 0 ? '-' : '+';
+      const endOffsetStr = `${endOffsetSign}${String(endOffsetHours).padStart(2, '0')}:${String(endOffsetMins).padStart(2, '0')}`;
+      end = `${event.end_date}T23:59:59${endOffsetStr}`;
+    } else if (event.end_time) {
+      const [endHours, endMinutes, endSeconds] = event.end_time.split(':').map(Number);
+      const endLocaleTZDate = new TZDate(year, month - 1, day, endHours, endMinutes, endSeconds || 0, localeTimeZone);
+      const endOffsetMinutes = endLocaleTZDate.getTimezoneOffset();
+      const endOffsetHours = Math.floor(Math.abs(endOffsetMinutes) / 60);
+      const endOffsetMins = Math.abs(endOffsetMinutes) % 60;
+      const endOffsetSign = endOffsetMinutes > 0 ? '-' : '+';
+      const endOffsetStr = `${endOffsetSign}${String(endOffsetHours).padStart(2, '0')}:${String(endOffsetMins).padStart(2, '0')}`;
+      end = `${event.start_date}T${event.end_time.padEnd(8, '00').substring(0, 8)}${endOffsetStr}`;
+    } else {
+      // If we have start time but no end time, assume 1 hour duration
+      const endTimeStr = calculateEndTime(event.start_time!);
+      const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
+      const endLocaleTZDate = new TZDate(year, month - 1, day, endHours, endMinutes, 0, localeTimeZone);
+      const endOffsetMinutes = endLocaleTZDate.getTimezoneOffset();
+      const endOffsetHours = Math.floor(Math.abs(endOffsetMinutes) / 60);
+      const endOffsetMins = Math.abs(endOffsetMinutes) % 60;
+      const endOffsetSign = endOffsetMinutes > 0 ? '-' : '+';
+      const endOffsetStr = `${endOffsetSign}${String(endOffsetHours).padStart(2, '0')}:${String(endOffsetMins).padStart(2, '0')}`;
+      end = `${event.start_date}T${endTimeStr.padEnd(8, '00').substring(0, 8)}${endOffsetStr}`;
+    }
   }
 
   return {
@@ -149,8 +195,10 @@ export function transformEventForCalendar(event: {
     description: event.description || undefined,
     location: event.location?.name || '',
     category: event.primary_tag?.name || '',
-    start: startDateTime.toISOString(),
-    end: endDateTime ? endDateTime.toISOString() : null,
+    start: start,
+    end: end,
+    allDay: isAllDay, // Mark as all-day if no start time
+    url: `/events/${event.id}`, // Add URL for event click navigation
   };
 }
 
@@ -163,109 +211,4 @@ function calculateEndTime(startTime: string): string {
   const endHours = String(date.getUTCHours()).padStart(2, '0');
   const endMinutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${endHours}:${endMinutes}:00`;
-}
-
-/**
- * Filter events to only those in the future (including today)
- */
-export function filterFutureEvents(
-  events: {
-    start_date: string | null;
-    start_time: string | null;
-    end_date: string | null;
-    end_time: string | null;
-  }[]
-): {
-  start_date: string | null;
-  start_time: string | null;
-  end_date: string | null;
-  end_time: string | null;
-}[] {
-  const now = createUTCDateTime(
-    new Date().toISOString().split('T')[0],
-    new Date().toISOString().split('T')[1].substring(0, 8)
-  );
-  return events.filter((e) => {
-    if (!e.start_date) return false;
-    const startDate = createUTCDateTime(e.start_date, e.start_time || undefined);
-    // If end_date or end_time exists, use it for comparison
-    let endDate: Date | null = null;
-    if (e.end_date && e.end_time) {
-      endDate = createUTCDateTime(e.end_date, e.end_time);
-    } else if (e.end_date) {
-      endDate = createUTCDateTime(e.end_date, '23:59:59');
-    } else if (e.start_time) {
-      // If only end_time exists (or derived from start_time), use start_date with calculated end_time
-      const endTimeStr = calculateEndTime(e.start_time);
-      endDate = createUTCDateTime(e.start_date, endTimeStr);
-    }
-    // Show if event hasn't started yet, or is ongoing (endDate in future)
-    if (endDate) {
-      return endDate >= now;
-    } else {
-      // If event has a time, compare full datetime; otherwise, compare date only
-      if (e.start_time) {
-        return startDate >= now;
-      } else {
-        return startDate.toDateString() >= now.toDateString();
-      }
-    }
-  });
-}
-
-// Format event date/time as 'Fri June 5th at 5:00PM'
-export function formatEventDateTime(event: {
-  start_date: string;
-  start_time: string | null;
-  end_date: string | null;
-  end_time: string | null;
-}): string {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  function ordinal(n: number) {
-    if (n > 3 && n < 21) return n + 'th';
-    switch (n % 10) {
-      case 1:
-        return n + 'st';
-      case 2:
-        return n + 'nd';
-      case 3:
-        return n + 'rd';
-      default:
-        return n + 'th';
-    }
-  }
-  const start = new Date(event.start_date + (event.start_time ? 'T' + event.start_time : ''));
-  const end = event.end_date
-    ? new Date(event.end_date + (event.end_time ? 'T' + event.end_time : ''))
-    : null;
-  const day = days[start.getDay()];
-  const month = months[start.getMonth()];
-  const date = ordinal(start.getDate());
-  const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  let result = `${day} ${month} ${date} at ${time}`;
-  if (end && end.toDateString() !== start.toDateString()) {
-    const endDay = days[end.getDay()];
-    const endMonth = months[end.getMonth()];
-    const endDate = ordinal(end.getDate());
-    const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    result += ` – ${endDay} ${endMonth} ${endDate} at ${endTime}`;
-  } else if (end && event.end_time) {
-    const endTime = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    result += ` – ${endTime}`;
-  }
-  return result;
 }

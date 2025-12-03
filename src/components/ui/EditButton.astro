@@ -1,0 +1,26 @@
+---
+export interface Props {
+  eventId: string;
+  tooltipText?: string;
+  class?: string;
+}
+
+const { 
+  eventId,
+  tooltipText = "Edit event",
+  class: className = ""
+} = Astro.props;
+---
+
+<button 
+  type="button" 
+  onclick={`openEditEvent('${eventId}')`}
+  class={`p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative ${className}`}
+  aria-label="Edit event">
+  <span class="material-symbols-outlined text-2xl">edit</span>
+  <span class="tooltip -top-10 left-auto right-8">
+    {tooltipText}
+  </span>
+</button>
+
+

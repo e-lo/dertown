@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export const prerender = false;
 
@@ -23,14 +23,7 @@ export const GET: APIRoute = async (_) => {
       );
     }
 
-    // Check if the user is an admin using the is_admin Postgres function
-    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-    if (adminError || !isAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // All authenticated users are considered admins
 
     // Return protected resource
     return new Response(

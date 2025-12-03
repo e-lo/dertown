@@ -1,7 +1,6 @@
 ---
 import EventCarouselCard from './EventCarouselCard.astro';
-import { filterFutureEvents } from '../lib/event-utils';
-const { events = [], count = 8 } = Astro.props;
+const { events = [], count = 12 } = Astro.props;
 
 // Helper: Sprinkle featured events among upcoming events
 function sprinkleFeatured(upcoming: any[], featured: any[]): any[] {
@@ -33,10 +32,10 @@ function sprinkleFeatured(upcoming: any[], featured: any[]): any[] {
   return result.slice(0, count);
 }
 
-// Filter to only future events
-const futureEvents = filterFutureEvents(events as any[]);
-const upcoming = (futureEvents as any[]).filter((e: any) => !e.featured);
-const featured = (futureEvents as any[]).filter((e: any) => e.featured);
+// Events are already filtered by getCurrentAndFuture() in supabase.ts
+// No need to filter again - just separate featured from upcoming
+const upcoming = (events as any[]).filter((e: any) => !e.featured);
+const featured = (events as any[]).filter((e: any) => e.featured);
 const displayEvents = sprinkleFeatured(upcoming, featured);
 const hasEvents = displayEvents.length > 0;
 ---

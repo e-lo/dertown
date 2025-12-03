@@ -10,7 +10,8 @@ export const GET: APIRoute = async ({ url }) => {
     const gradeLevel = searchParams.get('grade_level');
 
     // Build the main query with all necessary joins
-    let query = supabase
+    // Note: Using type assertion since public_kid_activities view may not be in generated types
+    let query = (supabase as any)
       .from('public_kid_activities')
       .select(
         `
@@ -78,7 +79,7 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     // Get all activity IDs to fetch events in bulk
-    const activityIds = activities.map((a) => a.id).filter(Boolean);
+    const activityIds = activities.map((a: any) => a.id).filter(Boolean);
 
     // Fetch all events for all activities in a single query (limit to recent events for performance)
     const { data: allEvents, error: eventsError } = await supabase
@@ -117,7 +118,7 @@ export const GET: APIRoute = async ({ url }) => {
     });
 
     // Add events to each activity and return all activities
-    const activitiesWithEvents = activities.map((activity) => {
+    const activitiesWithEvents = activities.map((activity: any) => {
       const events = eventsByActivity.get(activity.id) || [];
       return {
         ...activity,

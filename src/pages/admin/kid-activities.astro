@@ -1,38 +1,29 @@
 ---
 import Layout from '../../components/Layout.astro';
 import { supabase } from '../../lib/supabase';
+import { checkAdminAccess } from '../../lib/session';
 import type { Database } from '../../types/database';
 import MeetingPatternForm from '../../components/MeetingPatternForm.astro';
 import ActivityScheduleForm from '../../components/ActivityScheduleForm.astro';
 
-type KidActivity = Database['public']['Tables']['kid_activities']['Row'];
-type PublicKidActivity = Database['public']['Views']['public_kid_activities']['Row'];
+// Server-side authentication check using cookies
+const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
 
-// Server-side authentication check
-const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-if (authError || !session) {
-  return Astro.redirect('/login');
-}
-
-// Check if user has admin role
-const { data: adminCheck, error: adminError } = await supabase.rpc('is_admin', {
-  user_id: session.user.id
-});
-
-if (adminError || !adminCheck) {
-  return Astro.redirect('/login?error=unauthorized');
+if (!isAdmin) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
 }
 
 // Fetch activities only after authentication is confirmed
-const { data: activities, error } = await supabase.from('kid_activities').select('*').order('name');
+// Note: Using type assertion due to mismatch between 'activities' table and 'kid_activities' types
+const { data: activities, error } = await (supabase as any).from('activities').select('*').order('name');
 
 if (error) {
   console.error('Error fetching activities:', error);
 }
 
 // Helper function to get parent activity name
-function getParentName(activities: KidActivity[], parentId: string | null): string | null {
+function getParentName(activities: any[], parentId: string | null): string | null {
   if (!parentId) return null;
   const parent = activities?.find(a => a.id === parentId);
   return parent?.name || null;
@@ -45,7 +36,7 @@ const classTypes = activities?.filter(a => a.activity_hierarchy_type === 'CLASS_
 const classInstances = activities?.filter(a => a.activity_hierarchy_type === 'CLASS_INSTANCE') || [];
 
 // Build hierarchy tree
-const buildHierarchy = (activities: KidActivity[]) => {
+const buildHierarchy = (activities: any[]) => {
   const activityMap = new Map();
   const roots: any[] = [];
 
@@ -1077,7 +1068,7 @@ const hierarchyTree = buildHierarchy(activities || []);
     let isAuthenticated = true; // Set by server-side authentication
 
     // Helper function to make API calls with automatic error handling
-    async function makeApiCall(url, options = {}) {
+    async function makeApiCall(url: string, options: RequestInit = {}) {
       try {
         const response = await fetch(url, {
           ...options,
@@ -1133,7 +1124,7 @@ const hierarchyTree = buildHierarchy(activities || []);
         const locationSelect = document.getElementById('locationId');
         if (locationSelect) {
           locationSelect.innerHTML = '<option value="">Select Location</option>';
-          data.locations.forEach(location => {
+          data.locations.forEach((location: any) => {
             const option = document.createElement('option');
             option.value = location.id;
             option.textContent = location.name;
@@ -1174,7 +1165,7 @@ const hierarchyTree = buildHierarchy(activities || []);
           
           const data = await response.json();
           if (data.events && data.events.length > 0) {
-            const scheduleText = data.events.map(event => {
+            const scheduleText = data.events.map((event: any) => {
               const start = new Date(event.start_datetime).toLocaleString();
               const end = new Date(event.end_datetime).toLocaleString();
               return `${start} - ${end}`;
@@ -1191,6 +1182,6 @@ const hierarchyTree = buildHierarchy(activities || []);
     }
 
     // Make functions available globally for form submissions
-    window.makeApiCall = makeApiCall;
+    (window as any).makeApiCall = makeApiCall;
   </script>
 </Layout>
