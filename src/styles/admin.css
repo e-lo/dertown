@@ -1,6 +1,23 @@
 /* Admin Dashboard Styles */
 /* Using Tailwind where possible, custom CSS only when needed */
 
+/* Material Symbols Outlined font styling - override global.css for admin page */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Admin-specific layout */
 .admin-card {
   @apply bg-white rounded-3xl shadow-lg max-w-7xl mx-auto my-10 px-6 md:px-10 py-12 border border-gray-200;
@@ -132,6 +149,53 @@
   background: #1a7a94;
 }
 
+/* Action button styles (for non-icon buttons) */
+.action-btn {
+  @apply px-4 py-2 border-none rounded-lg cursor-pointer text-sm mr-2 mb-1 inline-flex items-center gap-1.5 transition-all font-medium no-underline outline-none shadow-sm;
+}
+
+.action-btn:hover {
+  @apply -translate-y-0.5 shadow-md;
+}
+
+.action-btn:active {
+  @apply translate-y-0;
+}
+
+.action-btn.btn-approve {
+  @apply bg-gradient-to-br from-green-500 to-green-600 text-white;
+}
+
+.action-btn.btn-approve:hover {
+  @apply from-green-600 to-green-700;
+}
+
+.action-btn.btn-reject {
+  @apply bg-gradient-to-br from-red-500 to-red-600 text-white;
+}
+
+.action-btn.btn-reject:hover {
+  @apply from-red-600 to-red-700;
+}
+
+.action-btn.btn-edit {
+  background: var(--blue-green, #219ebc);
+  @apply text-white;
+}
+
+.action-btn.btn-edit:hover {
+  background: #1a7a94;
+  filter: brightness(0.9);
+}
+
+.btn-create {
+  @apply bg-gradient-to-br from-purple-600 to-purple-700 text-white p-2.5 text-base font-semibold;
+}
+
+.btn-create:hover {
+  @apply from-purple-700 to-purple-800;
+}
+
 .loading {
   @apply text-center py-8 text-gray-500 text-base bg-gray-50 rounded-xl border border-dashed border-gray-300;
 }
@@ -212,7 +276,12 @@
 }
 
 .autocomplete-dropdown {
-  @apply hidden absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 max-h-[200px] overflow-y-auto z-[1000] rounded-b-md;
+  @apply absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 max-h-[200px] overflow-y-auto z-[1000] rounded-b-md;
+  display: none; /* Hidden by default, toggled via JavaScript */
+}
+
+.autocomplete-dropdown.block {
+  display: block; /* Override when block class is added */
 }
 
 .autocomplete-dropdown-item {
