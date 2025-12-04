@@ -513,13 +513,21 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         fetch('/api/admin/parent-events', { credentials: 'include' })
       ]);
 
-      if (locationsRes.ok) {
+      if (!locationsRes.ok) {
+        console.error('Failed to load locations:', locationsRes.status, await locationsRes.text());
+      } else {
         allLocations = await locationsRes.json();
       }
-      if (orgsRes.ok) {
+      
+      if (!orgsRes.ok) {
+        console.error('Failed to load organizations:', orgsRes.status, await orgsRes.text());
+      } else {
         allOrganizations = await orgsRes.json();
       }
-      if (tagsRes.ok) {
+      
+      if (!tagsRes.ok) {
+        console.error('Failed to load tags:', tagsRes.status, await tagsRes.text());
+      } else {
         allTags = await tagsRes.json();
         // Populate tag dropdowns
         const primaryTagSelect = document.getElementById('editEventPrimaryTag');
@@ -538,7 +546,10 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           });
         }
       }
-      if (parentEventsRes.ok) {
+      
+      if (!parentEventsRes.ok) {
+        console.error('Failed to load parent events:', parentEventsRes.status, await parentEventsRes.text());
+      } else {
         allParentEvents = await parentEventsRes.json();
       }
     } catch (error) {

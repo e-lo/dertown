@@ -9,13 +9,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Check authentication
     const { isAdmin, error: authError } = await checkAdminAccess(cookies);
     if (!isAdmin) {
+      console.error('[CREATE EVENT] Authentication failed:', authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const { location_added, organization_added, ...eventData } = await request.json();
+    let requestData;
+    try {
+      requestData = await request.json();
+    } catch (parseError) {
+      console.error('[CREATE EVENT] JSON parse error:', parseError);
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { location_added, organization_added, ...eventData } = requestData;
 
     // Validate required fields
     if (!eventData.title || !eventData.start_date) {
@@ -34,14 +46,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .from('locations')
         .insert({
           name: location_added.trim(),
-          status: 'approved',
+          status: 'approved' as const,
         })
         .select()
         .single();
 
       if (locationError) {
-        console.error('Location creation error:', locationError);
-        return new Response(JSON.stringify({ error: 'Failed to create new location' }), {
+        console.error('[CREATE EVENT] Location creation error:', locationError);
+        return new Response(JSON.stringify({ 
+          error: 'Failed to create new location', 
+          details: locationError.message 
+        }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -58,14 +73,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .from('organizations')
         .insert({
           name: organization_added.trim(),
-          status: 'approved',
+          status: 'approved' as const,
         })
         .select()
         .single();
 
       if (orgError) {
-        console.error('Organization creation error:', orgError);
-        return new Response(JSON.stringify({ error: 'Failed to create new organization' }), {
+        console.error('[CREATE EVENT] Organization creation error:', orgError);
+        return new Response(JSON.stringify({ 
+          error: 'Failed to create new organization', 
+          details: orgError.message 
+        }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -98,7 +116,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Set default status to 'approved' for admin-created events
-    cleanedData.status = 'approved';
+    cleanedData.status = 'approved' as const;
 
     // Create the event using admin client
     const { data, error } = await supabaseAdmin
@@ -114,7 +132,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .single();
 
     if (error) {
-      console.error('Error creating event:', error);
+      console.error('[CREATE EVENT] Error creating event:', error);
+      console.error('[CREATE EVENT] Event data:', JSON.stringify(cleanedData, null, 2));
       return new Response(JSON.stringify({ error: 'Failed to create event', details: error.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -126,8 +145,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in create event API:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    console.error('[CREATE EVENT] Unexpected error:', error);
+    if (error instanceof Error) {
+      console.error('[CREATE EVENT] Error message:', error.message);
+      console.error('[CREATE EVENT] Error stack:', error.stack);
+    }
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkAdminAccess } from '@/lib/session';
 
+export const prerender = false;
+
 export const GET: APIRoute = async ({ cookies }) => {
   try {
     // Check authentication
