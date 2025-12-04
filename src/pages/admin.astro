@@ -33,329 +33,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 </head>
-<body>
-
-<style>
-  /* Material Symbols Outlined font styling */
-  .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 24px;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Arial, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-    margin: 0;
-    min-height: 100vh;
-    color: #1a1a2e;
-    line-height: 1.6;
-  }
-  .admin-card {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 3rem 2.5rem;
-    border: 1px solid rgba(229, 231, 235, 0.8);
-  }
-  .admin-logo-link {
-    display: flex;
-    gap: 0.5rem;
-    color: #1a1a2e;
-    transition: opacity 0.2s;
-    margin-right: 1.5rem;
-    padding-right: 1.5rem;
-    border-right: 1px solid #e8ecf1;
-  }
-  .admin-logo-link:hover {
-    opacity: 0.7;
-  }
-  .admin-logo-link img {
-    height: 2.5rem;
-    flex-shrink: 0;
-    display: block;
-  }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2.5rem;
-    border-bottom: 2px solid #e8ecf1;
-    padding-bottom: 1.5rem;
-  }
-  .header-left {
-    display: flex;
-    align-items: baseline;
-    flex: 1;
-    gap: 0;
-  }
-  .header-title-section {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-  }
-  .header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #1a1a2e;
-    margin: 0 0 0.25rem 0;
-    letter-spacing: -1.5px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #3a3a5e 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.2;
-  }
-  .header p {
-    color: #6b7280;
-    font-size: 0.95rem;
-    margin: 0;
-  }
-  .logout-btn {
-    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-  .logout-btn:hover {
-    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-  }
-  .section {
-    margin-top: 3rem;
-    margin-bottom: 3rem;
-  }
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-  .section-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #1a1a2e;
-    margin: 0;
-    letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .section-title .material-symbols-outlined {
-    font-size: 1.75rem;
-    color: #4f46e5;
-  }
-  .action-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    margin-right: 0.5rem;
-    margin-bottom: 0.25rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s ease;
-    font-weight: 500;
-    text-decoration: none;
-    outline: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  .action-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  }
-  .action-btn:active {
-    transform: translateY(0);
-  }
-  .btn-approve {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-  }
-  .btn-approve:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  }
-  .action-btn.btn-approve {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: white !important;
-  }
-  .action-btn.btn-approve:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-  }
-  .btn-reject {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-  }
-  .btn-reject:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  }
-  .action-btn.btn-reject {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-    color: white !important;
-  }
-  .action-btn.btn-reject:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
-  }
-  .btn-edit {
-    background: var(--blue-green, #219ebc);
-    color: white;
-  }
-  .btn-edit:hover {
-    background: #1a7a94;
-    filter: brightness(0.9);
-  }
-  .action-btn.btn-edit {
-    background: var(--blue-green, #219ebc) !important;
-    color: white !important;
-  }
-  .action-btn.btn-edit:hover {
-    background: #1a7a94 !important;
-    filter: brightness(0.9);
-  }
-  .icon-btn.btn-edit {
-    background: var(--blue-green, #219ebc);
-    color: white;
-  }
-  .icon-btn.btn-edit:hover {
-    background: #1a7a94;
-    filter: brightness(0.9);
-  }
-  .btn-create {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    color: white;
-    padding: 0.65rem;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-  .btn-create:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  }
-  .icon-btn {
-    position: relative;
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    min-width: 2.5rem;
-    height: 2.5rem;
-  }
-  .icon-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  .icon-btn .tooltip {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: #1a1a2e;
-    color: white;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    border-radius: 6px;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    z-index: 1000;
-  }
-  .icon-btn .tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #1a1a2e;
-  }
-  .icon-btn:hover .tooltip {
-    visibility: visible;
-    opacity: 1;
-  }
-  .icon-btn.btn-approve {
-    background: var(--pigment-green, #4daa57);
-    color: white;
-  }
-  .icon-btn.btn-approve:hover {
-    background: #3d8a47;
-    filter: brightness(0.95);
-  }
-  .icon-btn.btn-reject {
-    background: var(--fandango, #c0268c);
-    color: white;
-  }
-  .icon-btn.btn-reject:hover {
-    background: #a01f73;
-    filter: brightness(0.95);
-  }
-  .loading {
-    text-align: center;
-    padding: 2rem;
-    color: #6b7280;
-    font-size: 1rem;
-    background: #f9fafb;
-    border-radius: 12px;
-    border: 1px dashed #d1d5db;
-  }
-  .error {
-    color: #991b1b;
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    border: 1px solid #fca5a5;
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin: 1rem 0;
-    font-weight: 500;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
-  }
-  .success {
-    color: #065f46;
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    border: 1px solid #6ee7b7;
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin: 1rem 0;
-    font-weight: 500;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
-  }
-  .warning-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background: #fef3c7;
-    color: #92400e;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  @media (max-width: 700px) {
-    .admin-card { padding: 1rem; }
-    .header h1 { font-size: 1.3rem; }
-    .section-title { font-size: 1.1rem; }
-  }
-</style>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
 
 <div class="admin-card">
   <div class="header">
@@ -561,6 +239,57 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
   // AUTOCOMPLETE SETUP FUNCTIONS
   // ============================================================================
   
+  // Track retry attempts to prevent infinite loops
+  let autocompleteSetupRetries = {
+    location: 0,
+    organization: 0,
+    announcementOrganization: 0,
+    parentEvent: 0
+  };
+  const MAX_RETRIES = 10;
+  
+  // Track if autocomplete has been set up to avoid duplicate event listeners
+  let autocompleteSetupComplete = {
+    location: false,
+    organization: false,
+    announcementOrganization: false,
+    parentEvent: false
+  };
+  
+  /**
+   * Re-runs autocomplete setup for event modal (called when modal opens)
+   * Resets the completion flags to allow retry if setup failed initially
+   */
+  function ensureEventAutocompleteSetup() {
+    console.log('[AUTOCOMPLETE] Ensuring event autocomplete setup...');
+    // Reset flags to allow retry if elements weren't found initially
+    if (!autocompleteSetupComplete.location) {
+      autocompleteSetupRetries.location = 0; // Reset retry counter
+      setupLocationAutocomplete();
+    }
+    if (!autocompleteSetupComplete.organization) {
+      autocompleteSetupRetries.organization = 0; // Reset retry counter
+      setupOrganizationAutocomplete();
+    }
+    if (!autocompleteSetupComplete.parentEvent) {
+      autocompleteSetupRetries.parentEvent = 0; // Reset retry counter
+      setupParentEventAutocomplete();
+    }
+  }
+  
+  /**
+   * Re-runs autocomplete setup for announcement modal (called when modal opens)
+   * Resets the completion flags to allow retry if setup failed initially
+   */
+  function ensureAnnouncementAutocompleteSetup() {
+    console.log('[AUTOCOMPLETE] Ensuring announcement autocomplete setup...');
+    // Reset flags to allow retry if elements weren't found initially
+    if (!autocompleteSetupComplete.announcementOrganization) {
+      autocompleteSetupRetries.announcementOrganization = 0; // Reset retry counter
+      setupAnnouncementOrganizationAutocomplete();
+    }
+  }
+  
   /**
    * Sets up autocomplete functionality for location selection in event forms
    */
@@ -570,10 +299,30 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     const dropdown = document.getElementById('editEventLocationDropdown');
     const newLocationInput = document.getElementById('editEventLocationAdded');
 
-    if (!searchInput || !hiddenInput || !dropdown) return;
+    if (!searchInput || !hiddenInput || !dropdown) {
+      if (autocompleteSetupRetries.location < MAX_RETRIES) {
+        autocompleteSetupRetries.location++;
+        console.log(`[AUTOCOMPLETE] Location elements not found, retry ${autocompleteSetupRetries.location}/${MAX_RETRIES}`);
+        // Retry after a short delay in case modals haven't rendered yet
+        setTimeout(setupLocationAutocomplete, 100);
+      } else {
+        console.error('[AUTOCOMPLETE] Location autocomplete elements not found after retries');
+      }
+      return;
+    }
+    autocompleteSetupRetries.location = 0; // Reset on success
+    
+    // Only set up if not already set up (avoid duplicate listeners)
+    if (autocompleteSetupComplete.location) {
+      console.log('[AUTOCOMPLETE] Location autocomplete already set up, skipping');
+      return;
+    }
+    autocompleteSetupComplete.location = true;
+    console.log('[AUTOCOMPLETE] Location autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
+      console.log('[AUTOCOMPLETE] Location search input:', query);
       if (query.length === 0) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
@@ -581,9 +330,16 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         return;
       }
 
+      if (!allLocations || !Array.isArray(allLocations)) {
+        console.warn('[AUTOCOMPLETE] Locations data not loaded yet. Data:', allLocations);
+        return;
+      }
+
+      console.log('[AUTOCOMPLETE] Searching in', allLocations.length, 'locations');
       const matches = allLocations.filter(loc => 
-        loc.name.toLowerCase().includes(query)
+        loc && loc.name && loc.name.toLowerCase().includes(query)
       ).slice(0, 10);
+      console.log('[AUTOCOMPLETE] Found', matches.length, 'matches');
 
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
@@ -599,6 +355,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       `).join('');
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
+      console.log('[AUTOCOMPLETE] Dropdown shown with', matches.length, 'items');
     });
 
     // Close dropdown when clicking outside
@@ -614,7 +371,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       hiddenInput.value = id;
       dropdown.classList.add('hidden');
       dropdown.classList.remove('block');
-      newLocationInput.value = ''; // Clear new location if existing one selected
+      if (newLocationInput) newLocationInput.value = ''; // Clear new location if existing one selected
     };
   }
 
@@ -627,10 +384,30 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     const dropdown = document.getElementById('editEventOrganizationDropdown');
     const newOrgInput = document.getElementById('editEventOrganizationAdded');
 
-    if (!searchInput || !hiddenInput || !dropdown) return;
+    if (!searchInput || !hiddenInput || !dropdown) {
+      if (autocompleteSetupRetries.organization < MAX_RETRIES) {
+        autocompleteSetupRetries.organization++;
+        console.log(`[AUTOCOMPLETE] Organization elements not found, retry ${autocompleteSetupRetries.organization}/${MAX_RETRIES}`);
+        // Retry after a short delay in case modals haven't rendered yet
+        setTimeout(setupOrganizationAutocomplete, 100);
+      } else {
+        console.error('[AUTOCOMPLETE] Organization autocomplete elements not found after retries');
+      }
+      return;
+    }
+    autocompleteSetupRetries.organization = 0; // Reset on success
+    
+    // Only set up if not already set up (avoid duplicate listeners)
+    if (autocompleteSetupComplete.organization) {
+      console.log('[AUTOCOMPLETE] Organization autocomplete already set up, skipping');
+      return;
+    }
+    autocompleteSetupComplete.organization = true;
+    console.log('[AUTOCOMPLETE] Organization autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
+      console.log('[AUTOCOMPLETE] Organization search input:', query, 'allOrganizations:', allOrganizations);
       if (query.length === 0) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
@@ -638,9 +415,16 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         return;
       }
 
+      if (!allOrganizations || !Array.isArray(allOrganizations)) {
+        console.warn('[AUTOCOMPLETE] Organizations data not loaded yet. Data:', allOrganizations);
+        return;
+      }
+
+      console.log('[AUTOCOMPLETE] Searching in', allOrganizations.length, 'organizations');
       const matches = allOrganizations.filter(org => 
-        org.name.toLowerCase().includes(query)
+        org && org.name && org.name.toLowerCase().includes(query)
       ).slice(0, 10);
+      console.log('[AUTOCOMPLETE] Found', matches.length, 'matches:', matches);
 
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
@@ -656,6 +440,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       `).join('');
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
+      console.log('[AUTOCOMPLETE] Dropdown shown with', matches.length, 'items');
     });
 
     // Close dropdown when clicking outside
@@ -684,7 +469,25 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     const dropdown = document.getElementById('editAnnouncementOrganizationDropdown');
     const newOrgInput = document.getElementById('editAnnouncementOrganizationAdded');
 
-    if (!searchInput || !hiddenInput || !dropdown) return;
+    if (!searchInput || !hiddenInput || !dropdown) {
+      if (autocompleteSetupRetries.announcementOrganization < MAX_RETRIES) {
+        autocompleteSetupRetries.announcementOrganization++;
+        // Retry after a short delay in case modals haven't rendered yet
+        setTimeout(setupAnnouncementOrganizationAutocomplete, 100);
+      } else {
+        console.error('[AUTOCOMPLETE] Announcement organization autocomplete elements not found after retries');
+      }
+      return;
+    }
+    autocompleteSetupRetries.announcementOrganization = 0; // Reset on success
+    
+    // Only set up if not already set up (avoid duplicate listeners)
+    if (autocompleteSetupComplete.announcementOrganization) {
+      console.log('[AUTOCOMPLETE] Announcement organization autocomplete already set up, skipping');
+      return;
+    }
+    autocompleteSetupComplete.announcementOrganization = true;
+    console.log('[AUTOCOMPLETE] Announcement organization autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
@@ -695,8 +498,13 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         return;
       }
 
+      if (!allOrganizations || !Array.isArray(allOrganizations)) {
+        console.warn('[AUTOCOMPLETE] Organizations data not loaded yet');
+        return;
+      }
+
       const matches = allOrganizations.filter(org => 
-        org.name.toLowerCase().includes(query)
+        org && org.name && org.name.toLowerCase().includes(query)
       ).slice(0, 10);
 
       if (matches.length > 0) {
@@ -751,7 +559,25 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     const hiddenInput = document.getElementById('editEventParentEventId');
     const dropdown = document.getElementById('editEventParentEventDropdown');
 
-    if (!searchInput || !hiddenInput || !dropdown) return;
+    if (!searchInput || !hiddenInput || !dropdown) {
+      if (autocompleteSetupRetries.parentEvent < MAX_RETRIES) {
+        autocompleteSetupRetries.parentEvent++;
+        // Retry after a short delay in case modals haven't rendered yet
+        setTimeout(setupParentEventAutocomplete, 100);
+      } else {
+        console.error('[AUTOCOMPLETE] Parent event autocomplete elements not found after retries');
+      }
+      return;
+    }
+    autocompleteSetupRetries.parentEvent = 0; // Reset on success
+    
+    // Only set up if not already set up (avoid duplicate listeners)
+    if (autocompleteSetupComplete.parentEvent) {
+      console.log('[AUTOCOMPLETE] Parent event autocomplete already set up, skipping');
+      return;
+    }
+    autocompleteSetupComplete.parentEvent = true;
+    console.log('[AUTOCOMPLETE] Parent event autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
@@ -762,8 +588,13 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         return;
       }
 
+      if (!allParentEvents || !Array.isArray(allParentEvents)) {
+        console.warn('[AUTOCOMPLETE] Parent events data not loaded yet');
+        return;
+      }
+
       const matches = allParentEvents.filter(event => 
-        event.title.toLowerCase().includes(query)
+        event && event.title && event.title.toLowerCase().includes(query)
       ).slice(0, 10);
 
       if (matches.length === 0) {
@@ -1060,6 +891,11 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     try {
       // Load reference data first
       await loadReferenceData();
+      
+      // Wait a bit for Astro components to fully render
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Setup autocomplete with retry mechanism
       setupLocationAutocomplete();
       setupOrganizationAutocomplete();
       setupParentEventAutocomplete();
@@ -1543,6 +1379,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           modal.classList.add('flex');
           // Scroll to top of page to ensure modal is visible
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Ensure autocomplete is set up when modal opens
+          setTimeout(ensureEventAutocompleteSetup, 50);
         }
       } else {
         showMessage('Event not found', 'error');
@@ -1649,6 +1487,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           modal.classList.add('flex');
           // Scroll to top of page to ensure modal is visible
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Ensure autocomplete is set up when modal opens
+          setTimeout(ensureEventAutocompleteSetup, 50);
         }
       } else {
         showMessage('Event not found', 'error');
@@ -1713,6 +1553,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           modal.classList.remove('hidden');
           modal.classList.add('flex');
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Ensure autocomplete is set up when modal opens
+          setTimeout(ensureAnnouncementAutocompleteSetup, 50);
         }
       } else {
         showMessage('Announcement not found', 'error');
@@ -1773,6 +1615,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           modal.classList.remove('hidden');
           modal.classList.add('flex');
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Ensure autocomplete is set up when modal opens
+          setTimeout(ensureAnnouncementAutocompleteSetup, 50);
         }
       } else {
         showMessage('Announcement not found', 'error');
@@ -1925,6 +1769,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Ensure autocomplete is set up when modal opens
+        setTimeout(ensureAnnouncementAutocompleteSetup, 50);
       }
     };
 
@@ -1971,6 +1817,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Ensure autocomplete is set up when modal opens
+        setTimeout(ensureEventAutocompleteSetup, 50);
       }
     };
     
