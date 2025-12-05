@@ -34,6 +34,7 @@
     "astro": "^4.14.0",
     "date-fns": "^4.1.0",
     "embla-carousel": "^8.6.0",
+    "marked": "^17.0.1",
     "resend": "^6.5.2",
     "rollup-plugin-copy": "^3.5.0",
     "rrule": "^2.8.1",
@@ -43,6 +44,8 @@
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.50.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/marked": "^5.0.2",
     "@typescript-eslint/eslint-plugin": "^8.34.1",
     "@typescript-eslint/parser": "^8.34.1",
     "astro-eslint-parser": "^1.2.2",
