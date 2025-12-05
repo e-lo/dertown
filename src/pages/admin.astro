@@ -98,6 +98,17 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     <div id="announcements-loading" class="loading">Loading announcements...</div>
     <div id="announcements-container"></div>
   </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">schedule</span>
+        Upcoming Announcements
+      </div>
+    </div>
+    <div id="upcoming-announcements-loading" class="loading">Loading upcoming announcements...</div>
+    <div id="upcoming-announcements-container"></div>
+  </div>
 </div>
 
 <!-- Login Modal (for session expiration scenarios) -->
@@ -737,6 +748,88 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     }
 
   /**
+   * Loads and displays upcoming announcements (published announcements scheduled for the future)
+   */
+  async function loadUpcomingAnnouncements() {
+    try {
+      const loading = document.getElementById('upcoming-announcements-loading');
+      const response = await fetch('/api/admin/announcements/upcoming', { credentials: 'include' });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          if (typeof window.openLoginModal === 'function') {
+            window.openLoginModal();
+          } else {
+            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `/login?redirect=${currentUrl}`;
+          }
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const announcements = data.announcements || [];
+      
+      // Display upcoming announcements (read-only view with edit option)
+      displayUpcomingAnnouncements(announcements);
+      if (loading) loading.classList.add('hidden');
+    } catch (error) {
+      const loading = document.getElementById('upcoming-announcements-loading');
+      if (loading) loading.classList.add('hidden');
+      showMessage('Error loading upcoming announcements: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * Displays upcoming announcements in a table format (read-only with edit option)
+   */
+  function displayUpcomingAnnouncements(announcements) {
+    const container = document.getElementById('upcoming-announcements-container');
+    const loading = document.getElementById('upcoming-announcements-loading');
+    if (loading) loading.classList.add('hidden');
+    if (announcements.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#888;">No upcoming announcements.</p>';
+      return;
+    }
+    const table =
+      '<table class="data-table">' +
+      '<thead>' +
+      '<tr>' +
+      '<th>Title</th>' +
+      '<th>Message</th>' +
+      '<th>Email</th>' +
+      '<th>Show At</th>' +
+      '<th>Expires At</th>' +
+      '<th>Actions</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      announcements
+        .map(function (a) {
+          return (
+            '<tr>' +
+            '<td>' + (a.title || 'N/A') + '</td>' +
+            '<td>' + (a.message || '').substring(0, 100) + (a.message && a.message.length > 100 ? '...' : '') + '</td>' +
+            '<td>' + (a.email || 'N/A') + '</td>' +
+            '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : 'N/A') + '</td>' +
+            '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : 'N/A') + '</td>' +
+            '<td style="text-align: center; white-space: nowrap;">' +
+            '<button onclick="editExistingAnnouncement(\'' + a.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit announcement">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+            '<span class="tooltip">Edit</span>' +
+            '</button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody>' +
+      '</table>';
+    container.innerHTML = table;
+  }
+
+  /**
    * Displays events in a table format
    * @param {Array} events - Array of event objects to display
    * @param {string} containerId - ID of the container element
@@ -788,6 +881,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           const editFunction = eventIsStaged ? 'editStagedEvent' : 'editExistingEvent';
           const approveFunction = eventIsStaged ? 'approveEvent' : 'approveExistingEvent';
           const rejectFunction = eventIsStaged ? 'rejectEvent' : 'rejectExistingEvent';
+          // For non-staged events (including pending), use "Archive" instead of "Reject"
+          const rejectLabel = eventIsStaged ? 'Reject' : 'Archive';
+          const rejectAriaLabel = eventIsStaged ? 'Reject event' : 'Archive event';
             
             return (
               '<tr>' +
@@ -809,9 +905,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
             '<span class="tooltip">Approve</span>' +
             '</button>' +
-            '<button onclick="' + rejectFunction + '(\'' + event.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Reject event">' +
-            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>' +
-            '<span class="tooltip">Reject</span>' +
+            '<button onclick="' + rejectFunction + '(\'' + event.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="' + rejectAriaLabel + '">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">archive</span>' +
+            '<span class="tooltip">' + rejectLabel + '</span>' +
             '</button>' +
             '</td>' +
             '</tr>'
@@ -854,6 +950,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           const editFunction = announcementIsStaged ? 'editStagedAnnouncement' : 'editExistingAnnouncement';
           const approveFunction = announcementIsStaged ? 'approveAnnouncement' : 'approveExistingAnnouncement';
           const rejectFunction = announcementIsStaged ? 'rejectAnnouncement' : 'rejectExistingAnnouncement';
+          // For non-staged announcements (including pending), use "Archive" instead of "Reject"
+          const rejectLabel = announcementIsStaged ? 'Reject' : 'Archive';
+          const rejectAriaLabel = announcementIsStaged ? 'Reject announcement' : 'Archive announcement';
           
           return (
             '<tr>' +
@@ -873,9 +972,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
             '<span class="tooltip">Approve</span>' +
             '</button>' +
-            '<button onclick="' + rejectFunction + '(\'' + a.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Reject announcement">' +
-            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>' +
-            '<span class="tooltip">Reject</span>' +
+            '<button onclick="' + rejectFunction + '(\'' + a.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="' + rejectAriaLabel + '">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">archive</span>' +
+            '<span class="tooltip">' + rejectLabel + '</span>' +
             '</button>' +
             '</td>' +
             '</tr>'
@@ -904,7 +1003,8 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       await Promise.all([
         loadEventsToApprove(),
         loadIncompleteEvents(),
-        loadAnnouncementsToApprove()
+        loadAnnouncementsToApprove(),
+        loadUpcomingAnnouncements()
       ]);
 
       // Check if we should open edit modal for a specific event (from URL query param)
@@ -1315,9 +1415,16 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         document.getElementById('editEventEmail').value = event.email || '';
         document.getElementById('editEventWebsite').value = event.website || '';
         document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+        document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
         document.getElementById('editEventCost').value = event.cost || '';
         document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
         document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+        
+        // Set checkbox fields
+        document.getElementById('editEventRegistration').checked = event.registration || false;
+        document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
+        document.getElementById('editEventFeatured').checked = event.featured || false;
+        document.getElementById('editEventDraft').checked = (event.status === 'pending' || event.status === null);
         
         // Show "add new" fields for staged events (they support location_added/organization_added)
         const locationContainer = document.getElementById('editEventLocationAddedContainer');
@@ -1420,9 +1527,16 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         document.getElementById('editEventEmail').value = event.email || '';
         document.getElementById('editEventWebsite').value = event.website || '';
         document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+        document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
         document.getElementById('editEventCost').value = event.cost || '';
         document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
         document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+        
+        // Set checkbox fields
+        document.getElementById('editEventRegistration').checked = event.registration || false;
+        document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
+        document.getElementById('editEventFeatured').checked = event.featured || false;
+        document.getElementById('editEventDraft').checked = (event.status === 'pending' || event.status === null);
         
         // Show "add new" fields for existing events too (we'll create them on the backend)
         const locationContainer = document.getElementById('editEventLocationAddedContainer');
@@ -1569,10 +1683,19 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       currentEditId = announcementId;
       currentEditType = 'existing-announcement';
       
-      // Find the announcement data from the already loaded announcements
-      const response = await fetch('/api/admin/announcements', { credentials: 'include' });
-      const data = await response.json();
-      const announcement = data.announcements.find(a => a.id === announcementId);
+      // Try to find the announcement data from the already loaded announcements first
+      let response = await fetch('/api/admin/announcements', { credentials: 'include' });
+      let data = await response.json();
+      let announcement = data.announcements && data.announcements.find(a => a.id === announcementId);
+      
+      // If not found, try fetching directly (might be a published/upcoming announcement)
+      if (!announcement) {
+        response = await fetch(`/api/admin/announcements/${announcementId}`, { credentials: 'include' });
+        if (response.ok) {
+          data = await response.json();
+          announcement = data.announcement;
+        }
+      }
       
       if (announcement) {
         document.getElementById('editAnnouncementModalTitle').textContent = 'Edit Existing Announcement';
@@ -1683,7 +1806,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
 
     // Reject existing events/announcements
     async function rejectExistingEvent(eventId) {
-      const reason = prompt('Reason for rejection (optional):');
+      const reason = prompt('Reason for archiving (optional):');
       try {
         const response = await fetch('/api/admin/events/reject', {
           method: 'POST',
@@ -1692,18 +1815,18 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           body: JSON.stringify({ eventId, reason }),
         });
         if (response.ok) {
-          showMessage('Event rejected successfully!', 'success');
+          showMessage('Event archived successfully!', 'success');
           loadEventsToApprove();
         } else {
-          throw new Error('Failed to reject event');
+          throw new Error('Failed to archive event');
         }
       } catch (error) {
-        showMessage('Error rejecting event: ' + error.message, 'error');
+        showMessage('Error archiving event: ' + error.message, 'error');
       }
     }
 
     async function rejectExistingAnnouncement(announcementId) {
-      const reason = prompt('Reason for rejection (optional):');
+      const reason = prompt('Reason for archiving (optional):');
       try {
         const response = await fetch('/api/admin/announcements/reject', {
           method: 'POST',
@@ -1712,13 +1835,13 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           body: JSON.stringify({ announcementId, reason }),
         });
         if (response.ok) {
-          showMessage('Announcement rejected successfully!', 'success');
+          showMessage('Announcement archived successfully!', 'success');
           loadAnnouncementsToApprove();
         } else {
-          throw new Error('Failed to reject announcement');
+          throw new Error('Failed to archive announcement');
         }
       } catch (error) {
-        showMessage('Error rejecting announcement: ' + error.message, 'error');
+        showMessage('Error archiving announcement: ' + error.message, 'error');
       }
     }
 
@@ -1792,6 +1915,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       document.getElementById('editEventEmail').value = '';
       document.getElementById('editEventWebsite').value = '';
       document.getElementById('editEventRegistrationLink').value = '';
+      document.getElementById('editEventExternalImageUrl').value = '';
       document.getElementById('editEventCost').value = '';
       document.getElementById('editEventPrimaryTag').value = '';
       document.getElementById('editEventSecondaryTag').value = '';
@@ -1804,6 +1928,12 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       document.getElementById('editEventParentEventSearch').value = '';
       document.getElementById('editEventParentEventId').value = '';
       document.getElementById('editEventComments').value = '';
+      
+      // Reset checkbox fields
+      document.getElementById('editEventRegistration').checked = false;
+      document.getElementById('editEventExcludeFromCalendar').checked = false;
+      document.getElementById('editEventFeatured').checked = false;
+      document.getElementById('editEventDraft').checked = false;
       
       // Show "add new" fields
       const locationContainer = document.getElementById('editEventLocationAddedContainer');
@@ -1873,6 +2003,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           email: document.getElementById('editEventEmail').value || null,
           website: normalizeUrl(document.getElementById('editEventWebsite').value),
           registration_link: normalizeUrl(document.getElementById('editEventRegistrationLink').value),
+          external_image_url: normalizeUrl(document.getElementById('editEventExternalImageUrl').value),
           cost: document.getElementById('editEventCost').value || null,
           primary_tag_id: document.getElementById('editEventPrimaryTag').value || null,
           secondary_tag_id: document.getElementById('editEventSecondaryTag').value || null,
@@ -1882,6 +2013,10 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           comments: document.getElementById('editEventComments').value || null,
           location_added: document.getElementById('editEventLocationAdded').value || null,
           organization_added: document.getElementById('editEventOrganizationAdded').value || null,
+          registration: document.getElementById('editEventRegistration').checked,
+          exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
+          featured: document.getElementById('editEventFeatured').checked,
+          status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
         };
         
         // Validate required fields
@@ -1952,9 +2087,14 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       formData.end_time = document.getElementById('editEventEndTime').value || null;
         formData.website = normalizeUrl(document.getElementById('editEventWebsite').value);
         formData.registration_link = normalizeUrl(document.getElementById('editEventRegistrationLink').value);
+        formData.external_image_url = normalizeUrl(document.getElementById('editEventExternalImageUrl').value);
         formData.cost = document.getElementById('editEventCost').value || null;
       formData.primary_tag_id = primaryTag || null;
       formData.secondary_tag_id = document.getElementById('editEventSecondaryTag').value || null;
+      formData.registration = document.getElementById('editEventRegistration').checked;
+      formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
+      formData.featured = document.getElementById('editEventFeatured').checked;
+      formData.status = document.getElementById('editEventDraft').checked ? 'pending' : 'approved';
       
       // Handle location - either existing or new
       const locationId = document.getElementById('editEventLocationId').value;
@@ -2010,7 +2150,10 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             break;
           case 'existing-announcement':
             endpoint = '/api/admin/announcements';
-            reloadFunction = loadAnnouncementsToApprove;
+            reloadFunction = () => {
+              loadAnnouncementsToApprove();
+              loadUpcomingAnnouncements();
+            };
             break;
         }
         
@@ -2223,7 +2366,10 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             break;
           case 'existing-announcement':
             endpoint = '/api/admin/announcements';
-            reloadFunction = loadAnnouncementsToApprove;
+            reloadFunction = () => {
+              loadAnnouncementsToApprove();
+              loadUpcomingAnnouncements();
+            };
             break;
         }
         
@@ -2240,7 +2386,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
           closeEditAnnouncementModal();
           showMessage('Announcement updated successfully!', 'success');
           
-          // Reload the announcements list
+          // Reload the announcements lists
           if (reloadFunction) reloadFunction();
         } else {
           const errorText = await response.text();

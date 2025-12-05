@@ -15,12 +15,25 @@ export const GET: APIRoute = async ({ cookies }) => {
       });
     }
 
-    // Get announcements that are not published using admin client (bypasses RLS)
-    const { data, error } = await supabaseAdmin
+    // Get announcements that are pending (need approval) using admin client (bypasses RLS)
+    // Include all pending announcements regardless of date, and other non-published announcements
+    // Get pending announcements (all dates)
+    const { data: pendingAnnouncements, error: pendingError } = await supabaseAdmin
+      .from('announcements')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    
+    // Get other non-published announcements
+    const { data: otherAnnouncements, error: otherError } = await supabaseAdmin
       .from('announcements')
       .select('*')
       .neq('status', 'published')
+      .neq('status', 'pending') // Exclude pending since we already got them
       .order('created_at', { ascending: false });
+    
+    const error = pendingError || otherError;
+    const data = [...(pendingAnnouncements || []), ...(otherAnnouncements || [])];
 
     if (error) {
       console.error('Error fetching announcements:', error);
