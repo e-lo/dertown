@@ -48,6 +48,10 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       </div>
     </div>
     <div class="flex gap-2 items-center">
+      <a href="/admin/series" class="icon-btn btn-edit" aria-label="Manage Series" style="background: linear-gradient(to bottom right, #7c3aed, #6d28d9);">
+        <span class="material-symbols-outlined text-2xl">event_repeat</span>
+        <span class="tooltip">Manage Series</span>
+      </a>
       <button class="icon-btn btn-create" onclick="openCreateEventModal()" aria-label="Create New Event">
         <span class="material-symbols-outlined text-2xl">event</span>
         <span class="tooltip">Create New Event</span>
@@ -1018,6 +1022,18 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       // Check if we should open edit modal for a specific event (from URL query param)
       const urlParams = new URLSearchParams(window.location.search);
       const editEventId = urlParams.get('editEvent');
+      const duplicateEventId = urlParams.get('duplicateEvent');
+      
+      if (duplicateEventId) {
+        // Handle duplicate event from URL parameter
+        setTimeout(async () => {
+          if (typeof duplicateEvent === 'function') {
+            await duplicateEvent(duplicateEventId);
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }, 500);
+      }
+      
       if (editEventId) {
         // Wait for functions to be defined and data to be loaded
         const tryOpenEditModal = async () => {

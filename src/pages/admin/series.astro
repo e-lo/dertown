@@ -1,0 +1,1130 @@
+---
+// Server-side logic for series management page
+import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+
+// Check if user is already logged in using cookies
+const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
+
+if (!isAdmin) {
+  // Redirect to login with current URL as redirect parameter
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+// Get user info for display
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../../styles/global.css';
+import '../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Series - Admin Dashboard - Der Town</title>
+  <!-- Material Symbols & Icons Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Manage Series</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin Dashboard">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+
+  <!-- Active Series Section -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">event_repeat</span>
+        Active Series
+      </div>
+      <p class="text-sm text-gray-600 mt-1">Series with upcoming events</p>
+    </div>
+    <div id="active-loading" class="loading">Loading active series...</div>
+    <div id="active-series-container"></div>
+  </div>
+
+  <!-- Past Series Section -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">history</span>
+        Past Series
+      </div>
+      <p class="text-sm text-gray-600 mt-1">Series with only past events (can add more occurrences)</p>
+    </div>
+    <div id="past-loading" class="loading">Loading past series...</div>
+    <div id="past-series-container"></div>
+  </div>
+</div>
+
+
+<!-- Edit Series Modal (will reuse EditEventModal pattern but for bulk editing) -->
+<div id="editSeriesModal" class="modal-overlay hidden">
+  <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header">
+      <h3 id="editSeriesModalTitle" class="modal-title">Edit Series</h3>
+      <button type="button" onclick="closeEditSeriesModal()" class="modal-close-btn" aria-label="Close modal">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <div id="editSeriesContent">
+      <p class="text-gray-600 mb-4">Select which events to update, then edit the fields below. Dates cannot be changed.</p>
+      <div id="editSeriesEventList" class="mb-4 p-3 border border-gray-300 rounded bg-gray-50 max-h-48 overflow-y-auto">
+        <!-- Event checkboxes will be populated here -->
+      </div>
+      <form id="editSeriesForm">
+        <!-- Form fields will be populated by JavaScript -->
+        <div class="form-actions">
+          <button type="button" onclick="closeEditSeriesModal()" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Update Selected Events</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Occurrences Modal (simplified series creation) -->
+<div id="addOccurrencesModal" class="modal-overlay hidden">
+  <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header">
+      <h3 id="addOccurrencesModalTitle" class="modal-title">Add Occurrences to Series</h3>
+      <button type="button" onclick="closeAddOccurrencesModal()" class="modal-close-btn" aria-label="Close modal">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <div id="addOccurrencesContent">
+      <p class="text-gray-600 mb-4">Add new dates to this series. The new events will use the same details as the existing series.</p>
+      <form id="addOccurrencesForm">
+        <!-- Form will be populated by JavaScript, reusing series creation pattern -->
+        <div class="form-actions">
+          <button type="button" onclick="closeAddOccurrencesModal()" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Add Occurrences</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Import logout function from admin page
+  // We'll need to define it here or import it
+  async function logout() {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      window.location.href = '/login';
+    }
+  }
+
+  // Message display function
+  function showMessage(message, type = 'info') {
+    const messageDiv = document.getElementById('message');
+    if (!messageDiv) return;
+    
+    messageDiv.textContent = message;
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+      type === 'error' ? 'bg-red-600' : 
+      type === 'success' ? 'bg-green-600' : 
+      'bg-blue-600'
+    }`;
+    
+    setTimeout(() => {
+      messageDiv.textContent = '';
+      messageDiv.className = '';
+    }, 5000);
+  }
+
+  // Load series data
+  async function loadSeries() {
+    try {
+      const response = await fetch('/api/admin/series', { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Failed to load series data');
+      }
+      const data = await response.json();
+      
+      displayActiveSeries(data.activeSeries || []);
+      displayPastSeries(data.pastSeries || []);
+    } catch (error) {
+      console.error('Error loading series:', error);
+      showMessage('Error loading series: ' + error.message, 'error');
+    }
+  }
+
+  // Display active series
+  function displayActiveSeries(series) {
+    const container = document.getElementById('active-series-container');
+    const loading = document.getElementById('active-loading');
+    
+    if (loading) loading.style.display = 'none';
+    
+    if (!container) return;
+    
+    if (series.length === 0) {
+      container.innerHTML = '<p class="text-gray-600">No active series found.</p>';
+      return;
+    }
+    
+    let html = '<table class="data-table"><thead><tr>';
+    html += '<th>Parent Event</th>';
+    html += '<th>Total Events</th>';
+    html += '<th>Future Events</th>';
+    html += '<th>Date Range</th>';
+    html += '<th>Location</th>';
+    html += '<th>Organization</th>';
+    html += '<th>Actions</th>';
+    html += '</tr></thead><tbody>';
+    
+    series.forEach(s => {
+      const parent = s.parent;
+      const dateRange = s.dateRange 
+        ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
+        : 'N/A';
+      const location = parent.location?.name || 'N/A';
+      const organization = parent.organization?.name || 'N/A';
+      
+      html += '<tr>';
+      html += `<td><strong>${parent.title || 'Untitled'}</strong></td>`;
+      html += `<td>${s.totalCount}</td>`;
+      html += `<td>${s.futureCount}</td>`;
+      html += `<td>${dateRange}</td>`;
+      html += `<td>${location}</td>`;
+      html += `<td>${organization}</td>`;
+      html += '<td style="white-space: nowrap;">';
+      html += `<a href="/admin/series/${parent.id}" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" aria-label="View details">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span>';
+      html += '<span class="tooltip">View Details</span></a>';
+      html += `<button onclick="editSeries('${parent.id}')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit series">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>';
+      html += '<span class="tooltip">Edit Series</span></button>';
+      html += `<button onclick="addOccurrences('${parent.id}')" class="icon-btn btn-create" style="padding: 0.5rem; min-width: auto;" aria-label="Add occurrences">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">add</span>';
+      html += '<span class="tooltip">Add Occurrences</span></button>';
+      html += '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // Display past series
+  function displayPastSeries(series) {
+    const container = document.getElementById('past-series-container');
+    const loading = document.getElementById('past-loading');
+    
+    if (loading) loading.style.display = 'none';
+    
+    if (!container) return;
+    
+    if (series.length === 0) {
+      container.innerHTML = '<p class="text-gray-600">No past series found.</p>';
+      return;
+    }
+    
+    let html = '<table class="data-table"><thead><tr>';
+    html += '<th>Parent Event</th>';
+    html += '<th>Total Events</th>';
+    html += '<th>Date Range</th>';
+    html += '<th>Location</th>';
+    html += '<th>Organization</th>';
+    html += '<th>Actions</th>';
+    html += '</tr></thead><tbody>';
+    
+    series.forEach(s => {
+      const parent = s.parent;
+      const dateRange = s.dateRange 
+        ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
+        : 'N/A';
+      const location = parent.location?.name || 'N/A';
+      const organization = parent.organization?.name || 'N/A';
+      
+      html += '<tr>';
+      html += `<td><strong>${parent.title || 'Untitled'}</strong></td>`;
+      html += `<td>${s.totalCount}</td>`;
+      html += `<td>${dateRange}</td>`;
+      html += `<td>${location}</td>`;
+      html += `<td>${organization}</td>`;
+      html += '<td style="white-space: nowrap;">';
+      html += `<a href="/admin/series/${parent.id}" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" aria-label="View details">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span>';
+      html += '<span class="tooltip">View Details</span></a>';
+      html += `<button onclick="editSeries('${parent.id}')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit series">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>';
+      html += '<span class="tooltip">Edit Series</span></button>';
+      html += `<button onclick="addOccurrences('${parent.id}')" class="icon-btn btn-create" style="padding: 0.5rem; min-width: auto;" aria-label="Add occurrences">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">add</span>';
+      html += '<span class="tooltip">Add Occurrences</span></button>';
+      html += '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+
+  // Global state for series editing
+  let currentSeriesData = null;
+  let allTags = [];
+  let allLocations = [];
+  let allOrganizations = [];
+  let originalFormValues = {}; // Store original values to detect changes
+
+  // Load reference data
+  async function loadReferenceData() {
+    try {
+      const [tagsRes, locationsRes, orgsRes] = await Promise.all([
+        fetch('/api/admin/tags', { credentials: 'include' }),
+        fetch('/api/admin/locations', { credentials: 'include' }),
+        fetch('/api/admin/organizations', { credentials: 'include' })
+      ]);
+
+      if (tagsRes.ok) allTags = await tagsRes.json();
+      if (locationsRes.ok) allLocations = await locationsRes.json();
+      if (orgsRes.ok) allOrganizations = await orgsRes.json();
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+    }
+  }
+
+  // Edit series - opens modal with checkbox selection
+  window.editSeries = async function(parentId) {
+    try {
+      // Load reference data if not already loaded
+      if (allTags.length === 0) {
+        await loadReferenceData();
+      }
+
+      const response = await fetch('/api/admin/series', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load series data');
+      const data = await response.json();
+      
+      const allSeries = [...(data.activeSeries || []), ...(data.pastSeries || [])];
+      const series = allSeries.find(s => s.parent.id === parentId);
+      
+      if (!series) {
+        showMessage('Series not found', 'error');
+        return;
+      }
+
+      currentSeriesData = series;
+
+      const modal = document.getElementById('editSeriesModal');
+      const title = document.getElementById('editSeriesModalTitle');
+      const eventList = document.getElementById('editSeriesEventList');
+      const form = document.getElementById('editSeriesForm');
+      
+      if (!modal || !title || !eventList || !form) return;
+
+      title.textContent = `Edit Series: ${series.parent.title || 'Untitled'}`;
+
+      // Build event checkbox list
+      let eventListHtml = '<div class="mb-2"><label class="flex items-center gap-2 cursor-pointer">';
+      eventListHtml += '<input type="checkbox" id="selectAllEvents" onchange="toggleAllEvents()" class="w-4 h-4">';
+      eventListHtml += '<span class="font-semibold">Select All</span></label></div>';
+      eventListHtml += '<div class="space-y-2">';
+      
+      series.children.forEach(event => {
+        const isFuture = event.start_date >= new Date().toISOString().split('T')[0];
+        const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
+        const timeStr = event.start_time || 'N/A';
+        eventListHtml += `<label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-100 rounded">`;
+        eventListHtml += `<input type="checkbox" name="eventIds" value="${event.id}" class="event-checkbox w-4 h-4" checked>`;
+        eventListHtml += `<span>${dateStr} ${timeStr} - ${event.title || 'Untitled'}</span>`;
+        eventListHtml += `<span class="text-xs ${isFuture ? 'text-green-600' : 'text-gray-500'}">${isFuture ? 'Future' : 'Past'}</span>`;
+        eventListHtml += `</label>`;
+      });
+      
+      eventListHtml += '</div>';
+      eventList.innerHTML = eventListHtml;
+
+      // Build form with common values (find most common or use first event's values)
+      const firstEvent = series.children[0];
+      const commonValues = {
+        description: firstEvent.description || '',
+        start_time: firstEvent.start_time || '',
+        end_time: firstEvent.end_time || '',
+        email: firstEvent.email || '',
+        website: firstEvent.website || '',
+        registration_link: firstEvent.registration_link || '',
+        external_image_url: firstEvent.external_image_url || '',
+        cost: firstEvent.cost || '',
+        primary_tag_id: firstEvent.primary_tag_id || '',
+        secondary_tag_id: firstEvent.secondary_tag_id || '',
+        location_id: firstEvent.location_id || '',
+        organization_id: firstEvent.organization_id || '',
+        registration: firstEvent.registration || false,
+        exclude_from_calendar: firstEvent.exclude_from_calendar || false,
+        featured: firstEvent.featured || false,
+      };
+
+      // Build form HTML (similar to EditEventModal but without dates)
+      let formHtml = `
+        <div class="form-field">
+          <label class="form-label">Description:</label>
+          <textarea id="editSeriesDescription" rows="3" class="form-input-base">${commonValues.description || ''}</textarea>
+        </div>
+        <div class="form-grid-2">
+          <div>
+            <label class="form-label">Start Time:</label>
+            <input type="time" id="editSeriesStartTime" class="form-input-base" value="${commonValues.start_time || ''}">
+          </div>
+          <div>
+            <label class="form-label">End Time:</label>
+            <input type="time" id="editSeriesEndTime" class="form-input-base" value="${commonValues.end_time || ''}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email:</label>
+          <input type="email" id="editSeriesEmail" class="form-input-base" value="${commonValues.email || ''}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Website:</label>
+          <input type="text" id="editSeriesWebsite" class="form-input-base" value="${commonValues.website || ''}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Registration Link:</label>
+          <input type="text" id="editSeriesRegistrationLink" class="form-input-base" value="${commonValues.registration_link || ''}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">External Image URL:</label>
+          <input type="url" id="editSeriesExternalImageUrl" class="form-input-base" value="${commonValues.external_image_url || ''}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Cost:</label>
+          <input type="text" id="editSeriesCost" class="form-input-base" value="${commonValues.cost || ''}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Primary Tag:</label>
+          <select id="editSeriesPrimaryTag" class="form-input-base">
+            <option value="">Select a primary tag...</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Secondary Tag:</label>
+          <select id="editSeriesSecondaryTag" class="form-input-base">
+            <option value="">None</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Location:</label>
+          <div class="autocomplete-container">
+            <input type="text" id="editSeriesLocationSearch" placeholder="Type to search existing locations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="editSeriesLocationId">
+            <div id="editSeriesLocationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <div id="editSeriesLocationAddedContainer" class="mt-2 hidden">
+            <label class="block mb-2 font-medium text-sm">Or add new location:</label>
+            <input type="text" id="editSeriesLocationAdded" placeholder="Leave empty if using existing location" class="form-input-base">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Organization:</label>
+          <div class="autocomplete-container">
+            <input type="text" id="editSeriesOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="editSeriesOrganizationId">
+            <div id="editSeriesOrganizationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <div id="editSeriesOrganizationAddedContainer" class="mt-2 hidden">
+            <label class="block mb-2 font-medium text-sm">Or add new organization:</label>
+            <input type="text" id="editSeriesOrganizationAdded" placeholder="Leave empty if using existing organization" class="form-input-base">
+          </div>
+        </div>
+        <div class="form-field">
+          <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="editSeriesRegistration" class="w-4 h-4" ${commonValues.registration ? 'checked' : ''}>
+              <span class="form-label">Registration Required</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="editSeriesExcludeFromCalendar" class="w-4 h-4" ${commonValues.exclude_from_calendar ? 'checked' : ''}>
+              <span class="form-label">Exclude from Calendar</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="editSeriesFeatured" class="w-4 h-4" ${commonValues.featured ? 'checked' : ''}>
+              <span class="form-label">Featured Event</span>
+            </label>
+          </div>
+        </div>
+      `;
+
+      form.innerHTML = formHtml + form.innerHTML; // Keep the submit button
+
+      // Populate tag dropdowns
+      const primaryTagSelect = document.getElementById('editSeriesPrimaryTag');
+      const secondaryTagSelect = document.getElementById('editSeriesSecondaryTag');
+      if (primaryTagSelect && secondaryTagSelect) {
+        allTags.forEach(tag => {
+          const opt1 = document.createElement('option');
+          opt1.value = tag.id;
+          opt1.textContent = tag.name;
+          if (tag.id === commonValues.primary_tag_id) opt1.selected = true;
+          primaryTagSelect.appendChild(opt1);
+          
+          const opt2 = document.createElement('option');
+          opt2.value = tag.id;
+          opt2.textContent = tag.name;
+          if (tag.id === commonValues.secondary_tag_id) opt2.selected = true;
+          secondaryTagSelect.appendChild(opt2);
+        });
+      }
+
+      // Set location/organization if available
+      if (commonValues.location_id && firstEvent.location) {
+        document.getElementById('editSeriesLocationSearch').value = firstEvent.location.name || '';
+        document.getElementById('editSeriesLocationId').value = commonValues.location_id;
+      }
+      if (commonValues.organization_id && firstEvent.organization) {
+        document.getElementById('editSeriesOrganizationSearch').value = firstEvent.organization.name || '';
+        document.getElementById('editSeriesOrganizationId').value = commonValues.organization_id;
+      }
+
+      // Store original values to detect changes
+      originalFormValues = {
+        description: commonValues.description || '',
+        start_time: commonValues.start_time || '',
+        end_time: commonValues.end_time || '',
+        email: commonValues.email || '',
+        website: commonValues.website || '',
+        registration_link: commonValues.registration_link || '',
+        external_image_url: commonValues.external_image_url || '',
+        cost: commonValues.cost || '',
+        primary_tag_id: commonValues.primary_tag_id || '',
+        secondary_tag_id: commonValues.secondary_tag_id || '',
+        location_id: commonValues.location_id || '',
+        organization_id: commonValues.organization_id || '',
+        registration: commonValues.registration || false,
+        exclude_from_calendar: commonValues.exclude_from_calendar || false,
+        featured: commonValues.featured || false,
+      };
+
+      // Setup autocomplete with retry mechanism
+      setTimeout(() => {
+        ensureEditSeriesAutocompleteSetup();
+      }, 50);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } catch (error) {
+      console.error('Error opening edit series modal:', error);
+      showMessage('Error loading series: ' + error.message, 'error');
+    }
+  };
+
+  // Toggle all events checkbox
+  window.toggleAllEvents = function() {
+    const selectAll = document.getElementById('selectAllEvents');
+    const checkboxes = document.querySelectorAll('.event-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+  };
+
+  // Setup autocomplete for edit series form
+  let editSeriesLocationAutocompleteSetup = false;
+  let editSeriesOrganizationAutocompleteSetup = false;
+  
+  function setupEditSeriesAutocomplete() {
+    // Location autocomplete
+    const locSearch = document.getElementById('editSeriesLocationSearch');
+    const locId = document.getElementById('editSeriesLocationId');
+    const locDropdown = document.getElementById('editSeriesLocationDropdown');
+    
+    if (locSearch && locId && locDropdown && !editSeriesLocationAutocompleteSetup) {
+      editSeriesLocationAutocompleteSetup = true;
+      locSearch.addEventListener('input', (e: any) => {
+        const query = (e.target?.value || '').toLowerCase().trim();
+        if (query.length === 0) {
+          locDropdown.classList.add('hidden');
+          locDropdown.classList.remove('block');
+          return;
+        }
+        if (!allLocations || !Array.isArray(allLocations)) {
+          locDropdown.classList.add('hidden');
+          locDropdown.classList.remove('block');
+          return;
+        }
+        const matches = allLocations.filter((loc: any) => 
+          loc && loc.name && loc.name.toLowerCase().includes(query)
+        ).slice(0, 10);
+        if (matches.length === 0) {
+          locDropdown.classList.add('hidden');
+          locDropdown.classList.remove('block');
+          return;
+        }
+        locDropdown.innerHTML = matches.map((loc: any) => `
+          <div class="autocomplete-dropdown-item" onclick="selectEditSeriesLocation('${loc.id}', '${loc.name.replace(/'/g, "\\'")}')">
+            ${loc.name}
+          </div>
+        `).join('');
+        locDropdown.classList.remove('hidden');
+        locDropdown.classList.add('block');
+      });
+    }
+
+    // Organization autocomplete
+    const orgSearch = document.getElementById('editSeriesOrganizationSearch');
+    const orgId = document.getElementById('editSeriesOrganizationId');
+    const orgDropdown = document.getElementById('editSeriesOrganizationDropdown');
+    
+    if (orgSearch && orgId && orgDropdown && !editSeriesOrganizationAutocompleteSetup) {
+      editSeriesOrganizationAutocompleteSetup = true;
+      orgSearch.addEventListener('input', (e: any) => {
+        const query = (e.target?.value || '').toLowerCase().trim();
+        if (query.length === 0) {
+          orgDropdown.classList.add('hidden');
+          orgDropdown.classList.remove('block');
+          return;
+        }
+        if (!allOrganizations || !Array.isArray(allOrganizations)) {
+          orgDropdown.classList.add('hidden');
+          orgDropdown.classList.remove('block');
+          return;
+        }
+        const matches = allOrganizations.filter((org: any) => 
+          org && org.name && org.name.toLowerCase().includes(query)
+        ).slice(0, 10);
+        if (matches.length === 0) {
+          orgDropdown.classList.add('hidden');
+          orgDropdown.classList.remove('block');
+          return;
+        }
+        orgDropdown.innerHTML = matches.map((org: any) => `
+          <div class="autocomplete-dropdown-item" onclick="selectEditSeriesOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
+            ${org.name}
+          </div>
+        `).join('');
+        orgDropdown.classList.remove('hidden');
+        orgDropdown.classList.add('block');
+      });
+    }
+  }
+  
+  // Ensure autocomplete is set up with retry mechanism
+  function ensureEditSeriesAutocompleteSetup() {
+    let retries = 0;
+    const maxRetries = 10;
+    
+    const trySetup = () => {
+      const locSearch = document.getElementById('editSeriesLocationSearch');
+      const orgSearch = document.getElementById('editSeriesOrganizationSearch');
+      
+      if (locSearch && orgSearch) {
+        setupEditSeriesAutocomplete();
+      } else if (retries < maxRetries) {
+        retries++;
+        setTimeout(trySetup, 100);
+      }
+    };
+    
+    trySetup();
+  }
+
+  window.selectEditSeriesLocation = function(id, name) {
+    const locIdEl = document.getElementById('editSeriesLocationId');
+    const locSearchEl = document.getElementById('editSeriesLocationSearch');
+    const locDropdownEl = document.getElementById('editSeriesLocationDropdown');
+    
+    if (locIdEl) locIdEl.value = id;
+    if (locSearchEl) locSearchEl.value = name;
+    if (locDropdownEl) {
+      locDropdownEl.classList.add('hidden');
+      locDropdownEl.classList.remove('block'); // Explicitly remove block class
+    }
+  };
+
+  window.selectEditSeriesOrganization = function(id, name) {
+    const orgIdEl = document.getElementById('editSeriesOrganizationId');
+    const orgSearchEl = document.getElementById('editSeriesOrganizationSearch');
+    const orgDropdownEl = document.getElementById('editSeriesOrganizationDropdown');
+    
+    if (orgIdEl) orgIdEl.value = id;
+    if (orgSearchEl) orgSearchEl.value = name;
+    if (orgDropdownEl) {
+      orgDropdownEl.classList.add('hidden');
+      orgDropdownEl.classList.remove('block'); // Explicitly remove block class
+    }
+  };
+
+  // Handle edit series form submission
+  const editSeriesForm = document.getElementById('editSeriesForm');
+  if (editSeriesForm) {
+    editSeriesForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Get selected event IDs
+      const selectedCheckboxes = document.querySelectorAll('.event-checkbox:checked');
+      const eventIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+      
+      if (eventIds.length === 0) {
+        showMessage('Please select at least one event to update', 'error');
+        return;
+      }
+
+      // Collect form data - only include fields that have changed
+      const updateData: any = {
+        event_ids: eventIds,
+      };
+
+      // Helper to check if value changed
+      function hasChanged(fieldName: string, currentValue: any, originalValue: any): boolean {
+        // For strings, compare trimmed values
+        if (typeof currentValue === 'string' && typeof originalValue === 'string') {
+          return currentValue.trim() !== (originalValue || '').trim();
+        }
+        // For booleans, direct comparison
+        if (typeof currentValue === 'boolean' && typeof originalValue === 'boolean') {
+          return currentValue !== originalValue;
+        }
+        // For other types, direct comparison
+        return currentValue !== originalValue;
+      }
+
+      // Get current form values
+      const currentDescription = document.getElementById('editSeriesDescription').value;
+      const currentStartTime = document.getElementById('editSeriesStartTime').value;
+      const currentEndTime = document.getElementById('editSeriesEndTime').value;
+      const currentEmail = document.getElementById('editSeriesEmail').value;
+      const currentWebsite = document.getElementById('editSeriesWebsite').value;
+      const currentRegistrationLink = document.getElementById('editSeriesRegistrationLink').value;
+      const currentExternalImageUrl = document.getElementById('editSeriesExternalImageUrl').value;
+      const currentCost = document.getElementById('editSeriesCost').value;
+      const currentPrimaryTagId = document.getElementById('editSeriesPrimaryTag').value;
+      const currentSecondaryTagId = document.getElementById('editSeriesSecondaryTag').value;
+      const currentLocationId = document.getElementById('editSeriesLocationId').value;
+      const currentOrganizationId = document.getElementById('editSeriesOrganizationId').value;
+      const currentLocationAdded = document.getElementById('editSeriesLocationAdded')?.value.trim() || '';
+      const currentOrganizationAdded = document.getElementById('editSeriesOrganizationAdded')?.value.trim() || '';
+      const currentRegistration = document.getElementById('editSeriesRegistration').checked;
+      const currentExcludeFromCalendar = document.getElementById('editSeriesExcludeFromCalendar').checked;
+      const currentFeatured = document.getElementById('editSeriesFeatured').checked;
+
+      // Validate time consistency before proceeding
+      if (currentStartTime && currentEndTime && currentEndTime <= currentStartTime) {
+        showMessage('End time must be after start time', 'error');
+        return;
+      }
+
+      // Only include fields that have changed
+      if (hasChanged('description', currentDescription, originalFormValues.description)) {
+        updateData.description = currentDescription.trim() || null;
+      }
+      if (hasChanged('start_time', currentStartTime, originalFormValues.start_time)) {
+        updateData.start_time = currentStartTime || null;
+      }
+      if (hasChanged('end_time', currentEndTime, originalFormValues.end_time)) {
+        updateData.end_time = currentEndTime || null;
+      }
+      if (hasChanged('email', currentEmail, originalFormValues.email)) {
+        updateData.email = currentEmail.trim() || null;
+      }
+      if (hasChanged('website', currentWebsite, originalFormValues.website)) {
+        updateData.website = currentWebsite.trim() || null;
+      }
+      if (hasChanged('registration_link', currentRegistrationLink, originalFormValues.registration_link)) {
+        updateData.registration_link = currentRegistrationLink.trim() || null;
+      }
+      if (hasChanged('external_image_url', currentExternalImageUrl, originalFormValues.external_image_url)) {
+        updateData.external_image_url = currentExternalImageUrl.trim() || null;
+      }
+      if (hasChanged('cost', currentCost, originalFormValues.cost)) {
+        updateData.cost = currentCost.trim() || null;
+      }
+      if (hasChanged('primary_tag_id', currentPrimaryTagId, originalFormValues.primary_tag_id)) {
+        updateData.primary_tag_id = currentPrimaryTagId || null;
+      }
+      if (hasChanged('secondary_tag_id', currentSecondaryTagId, originalFormValues.secondary_tag_id)) {
+        updateData.secondary_tag_id = currentSecondaryTagId || null;
+      }
+      if (hasChanged('location_id', currentLocationId, originalFormValues.location_id)) {
+        updateData.location_id = currentLocationId || null;
+      }
+      if (hasChanged('organization_id', currentOrganizationId, originalFormValues.organization_id)) {
+        updateData.organization_id = currentOrganizationId || null;
+      }
+      if (currentLocationAdded) {
+        updateData.location_added = currentLocationAdded;
+      }
+      if (currentOrganizationAdded) {
+        updateData.organization_added = currentOrganizationAdded;
+      }
+      if (hasChanged('registration', currentRegistration, originalFormValues.registration)) {
+        updateData.registration = currentRegistration;
+      }
+      if (hasChanged('exclude_from_calendar', currentExcludeFromCalendar, originalFormValues.exclude_from_calendar)) {
+        updateData.exclude_from_calendar = currentExcludeFromCalendar;
+      }
+      if (hasChanged('featured', currentFeatured, originalFormValues.featured)) {
+        updateData.featured = currentFeatured;
+      }
+
+      // Check if any fields were changed
+      const changedFields = Object.keys(updateData).filter(key => key !== 'event_ids' && key !== 'location_added' && key !== 'organization_added');
+      if (changedFields.length === 0 && !currentLocationAdded && !currentOrganizationAdded) {
+        showMessage('No fields were changed', 'info');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/events/bulk-update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(updateData),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          showMessage(`Successfully updated ${data.updated || eventIds.length} event(s)!`, 'success');
+          closeEditSeriesModal();
+          loadSeries(); // Reload series data
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update events');
+        }
+      } catch (error) {
+        showMessage('Error updating events: ' + error.message, 'error');
+      }
+    });
+  }
+
+  // Add occurrences - simplified version that extends series
+  window.addOccurrences = async function(parentId) {
+    try {
+      const response = await fetch('/api/admin/series', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load series data');
+      const data = await response.json();
+      
+      const allSeries = [...(data.activeSeries || []), ...(data.pastSeries || [])];
+      const series = allSeries.find(s => s.parent.id === parentId);
+      
+      if (!series) {
+        showMessage('Series not found', 'error');
+        return;
+      }
+
+      currentSeriesData = series;
+
+      const modal = document.getElementById('addOccurrencesModal');
+      const title = document.getElementById('addOccurrencesModalTitle');
+      const content = document.getElementById('addOccurrencesContent');
+      const form = document.getElementById('addOccurrencesForm');
+      
+      if (!modal || !title || !content || !form) return;
+
+      title.textContent = `Add Occurrences: ${series.parent.title || 'Untitled'}`;
+
+      // Get template from first child event
+      const template = series.children[0];
+      const latestDate = series.dateRange?.latest || new Date().toISOString().split('T')[0];
+
+      // Build simplified form - just date selection and pattern
+      let formHtml = `
+        <p class="text-gray-600 mb-4">Add new dates to this series. New events will use the same details as existing events.</p>
+        <div class="form-field">
+          <label class="form-label">Pattern: <span class="form-label-required">*</span></label>
+          <select id="addOccPattern" required class="form-input-base" onchange="updateAddOccPatternOptions()">
+            <option value="">Select a pattern...</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="custom">Custom Dates</option>
+          </select>
+        </div>
+        <div id="addOccWeeklyOptions" class="form-field hidden">
+          <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
+          <input type="date" id="addOccStartDate" class="form-input-base" min="${latestDate}" onchange="updateAddOccPreview()">
+          <label class="form-label mt-2">Number of occurrences:</label>
+          <input type="number" id="addOccOccurrences" min="1" max="52" value="4" class="form-input-base" onchange="updateAddOccPreview()">
+        </div>
+        <div id="addOccMonthlyOptions" class="form-field hidden">
+          <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
+          <input type="date" id="addOccStartDateMonthly" class="form-input-base" min="${latestDate}" onchange="updateAddOccPreview()">
+          <label class="form-label mt-2">Number of occurrences:</label>
+          <input type="number" id="addOccOccurrencesMonthly" min="1" max="24" value="3" class="form-input-base" onchange="updateAddOccPreview()">
+        </div>
+        <div id="addOccCustomOptions" class="form-field hidden">
+          <label class="form-label">Enter dates (YYYY-MM-DD, one per line): <span class="form-label-required">*</span></label>
+          <textarea id="addOccCustomDates" rows="5" class="form-input-base" placeholder="2025-01-15&#10;2025-01-22&#10;2025-01-29" onchange="updateAddOccPreview()"></textarea>
+        </div>
+        <div id="addOccPreview" class="form-field hidden">
+          <label class="form-label">Preview Dates:</label>
+          <div id="addOccPreviewList" class="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto bg-gray-50"></div>
+          <p id="addOccPreviewCount" class="mt-2 text-sm text-gray-600"></p>
+        </div>
+      `;
+
+      form.innerHTML = formHtml + form.innerHTML; // Keep submit button
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } catch (error) {
+      console.error('Error adding occurrences:', error);
+      showMessage('Error: ' + error.message, 'error');
+    }
+  };
+
+  // Update pattern options visibility
+  window.updateAddOccPatternOptions = function() {
+    const pattern = document.getElementById('addOccPattern')?.value;
+    const weekly = document.getElementById('addOccWeeklyOptions');
+    const monthly = document.getElementById('addOccMonthlyOptions');
+    const custom = document.getElementById('addOccCustomOptions');
+    
+    if (weekly) weekly.classList.add('hidden');
+    if (monthly) monthly.classList.add('hidden');
+    if (custom) custom.classList.add('hidden');
+    
+    if (pattern === 'weekly' && weekly) {
+      weekly.classList.remove('hidden');
+    } else if (pattern === 'monthly' && monthly) {
+      monthly.classList.remove('hidden');
+    } else if (pattern === 'custom' && custom) {
+      custom.classList.remove('hidden');
+    }
+    
+    updateAddOccPreview();
+  };
+
+  // Update preview for add occurrences
+  window.updateAddOccPreview = function() {
+    const pattern = document.getElementById('addOccPattern')?.value;
+    const preview = document.getElementById('addOccPreview');
+    const previewList = document.getElementById('addOccPreviewList');
+    const previewCount = document.getElementById('addOccPreviewCount');
+    
+    if (!pattern || !preview || !previewList || !previewCount) return;
+
+    let dates = [];
+    
+    if (pattern === 'weekly') {
+      const startDate = document.getElementById('addOccStartDate')?.value;
+      const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
+      if (startDate) {
+        const start = new Date(startDate);
+        for (let i = 0; i < occurrences; i++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + (i * 7));
+          dates.push(date.toISOString().split('T')[0]);
+        }
+      }
+    } else if (pattern === 'monthly') {
+      const startDate = document.getElementById('addOccStartDateMonthly')?.value;
+      const occurrences = parseInt(document.getElementById('addOccOccurrencesMonthly')?.value || '3');
+      if (startDate) {
+        const start = new Date(startDate);
+        for (let i = 0; i < occurrences; i++) {
+          const date = new Date(start);
+          date.setMonth(start.getMonth() + i);
+          dates.push(date.toISOString().split('T')[0]);
+        }
+      }
+    } else if (pattern === 'custom') {
+      const customDatesText = document.getElementById('addOccCustomDates')?.value;
+      if (customDatesText) {
+        dates = customDatesText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+      }
+    }
+
+    if (dates.length > 0) {
+      previewList.innerHTML = dates.map(d => `<div>${new Date(d).toLocaleDateString()}</div>`).join('');
+      previewCount.textContent = `${dates.length} date(s) will be added`;
+      preview.classList.remove('hidden');
+    } else {
+      preview.classList.add('hidden');
+    }
+  };
+
+  // Handle add occurrences form submission
+  const addOccurrencesForm = document.getElementById('addOccurrencesForm');
+  if (addOccurrencesForm) {
+    addOccurrencesForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!currentSeriesData) {
+        showMessage('Series data not found', 'error');
+        return;
+      }
+
+      const pattern = document.getElementById('addOccPattern')?.value;
+      if (!pattern) {
+        showMessage('Please select a pattern', 'error');
+        return;
+      }
+
+      let dates = [];
+      
+      if (pattern === 'weekly') {
+        const startDate = document.getElementById('addOccStartDate')?.value;
+        const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
+        if (startDate) {
+          const start = new Date(startDate);
+          for (let i = 0; i < occurrences; i++) {
+            const date = new Date(start);
+            date.setDate(start.getDate() + (i * 7));
+            dates.push(date.toISOString().split('T')[0]);
+          }
+        }
+      } else if (pattern === 'monthly') {
+        const startDate = document.getElementById('addOccStartDateMonthly')?.value;
+        const occurrences = parseInt(document.getElementById('addOccOccurrencesMonthly')?.value || '3');
+        if (startDate) {
+          const start = new Date(startDate);
+          for (let i = 0; i < occurrences; i++) {
+            const date = new Date(start);
+            date.setMonth(start.getMonth() + i);
+            dates.push(date.toISOString().split('T')[0]);
+          }
+        }
+      } else if (pattern === 'custom') {
+        const customDatesText = document.getElementById('addOccCustomDates')?.value;
+        if (customDatesText) {
+          dates = customDatesText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+        }
+      }
+
+      if (dates.length === 0) {
+        showMessage('Please enter valid dates', 'error');
+        return;
+      }
+
+      // Use template from first child event
+      const template = currentSeriesData.children[0];
+      const parentId = currentSeriesData.parent.id;
+
+      // Build events array
+      const events = dates.map(date => ({
+        title: template.title,
+        description: template.description,
+        start_date: date,
+        end_date: null,
+        start_time: template.start_time,
+        end_time: template.end_time,
+        email: template.email,
+        website: template.website,
+        registration_link: template.registration_link,
+        external_image_url: template.external_image_url,
+        cost: template.cost,
+        primary_tag_id: template.primary_tag_id,
+        secondary_tag_id: template.secondary_tag_id,
+        parent_event_id: parentId,
+        registration: template.registration,
+        exclude_from_calendar: template.exclude_from_calendar,
+        featured: template.featured,
+        status: 'approved',
+        comments: null,
+        location_id: template.location_id,
+        organization_id: template.organization_id,
+      }));
+
+      try {
+        const response = await fetch('/api/admin/events/bulk-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ events }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          showMessage(`Successfully added ${data.count || events.length} occurrence(s)!`, 'success');
+          closeAddOccurrencesModal();
+          loadSeries(); // Reload series data
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to add occurrences');
+        }
+      } catch (error) {
+        showMessage('Error adding occurrences: ' + error.message, 'error');
+      }
+    });
+  }
+
+  // Close edit series modal
+  window.closeEditSeriesModal = function() {
+    const modal = document.getElementById('editSeriesModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  };
+
+  // Close add occurrences modal
+  window.closeAddOccurrencesModal = function() {
+    const modal = document.getElementById('addOccurrencesModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  };
+
+  // Load data on page load
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadReferenceData();
+    await loadSeries();
+    
+    // Check for URL parameters for editSeries or addOccurrences
+    const urlParams = new URLSearchParams(window.location.search);
+    const editSeriesId = urlParams.get('editSeries');
+    const addOccurrencesId = urlParams.get('addOccurrences');
+    
+    if (editSeriesId) {
+      setTimeout(() => {
+        if (typeof window.editSeries === 'function') {
+          window.editSeries(editSeriesId);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }, 500);
+    }
+    
+    if (addOccurrencesId) {
+      setTimeout(() => {
+        if (typeof window.addOccurrences === 'function') {
+          window.addOccurrences(addOccurrencesId);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }, 500);
+    }
+  });
+</script>
+
+</body>
+</html>
+
