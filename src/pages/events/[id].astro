@@ -9,6 +9,7 @@ import EditButton from '../../components/ui/EditButton.astro';
 import LoginModal from '../../components/ui/LoginModal.astro';
 import { db } from '../../lib/supabase';
 import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-utils';
+import { renderMarkdown } from '../../lib/markdown-utils';
 import EventListCard from '../../components/EventListCard.astro';
 import { checkAdminAccess } from '../../lib/session';
 
@@ -136,9 +137,7 @@ const related = (relatedEvents || []) as Array<{
                 </div>
               )}
             </div>
-            <div class="prose max-w-none text-gray-800 sm:text-base">
-              {event.description}
-            </div>
+            <div class="prose max-w-none text-gray-800 sm:text-base" set:html={renderMarkdown(event.description)}></div>
           </div>
           
           <!-- Tags -->
