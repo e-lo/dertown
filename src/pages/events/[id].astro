@@ -34,10 +34,85 @@ if (error || !event) {
   return Astro.redirect('/events');
 }
 
-// Fetch related events (same organization or location)
+// Fetch series events if this event is part of a series
+let seriesEvents: Array<{
+  id: string;
+  title: string;
+  start_date: string;
+  location?: { name: string };
+  primary_tag?: { name: string };
+  secondary_tag?: { name: string };
+}> = [];
+
+// Check if event has parent_event_id (is a child)
+// The event object from getById should include parent_event_id since we select '*'
+const parentEventId = (event as any)?.parent_event_id || null;
+
+if (parentEventId) {
+  // This event is a child - find all siblings (other events with same parent)
+  const { data: seriesData, error: seriesError } = await db.events.getByParentEventId(parentEventId);
+  
+  if (seriesError) {
+    console.error('[Event Details] Error fetching series events:', seriesError);
+  }
+  
+  // Filter to only include current or future events and exclude the current event
+  seriesEvents = (seriesData || []).filter((e: any) => {
+    if (e.id === id) return false; // Exclude current event
+    // Only show future events in the series (or events within the last 14 days)
+    const today = new Date();
+    today.setDate(today.getDate() - 14); // Allow events from last 14 days
+    const cutoffDate = today.toISOString().split('T')[0];
+    return e.start_date >= cutoffDate || (e.end_date && e.end_date >= cutoffDate);
+  }).sort((a: any, b: any) => {
+    // Sort by start_date
+    if (!a.start_date) return 1;
+    if (!b.start_date) return -1;
+    return a.start_date.localeCompare(b.start_date);
+  }) as Array<{
+    id: string;
+    title: string;
+    start_date: string;
+    location?: { name: string };
+    primary_tag?: { name: string };
+    secondary_tag?: { name: string };
+  }>;
+} else {
+  // This event might be a parent - find all child events
+  const { data: childEvents, error: childError } = await db.events.getByParentEventId(id);
+  
+  if (childError) {
+    console.error('Error fetching child events:', childError);
+  }
+  
+  // Filter to only include current or future events
+  seriesEvents = (childEvents || []).filter((e: any) => {
+    // Only show future events in the series (or events within the last 14 days)
+    const today = new Date();
+    today.setDate(today.getDate() - 14); // Allow events from last 14 days
+    const cutoffDate = today.toISOString().split('T')[0];
+    return e.start_date >= cutoffDate || (e.end_date && e.end_date >= cutoffDate);
+  }).sort((a: any, b: any) => {
+    // Sort by start_date
+    if (!a.start_date) return 1;
+    if (!b.start_date) return -1;
+    return a.start_date.localeCompare(b.start_date);
+  }) as Array<{
+    id: string;
+    title: string;
+    start_date: string;
+    location?: { name: string };
+    primary_tag?: { name: string };
+    secondary_tag?: { name: string };
+  }>;
+}
+
+// Fetch related events (same organization or location), excluding series events
 const { data: relatedEvents } = await db.events.getRelated(id, event.organization_id, event.location_id);
 
-const related = (relatedEvents || []) as Array<{
+// Filter out series events from related events
+const seriesEventIds = new Set(seriesEvents.map(e => e.id));
+const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.id)) as Array<{
   id: string;
   title: string;
   start_date: string;
@@ -167,6 +242,24 @@ const related = (relatedEvents || []) as Array<{
           )}
         </div>
       </div>
+      
+      <!-- Series Events (if part of a series) -->
+      {seriesEvents.length > 0 && (
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8 mb-6 sm:mb-8">
+          <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Events in This Series</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {seriesEvents.map((seriesEvent) => (
+              <EventListCard
+                event={seriesEvent}
+                tags={{
+                  primary: ('primary_tag' in seriesEvent && seriesEvent.primary_tag && typeof seriesEvent.primary_tag === 'object' && 'name' in seriesEvent.primary_tag) ? seriesEvent.primary_tag.name : '',
+                  secondary: ('secondary_tag' in seriesEvent && seriesEvent.secondary_tag && typeof seriesEvent.secondary_tag === 'object' && 'name' in seriesEvent.secondary_tag) ? seriesEvent.secondary_tag.name : ''
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       
       <!-- Related Events -->
       {related.length > 0 && (

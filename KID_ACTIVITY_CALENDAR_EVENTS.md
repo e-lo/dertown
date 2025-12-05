@@ -1,4 +1,8 @@
-# Kid Activity Calendar
+# Kid Activity Calendar - Implementation Notes
+
+> **Note:** This document contains detailed implementation notes, schema design, and development history for the kid activities calendar system. For current system architecture and design decisions, see [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md). For developer setup and workflow, see [DEVELOPING.md](./DEVELOPING.md).
+
+---
 
 # Kid Activity Calendar Customer UX
 

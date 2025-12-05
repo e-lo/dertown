@@ -1,5 +1,7 @@
 # Email Setup Guide
 
+> **See also:** [DEVELOPING.md](./DEVELOPING.md) for general development setup and [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md) for system architecture.
+
 ## Current Implementation
 
 The event edit suggestion form now sends emails using:

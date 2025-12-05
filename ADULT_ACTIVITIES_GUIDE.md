@@ -1,5 +1,7 @@
 # Adult Activities Guide
 
+> **See also:** [DEVELOPING.md](./DEVELOPING.md) for general development setup and [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md) for system architecture.
+
 This guide explains how to add adult activities to the Der Town "Things to Do" page.
 
 ## Current Implementation

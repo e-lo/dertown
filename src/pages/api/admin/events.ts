@@ -32,7 +32,7 @@ export const GET: APIRoute = async ({ cookies }) => {
       .eq('status', 'pending')
       .order('start_date', { ascending: true });
     
-    // Get other non-approved upcoming events
+    // Get other non-approved upcoming events (exclude archived)
     const { data: otherEvents, error: otherError } = await supabaseAdmin
       .from('events')
       .select(`
@@ -44,6 +44,7 @@ export const GET: APIRoute = async ({ cookies }) => {
       `)
       .neq('status', 'approved')
       .neq('status', 'pending') // Exclude pending since we already got them
+      .neq('status', 'archived') // Exclude archived events
       .gte('start_date', today)
       .order('start_date', { ascending: true });
     

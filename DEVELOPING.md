@@ -5,8 +5,58 @@
 - This project is maintained by a single contributor with AI agent assistance.
 - For code review, refactoring, and new features, describe your goal and let the AI agent propose a plan and edits.
 - Use the AI to keep code quality, documentation, and tests up to date.
-- Document all major changes in commit messages and TODO.md.
+- Document all major changes in commit messages.
 - If you step away for a while, review this file and README.md to get back up to speed quickly.
+
+---
+
+## 📁 Project Organization
+
+### Directory Structure
+
+```
+dertown/
+├── src/
+│   ├── components/          # Reusable Astro components
+│   │   ├── ui/              # Core UI components (Button, Input, etc.)
+│   │   ├── kid-activities/  # Kid activity-specific components
+│   │   └── ...              # Other feature components
+│   ├── lib/                 # Utility functions and helpers
+│   ├── pages/               # Astro pages (routes)
+│   │   ├── api/             # API endpoints (serverless functions)
+│   │   ├── admin/           # Admin-only pages
+│   │   └── families/        # Public-facing pages
+│   └── styles/              # Global styles
+├── scripts/                 # Python scripts for data management
+├── supabase/
+│   ├── migrations/          # Database migrations (canonical schema)
+│   └── seed.sql            # Seed data
+├── public/                 # Static assets
+└── docs/                   # Documentation (markdown files)
+```
+
+### Key Architectural Patterns
+
+1. **Component System:** Custom Astro components in `src/components/ui/` + Tailwind utilities (no full UI library)
+2. **API Routes:** Astro serverless functions in `src/pages/api/` handle backend logic
+3. **Database:** Supabase PostgreSQL with migrations in `supabase/migrations/`
+4. **Data Management:** Python scripts in `scripts/` for imports, validation, seeding
+5. **Security:** RLS policies in Supabase, field-level security via database views
+
+### Main Feature Areas
+
+- **Events & Announcements:** Core calendar functionality, public submissions, admin review
+- **Activities:** Kid activities with hierarchical structure, calendar, filtering
+- **Admin Panel:** Review/approve submissions, manage content, calendar exceptions
+- **Calendar Sync:** iCal feeds for events and activities, calendar downloads
+
+### Code Style & Conventions
+
+- **TypeScript:** Used for type safety in API routes and utilities
+- **Astro:** Component-based architecture with server-side rendering
+- **Tailwind CSS:** Utility-first styling, custom components for common patterns
+- **Python:** Data scripts use Pydantic for validation
+- **Linting:** ESLint for JS/TS, Prettier for formatting
 
 ---
 
@@ -59,16 +109,7 @@
 
 ### 2. Netlify Site Setup
 
-- Create a new site at [Netlify](https://app.netlify.com/)
-- Connect your GitHub repo (choose the `dev` or `main` branch)
-- In Site settings > Environment variables, add:
-  - `SUPABASE_URL` (from Supabase API settings)
-  - `SUPABASE_KEY` (from Supabase API settings)
-  - (Optional) `SUPABASE_SERVICE_ROLE_KEY` for admin/server-side scripts
-  - (Optional) `GOOGLE_ANALYTICS_ID` for analytics
-- Set build command: `npm run build`
-- Set publish directory: `dist`
-- Deploy the site
+- See the [Deployment](#-deployment) section below for detailed setup instructions
 
 ### 3. First-Time Setup Tips
 
@@ -81,14 +122,61 @@
 
 ## 🚀 Deployment
 
-- Deploy to Netlify
-- In the Netlify dashboard, go to your site > Site settings > Environment variables
-- Add the following variables (copy/paste from the Supabase connection widget):
-  - `SUPABASE_URL`
-  - `SUPABASE_KEY`
-- (Optional, for admin/server-side scripts) Add `SUPABASE_SERVICE_ROLE_KEY` if needed
-- For analytics, add `GOOGLE_ANALYTICS_ID` if using Google Analytics
-- Deploy as usual (Netlify will use these variables for both build and runtime)
+### Netlify Deployment
+
+1. **Create/Connect Site:**
+   - Create a new site at [Netlify](https://app.netlify.com/)
+   - Connect your GitHub repo (choose the `main` or `dev` branch)
+
+2. **Environment Variables:**
+   - Go to Site settings → Environment variables
+   - Add the following (from Supabase Dashboard → Project Settings → API):
+     - `PUBLIC_SUPABASE_URL` - Your production Supabase project URL
+     - `PUBLIC_SUPABASE_KEY` - Your production Supabase anon/public key
+     - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (for admin operations)
+     - `RESEND_API_KEY` - For email notifications (if using Resend)
+     - `RECIPIENT_EMAIL` - Email address for notifications (defaults to `dertown@gmail.com`)
+     - `GOOGLE_ANALYTICS_ID` - For analytics (optional)
+   - **Important:** Do NOT set `USE_LOCAL_DB` in production (leave unset or set to `false`)
+
+3. **Build Settings:**
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+
+4. **Supabase Configuration:**
+   - In Supabase Dashboard → Authentication → URL Configuration:
+     - **Site URL:** Your Netlify domain (e.g., `https://your-site.netlify.app`)
+     - **Redirect URLs:** Add:
+       - `https://your-site.netlify.app/**`
+       - `https://your-site.netlify.app/login`
+       - `https://your-site.netlify.app/admin`
+       - If using custom domain, add those URLs too
+
+### Authentication & Security
+
+- **Cookie Security:** Automatically configured for production (HTTPS) vs development (HTTP)
+  - `secure: true` in production, `secure: false` in development
+  - `httpOnly: true` and `sameSite: 'lax'` for security
+- **Token Expiration:** Access tokens expire in 1 hour, refresh tokens in 7 days
+  - **Note:** Automatic token refresh not yet implemented; users must re-login after 1 hour
+- **Session Persistence:** Sessions persist across deployments (cookies are client-side)
+
+### Post-Deployment Verification
+
+1. ✅ Login works on production domain
+2. ✅ Cookies are set with `secure: true` (check in browser DevTools)
+3. ✅ Session persists across page navigations
+4. ✅ Logout clears cookies
+5. ✅ Protected routes (admin) require authentication
+6. ✅ Redirect after login works correctly
+7. ✅ Email notifications work (if configured)
+
+### Troubleshooting Deployment
+
+- **"Missing required environment variables":** Check Netlify environment variables are set correctly
+- **"No session cookies found":** Verify cookies are being set (check Network tab → Response Headers)
+- **Login works but session doesn't persist:** Check cookie expiration times and flags
+- **Redirect URL errors:** Verify Supabase Dashboard → Authentication → Redirect URLs includes your domain
 
 ---
 
@@ -156,10 +244,50 @@
 
 ---
 
+## 📝 Important Decisions & Architecture Notes
+
+### Why Feed-Based Calendar Sync?
+- Calendar apps (Google Calendar, Outlook, iCal) poll feeds every 2-6 hours automatically
+- No need for push notifications or webhooks
+- Simpler architecture, more reliable
+- Feeds are generated on-demand for real-time updates
+
+### Why Custom UI Components?
+- Avoids bundle bloat from full UI libraries (e.g., daisyUI)
+- Prevents conflicts with Tailwind utilities
+- Full control over styling and behavior
+- Easier to maintain and customize
+
+### Why Hierarchical Kid Activities?
+- Supports flexible program structures (PROGRAM → SESSION → CLASS_TYPE → CLASS_INSTANCE)
+- Handles both fixed-term courses and rolling-enrollment programs
+- Self-referencing table structure allows unlimited nesting
+- Calendar exceptions cascade from parent to child activities
+
+### Why Separate Staging Tables?
+- Public submissions go to `events_staged` and `announcements_staged`
+- Admin review before publishing to main tables
+- Prevents spam and inappropriate content from appearing publicly
+- Maintains data quality and community standards
+
+### Why Python Scripts for Data Management?
+- Better data validation with Pydantic
+- Easier CSV/ICS parsing and transformation
+- Can be run independently of the web app
+- Reusable for batch operations and migrations
+
+---
+
 ## 📚 Reference & Resources
 
+### Project Documentation
 - [README.md](./README.md): Project overview and quickstart
-- [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): System design, schema, and implementation record
+- [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): System design, schema, implementation record, and future features
+- [EMAIL_SETUP.md](./EMAIL_SETUP.md): Email configuration guide (Resend/Inbucket)
+- [ADULT_ACTIVITIES_GUIDE.md](./ADULT_ACTIVITIES_GUIDE.md): Guide for adding adult activities
+
+### External Documentation
 - [Supabase Docs](https://supabase.com/docs)
 - [Astro Docs](https://docs.astro.build)
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
+- [FullCalendar Docs](https://fullcalendar.io/docs)

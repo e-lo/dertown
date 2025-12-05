@@ -84,6 +84,8 @@ export const db = {
       organization:organizations!events_organization_id_fkey(name)
     `).eq('id', id).single(),
     getByParentEventId: async (parentEventId: string) => {
+      // Query public_events view - it should include parent_event_id after migration is applied
+      // If the view doesn't have parent_event_id yet, this will fail gracefully
       const { data, error } = await supabase
         .from('public_events')
         .select(`
@@ -95,10 +97,16 @@ export const db = {
         .eq('parent_event_id', parentEventId)
         .order('start_date', { ascending: true });
 
+      // If error is about missing column, the migration hasn't been run yet
+      if (error && error.code === '42703') {
+        console.warn('public_events view does not have parent_event_id column. Migration may need to be run.');
+        return { data: [], error: null };
+      }
+
       return { data: data || [], error };
     },
     getRelated: async (eventId: string, organizationId: string | null, locationId: string | null) => {
-      // First, try to get the parent event to find sibling events
+      // First, try to get the parent event to exclude series events
       const { data: currentEvent } = await supabase
         .from('public_events')
         .select('parent_event_id')
@@ -116,16 +124,16 @@ export const db = {
         .neq('id', eventId)
         .limit(RELATED_EVENTS_LIMIT);
 
-      // If current event has a parent_event_id, find sibling events
+      // Exclude events from the same series (same parent_event_id)
       if (currentEvent?.parent_event_id) {
-        query = query.eq('parent_event_id', currentEvent.parent_event_id);
-      } else {
-        // Only use organization/location matching when parent_event_id is NULL
-        if (organizationId) {
-          query = query.eq('organization_id', organizationId);
-        } else if (locationId) {
-          query = query.eq('location_id', locationId);
-        }
+        query = query.or(`parent_event_id.is.null,parent_event_id.neq.${currentEvent.parent_event_id}`);
+      }
+
+      // Only use organization/location matching when parent_event_id is NULL
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      } else if (locationId) {
+        query = query.eq('location_id', locationId);
       }
 
       const { data, error } = await query;
