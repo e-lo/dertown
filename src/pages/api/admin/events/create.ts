@@ -108,15 +108,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (key === 'location_added' || key === 'organization_added') {
         continue;
       }
-      if (value === '' || value === null || value === undefined) {
+      // Status should be preserved as-is (it's a required enum field)
+      if (key === 'status') {
+        cleanedData[key] = value || 'approved';
+      } else if (value === '' || value === null || value === undefined) {
         cleanedData[key] = null;
       } else {
         cleanedData[key] = value;
       }
     }
 
-    // Set default status to 'approved' for admin-created events
-    cleanedData.status = 'approved' as const;
+    // Set default status to 'approved' if not provided
+    if (!cleanedData.status) {
+      cleanedData.status = 'approved' as const;
+    }
 
     // Create the event using admin client
     const { data, error } = await supabaseAdmin

@@ -53,8 +53,18 @@
         <input type="text" id="editEventRegistrationLink" placeholder="www.example.com or https://..." class="form-input-base">
       </div>
       <div class="form-field">
+        <label class="form-label">External Image URL:</label>
+        <input type="url" id="editEventExternalImageUrl" placeholder="https://example.com/image.jpg" class="form-input-base">
+      </div>
+      <div class="form-field">
         <label class="form-label">Cost:</label>
         <input type="text" id="editEventCost" placeholder="e.g., Free, $10, $5-15" class="form-input-base">
+      </div>
+      <div class="form-field">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="editEventRegistration" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+          <span class="form-label">Registration Required</span>
+        </label>
       </div>
       <div class="form-field">
         <label class="form-label">Primary Tag: <span class="form-label-required">*</span></label>
@@ -100,6 +110,22 @@
           <div id="editEventParentEventDropdown" class="autocomplete-dropdown hidden"></div>
         </div>
         <p class="mt-1 text-sm text-gray-500">Leave empty if this is a top-level event</p>
+      </div>
+      <div class="form-field">
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editEventExcludeFromCalendar" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="form-label">Exclude from Calendar</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editEventFeatured" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="form-label">Featured Event</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editEventDraft" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="form-label">Save as Draft (Pending Status)</span>
+          </label>
+        </div>
       </div>
       <div class="form-field">
         <label class="form-label">Admin Comments:</label>

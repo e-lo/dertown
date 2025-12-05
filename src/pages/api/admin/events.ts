@@ -15,8 +15,25 @@ export const GET: APIRoute = async ({ cookies }) => {
       });
     }
 
-    // Get events that are not approved and upcoming using admin client (bypasses RLS)
-    const { data, error } = await supabaseAdmin
+    // Get events that are pending (need approval) using admin client (bypasses RLS)
+    // Include all pending events regardless of date, and other non-approved events that are upcoming
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Get pending events (all dates)
+    const { data: pendingEvents, error: pendingError } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        primary_tag:tags!events_primary_tag_id_fkey(name),
+        secondary_tag:tags!events_secondary_tag_id_fkey(name),
+        location:locations!events_location_id_fkey(name, address),
+        organization:organizations!events_organization_id_fkey(name)
+      `)
+      .eq('status', 'pending')
+      .order('start_date', { ascending: true });
+    
+    // Get other non-approved upcoming events
+    const { data: otherEvents, error: otherError } = await supabaseAdmin
       .from('events')
       .select(`
         *,
@@ -26,8 +43,12 @@ export const GET: APIRoute = async ({ cookies }) => {
         organization:organizations!events_organization_id_fkey(name)
       `)
       .neq('status', 'approved')
-      .gte('start_date', new Date().toISOString().split('T')[0]) // Only upcoming events
+      .neq('status', 'pending') // Exclude pending since we already got them
+      .gte('start_date', today)
       .order('start_date', { ascending: true });
+    
+    const error = pendingError || otherError;
+    const data = [...(pendingEvents || []), ...(otherEvents || [])];
 
     if (error) {
       console.error('Error fetching events:', error);
