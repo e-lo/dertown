@@ -270,6 +270,22 @@
   @apply bg-green-500 text-white border-none px-4 py-2 rounded cursor-pointer;
 }
 
+.btn-duplicate {
+  @apply bg-indigo-500 text-white border-none px-4 py-2 rounded cursor-pointer;
+}
+
+.btn-duplicate:hover {
+  @apply bg-indigo-600;
+}
+
+.btn-series {
+  @apply bg-purple-500 text-white border-none px-4 py-2 rounded cursor-pointer;
+}
+
+.btn-series:hover {
+  @apply bg-purple-600;
+}
+
 /* Autocomplete dropdown */
 .autocomplete-container {
   @apply relative;

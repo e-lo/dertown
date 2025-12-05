@@ -54,8 +54,10 @@ See [DEVELOPING.md](./DEVELOPING.md) for full setup, admin, and troubleshooting 
 
 ## 📚 Documentation
 
-- [DEVELOPING.md](./DEVELOPING.md): Developer/admin workflow, Makefile/Python usage, troubleshooting
-- [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): Canonical requirements, system design, schema, and implementation record
+- [DEVELOPING.md](./DEVELOPING.md): Developer/admin workflow, project organization, setup, Makefile/Python usage, troubleshooting
+- [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): Canonical requirements, system design, schema, implementation record, and future features
+- [EMAIL_SETUP.md](./EMAIL_SETUP.md): Email configuration guide (Resend/Inbucket)
+- [ADULT_ACTIVITIES_GUIDE.md](./ADULT_ACTIVITIES_GUIDE.md): Guide for adding adult activities to the "Things to Do" page
 
 ---
 
@@ -70,7 +72,8 @@ See [DEVELOPING.md](./DEVELOPING.md) for full setup, admin, and troubleshooting 
 ## 🤖 AI Agent Usage
 
 - AI agents (like GPT-4) are used for code review, refactoring, and feature work
-- All major changes are documented in commit messages and TODO.md
+- All major changes are documented in commit messages
+- See `.cursor/FEATURE.md` for AI agent development guidelines
 
 ---
 

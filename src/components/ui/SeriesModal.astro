@@ -1,0 +1,235 @@
+---
+// Series creation modal for creating multiple events from a template
+---
+
+<div id="seriesModal" class="modal-overlay hidden">
+  <div class="modal-container" style="max-width: 800px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Create Event Series</h3>
+      <button type="button" onclick="closeSeriesModal()" class="modal-close-btn" aria-label="Close modal">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <form id="seriesForm">
+      <!-- Event Title (required when creating from scratch) -->
+      <div class="form-field">
+        <label class="form-label">Event Title: <span class="form-label-required">*</span></label>
+        <input type="text" id="seriesEventTitle" required class="form-input-base" placeholder="Enter event title">
+      </div>
+      
+      <!-- Pattern Selection -->
+      <div class="form-field">
+        <label class="form-label">Pattern: <span class="form-label-required">*</span></label>
+        <select id="seriesPattern" required class="form-input-base" onchange="updateSeriesPreview()">
+          <option value="">Select a pattern...</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Custom Dates</option>
+        </select>
+      </div>
+
+      <!-- Weekly Options -->
+      <div id="weeklyOptions" class="form-field hidden">
+        <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
+        <input type="date" id="seriesStartDate" class="form-input-base" onchange="updateSeriesPreview()">
+        <label class="form-label mt-2">Number of occurrences:</label>
+        <input type="number" id="seriesOccurrences" min="1" max="52" value="4" class="form-input-base" onchange="updateSeriesPreview()">
+      </div>
+
+      <!-- Monthly Options -->
+      <div id="monthlyOptions" class="form-field hidden">
+        <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
+        <input type="date" id="seriesStartDateMonthly" class="form-input-base" onchange="updateSeriesPreview()">
+        <label class="form-label mt-2">Number of occurrences:</label>
+        <input type="number" id="seriesOccurrencesMonthly" min="1" max="24" value="3" class="form-input-base" onchange="updateSeriesPreview()">
+      </div>
+
+      <!-- Custom Dates -->
+      <div id="customDatesOptions" class="form-field hidden">
+        <label class="form-label">Select Dates: <span class="form-label-required">*</span></label>
+        <div id="calendarMultiPicker" class="border border-gray-300 rounded-lg p-4 bg-white">
+          <!-- Calendar Navigation -->
+          <div class="flex justify-between items-center mb-4">
+            <button type="button" onclick="changeCalendarMonth(-1)" class="icon-btn btn-edit" style="padding: 0.25rem 0.5rem; min-width: auto;">
+              <span class="material-symbols-outlined" style="font-size: 1rem;">chevron_left</span>
+            </button>
+            <h4 id="calendarMonthYear" class="text-lg font-semibold m-0"></h4>
+            <button type="button" onclick="changeCalendarMonth(1)" class="icon-btn btn-edit" style="padding: 0.25rem 0.5rem; min-width: auto;">
+              <span class="material-symbols-outlined" style="font-size: 1rem;">chevron_right</span>
+            </button>
+          </div>
+          <!-- Calendar Grid -->
+          <div id="calendarGrid" class="grid grid-cols-7 gap-1 mb-4">
+            <!-- Day headers -->
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Sun</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Mon</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Tue</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Wed</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Thu</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Fri</div>
+            <div class="text-center text-sm font-semibold text-gray-600 py-2">Sat</div>
+            <!-- Calendar days will be populated here -->
+          </div>
+          <!-- Selected Dates Display -->
+          <div class="mt-4">
+            <label class="form-label text-sm mb-2">Selected Dates:</label>
+            <div id="selectedDatesList" class="flex flex-wrap gap-2 min-h-[2rem] p-2 border border-gray-200 rounded bg-gray-50">
+              <p class="text-sm text-gray-500 m-0">No dates selected</p>
+            </div>
+          </div>
+          <!-- Manual Entry Option -->
+          <details class="mt-4">
+            <summary class="text-sm text-gray-600 cursor-pointer hover:text-gray-800">Or enter dates manually (YYYY-MM-DD, one per line)</summary>
+            <textarea id="customDatesManual" rows="3" placeholder="2025-01-15&#10;2025-01-22&#10;2025-01-29" class="form-input-base mt-2" onchange="updateCustomDatesFromManual()"></textarea>
+          </details>
+        </div>
+        <input type="hidden" id="customDates" value="">
+      </div>
+
+      <!-- Date Preview -->
+      <div id="seriesPreview" class="form-field hidden">
+        <label class="form-label">Preview Dates:</label>
+        <div id="seriesPreviewList" class="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto bg-gray-50">
+          <!-- Dates will be populated here -->
+        </div>
+        <p id="seriesPreviewCount" class="mt-2 text-sm text-gray-600"></p>
+      </div>
+
+      <!-- Common Fields (can be edited for all events) -->
+      <div class="form-field">
+        <h4 class="font-semibold mb-2">Common Fields (applied to all events):</h4>
+        
+        <div class="form-field">
+          <label class="form-label">Description:</label>
+          <textarea id="seriesDescription" rows="3" class="form-input-base"></textarea>
+        </div>
+        
+        <div class="form-grid-2">
+          <div>
+            <label class="form-label">Start Time:</label>
+            <input type="time" id="seriesStartTime" class="form-input-base">
+          </div>
+          <div>
+            <label class="form-label">End Time:</label>
+            <input type="time" id="seriesEndTime" class="form-input-base">
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Email:</label>
+          <input type="email" id="seriesEmail" placeholder="Leave empty to remove" class="form-input-base">
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Website:</label>
+          <input type="text" id="seriesWebsite" placeholder="www.example.com or https://..." class="form-input-base">
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Registration Link:</label>
+          <input type="text" id="seriesRegistrationLink" placeholder="www.example.com or https://..." class="form-input-base">
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">External Image URL:</label>
+          <input type="url" id="seriesExternalImageUrl" placeholder="https://example.com/image.jpg" class="form-input-base">
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Cost:</label>
+          <input type="text" id="seriesCost" placeholder="e.g., Free, $10, $5-15" class="form-input-base">
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Primary Tag: <span class="form-label-required">*</span></label>
+          <select id="seriesPrimaryTag" required class="form-input-base">
+            <option value="">Select a primary tag...</option>
+          </select>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Secondary Tag:</label>
+          <select id="seriesSecondaryTag" class="form-input-base">
+            <option value="">None</option>
+          </select>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Location:</label>
+          <div class="autocomplete-container">
+            <input type="text" id="seriesLocationSearch" placeholder="Type to search existing locations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="seriesLocationId">
+            <div id="seriesLocationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <div id="seriesLocationAddedContainer" class="mt-2 hidden">
+            <label class="block mb-2 font-medium text-sm">Or add new location:</label>
+            <input type="text" id="seriesLocationAdded" placeholder="Leave empty if using existing location" class="form-input-base">
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Organization:</label>
+          <div class="autocomplete-container">
+            <input type="text" id="seriesOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="seriesOrganizationId">
+            <div id="seriesOrganizationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <div id="seriesOrganizationAddedContainer" class="mt-2 hidden">
+            <label class="block mb-2 font-medium text-sm">Or add new organization:</label>
+            <input type="text" id="seriesOrganizationAdded" placeholder="Leave empty if using existing organization" class="form-input-base">
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="seriesRegistration" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <span class="form-label">Registration Required</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="seriesExcludeFromCalendar" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <span class="form-label">Exclude from Calendar</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="seriesFeatured" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <span class="form-label">Featured Event</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Parent Event Option -->
+        <div class="form-field">
+          <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="seriesCreateParent" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <span class="form-label">Create Parent Event (if template doesn't have one)</span>
+            </label>
+            <p class="text-sm text-gray-500 ml-6">All events in the series will be linked to this parent event</p>
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">Admin Comments:</label>
+          <textarea id="seriesComments" rows="2" placeholder="Internal notes (not published)" class="form-input-base"></textarea>
+        </div>
+        
+        <!-- Draft Option -->
+        <div class="form-field">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="seriesSaveAsDraft" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="form-label">Save as Draft (Pending Status)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center;">
+        <div></div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" onclick="closeSeriesModal()" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Create Series</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+

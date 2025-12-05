@@ -21,6 +21,7 @@ import '../styles/global.css';
 import '../styles/admin.css';
 import EditEventModal from '../components/ui/EditEventModal.astro';
 import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro';
+import SeriesModal from '../components/ui/SeriesModal.astro';
 ---
 
 <!DOCTYPE html>
@@ -51,6 +52,10 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         <span class="material-symbols-outlined text-2xl">event</span>
         <span class="tooltip">Create New Event</span>
       </button>
+      <button class="icon-btn btn-create" onclick="openCreateSeriesModal()" aria-label="Create Event Series" style="background: linear-gradient(to bottom right, #9333ea, #7e22ce);">
+        <span class="material-symbols-outlined text-2xl">repeat</span>
+        <span class="tooltip">Create Event Series</span>
+      </button>
       <button class="icon-btn btn-create btn-announcement" onclick="openCreateAnnouncementModal()" aria-label="Create New Announcement">
         <span class="material-symbols-outlined text-2xl">campaign</span>
         <span class="tooltip">Create New Announcement</span>
@@ -67,6 +72,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
   <!-- Modals -->
   <EditEventModal />
   <EditAnnouncementModal />
+  <SeriesModal />
 
   <div class="section">
     <div class="section-header">
@@ -218,7 +224,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         console.error('Failed to load tags:', tagsRes.status, await tagsRes.text());
       } else {
         allTags = await tagsRes.json();
-        // Populate tag dropdowns
+        // Populate tag dropdowns for edit event modal
         const primaryTagSelect = document.getElementById('editEventPrimaryTag');
         const secondaryTagSelect = document.getElementById('editEventSecondaryTag');
         if (primaryTagSelect && secondaryTagSelect) {
@@ -232,6 +238,22 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             option2.value = tag.id;
             option2.textContent = tag.name;
             secondaryTagSelect.appendChild(option2);
+          });
+        }
+        // Populate tag dropdowns for series modal
+        const seriesPrimaryTagSelect = document.getElementById('seriesPrimaryTag');
+        const seriesSecondaryTagSelect = document.getElementById('seriesSecondaryTag');
+        if (seriesPrimaryTagSelect && seriesSecondaryTagSelect) {
+          allTags.forEach(tag => {
+            const option1 = document.createElement('option');
+            option1.value = tag.id;
+            option1.textContent = tag.name;
+            seriesPrimaryTagSelect.appendChild(option1);
+            
+            const option2 = document.createElement('option');
+            option2.value = tag.id;
+            option2.textContent = tag.name;
+            seriesSecondaryTagSelect.appendChild(option2);
           });
         }
       }
@@ -272,7 +294,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
    * Resets the completion flags to allow retry if setup failed initially
    */
   function ensureEventAutocompleteSetup() {
-    console.log('[AUTOCOMPLETE] Ensuring event autocomplete setup...');
     // Reset flags to allow retry if elements weren't found initially
     if (!autocompleteSetupComplete.location) {
       autocompleteSetupRetries.location = 0; // Reset retry counter
@@ -293,7 +314,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
    * Resets the completion flags to allow retry if setup failed initially
    */
   function ensureAnnouncementAutocompleteSetup() {
-    console.log('[AUTOCOMPLETE] Ensuring announcement autocomplete setup...');
     // Reset flags to allow retry if elements weren't found initially
     if (!autocompleteSetupComplete.announcementOrganization) {
       autocompleteSetupRetries.announcementOrganization = 0; // Reset retry counter
@@ -313,7 +333,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     if (!searchInput || !hiddenInput || !dropdown) {
       if (autocompleteSetupRetries.location < MAX_RETRIES) {
         autocompleteSetupRetries.location++;
-        console.log(`[AUTOCOMPLETE] Location elements not found, retry ${autocompleteSetupRetries.location}/${MAX_RETRIES}`);
+        // Retrying location autocomplete setup
         // Retry after a short delay in case modals haven't rendered yet
         setTimeout(setupLocationAutocomplete, 100);
       } else {
@@ -325,15 +345,12 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     
     // Only set up if not already set up (avoid duplicate listeners)
     if (autocompleteSetupComplete.location) {
-      console.log('[AUTOCOMPLETE] Location autocomplete already set up, skipping');
       return;
     }
     autocompleteSetupComplete.location = true;
-    console.log('[AUTOCOMPLETE] Location autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
-      console.log('[AUTOCOMPLETE] Location search input:', query);
       if (query.length === 0) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
@@ -342,15 +359,12 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       }
 
       if (!allLocations || !Array.isArray(allLocations)) {
-        console.warn('[AUTOCOMPLETE] Locations data not loaded yet. Data:', allLocations);
         return;
       }
 
-      console.log('[AUTOCOMPLETE] Searching in', allLocations.length, 'locations');
       const matches = allLocations.filter(loc => 
         loc && loc.name && loc.name.toLowerCase().includes(query)
       ).slice(0, 10);
-      console.log('[AUTOCOMPLETE] Found', matches.length, 'matches');
 
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
@@ -366,7 +380,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       `).join('');
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
-      console.log('[AUTOCOMPLETE] Dropdown shown with', matches.length, 'items');
     });
 
     // Close dropdown when clicking outside
@@ -398,7 +411,7 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     if (!searchInput || !hiddenInput || !dropdown) {
       if (autocompleteSetupRetries.organization < MAX_RETRIES) {
         autocompleteSetupRetries.organization++;
-        console.log(`[AUTOCOMPLETE] Organization elements not found, retry ${autocompleteSetupRetries.organization}/${MAX_RETRIES}`);
+        // Retrying organization autocomplete setup
         // Retry after a short delay in case modals haven't rendered yet
         setTimeout(setupOrganizationAutocomplete, 100);
       } else {
@@ -410,15 +423,12 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     
     // Only set up if not already set up (avoid duplicate listeners)
     if (autocompleteSetupComplete.organization) {
-      console.log('[AUTOCOMPLETE] Organization autocomplete already set up, skipping');
       return;
     }
     autocompleteSetupComplete.organization = true;
-    console.log('[AUTOCOMPLETE] Organization autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
-      console.log('[AUTOCOMPLETE] Organization search input:', query, 'allOrganizations:', allOrganizations);
       if (query.length === 0) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
@@ -427,15 +437,12 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       }
 
       if (!allOrganizations || !Array.isArray(allOrganizations)) {
-        console.warn('[AUTOCOMPLETE] Organizations data not loaded yet. Data:', allOrganizations);
         return;
       }
 
-      console.log('[AUTOCOMPLETE] Searching in', allOrganizations.length, 'organizations');
       const matches = allOrganizations.filter(org => 
         org && org.name && org.name.toLowerCase().includes(query)
       ).slice(0, 10);
-      console.log('[AUTOCOMPLETE] Found', matches.length, 'matches:', matches);
 
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
@@ -451,7 +458,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       `).join('');
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
-      console.log('[AUTOCOMPLETE] Dropdown shown with', matches.length, 'items');
     });
 
     // Close dropdown when clicking outside
@@ -494,11 +500,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     
     // Only set up if not already set up (avoid duplicate listeners)
     if (autocompleteSetupComplete.announcementOrganization) {
-      console.log('[AUTOCOMPLETE] Announcement organization autocomplete already set up, skipping');
       return;
     }
     autocompleteSetupComplete.announcementOrganization = true;
-    console.log('[AUTOCOMPLETE] Announcement organization autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
@@ -510,7 +514,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       }
 
       if (!allOrganizations || !Array.isArray(allOrganizations)) {
-        console.warn('[AUTOCOMPLETE] Organizations data not loaded yet');
         return;
       }
 
@@ -584,11 +587,9 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
     
     // Only set up if not already set up (avoid duplicate listeners)
     if (autocompleteSetupComplete.parentEvent) {
-      console.log('[AUTOCOMPLETE] Parent event autocomplete already set up, skipping');
       return;
     }
     autocompleteSetupComplete.parentEvent = true;
-    console.log('[AUTOCOMPLETE] Parent event autocomplete setup successful');
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
@@ -600,7 +601,6 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       }
 
       if (!allParentEvents || !Array.isArray(allParentEvents)) {
-        console.warn('[AUTOCOMPLETE] Parent events data not loaded yet');
         return;
       }
 
@@ -901,6 +901,14 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
             '<span class="tooltip">Edit</span>' +
             '</button>' +
+            '<button onclick="duplicateEvent(\'' + event.id + '\')" class="icon-btn" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; background-color: #e0e7ff; color: #4f46e5;" aria-label="Duplicate event">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">content_copy</span>' +
+            '<span class="tooltip">Duplicate</span>' +
+            '</button>' +
+            '<button onclick="createSeriesFromEvent(\'' + event.id + '\')" class="icon-btn" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; background-color: #dbeafe; color: #1e40af;" aria-label="Create series">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">repeat</span>' +
+            '<span class="tooltip">Create Series</span>' +
+            '</button>' +
             '<button onclick="' + approveFunction + '(\'' + event.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve event">' +
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
             '<span class="tooltip">Approve</span>' +
@@ -1155,9 +1163,18 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
               '<td>' + (event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
               '<td>' + primaryTagDisplay + '</td>' +
-              '<td style="text-align: center;">' +
-              '<button onclick="editExistingEvent(\'' + event.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit event">' +
+              '<td style="text-align: center; white-space: nowrap;">' +
+              '<button onclick="editExistingEvent(\'' + event.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit event">' +
               '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>' +
+              '<span class="tooltip">Edit</span>' +
+              '</button>' +
+              '<button onclick="duplicateEvent(\'' + event.id + '\')" class="icon-btn" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; background-color: #e0e7ff; color: #4f46e5;" aria-label="Duplicate event">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">content_copy</span>' +
+              '<span class="tooltip">Duplicate</span>' +
+              '</button>' +
+              '<button onclick="createSeriesFromEvent(\'' + event.id + '\')" class="icon-btn" style="padding: 0.5rem; min-width: auto; background-color: #dbeafe; color: #1e40af;" aria-label="Create series">' +
+              '<span class="material-symbols-outlined" style="font-size: 1.25rem;">repeat</span>' +
+              '<span class="tooltip">Create Series</span>' +
               '</button>' +
               '</td>' +
               '</tr>'
@@ -1609,6 +1626,966 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
       }
     }
 
+  /**
+   * Duplicates an event by opening the edit modal with pre-filled data
+   * Preserves parent event relationship if the original event has one
+   * @param {string} eventId - The ID of the event to duplicate
+   */
+  window.duplicateEvent = async function(eventId) {
+    try {
+      // Fetch the event data
+      let response = await fetch('/api/admin/events', { credentials: 'include' });
+      let data = await response.json();
+      let event = data.events && data.events.find(e => e.id === eventId);
+      
+      // If not found, try fetching directly
+      if (!event) {
+        response = await fetch(`/api/admin/events/${eventId}`, { credentials: 'include' });
+        if (response.ok) {
+          data = await response.json();
+          event = data.event;
+        }
+      }
+      
+      if (!event) {
+        showMessage('Event not found', 'error');
+        return;
+      }
+      
+      // Open modal in "new event" mode with pre-filled data
+      currentEditId = null;
+      currentEditType = 'new-event';
+      
+      const titleElement = document.getElementById('editEventModalTitle');
+      titleElement.textContent = 'Duplicate Event';
+      // Add a visual highlight to make it obvious
+      titleElement.style.color = '#4f46e5'; // Indigo color to match duplicate button
+      titleElement.style.fontWeight = '600';
+      
+      // Pre-fill all fields
+      document.getElementById('editEventTitle').value = event.title || '';
+      document.getElementById('editEventDescription').value = event.description || '';
+      // Don't pre-fill dates - user should set new date
+      document.getElementById('editEventStartDate').value = '';
+      document.getElementById('editEventEndDate').value = '';
+      document.getElementById('editEventStartTime').value = event.start_time || '';
+      document.getElementById('editEventEndTime').value = event.end_time || '';
+      document.getElementById('editEventEmail').value = event.email || '';
+      document.getElementById('editEventWebsite').value = event.website || '';
+      document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+      document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
+      document.getElementById('editEventCost').value = event.cost || '';
+      document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
+      document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+      
+      // Set checkbox fields
+      document.getElementById('editEventRegistration').checked = event.registration || false;
+      document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
+      document.getElementById('editEventFeatured').checked = event.featured || false;
+      document.getElementById('editEventDraft').checked = false; // New duplicates default to approved
+      
+      // Set location
+      if (event.location_id && event.location) {
+        document.getElementById('editEventLocationSearch').value = event.location.name || '';
+        document.getElementById('editEventLocationId').value = event.location_id;
+        document.getElementById('editEventLocationAdded').value = '';
+      } else {
+        document.getElementById('editEventLocationSearch').value = '';
+        document.getElementById('editEventLocationId').value = '';
+        document.getElementById('editEventLocationAdded').value = '';
+      }
+      
+      // Set organization
+      if (event.organization_id && event.organization) {
+        document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
+        document.getElementById('editEventOrganizationId').value = event.organization_id;
+        document.getElementById('editEventOrganizationAdded').value = '';
+      } else {
+        document.getElementById('editEventOrganizationSearch').value = '';
+        document.getElementById('editEventOrganizationId').value = '';
+        document.getElementById('editEventOrganizationAdded').value = '';
+      }
+      
+      // Set parent event (optional - user might want to change this)
+      if (event.parent_event_id) {
+        const parentEvent = allParentEvents.find(e => e.id === event.parent_event_id);
+        if (parentEvent) {
+          const dateStr = parentEvent.start_date ? new Date(parentEvent.start_date).toLocaleDateString() : '';
+          const timeStr = parentEvent.start_time ? parentEvent.start_time.substring(0, 5) : '';
+          const displayStr = `${parentEvent.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+          document.getElementById('editEventParentEventSearch').value = displayStr;
+          document.getElementById('editEventParentEventId').value = event.parent_event_id;
+        } else {
+          document.getElementById('editEventParentEventSearch').value = '';
+          document.getElementById('editEventParentEventId').value = event.parent_event_id;
+        }
+      } else {
+        document.getElementById('editEventParentEventSearch').value = '';
+        document.getElementById('editEventParentEventId').value = '';
+      }
+      
+      document.getElementById('editEventComments').value = '';
+      
+      // Show "add new" fields
+      const locationContainer = document.getElementById('editEventLocationAddedContainer');
+      const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
+      if (locationContainer) locationContainer.classList.remove('hidden');
+      if (orgContainer) orgContainer.classList.remove('hidden');
+      
+      const modal = document.getElementById('editEventModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        // Scroll page to top first
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        // Then scroll the modal container to top and ensure page stays at top
+        setTimeout(() => {
+          const modalContainer = modal.querySelector('.modal-container');
+          if (modalContainer) {
+            modalContainer.scrollTop = 0;
+          }
+          // Ensure page is at top
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          // Scroll the modal header into view
+          const modalHeader = modal.querySelector('.modal-header');
+          if (modalHeader) {
+            modalHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 50);
+        setTimeout(ensureEventAutocompleteSetup, 50);
+      }
+    } catch (error) {
+      showMessage('Error duplicating event: ' + error.message, 'error');
+    }
+  };
+
+  /**
+   * Duplicates the event currently in the edit modal
+   */
+  window.duplicateCurrentEvent = async function() {
+    // If we have an existing event ID, use it
+    if (currentEditId) {
+      duplicateEvent(currentEditId);
+      return;
+    }
+    
+    // Otherwise, get current form data and create a duplicate from it
+    // This handles the case where user is creating a new event and wants to duplicate it
+    const eventData = {
+      title: document.getElementById('editEventTitle').value,
+      description: document.getElementById('editEventDescription').value,
+      start_date: document.getElementById('editEventStartDate').value,
+      end_date: document.getElementById('editEventEndDate').value,
+      start_time: document.getElementById('editEventStartTime').value,
+      end_time: document.getElementById('editEventEndTime').value,
+      email: document.getElementById('editEventEmail').value,
+      website: document.getElementById('editEventWebsite').value,
+      registration_link: document.getElementById('editEventRegistrationLink').value,
+      external_image_url: document.getElementById('editEventExternalImageUrl').value,
+      cost: document.getElementById('editEventCost').value,
+      primary_tag_id: document.getElementById('editEventPrimaryTag').value,
+      secondary_tag_id: document.getElementById('editEventSecondaryTag').value,
+      location_id: document.getElementById('editEventLocationId').value,
+      organization_id: document.getElementById('editEventOrganizationId').value,
+      parent_event_id: document.getElementById('editEventParentEventId').value,
+      registration: document.getElementById('editEventRegistration').checked,
+      exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
+      featured: document.getElementById('editEventFeatured').checked,
+      status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
+    };
+    
+    // Get location/organization names if available
+    if (eventData.location_id) {
+      const loc = allLocations.find(l => l.id === eventData.location_id);
+      if (loc) {
+        eventData.location = { name: loc.name };
+      }
+    }
+    
+    if (eventData.organization_id) {
+      const org = allOrganizations.find(o => o.id === eventData.organization_id);
+      if (org) {
+        eventData.organization = { name: org.name };
+      }
+    }
+    
+    // Open duplicate modal with form data (dates will be cleared)
+    currentEditId = null;
+    currentEditType = 'new-event';
+    
+    const titleElement = document.getElementById('editEventModalTitle');
+    titleElement.textContent = 'Duplicate Event';
+    // Add a visual highlight to make it obvious
+    titleElement.style.color = '#4f46e5'; // Indigo color to match duplicate button
+    titleElement.style.fontWeight = '600';
+    
+    // Pre-fill all fields except dates
+    document.getElementById('editEventTitle').value = eventData.title || '';
+    document.getElementById('editEventDescription').value = eventData.description || '';
+    document.getElementById('editEventStartDate').value = '';
+    document.getElementById('editEventEndDate').value = '';
+    document.getElementById('editEventStartTime').value = eventData.start_time || '';
+    document.getElementById('editEventEndTime').value = eventData.end_time || '';
+    document.getElementById('editEventEmail').value = eventData.email || '';
+    document.getElementById('editEventWebsite').value = eventData.website || '';
+    document.getElementById('editEventRegistrationLink').value = eventData.registration_link || '';
+    document.getElementById('editEventExternalImageUrl').value = eventData.external_image_url || '';
+    document.getElementById('editEventCost').value = eventData.cost || '';
+    document.getElementById('editEventPrimaryTag').value = eventData.primary_tag_id || '';
+    document.getElementById('editEventSecondaryTag').value = eventData.secondary_tag_id || '';
+    
+    // Set checkbox fields
+    document.getElementById('editEventRegistration').checked = eventData.registration || false;
+    document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
+    document.getElementById('editEventFeatured').checked = eventData.featured || false;
+    document.getElementById('editEventDraft').checked = false;
+    
+    // Set location
+    if (eventData.location_id && eventData.location) {
+      document.getElementById('editEventLocationSearch').value = eventData.location.name || '';
+      document.getElementById('editEventLocationId').value = eventData.location_id;
+      document.getElementById('editEventLocationAdded').value = '';
+    } else {
+      document.getElementById('editEventLocationSearch').value = '';
+      document.getElementById('editEventLocationId').value = '';
+      document.getElementById('editEventLocationAdded').value = '';
+    }
+    
+    // Set organization
+    if (eventData.organization_id && eventData.organization) {
+      document.getElementById('editEventOrganizationSearch').value = eventData.organization.name || '';
+      document.getElementById('editEventOrganizationId').value = eventData.organization_id;
+      document.getElementById('editEventOrganizationAdded').value = '';
+    } else {
+      document.getElementById('editEventOrganizationSearch').value = '';
+      document.getElementById('editEventOrganizationId').value = '';
+      document.getElementById('editEventOrganizationAdded').value = '';
+    }
+    
+    // Set parent event
+    if (eventData.parent_event_id) {
+      const parentEvent = allParentEvents.find(e => e.id === eventData.parent_event_id);
+      if (parentEvent) {
+        const dateStr = parentEvent.start_date ? new Date(parentEvent.start_date).toLocaleDateString() : '';
+        const timeStr = parentEvent.start_time ? parentEvent.start_time.substring(0, 5) : '';
+        const displayStr = `${parentEvent.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+        document.getElementById('editEventParentEventSearch').value = displayStr;
+        document.getElementById('editEventParentEventId').value = eventData.parent_event_id;
+      } else {
+        document.getElementById('editEventParentEventSearch').value = '';
+        document.getElementById('editEventParentEventId').value = eventData.parent_event_id;
+      }
+    } else {
+      document.getElementById('editEventParentEventSearch').value = '';
+      document.getElementById('editEventParentEventId').value = '';
+    }
+    
+    document.getElementById('editEventComments').value = '';
+    
+    // Show "add new" fields
+    const locationContainer = document.getElementById('editEventLocationAddedContainer');
+    const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
+    if (locationContainer) locationContainer.classList.remove('hidden');
+    if (orgContainer) orgContainer.classList.remove('hidden');
+    
+    const modal = document.getElementById('editEventModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      // Scroll page to top first
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      // Then scroll the modal container to top and ensure page stays at top
+      setTimeout(() => {
+        const modalContainer = modal.querySelector('.modal-container');
+        if (modalContainer) {
+          modalContainer.scrollTop = 0;
+        }
+        // Ensure page is at top
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        // Scroll the modal header into view
+        const modalHeader = modal.querySelector('.modal-header');
+        if (modalHeader) {
+          modalHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+      setTimeout(ensureEventAutocompleteSetup, 50);
+    }
+  };
+
+  /**
+   * Creates a series from an event
+   * @param {string} eventId - The ID of the event to create a series from
+   */
+  window.createSeriesFromEvent = async function(eventId) {
+    try {
+      // Fetch the event data
+      let response = await fetch('/api/admin/events', { credentials: 'include' });
+      let data = await response.json();
+      let event = data.events && data.events.find(e => e.id === eventId);
+      
+      // If not found, try fetching directly
+      if (!event) {
+        response = await fetch(`/api/admin/events/${eventId}`, { credentials: 'include' });
+        if (response.ok) {
+          data = await response.json();
+          event = data.event;
+        }
+      }
+      
+      if (!event) {
+        showMessage('Event not found', 'error');
+        return;
+      }
+      
+      // Track the original event ID
+      seriesOriginalEventId = eventId;
+      
+      // Open series creation modal
+      openSeriesModal(event);
+    } catch (error) {
+      showMessage('Error opening series creator: ' + error.message, 'error');
+    }
+  };
+
+  /**
+   * Creates a series from the event currently in the edit modal
+   */
+  window.createSeriesFromCurrentEvent = async function() {
+    // If we have an existing event ID, fetch the full event data
+    if (currentEditId) {
+      seriesOriginalEventId = currentEditId; // Track the original event ID
+      createSeriesFromEvent(currentEditId);
+      return;
+    }
+    
+    // Otherwise, get current form data (no original event ID)
+    seriesOriginalEventId = null;
+    const eventData = {
+      title: document.getElementById('editEventTitle').value,
+      description: document.getElementById('editEventDescription').value,
+      start_date: document.getElementById('editEventStartDate').value,
+      end_date: document.getElementById('editEventEndDate').value,
+      start_time: document.getElementById('editEventStartTime').value,
+      end_time: document.getElementById('editEventEndTime').value,
+      email: document.getElementById('editEventEmail').value,
+      website: document.getElementById('editEventWebsite').value,
+      registration_link: document.getElementById('editEventRegistrationLink').value,
+      external_image_url: document.getElementById('editEventExternalImageUrl').value,
+      cost: document.getElementById('editEventCost').value,
+      primary_tag_id: document.getElementById('editEventPrimaryTag').value,
+      secondary_tag_id: document.getElementById('editEventSecondaryTag').value,
+      location_id: document.getElementById('editEventLocationId').value,
+      organization_id: document.getElementById('editEventOrganizationId').value,
+      parent_event_id: document.getElementById('editEventParentEventId').value,
+      registration: document.getElementById('editEventRegistration').checked,
+      exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
+      featured: document.getElementById('editEventFeatured').checked,
+      status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
+    };
+    
+    // Get location name if available
+    if (eventData.location_id) {
+      const loc = allLocations.find(l => l.id === eventData.location_id);
+      if (loc) {
+        eventData.location = { name: loc.name };
+      }
+    }
+    
+    // Get organization name if available
+    if (eventData.organization_id) {
+      const org = allOrganizations.find(o => o.id === eventData.organization_id);
+      if (org) {
+        eventData.organization = { name: org.name };
+      }
+    }
+    
+    openSeriesModal(eventData);
+  };
+
+  // ============================================================================
+  // SERIES CREATION FUNCTIONS
+  // ============================================================================
+
+  let seriesTemplateEvent = null;
+  let seriesOriginalEventId = null; // Track the original event ID if creating from existing event
+
+  /**
+   * Opens the series modal for creating a new series from scratch
+   */
+  window.openCreateSeriesModal = function() {
+    seriesTemplateEvent = null; // No template event
+    seriesOriginalEventId = null;
+    
+    // Clear all fields
+    document.getElementById('seriesEventTitle').value = '';
+    document.getElementById('seriesPattern').value = '';
+    document.getElementById('seriesStartDate').value = '';
+    document.getElementById('seriesOccurrences').value = '4';
+    document.getElementById('seriesStartDateMonthly').value = '';
+    document.getElementById('seriesOccurrencesMonthly').value = '3';
+    document.getElementById('customDates').value = '';
+    document.getElementById('seriesDescription').value = '';
+    document.getElementById('seriesStartTime').value = '';
+    document.getElementById('seriesEndTime').value = '';
+    document.getElementById('seriesEmail').value = '';
+    document.getElementById('seriesWebsite').value = '';
+    document.getElementById('seriesRegistrationLink').value = '';
+    document.getElementById('seriesExternalImageUrl').value = '';
+    document.getElementById('seriesCost').value = '';
+    document.getElementById('seriesPrimaryTag').value = '';
+    document.getElementById('seriesSecondaryTag').value = '';
+    document.getElementById('seriesLocationSearch').value = '';
+    document.getElementById('seriesLocationId').value = '';
+    document.getElementById('seriesLocationAdded').value = '';
+    document.getElementById('seriesOrganizationSearch').value = '';
+    document.getElementById('seriesOrganizationId').value = '';
+    document.getElementById('seriesOrganizationAdded').value = '';
+    document.getElementById('seriesRegistration').checked = false;
+    document.getElementById('seriesExcludeFromCalendar').checked = false;
+    document.getElementById('seriesFeatured').checked = false;
+    document.getElementById('seriesCreateParent').checked = true; // Default to creating parent
+    document.getElementById('seriesComments').value = '';
+    document.getElementById('seriesSaveAsDraft').checked = false;
+    
+    // Reset calendar
+    selectedDatesSet.clear();
+    calendarCurrentMonth = new Date().getMonth();
+    calendarCurrentYear = new Date().getFullYear();
+    const manualInput = document.getElementById('customDatesManual');
+    if (manualInput) manualInput.value = '';
+    
+    // Hide pattern options
+    document.getElementById('weeklyOptions').classList.add('hidden');
+    document.getElementById('monthlyOptions').classList.add('hidden');
+    document.getElementById('customDatesOptions').classList.add('hidden');
+    document.getElementById('seriesPreview').classList.add('hidden');
+    
+    // Show "add new" fields
+    const locationContainer = document.getElementById('seriesLocationAddedContainer');
+    const orgContainer = document.getElementById('seriesOrganizationAddedContainer');
+    if (locationContainer) locationContainer.classList.remove('hidden');
+    if (orgContainer) orgContainer.classList.remove('hidden');
+    
+    // Show parent option
+    const createParentContainer = document.getElementById('seriesCreateParent')?.closest('.form-field');
+    if (createParentContainer) createParentContainer.style.display = 'block';
+    
+    const modal = document.getElementById('seriesModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Setup autocomplete for series modal
+      setTimeout(() => {
+        setupSeriesLocationAutocomplete();
+        setupSeriesOrganizationAutocomplete();
+      }, 50);
+    }
+  };
+
+  /**
+   * Opens the series modal with event template data
+   * @param {Object} event - Event data to use as template (optional)
+   */
+  window.openSeriesModal = function(event) {
+    seriesTemplateEvent = event || null;
+    
+    // Pre-fill title if we have a template event
+    if (event && event.title) {
+      document.getElementById('seriesEventTitle').value = event.title;
+    } else {
+      document.getElementById('seriesEventTitle').value = '';
+    }
+    
+    // Pre-fill common fields from template (if available)
+    if (event) {
+      document.getElementById('seriesDescription').value = event.description || '';
+      document.getElementById('seriesStartTime').value = event.start_time || '';
+      document.getElementById('seriesEndTime').value = event.end_time || '';
+      document.getElementById('seriesEmail').value = event.email || '';
+      document.getElementById('seriesWebsite').value = event.website || '';
+      document.getElementById('seriesRegistrationLink').value = event.registration_link || '';
+      document.getElementById('seriesExternalImageUrl').value = event.external_image_url || '';
+      document.getElementById('seriesCost').value = event.cost || '';
+      document.getElementById('seriesPrimaryTag').value = event.primary_tag_id || '';
+      document.getElementById('seriesSecondaryTag').value = event.secondary_tag_id || '';
+      document.getElementById('seriesRegistration').checked = event.registration || false;
+      document.getElementById('seriesExcludeFromCalendar').checked = event.exclude_from_calendar || false;
+      document.getElementById('seriesFeatured').checked = event.featured || false;
+      
+      // Pre-fill location if available
+      if (event.location_id && event.location) {
+        document.getElementById('seriesLocationSearch').value = event.location.name || '';
+        document.getElementById('seriesLocationId').value = event.location_id;
+      } else if (event.location) {
+        document.getElementById('seriesLocationSearch').value = event.location.name || '';
+        document.getElementById('seriesLocationId').value = event.location_id || '';
+      }
+      
+      // Pre-fill organization if available
+      if (event.organization_id && event.organization) {
+        document.getElementById('seriesOrganizationSearch').value = event.organization.name || '';
+        document.getElementById('seriesOrganizationId').value = event.organization_id;
+      } else if (event.organization) {
+        document.getElementById('seriesOrganizationSearch').value = event.organization.name || '';
+        document.getElementById('seriesOrganizationId').value = event.organization_id || '';
+      }
+    } else {
+      // Clear fields if no template
+      document.getElementById('seriesDescription').value = '';
+      document.getElementById('seriesStartTime').value = '';
+      document.getElementById('seriesEndTime').value = '';
+      document.getElementById('seriesEmail').value = '';
+      document.getElementById('seriesWebsite').value = '';
+      document.getElementById('seriesRegistrationLink').value = '';
+      document.getElementById('seriesExternalImageUrl').value = '';
+      document.getElementById('seriesCost').value = '';
+      document.getElementById('seriesPrimaryTag').value = '';
+      document.getElementById('seriesSecondaryTag').value = '';
+      document.getElementById('seriesRegistration').checked = false;
+      document.getElementById('seriesExcludeFromCalendar').checked = false;
+      document.getElementById('seriesFeatured').checked = false;
+      document.getElementById('seriesLocationSearch').value = '';
+      document.getElementById('seriesLocationId').value = '';
+      document.getElementById('seriesOrganizationSearch').value = '';
+      document.getElementById('seriesOrganizationId').value = '';
+    }
+    
+    // Set parent event checkbox - checked if template doesn't have a parent
+    // Hide the checkbox container if template already has a parent (all series events will use existing parent)
+    const createParentContainer = document.getElementById('seriesCreateParent')?.closest('.form-field');
+    const createParentCheckbox = document.getElementById('seriesCreateParent');
+    if (createParentCheckbox) {
+      if (event && event.parent_event_id) {
+        // Template has a parent - hide the option (all series events will use existing parent)
+        if (createParentContainer) createParentContainer.style.display = 'none';
+        createParentCheckbox.checked = false;
+      } else {
+        // Template doesn't have a parent - show option to create one
+        if (createParentContainer) createParentContainer.style.display = 'block';
+        createParentCheckbox.checked = true; // Default to creating a parent
+      }
+    }
+    
+    // Set draft checkbox - default to false (approved)
+    const draftCheckbox = document.getElementById('seriesSaveAsDraft');
+    if (draftCheckbox) {
+      draftCheckbox.checked = false;
+    }
+    
+    // Show "add new" fields
+    const locationContainer = document.getElementById('seriesLocationAddedContainer');
+    const orgContainer = document.getElementById('seriesOrganizationAddedContainer');
+    if (locationContainer) locationContainer.classList.remove('hidden');
+    if (orgContainer) orgContainer.classList.remove('hidden');
+    
+    const modal = document.getElementById('seriesModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Setup autocomplete for series modal
+      setTimeout(() => {
+        setupSeriesLocationAutocomplete();
+        setupSeriesOrganizationAutocomplete();
+      }, 50);
+    }
+  };
+
+  /**
+   * Closes the series creation modal
+   */
+  window.closeSeriesModal = function() {
+    const modal = document.getElementById('seriesModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    seriesTemplateEvent = null;
+    // Reset form
+    document.getElementById('seriesForm').reset();
+    document.getElementById('seriesPreview').classList.add('hidden');
+    document.getElementById('weeklyOptions').classList.add('hidden');
+    document.getElementById('monthlyOptions').classList.add('hidden');
+    document.getElementById('customDatesOptions').classList.add('hidden');
+    // Reset checkboxes and show parent option again
+    const createParentContainer = document.getElementById('seriesCreateParent')?.closest('.form-field');
+    if (createParentContainer) createParentContainer.style.display = 'block';
+    document.getElementById('seriesCreateParent').checked = false;
+    document.getElementById('seriesSaveAsDraft').checked = false;
+    // Reset calendar
+    selectedDatesSet.clear();
+    calendarCurrentMonth = new Date().getMonth();
+    calendarCurrentYear = new Date().getFullYear();
+    const manualInput = document.getElementById('customDatesManual');
+    if (manualInput) manualInput.value = '';
+    // Reset original event ID tracking
+    seriesOriginalEventId = null;
+    // Reset form fields
+    document.getElementById('seriesEventTitle').value = '';
+    document.getElementById('seriesPattern').value = '';
+  };
+
+  /**
+   * Sets up location autocomplete for series modal
+   */
+  function setupSeriesLocationAutocomplete() {
+    const searchInput = document.getElementById('seriesLocationSearch');
+    const hiddenInput = document.getElementById('seriesLocationId');
+    const dropdown = document.getElementById('seriesLocationDropdown');
+    
+    if (!searchInput || !hiddenInput || !dropdown) {
+      setTimeout(setupSeriesLocationAutocomplete, 100);
+      return;
+    }
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        hiddenInput.value = '';
+        return;
+      }
+      
+      if (!allLocations || !Array.isArray(allLocations)) return;
+      
+      const matches = allLocations.filter(loc => 
+        loc && loc.name && loc.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+      
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+      
+      dropdown.innerHTML = matches.map(loc => `
+        <div class="autocomplete-dropdown-item" onclick="selectSeriesLocation('${loc.id}', '${loc.name.replace(/'/g, "\\'")}')">
+          ${loc.name}
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+  }
+
+  /**
+   * Sets up organization autocomplete for series modal
+   */
+  function setupSeriesOrganizationAutocomplete() {
+    const searchInput = document.getElementById('seriesOrganizationSearch');
+    const hiddenInput = document.getElementById('seriesOrganizationId');
+    const dropdown = document.getElementById('seriesOrganizationDropdown');
+    
+    if (!searchInput || !hiddenInput || !dropdown) {
+      setTimeout(setupSeriesOrganizationAutocomplete, 100);
+      return;
+    }
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (query.length === 0) {
+        dropdown.classList.add('hidden');
+        hiddenInput.value = '';
+        return;
+      }
+      
+      if (!allOrganizations || !Array.isArray(allOrganizations)) return;
+      
+      const matches = allOrganizations.filter(org => 
+        org && org.name && org.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+      
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+      
+      dropdown.innerHTML = matches.map(org => `
+        <div class="autocomplete-dropdown-item" onclick="selectSeriesOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
+          ${org.name}
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+  }
+
+  window.selectSeriesLocation = function(id, name) {
+    document.getElementById('seriesLocationId').value = id;
+    document.getElementById('seriesLocationSearch').value = name;
+    const dropdown = document.getElementById('seriesLocationDropdown');
+    dropdown.classList.add('hidden');
+    dropdown.classList.remove('block');
+    document.getElementById('seriesLocationAdded').value = '';
+  };
+
+  window.selectSeriesOrganization = function(id, name) {
+    document.getElementById('seriesOrganizationId').value = id;
+    document.getElementById('seriesOrganizationSearch').value = name;
+    const dropdown = document.getElementById('seriesOrganizationDropdown');
+    dropdown.classList.add('hidden');
+    dropdown.classList.remove('block');
+    document.getElementById('seriesOrganizationAdded').value = '';
+  };
+
+  // ============================================================================
+  // CALENDAR MULTI-PICKER FUNCTIONS
+  // ============================================================================
+
+  let calendarCurrentMonth = new Date().getMonth();
+  let calendarCurrentYear = new Date().getFullYear();
+  let selectedDatesSet = new Set();
+
+  /**
+   * Initializes the calendar multi-picker
+   */
+  function initCalendarMultiPicker() {
+    renderCalendar();
+    updateSelectedDatesDisplay();
+  }
+
+  /**
+   * Renders the calendar grid for the current month
+   */
+  function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthYear = document.getElementById('calendarMonthYear');
+    if (!grid || !monthYear) return;
+
+    // Clear existing days (keep headers)
+    const headers = grid.querySelectorAll('div:not(.text-center)');
+    headers.forEach(h => {
+      if (!h.classList.contains('text-sm') || !h.classList.contains('font-semibold')) {
+        h.remove();
+      }
+    });
+
+    // Update month/year display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    monthYear.textContent = `${monthNames[calendarCurrentMonth]} ${calendarCurrentYear}`;
+
+    // Get first day of month and number of days
+    const firstDay = new Date(calendarCurrentYear, calendarCurrentMonth, 1);
+    const lastDay = new Date(calendarCurrentYear, calendarCurrentMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'h-10';
+      grid.appendChild(emptyCell);
+    }
+
+    // Add cells for each day of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(calendarCurrentYear, calendarCurrentMonth, day);
+      const dateStr = date.toISOString().split('T')[0];
+      const isSelected = selectedDatesSet.has(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      const isToday = dateOnly.getTime() === today.getTime();
+
+      const dayCell = document.createElement('div');
+      dayCell.className = `h-10 flex items-center justify-center cursor-pointer rounded transition-colors ${
+        isSelected 
+          ? 'bg-indigo-500 text-white font-semibold' 
+          : isToday
+          ? 'bg-blue-100 text-blue-700 font-semibold'
+          : 'hover:bg-gray-100 text-gray-700'
+      }`;
+      dayCell.textContent = day;
+      dayCell.onclick = () => toggleDateSelection(dateStr);
+      
+      grid.appendChild(dayCell);
+    }
+  }
+
+  /**
+   * Toggles date selection
+   */
+  function toggleDateSelection(dateStr) {
+    if (selectedDatesSet.has(dateStr)) {
+      selectedDatesSet.delete(dateStr);
+    } else {
+      selectedDatesSet.add(dateStr);
+    }
+    renderCalendar();
+    updateSelectedDatesDisplay();
+    updateCustomDatesInput();
+    updateSeriesPreview();
+  }
+
+  /**
+   * Changes the calendar month
+   */
+  window.changeCalendarMonth = function(delta) {
+    calendarCurrentMonth += delta;
+    if (calendarCurrentMonth < 0) {
+      calendarCurrentMonth = 11;
+      calendarCurrentYear--;
+    } else if (calendarCurrentMonth > 11) {
+      calendarCurrentMonth = 0;
+      calendarCurrentYear++;
+    }
+    renderCalendar();
+  };
+
+  /**
+   * Updates the selected dates display
+   */
+  function updateSelectedDatesDisplay() {
+    const list = document.getElementById('selectedDatesList');
+    if (!list) return;
+
+    const sortedDates = Array.from(selectedDatesSet).sort();
+    
+    if (sortedDates.length === 0) {
+      list.innerHTML = '<p class="text-sm text-gray-500 m-0">No dates selected</p>';
+      return;
+    }
+
+    list.innerHTML = sortedDates.map(dateStr => {
+      const date = new Date(dateStr);
+      const formatted = date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      return `<span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-sm">
+        ${formatted}
+        <button type="button" onclick="removeDateFromSelection('${dateStr}')" class="ml-1 text-indigo-500 hover:text-indigo-700" aria-label="Remove date">
+          <span class="material-symbols-outlined" style="font-size: 0.875rem;">close</span>
+        </button>
+      </span>`;
+    }).join('');
+  }
+
+  /**
+   * Removes a date from selection
+   */
+  window.removeDateFromSelection = function(dateStr) {
+    selectedDatesSet.delete(dateStr);
+    renderCalendar();
+    updateSelectedDatesDisplay();
+    updateCustomDatesInput();
+    updateSeriesPreview();
+  };
+
+  /**
+   * Updates the hidden input field with selected dates
+   */
+  function updateCustomDatesInput() {
+    const input = document.getElementById('customDates');
+    if (input) {
+      const sortedDates = Array.from(selectedDatesSet).sort();
+      input.value = sortedDates.join('\n');
+    }
+  }
+
+  /**
+   * Updates custom dates from manual entry
+   */
+  window.updateCustomDatesFromManual = function() {
+    const manualInput = document.getElementById('customDatesManual');
+    if (!manualInput) return;
+
+    const lines = manualInput.value.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+
+    // Add valid dates to selection
+    lines.forEach(dateStr => {
+      selectedDatesSet.add(dateStr);
+    });
+
+    renderCalendar();
+    updateSelectedDatesDisplay();
+    updateCustomDatesInput();
+    updateSeriesPreview();
+  };
+
+  /**
+   * Updates the series preview based on selected pattern
+   */
+  window.updateSeriesPreview = function() {
+    const pattern = document.getElementById('seriesPattern').value;
+    const previewDiv = document.getElementById('seriesPreview');
+    const previewList = document.getElementById('seriesPreviewList');
+    const previewCount = document.getElementById('seriesPreviewCount');
+    
+    // Hide all pattern options first
+    document.getElementById('weeklyOptions').classList.add('hidden');
+    document.getElementById('monthlyOptions').classList.add('hidden');
+    document.getElementById('customDatesOptions').classList.add('hidden');
+    
+    if (!pattern) {
+      previewDiv.classList.add('hidden');
+      return;
+    }
+    
+    let dates = [];
+    
+    if (pattern === 'weekly') {
+      document.getElementById('weeklyOptions').classList.remove('hidden');
+      const startDate = document.getElementById('seriesStartDate').value;
+      const occurrences = parseInt(document.getElementById('seriesOccurrences').value) || 4;
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        for (let i = 0; i < occurrences; i++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + (i * 7));
+          dates.push(date.toISOString().split('T')[0]);
+        }
+      }
+    } else if (pattern === 'monthly') {
+      document.getElementById('monthlyOptions').classList.remove('hidden');
+      const startDate = document.getElementById('seriesStartDateMonthly').value;
+      const occurrences = parseInt(document.getElementById('seriesOccurrencesMonthly').value) || 3;
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        for (let i = 0; i < occurrences; i++) {
+          const date = new Date(start);
+          date.setMonth(start.getMonth() + i);
+          dates.push(date.toISOString().split('T')[0]);
+        }
+      }
+    } else if (pattern === 'custom') {
+      document.getElementById('customDatesOptions').classList.remove('hidden');
+      // Initialize calendar if not already done
+      setTimeout(() => {
+        if (document.getElementById('calendarGrid') && document.getElementById('calendarGrid').children.length <= 7) {
+          initCalendarMultiPicker();
+        }
+      }, 50);
+      
+      const customDatesText = document.getElementById('customDates').value;
+      if (customDatesText) {
+        dates = customDatesText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+      }
+    }
+    
+    if (dates.length > 0) {
+      previewDiv.classList.remove('hidden');
+      previewList.innerHTML = dates.map(date => {
+        const dateObj = new Date(date);
+        return `<div class="py-1 text-sm">${dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>`;
+      }).join('');
+      previewCount.textContent = `${dates.length} event${dates.length !== 1 ? 's' : ''} will be created`;
+    } else {
+      previewDiv.classList.add('hidden');
+    }
+  };
 
   /**
    * Opens the edit modal for a staged announcement
@@ -2418,6 +3395,230 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
         window.location.href = '/';
       }
     };
+
+    // Series form submission handler
+    const seriesForm = document.getElementById('seriesForm');
+    if (seriesForm) {
+      seriesForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const pattern = document.getElementById('seriesPattern').value;
+        if (!pattern) {
+          showMessage('Please select a pattern', 'error');
+          return;
+        }
+        
+        let dates = [];
+        
+        if (pattern === 'weekly') {
+          const startDate = document.getElementById('seriesStartDate').value;
+          const occurrences = parseInt(document.getElementById('seriesOccurrences').value) || 4;
+          if (!startDate) {
+            showMessage('Please select a start date', 'error');
+            return;
+          }
+          const start = new Date(startDate);
+          for (let i = 0; i < occurrences; i++) {
+            const date = new Date(start);
+            date.setDate(start.getDate() + (i * 7));
+            dates.push(date.toISOString().split('T')[0]);
+          }
+        } else if (pattern === 'monthly') {
+          const startDate = document.getElementById('seriesStartDateMonthly').value;
+          const occurrences = parseInt(document.getElementById('seriesOccurrencesMonthly').value) || 3;
+          if (!startDate) {
+            showMessage('Please select a start date', 'error');
+            return;
+          }
+          const start = new Date(startDate);
+          for (let i = 0; i < occurrences; i++) {
+            const date = new Date(start);
+            date.setMonth(start.getMonth() + i);
+            dates.push(date.toISOString().split('T')[0]);
+          }
+        } else if (pattern === 'custom') {
+          // Get dates from calendar picker (selectedDatesSet) or manual input
+          if (selectedDatesSet.size > 0) {
+            // Use dates from calendar picker
+            dates = Array.from(selectedDatesSet).sort();
+          } else {
+            // Fall back to manual input
+            const customDatesText = document.getElementById('customDates').value;
+            if (!customDatesText) {
+              showMessage('Please select at least one date using the calendar or enter dates manually', 'error');
+              return;
+            }
+            dates = customDatesText.split('\n')
+              .map(line => line.trim())
+              .filter(line => line.length > 0)
+              .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+          }
+          if (dates.length === 0) {
+            showMessage('Please enter valid dates in YYYY-MM-DD format', 'error');
+            return;
+          }
+        }
+        
+        if (dates.length === 0) {
+          showMessage('No dates generated', 'error');
+          return;
+        }
+        
+        // Get common fields from form
+        const eventTitle = document.getElementById('seriesEventTitle').value.trim();
+        if (!eventTitle) {
+          showMessage('Event title is required', 'error');
+          return;
+        }
+        
+        const description = document.getElementById('seriesDescription').value.trim() || null;
+        const startTime = document.getElementById('seriesStartTime').value || null;
+        const endTime = document.getElementById('seriesEndTime').value || null;
+        const email = document.getElementById('seriesEmail').value.trim() || null;
+        const website = document.getElementById('seriesWebsite').value.trim() || null;
+        const registrationLink = document.getElementById('seriesRegistrationLink').value.trim() || null;
+        const externalImageUrl = document.getElementById('seriesExternalImageUrl').value.trim() || null;
+        const cost = document.getElementById('seriesCost').value.trim() || null;
+        const primaryTagId = document.getElementById('seriesPrimaryTag').value || null;
+        if (!primaryTagId) {
+          showMessage('Primary tag is required', 'error');
+          return;
+        }
+        const secondaryTagId = document.getElementById('seriesSecondaryTag').value || null;
+        const locationId = document.getElementById('seriesLocationId').value || null;
+        const organizationId = document.getElementById('seriesOrganizationId').value || null;
+        const locationAdded = document.getElementById('seriesLocationAdded').value.trim() || null;
+        const organizationAdded = document.getElementById('seriesOrganizationAdded').value.trim() || null;
+        const registration = document.getElementById('seriesRegistration').checked;
+        const excludeFromCalendar = document.getElementById('seriesExcludeFromCalendar').checked;
+        const featured = document.getElementById('seriesFeatured').checked;
+        const createParent = document.getElementById('seriesCreateParent').checked;
+        const comments = document.getElementById('seriesComments').value.trim() || null;
+        const saveAsDraft = document.getElementById('seriesSaveAsDraft').checked;
+        
+        // Determine parent event ID
+        let parentEventId = seriesTemplateEvent?.parent_event_id || null;
+        
+        // Create parent event if requested and template doesn't have one
+        if (createParent && !parentEventId) {
+          try {
+            // Create a basic parent event
+            const parentEventData = {
+              title: eventTitle + ' (Series)',
+              description: description || `Parent event for ${eventTitle} series`,
+              start_date: dates[0], // Use first date as placeholder
+              primary_tag_id: primaryTagId,
+              secondary_tag_id: secondaryTagId || null,
+              location_id: locationId || null,
+              organization_id: organizationId || null,
+              status: 'approved', // Parent events are always approved
+              exclude_from_calendar: true, // Parent events typically excluded from calendar
+            };
+            
+            const parentResponse = await fetch('/api/admin/events/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(parentEventData),
+            });
+            
+            if (parentResponse.ok) {
+              const parentData = await parentResponse.json();
+              parentEventId = parentData.event.id;
+              
+              // If we're creating from an existing event, link the original event to the parent
+              if (seriesOriginalEventId) {
+                try {
+                  const updateResponse = await fetch('/api/admin/events', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      id: seriesOriginalEventId,
+                      parent_event_id: parentEventId,
+                    }),
+                  });
+                  
+                  if (!updateResponse.ok) {
+                    // Failed to link original event to parent, but continuing with series creation
+                  }
+                } catch (updateError) {
+                  // Error linking original event to parent, but continuing
+                  // Don't fail the whole operation if this update fails
+                }
+              }
+            } else {
+              const errorData = await parentResponse.json();
+              throw new Error(errorData.error || 'Failed to create parent event');
+            }
+          } catch (error) {
+            showMessage('Error creating parent event: ' + error.message, 'error');
+            return;
+          }
+        }
+        
+        // Build events array from form values
+        const events = dates.map(date => {
+          const eventData = {
+            title: eventTitle, // Already validated above
+            description: description,
+            start_date: date,
+            end_date: null, // Series events typically don't have end dates, but could be added later
+            start_time: startTime,
+            end_time: endTime,
+            email: email,
+            website: website,
+            registration_link: registrationLink,
+            external_image_url: externalImageUrl,
+            cost: cost,
+            primary_tag_id: primaryTagId, // Already validated above
+            secondary_tag_id: secondaryTagId || null,
+            parent_event_id: parentEventId, // Use the parent event ID (either existing or newly created)
+            registration: registration,
+            exclude_from_calendar: excludeFromCalendar,
+            featured: featured,
+            status: saveAsDraft ? 'pending' : 'approved', // Use draft checkbox
+            comments: comments,
+            location_id: locationId || null,
+            organization_id: organizationId || null,
+          };
+          
+          return eventData;
+        });
+        
+        try {
+          const response = await fetch('/api/admin/events/bulk-create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              events,
+              location_added: locationAdded,
+              organization_added: organizationAdded,
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            showMessage(`Successfully created ${data.count || events.length} event${events.length !== 1 ? 's' : ''}!`, 'success');
+            closeSeriesModal();
+            // Reload events
+            await Promise.all([
+              loadEventsToApprove(),
+              loadIncompleteEvents()
+            ]);
+          } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            const errorMessage = errorData.error || errorData.details || 'Failed to create events';
+            console.error('Bulk create error:', errorData);
+            throw new Error(errorMessage);
+          }
+        } catch (error) {
+          console.error('Error creating series:', error);
+          showMessage('Error creating series: ' + (error.message || 'Unknown error'), 'error');
+        }
+      });
+    }
   });
 </script>
 </body>

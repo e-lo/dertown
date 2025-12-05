@@ -131,9 +131,21 @@
         <label class="form-label">Admin Comments:</label>
         <textarea id="editEventComments" rows="2" placeholder="Internal notes (not published)" class="form-input-base"></textarea>
       </div>
-      <div class="form-actions">
-        <button type="button" onclick="closeEditEventModal()" class="btn-cancel">Cancel</button>
-        <button type="submit" class="btn-save">Save Changes</button>
+      <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" onclick="duplicateCurrentEvent()" class="btn-duplicate">
+            <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">content_copy</span>
+            Duplicate
+          </button>
+          <button type="button" onclick="createSeriesFromCurrentEvent()" class="btn-series">
+            <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">repeat</span>
+            Create Series
+          </button>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" onclick="closeEditEventModal()" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </div>
       </div>
     </form>
   </div>
