@@ -1,0 +1,317 @@
+---
+// Server-side logic for series detail page
+import { checkAdminAccess, getSessionFromCookies } from '../../../lib/session';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+// Check if user is already logged in using cookies
+const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
+
+if (!isAdmin) {
+  // Redirect to login with current URL as redirect parameter
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+// Get user info for display
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+const { parentId } = Astro.params;
+
+if (!parentId) {
+  return Astro.redirect('/admin/series');
+}
+
+// Fetch series data using Supabase directly
+let seriesData = null;
+try {
+  // Get parent event
+  const { data: parentEvent, error: parentError } = await supabaseAdmin
+    .from('events')
+    .select(`
+      *,
+      primary_tag:tags!events_primary_tag_id_fkey(name),
+      secondary_tag:tags!events_secondary_tag_id_fkey(name),
+      location:locations!events_location_id_fkey(name, address),
+      organization:organizations!events_organization_id_fkey(name)
+    `)
+    .eq('id', parentId)
+    .single();
+
+  if (parentError || !parentEvent) {
+    return Astro.redirect('/admin/series');
+  }
+
+  // Get child events
+  const { data: childEvents, error: childError } = await supabaseAdmin
+    .from('events')
+    .select(`
+      *,
+      primary_tag:tags!events_primary_tag_id_fkey(name),
+      secondary_tag:tags!events_secondary_tag_id_fkey(name),
+      location:locations!events_location_id_fkey(name, address),
+      organization:organizations!events_organization_id_fkey(name)
+    `)
+    .eq('parent_event_id', parentId)
+    .order('start_date', { ascending: true });
+
+  if (childError) {
+    console.error('Error fetching child events:', childError);
+    return Astro.redirect('/admin/series');
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const futureChildren = (childEvents || []).filter((c: any) => c.start_date >= today);
+  const pastChildren = (childEvents || []).filter((c: any) => c.start_date < today);
+  const allDates = (childEvents || []).map((c: any) => c.start_date).filter(Boolean).sort();
+  const dateRange = allDates.length > 0 
+    ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
+    : null;
+
+  seriesData = {
+    parent: parentEvent,
+    children: childEvents || [],
+    totalCount: (childEvents || []).length,
+    futureCount: futureChildren.length,
+    pastCount: pastChildren.length,
+    dateRange,
+  };
+} catch (error) {
+  console.error('Error fetching series data:', error);
+  return Astro.redirect('/admin/series');
+}
+
+import '../../../styles/global.css';
+import '../../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Series: {seriesData.parent.title || 'Untitled'} - Admin Dashboard - Der Town</title>
+  <!-- Material Symbols & Icons Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Series: {seriesData.parent.title || 'Untitled'}</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin/series" class="icon-btn btn-edit" aria-label="Back to Series">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Series</span>
+      </a>
+      <button class="icon-btn btn-edit" onclick="editSeries()" aria-label="Edit Series">
+        <span class="material-symbols-outlined text-2xl">edit</span>
+        <span class="tooltip">Edit Series</span>
+      </button>
+      <button class="icon-btn btn-create" onclick="addOccurrences()" aria-label="Add Occurrences">
+        <span class="material-symbols-outlined text-2xl">add</span>
+        <span class="tooltip">Add Occurrences</span>
+      </button>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+
+  <!-- Series Summary -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">info</span>
+        Series Summary
+      </div>
+    </div>
+    <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Total Events</p>
+          <p class="text-2xl font-bold text-gray-900">{seriesData.totalCount}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Future Events</p>
+          <p class="text-2xl font-bold text-green-600">{seriesData.futureCount}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Past Events</p>
+          <p class="text-2xl font-bold text-gray-600">{seriesData.pastCount}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Date Range</p>
+          <p class="text-sm font-semibold text-gray-900">
+            {seriesData.dateRange ? (
+              <>
+                {new Date(seriesData.dateRange.earliest).toLocaleDateString()} - {new Date(seriesData.dateRange.latest).toLocaleDateString()}
+              </>
+            ) : 'N/A'}
+          </p>
+        </div>
+      </div>
+      {seriesData.parent.location?.name && (
+        <div class="mt-4">
+          <p class="text-sm text-gray-600 mb-1">Location</p>
+          <p class="text-base font-medium text-gray-900">{seriesData.parent.location.name}</p>
+        </div>
+      )}
+      {seriesData.parent.organization?.name && (
+        <div class="mt-2">
+          <p class="text-sm text-gray-600 mb-1">Organization</p>
+          <p class="text-base font-medium text-gray-900">{seriesData.parent.organization.name}</p>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- Events in Series -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">event</span>
+        Events in Series
+      </div>
+    </div>
+    <div id="events-loading" class="loading">Loading events...</div>
+    <div id="events-container"></div>
+  </div>
+</div>
+
+<script define:vars={{ seriesData }}>
+  // Series data from server (passed via define:vars)
+
+  // Logout function
+  async function logout() {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      window.location.href = '/login';
+    }
+  }
+
+  // Message display function
+  function showMessage(message, type = 'info') {
+    const messageDiv = document.getElementById('message');
+    if (!messageDiv) return;
+    
+    messageDiv.textContent = message;
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+      type === 'error' ? 'bg-red-600' : 
+      type === 'success' ? 'bg-green-600' : 
+      'bg-blue-600'
+    }`;
+    
+    setTimeout(() => {
+      messageDiv.textContent = '';
+      messageDiv.className = '';
+    }, 5000);
+  }
+
+  // Display events in series
+  function displayEvents() {
+    const container = document.getElementById('events-container');
+    const loading = document.getElementById('events-loading');
+    
+    if (loading) loading.style.display = 'none';
+    if (!container) return;
+
+    const events = seriesData.children || [];
+    
+    if (events.length === 0) {
+      container.innerHTML = '<p class="text-gray-600">No events in this series.</p>';
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    let html = '<table class="data-table"><thead><tr>';
+    html += '<th>Date</th>';
+    html += '<th>Time</th>';
+    html += '<th>Title</th>';
+    html += '<th>Location</th>';
+    html += '<th>Status</th>';
+    html += '<th>Actions</th>';
+    html += '</tr></thead><tbody>';
+    
+    events.forEach(event => {
+      const isFuture = event.start_date >= today;
+      const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
+      const timeStr = event.start_time || 'N/A';
+      const location = event.location?.name || 'N/A';
+      const statusBadge = isFuture 
+        ? '<span class="badge bg-green-100 text-green-800">Future</span>'
+        : '<span class="badge bg-gray-100 text-gray-800">Past</span>';
+      
+      html += '<tr>';
+      html += `<td>${dateStr}</td>`;
+      html += `<td>${timeStr}</td>`;
+      html += `<td>${event.title || 'Untitled'}</td>`;
+      html += `<td>${location}</td>`;
+      html += `<td>${statusBadge}</td>`;
+      html += '<td style="text-align: center; white-space: nowrap;">';
+      html += `<button onclick="editEvent('${event.id}')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit event">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span>';
+      html += '<span class="tooltip">Edit</span></button>';
+      html += `<button onclick="duplicateEvent('${event.id}')" class="icon-btn" style="padding: 0.5rem; min-width: auto; background-color: #e0e7ff; color: #4f46e5;" aria-label="Duplicate event">`;
+      html += '<span class="material-symbols-outlined" style="font-size: 1.25rem;">content_copy</span>';
+      html += '<span class="tooltip">Duplicate</span></button>';
+      html += '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // Edit event - redirect to admin page
+  window.editEvent = function(eventId) {
+    window.location.href = `/admin?editEvent=${eventId}`;
+  };
+
+  // Duplicate event - fetch and open duplicate modal on admin page
+  window.duplicateEvent = async function(eventId) {
+    // Redirect to admin page which will handle the duplicate
+    // We'll use a URL parameter that the admin page can detect
+    window.location.href = `/admin?duplicateEvent=${eventId}`;
+  };
+
+  // Edit series - redirect to admin/series with edit action
+  window.editSeries = function() {
+    window.location.href = `/admin/series?editSeries=${seriesData.parent.id}`;
+  };
+
+  // Add occurrences - redirect to admin/series with add action
+  window.addOccurrences = function() {
+    window.location.href = `/admin/series?addOccurrences=${seriesData.parent.id}`;
+  };
+
+  // Load data on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    displayEvents();
+  });
+</script>
+
+</body>
+</html>
+
