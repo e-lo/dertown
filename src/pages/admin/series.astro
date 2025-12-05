@@ -298,11 +298,16 @@ import '../../styles/admin.css';
 
 
   // Global state for series editing
-  let currentSeriesData = null;
-  let allTags = [];
-  let allLocations = [];
-  let allOrganizations = [];
-  let originalFormValues = {}; // Store original values to detect changes
+  let currentSeriesData: any = null;
+  let allTags: any[] = [];
+  let allLocations: any[] = [];
+  let allOrganizations: any[] = [];
+  let originalFormValues: any = {}; // Store original values to detect changes
+  
+  // Calendar state for "Add Occurrences" modal
+  let addOccCalendarCurrentMonth = new Date().getMonth();
+  let addOccCalendarCurrentYear = new Date().getFullYear();
+  let addOccSelectedDatesSet = new Set<string>();
 
   // Load reference data
   async function loadReferenceData() {
@@ -848,7 +853,27 @@ import '../../styles/admin.css';
 
       // Get template from first child event
       const template = series.children[0];
-      const latestDate = series.dateRange?.latest || new Date().toISOString().split('T')[0];
+      const seriesLatestDate = series.dateRange?.latest;
+      
+      // Reset calendar state
+      addOccSelectedDatesSet.clear();
+      
+      // Start calendar at current month (or month of latest date if it's in the future)
+      const today = new Date();
+      if (seriesLatestDate) {
+        const latest = new Date(seriesLatestDate + 'T00:00:00');
+        // Use the later of today or the latest date
+        if (latest > today) {
+          addOccCalendarCurrentMonth = latest.getMonth();
+          addOccCalendarCurrentYear = latest.getFullYear();
+        } else {
+          addOccCalendarCurrentMonth = today.getMonth();
+          addOccCalendarCurrentYear = today.getFullYear();
+        }
+      } else {
+        addOccCalendarCurrentMonth = today.getMonth();
+        addOccCalendarCurrentYear = today.getFullYear();
+      }
 
       // Build simplified form - just date selection and pattern
       let formHtml = `
@@ -864,19 +889,44 @@ import '../../styles/admin.css';
         </div>
         <div id="addOccWeeklyOptions" class="form-field hidden">
           <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
-          <input type="date" id="addOccStartDate" class="form-input-base" min="${latestDate}" onchange="updateAddOccPreview()">
+          <input type="date" id="addOccStartDate" class="form-input-base" min="${seriesLatestDate || new Date().toISOString().split('T')[0]}" onchange="updateAddOccPreview()">
           <label class="form-label mt-2">Number of occurrences:</label>
           <input type="number" id="addOccOccurrences" min="1" max="52" value="4" class="form-input-base" onchange="updateAddOccPreview()">
         </div>
         <div id="addOccMonthlyOptions" class="form-field hidden">
           <label class="form-label">Start Date: <span class="form-label-required">*</span></label>
-          <input type="date" id="addOccStartDateMonthly" class="form-input-base" min="${latestDate}" onchange="updateAddOccPreview()">
+          <input type="date" id="addOccStartDateMonthly" class="form-input-base" min="${seriesLatestDate || new Date().toISOString().split('T')[0]}" onchange="updateAddOccPreview()">
           <label class="form-label mt-2">Number of occurrences:</label>
           <input type="number" id="addOccOccurrencesMonthly" min="1" max="24" value="3" class="form-input-base" onchange="updateAddOccPreview()">
         </div>
         <div id="addOccCustomOptions" class="form-field hidden">
-          <label class="form-label">Enter dates (YYYY-MM-DD, one per line): <span class="form-label-required">*</span></label>
-          <textarea id="addOccCustomDates" rows="5" class="form-input-base" placeholder="2025-01-15&#10;2025-01-22&#10;2025-01-29" onchange="updateAddOccPreview()"></textarea>
+          <label class="form-label">Select Dates: <span class="form-label-required">*</span></label>
+          <div class="flex items-center justify-between mb-2">
+            <button type="button" onclick="changeAddOccCalendarMonth(-1)" class="btn-secondary px-3 py-1 rounded-md">Prev</button>
+            <span id="addOccCalendarMonthYear" class="font-semibold text-lg"></span>
+            <button type="button" onclick="changeAddOccCalendarMonth(1)" class="btn-secondary px-3 py-1 rounded-md">Next</button>
+          </div>
+          <div id="addOccCalendarGrid" class="grid grid-cols-7 gap-1 text-center">
+            <!-- Weekday headers -->
+            <div class="font-medium text-sm text-gray-500">Sun</div>
+            <div class="font-medium text-sm text-gray-500">Mon</div>
+            <div class="font-medium text-sm text-gray-500">Tue</div>
+            <div class="font-medium text-sm text-gray-500">Wed</div>
+            <div class="font-medium text-sm text-gray-500">Thu</div>
+            <div class="font-medium text-sm text-gray-500">Fri</div>
+            <div class="font-medium text-sm text-gray-500">Sat</div>
+            <!-- Days will be populated here -->
+          </div>
+          <div id="addOccSelectedDatesList" class="mt-4 p-2 border border-gray-300 rounded-md bg-gray-50 min-h-[40px] flex flex-wrap gap-2 items-center">
+            <p class="text-sm text-gray-500 m-0">No dates selected</p>
+          </div>
+          <input type="hidden" id="addOccCustomDates"> <!-- Hidden input to store selected dates -->
+          <p class="mt-1 text-sm text-gray-500">Click dates on the calendar to select/deselect them.</p>
+          <!-- Manual Entry Option -->
+          <details class="mt-4">
+            <summary class="text-sm text-gray-600 cursor-pointer hover:text-gray-800">Or enter dates manually (YYYY-MM-DD, one per line)</summary>
+            <textarea id="addOccCustomDatesManual" rows="3" placeholder="2025-01-15&#10;2025-01-22&#10;2025-01-29" class="form-input-base mt-2" onchange="updateAddOccCustomDatesFromManual()"></textarea>
+          </details>
         </div>
         <div id="addOccPreview" class="form-field hidden">
           <label class="form-label">Preview Dates:</label>
@@ -886,6 +936,13 @@ import '../../styles/admin.css';
       `;
 
       form.innerHTML = formHtml + form.innerHTML; // Keep submit button
+
+      // Initialize calendar for custom dates if pattern is custom
+      setTimeout(() => {
+        if (document.getElementById('addOccPattern')?.value === 'custom') {
+          initAddOccCalendarMultiPicker();
+        }
+      }, 50);
 
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -912,8 +969,190 @@ import '../../styles/admin.css';
       monthly.classList.remove('hidden');
     } else if (pattern === 'custom' && custom) {
       custom.classList.remove('hidden');
+      // Initialize calendar when custom option is shown
+      setTimeout(() => {
+        initAddOccCalendarMultiPicker();
+      }, 50);
     }
     
+    updateAddOccPreview();
+  };
+  
+  // ============================================================================
+  // CALENDAR MULTI-PICKER FUNCTIONS FOR "ADD OCCURRENCES" MODAL
+  // ============================================================================
+  
+  /**
+   * Initializes the calendar multi-picker for Add Occurrences modal
+   */
+  function initAddOccCalendarMultiPicker() {
+    renderAddOccCalendar();
+    updateAddOccSelectedDatesDisplay();
+  }
+  
+  /**
+   * Renders the calendar grid for the current month (Add Occurrences)
+   */
+  function renderAddOccCalendar() {
+    const grid = document.getElementById('addOccCalendarGrid');
+    const monthYearEl = document.getElementById('addOccCalendarMonthYear');
+    
+    if (!grid || !monthYearEl) return;
+    
+    // Clear existing day cells (keep headers)
+    while (grid.children.length > 7) {
+      grid.removeChild(grid.lastChild!);
+    }
+    
+    // Update month/year display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    monthYearEl.textContent = `${monthNames[addOccCalendarCurrentMonth]} ${addOccCalendarCurrentYear}`;
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth, 1);
+    const lastDay = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'h-10';
+      grid.appendChild(emptyCell);
+    }
+    
+    // Add cells for each day of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth, day);
+      const dateStr = date.toISOString().split('T')[0];
+      const isSelected = addOccSelectedDatesSet.has(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      const isToday = dateOnly.getTime() === today.getTime();
+      
+      // Allow all dates to be selectable (no restriction based on latest date)
+      // Users can add occurrences anywhere in the series timeline
+      const dayCell = document.createElement('div');
+      dayCell.className = `h-10 flex items-center justify-center rounded transition-colors ${
+        isSelected 
+          ? 'bg-indigo-500 text-white font-semibold cursor-pointer' 
+          : isToday
+          ? 'bg-blue-100 text-blue-700 font-semibold cursor-pointer'
+          : 'hover:bg-gray-100 text-gray-700 cursor-pointer'
+      }`;
+      dayCell.textContent = String(day);
+      
+      dayCell.setAttribute('data-date', dateStr);
+      dayCell.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleAddOccDateSelection(dateStr);
+      });
+      
+      grid.appendChild(dayCell);
+    }
+  }
+  
+  /**
+   * Toggles date selection (Add Occurrences)
+   */
+  function toggleAddOccDateSelection(dateStr: string) {
+    if (addOccSelectedDatesSet.has(dateStr)) {
+      addOccSelectedDatesSet.delete(dateStr);
+    } else {
+      addOccSelectedDatesSet.add(dateStr);
+    }
+    renderAddOccCalendar();
+    updateAddOccSelectedDatesDisplay();
+    updateAddOccCustomDatesInput();
+    updateAddOccPreview();
+  }
+  
+  // Make it globally accessible for onclick handlers
+  (window as any).toggleAddOccDateSelection = toggleAddOccDateSelection;
+  
+  /**
+   * Changes the calendar month (Add Occurrences)
+   */
+  window.changeAddOccCalendarMonth = function(delta: number) {
+    addOccCalendarCurrentMonth += delta;
+    if (addOccCalendarCurrentMonth < 0) {
+      addOccCalendarCurrentMonth = 11;
+      addOccCalendarCurrentYear--;
+    } else if (addOccCalendarCurrentMonth > 11) {
+      addOccCalendarCurrentMonth = 0;
+      addOccCalendarCurrentYear++;
+    }
+    renderAddOccCalendar();
+  };
+  
+  /**
+   * Updates the selected dates display (Add Occurrences)
+   */
+  function updateAddOccSelectedDatesDisplay() {
+    const listEl = document.getElementById('addOccSelectedDatesList');
+    if (!listEl) return;
+    
+    const sortedDates = Array.from(addOccSelectedDatesSet).sort();
+    
+    if (sortedDates.length === 0) {
+      listEl.innerHTML = '<p class="text-sm text-gray-500 m-0">No dates selected</p>';
+      return;
+    }
+    
+    listEl.innerHTML = sortedDates.map((dateStr: string) => {
+      const date = new Date(dateStr + 'T00:00:00'); // Add time to avoid timezone issues
+      return `<span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm">
+        ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        <button type="button" onclick="removeAddOccDate('${dateStr}')" class="text-indigo-600 hover:text-indigo-800" aria-label="Remove date">×</button>
+      </span>`;
+    }).join('');
+  }
+  
+  /**
+   * Removes a date from selection (Add Occurrences)
+   */
+  window.removeAddOccDate = function(dateStr: string) {
+    addOccSelectedDatesSet.delete(dateStr);
+    renderAddOccCalendar();
+    updateAddOccSelectedDatesDisplay();
+    updateAddOccCustomDatesInput();
+    updateAddOccPreview();
+  };
+  
+  /**
+   * Updates the hidden input with selected dates (Add Occurrences)
+   */
+  function updateAddOccCustomDatesInput() {
+    const input = document.getElementById('addOccCustomDates') as HTMLInputElement;
+    if (input) {
+      input.value = Array.from(addOccSelectedDatesSet).sort().join('\n');
+    }
+  }
+  
+  /**
+   * Updates custom dates from manual entry (Add Occurrences)
+   */
+  window.updateAddOccCustomDatesFromManual = function() {
+    const manualInput = document.getElementById('addOccCustomDatesManual') as HTMLTextAreaElement;
+    if (!manualInput) return;
+
+    const lines = manualInput.value.split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0)
+      .filter((line: string) => /^\d{4}-\d{2}-\d{2}$/.test(line));
+
+    // Add valid dates to selection
+    lines.forEach((dateStr: string) => {
+      addOccSelectedDatesSet.add(dateStr);
+    });
+
+    renderAddOccCalendar();
+    updateAddOccSelectedDatesDisplay();
+    updateAddOccCustomDatesInput();
     updateAddOccPreview();
   };
 
@@ -951,12 +1190,18 @@ import '../../styles/admin.css';
         }
       }
     } else if (pattern === 'custom') {
-      const customDatesText = document.getElementById('addOccCustomDates')?.value;
-      if (customDatesText) {
-        dates = customDatesText.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .filter(line => /^\d{4}-\d{2}-\d{2}$/.test(line));
+      if (addOccSelectedDatesSet.size > 0) {
+        // Use dates from calendar picker
+        dates = Array.from(addOccSelectedDatesSet).sort();
+      } else {
+        // Fall back to manual input
+        const customDatesText = (document.getElementById('addOccCustomDatesManual') as HTMLTextAreaElement)?.value;
+        if (customDatesText) {
+          dates = customDatesText.split('\n')
+            .map((line: string) => line.trim())
+            .filter((line: string) => line.length > 0)
+            .filter((line: string) => /^\d{4}-\d{2}-\d{2}$/.test(line));
+        }
       }
     }
 
