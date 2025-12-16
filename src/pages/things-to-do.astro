@@ -30,7 +30,35 @@ import Accordian from '../components/ui/Accordian.astro';
         <QuickNavItem title="Community" link="#community" icon="groups" />
         <QuickNavItem title="Volunteering" link="#volunteering" icon="volunteer_activism" />
         <QuickNavItem title="Environmental" link="#environmental" icon="nature" />
-        <QuickNavItem title="Seasonal" link="#seasonal" icon="calendar_month" />
+      </div>
+    </div>
+
+    <!-- Seasonal Activities Section -->
+    <div id="seasonal" class="bg-blue py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Seasonal Activities"
+          icon="calendar_month"
+          text="Current seasonal programs and activities happening this winter."
+        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <LinkBox
+            title="Plain Valley Adventure Women (PVAW)"
+            text="Join local women for cross-country skiing programs at Plain Valley Ski Trails. Programs include Classic and Skate ski technique sessions, wax clinics, snowshoe community groups, and social events."
+            subtext="Classic Ski (Jan 6-22), Skate Ski (Jan 27-Feb 12). Includes wax clinics, snowshoe group, and community ski days."
+            link="https://www.skiplain.com/pvaw-winter"
+            icon="downhill_skiing"
+            external={true}
+          />
+          <LinkBox
+            title="Leavenworth Nordic Clinics"
+            text="Enhance your cross-country skiing skills with clinics offered by the Leavenworth Winter Sports Club at Icicle River Trails. Multi-week and single-day options available for all skill levels."
+            subtext="Multi-week clinics (Jan 6-29) and single-day sessions. Classic and Skate skiing techniques available."
+            link="https://skileavenworth.com/nordic-clinics"
+            icon="snowshoeing"
+            external={true}
+          />
+        </div>
       </div>
     </div>
 
@@ -137,14 +165,6 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Facebook community group for local hikers"
               link="https://www.facebook.com/groups/hikeleavenworth/"
               icon="hiking"
-              external={true}
-            />
-            <LinkBox
-              title="Bavarian Boondockers"
-              text="Snowmobile club promoting responsible backcountry riding and trail maintenance in the Leavenworth area"
-              subtext="Monthly meetings, trail maintenance, charitable activities, winter recreation"
-              link="https://www.bavarianboondockers.com/"
-              icon="snowmobile"
               external={true}
             />
             <LinkBox
@@ -289,7 +309,7 @@ import Accordian from '../components/ui/Accordian.astro';
     </div>
 
     <!-- Community Programs Section -->
-    <div id="community" class="bg-green py-8 full-width-section">
+    <div id="community" class="bg-purple py-8 full-width-section">
           <SectionHeader
             title="Community Programs"
             icon="groups"
@@ -304,7 +324,7 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Meets 1st Thursday 6:30 PM & 3rd Thursday 9:00 AM at Kristall's Restaurant"
               link="https://e-clubhouse.org/sites/leavenworthwa/"
               icon="volunteer_activism"
-              iconColor="text-green-600"
+              iconColor="text-purple-600"
               external={true}
             />
             <LinkListItem
@@ -313,7 +333,7 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Weekly meetings and community service projects"
               link="https://leavenworthrotarywa.com/"
               icon="groups"
-              iconColor="text-green-600"
+              iconColor="text-purple-600"
               external={true}
             />
             <LinkListItem
@@ -322,7 +342,7 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Facebook community group for local seniors"
               link="https://www.facebook.com/leavenworthseniors/"
               icon="elderly"
-              iconColor="text-green-600"
+              iconColor="text-purple-600"
               external={true}
             />
         </div>
@@ -366,7 +386,7 @@ import Accordian from '../components/ui/Accordian.astro';
       </div>
     </div>
     <!-- Volunteering Section -->
-    <div id="volunteering" class="bg-purple py-8">
+    <div id="volunteering" class="bg-green py-8">
       <div class="w-full px-4 sm:px-6 lg:px-8">
         <SectionHeader
           title="Volunteering"
@@ -507,23 +527,6 @@ import Accordian from '../components/ui/Accordian.astro';
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Seasonal Activities Section -->
-    <div id="seasonal" class="floating-section-background">
-      <div class="floating-section-foreground bg-yellow">
-          <SectionHeader
-            title="Seasonal Activities"
-            icon="calendar_month"
-            text="Information Coming Soon"
-          />
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <p class="text-gray-600">
-              We're gathering information about summer camps, holiday events, and seasonal activities. 
-              Check back soon for details about seasonal programs and opportunities for families.
-            </p>
-          </div>
-        </div>
     </div>
 
     <!-- Disclaimer -->
