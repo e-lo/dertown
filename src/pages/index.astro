@@ -12,6 +12,12 @@ const events = filterCurrentAndFutureEvents(allEvents || []);
 
 if (error) {
   console.error('Error fetching events:', error);
+  if (String(error?.message || '').toLowerCase().includes('fetch failed')) {
+    console.error(
+      'Supabase unreachable. If using local: run `supabase start` (requires Docker). ' +
+      'If using hosted: set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_KEY in .env or .env.local.'
+    );
+  }
 }
 
 // Fetch published announcements
@@ -19,6 +25,12 @@ const { data: announcements, error: announcementsError } = await db.announcement
 
 if (announcementsError) {
   console.error('Error fetching announcements:', announcementsError);
+  if (String(announcementsError?.message || '').toLowerCase().includes('fetch failed')) {
+    console.error(
+      'Supabase unreachable. If using local: run `supabase start` (requires Docker). ' +
+      'If using hosted: set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_KEY in .env or .env.local.'
+    );
+  }
 }
 ---
 
