@@ -14,15 +14,16 @@ async function sendEmail(subject: string, body: string, fromEmail: string) {
   if (RESEND_API_KEY) {
     try {
       const resend = new Resend(RESEND_API_KEY);
-      
+
       // Use Resend's test domain for unverified accounts, or your verified domain
-      const fromEmailAddress = import.meta.env.RESEND_FROM_EMAIL || 'Der Town <onboarding@resend.dev>';
-      
+      const fromEmailAddress =
+        import.meta.env.RESEND_FROM_EMAIL || 'Der Town <onboarding@resend.dev>';
+
       // Resend free tier only allows sending to your account email until domain is verified
       // Make sure RECIPIENT_EMAIL matches your Resend account email
       console.log('[RESEND] Sending email to:', RECIPIENT_EMAIL);
       console.log('[RESEND] From address:', fromEmailAddress);
-      
+
       const { data, error } = await resend.emails.send({
         from: fromEmailAddress,
         to: [RECIPIENT_EMAIL], // Must be your Resend account email (dertownleavenworth@gmail.com)
@@ -56,7 +57,7 @@ async function sendEmail(subject: string, body: string, fromEmail: string) {
     console.log('To view emails in Inbucket, visit: http://localhost:54324');
     return { success: true, method: 'local-log' };
   }
-  
+
   console.warn('[EMAIL] No email service configured. Email not sent.');
   console.log('Email would be sent to:', RECIPIENT_EMAIL);
   console.log('Subject:', subject);
@@ -104,13 +105,17 @@ This email was sent from the Der Town event edit suggestion form.
     }
 
     // Always return success to the user (we don't want to expose email failures)
-    return new Response(JSON.stringify({ 
-      success: true,
-      message: 'Thank you for your suggestion! We will review it and update the event if appropriate.'
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message:
+          'Thank you for your suggestion! We will review it and update the event if appropriate.',
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Error processing edit suggestion:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -119,4 +124,3 @@ This email was sent from the Der Town event edit suggestion form.
     });
   }
 };
-

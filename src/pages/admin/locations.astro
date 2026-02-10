@@ -1,0 +1,206 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+import AddLocationModal from '../../components/ui/AddLocationModal.astro';
+import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../../styles/global.css';
+import '../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Locations - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Locations</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <button type="button" onclick="window.openAddLocationModal?.()" class="btn-save">
+        <span class="material-symbols-outlined text-lg align-middle mr-1">add</span>
+        Add location
+      </button>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <AddLocationModal />
+  <AdminAuthRefresh />
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">location_on</span>
+        All locations
+      </div>
+    </div>
+    <div class="mb-4 relative max-w-md">
+      <label for="location-search" class="sr-only">Search locations</label>
+      <input type="text" id="location-search" class="form-input-base w-full" placeholder="Type to search locations..." autocomplete="off" />
+      <div id="location-search-dropdown" class="autocomplete-dropdown hidden"></div>
+    </div>
+    <div id="locations-loading" class="loading">Loading locations...</div>
+    <div id="locations-container"></div>
+  </div>
+</div>
+
+<script>
+  let locations = [];
+
+  async function loadLocations() {
+    const el = document.getElementById('locations-loading');
+    const container = document.getElementById('locations-container');
+    if (!el || !container) return;
+    try {
+      const res = await fetch('/api/admin/locations?all=true', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load locations');
+      locations = await res.json();
+      renderLocations();
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-600">' + (err.message || 'Failed to load locations') + '</p>';
+    } finally {
+      el.classList.add('hidden');
+    }
+  }
+
+  let locationSearchQuery = '';
+
+  function getFilteredLocations() {
+    const q = locationSearchQuery.toLowerCase().trim();
+    if (!q) return locations;
+    return locations.filter(loc => {
+      const name = (loc.name || '').toLowerCase();
+      const address = (loc.address || '').toLowerCase();
+      return name.includes(q) || address.includes(q);
+    });
+  }
+
+  function renderLocations() {
+    const container = document.getElementById('locations-container');
+    if (!container) return;
+    if (!locations.length) {
+      container.innerHTML = '<p class="text-gray-600">No locations yet. Click “Add location” to create one.</p>';
+      return;
+    }
+    const list = getFilteredLocations();
+    const table = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden"><thead class="bg-gray-100"><tr><th class="text-left p-3">Name</th><th class="text-left p-3">Address</th><th class="text-left p-3">Status</th><th class="w-24 p-3"></th></tr></thead><tbody>' +
+      list.map(loc => '<tr id="location-row-' + loc.id + '" class="location-row border-t border-gray-200 hover:bg-gray-50"><td class="p-3 font-medium">' + (loc.name || '') + '</td><td class="p-3 text-gray-600">' + (loc.address || '—') + '</td><td class="p-3"><span class="text-sm ' + (loc.status === 'approved' ? 'text-green-600' : 'text-amber-600') + '">' + (loc.status || '') + '</span></td><td class="p-3" style="white-space: nowrap;"><a href="/locations/' + loc.id + '" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span><span class="tooltip">View</span></a><button type="button" onclick="editLocation(\'' + loc.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button></td></tr>').join('') +
+      '</tbody></table>';
+    container.innerHTML = list.length ? table : '<p class="text-gray-600">No locations match “' + (locationSearchQuery || '').replace(/</g, '&lt;') + '”.</p>';
+  }
+
+  function setupLocationSearch() {
+    const input = document.getElementById('location-search');
+    const dropdown = document.getElementById('location-search-dropdown');
+    if (!input || !dropdown) return;
+
+    function closeDropdown() {
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      dropdown.innerHTML = '';
+    }
+
+    function showMatches() {
+      const q = input.value.toLowerCase().trim();
+      locationSearchQuery = input.value.trim();
+      renderLocations();
+      if (!q) {
+        closeDropdown();
+        return;
+      }
+      const matches = locations.filter(loc => {
+        const name = (loc.name || '').toLowerCase();
+        const address = (loc.address || '').toLowerCase();
+        return name.includes(q) || address.includes(q);
+      }).slice(0, 12);
+      if (matches.length === 0) {
+        closeDropdown();
+        return;
+      }
+      dropdown.innerHTML = matches.map(loc => {
+        const label = (loc.name || '') + (loc.address ? ' — ' + loc.address : '');
+        return '<div class="autocomplete-dropdown-item" data-id="' + loc.id + '" data-name="' + (loc.name || '').replace(/"/g, '&quot;') + '">' + label.replace(/</g, '&lt;') + '</div>';
+      }).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.getAttribute('data-id');
+          const name = el.getAttribute('data-name');
+          if (name !== null) input.value = name;
+          locationSearchQuery = name || '';
+          renderLocations();
+          closeDropdown();
+          const row = document.getElementById('location-row-' + id);
+          if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            row.classList.add('bg-indigo-50');
+            setTimeout(() => row.classList.remove('bg-indigo-50'), 2000);
+          }
+        });
+      });
+    }
+
+    input.addEventListener('input', showMatches);
+    input.addEventListener('focus', () => { if (input.value.trim()) showMatches(); });
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !dropdown.contains(e.target)) closeDropdown();
+    });
+  }
+
+  window.editLocation = function(id) {
+    window.openAddLocationModal?.(id);
+  };
+
+  window.addEventListener('admin:location-created', () => loadLocations());
+  window.addEventListener('admin:location-updated', () => loadLocations());
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadLocations();
+    setupLocationSearch();
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId && typeof window.openAddLocationModal === 'function') {
+      setTimeout(() => window.openAddLocationModal(editId), 300);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  });
+
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
+    window.location.href = '/';
+  }
+</script>
+</body>
+</html>

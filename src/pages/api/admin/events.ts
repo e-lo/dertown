@@ -18,36 +18,41 @@ export const GET: APIRoute = async ({ cookies }) => {
     // Get events that are pending (need approval) using admin client (bypasses RLS)
     // Include all pending events regardless of date, and other non-approved events that are upcoming
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Get pending events (all dates)
     const { data: pendingEvents, error: pendingError } = await supabaseAdmin
       .from('events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .eq('status', 'pending')
       .order('start_date', { ascending: true });
-    
+
     // Get other non-approved upcoming events (exclude archived)
     const { data: otherEvents, error: otherError } = await supabaseAdmin
       .from('events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .neq('status', 'approved')
       .neq('status', 'pending') // Exclude pending since we already got them
       .neq('status', 'archived') // Exclude archived events
+      .neq('status', 'cancelled') // Exclude cancelled events from dashboard
       .gte('start_date', today)
       .order('start_date', { ascending: true });
-    
+
     const error = pendingError || otherError;
     const data = [...(pendingEvents || []), ...(otherEvents || [])];
 

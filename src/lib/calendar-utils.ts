@@ -91,7 +91,7 @@ export function parseEventTimesUTC(event: EventData): {
 
   // For all-day events (no start_time), use date-only at midnight UTC
   // This ensures the date represents the correct day in Pacific time
-  const startDate = event.start_time 
+  const startDate = event.start_time
     ? createUTCDateTime(event.start_date, event.start_time)
     : createUTCDateTime(event.start_date, '00:00:00'); // All-day events use midnight
 
@@ -174,14 +174,14 @@ export function formatTime(time: string | null | undefined): string {
   if (!time) {
     return '';
   }
-  
+
   // Parse event time as locale time (stored in locale timezone)
   // Since times are stored in Pacific time, we parse them directly
   const [hours, minutes, seconds] = time.split(':').map(Number);
   const localeTZDate = new TZDate(
     2000, // Use a fixed year for time-only formatting
-    0,    // January
-    1,    // Day 1
+    0, // January
+    1, // Day 1
     hours,
     minutes,
     seconds || 0,
@@ -202,8 +202,8 @@ export function isToday(date: string | Date): boolean {
   // Get current UTC date/time (independent of server location)
   const nowUtc = new Date();
   // Convert to locale date (locale timezone) as YYYY-MM-DD
-  const todayLocaleDate = nowUtc.toLocaleDateString('en-CA', { 
-    timeZone: localeTimeZone
+  const todayLocaleDate = nowUtc.toLocaleDateString('en-CA', {
+    timeZone: localeTimeZone,
   }); // 'en-CA' gives YYYY-MM-DD format
 
   // Handle date strings - treat them as locale time dates
@@ -213,7 +213,7 @@ export function isToday(date: string | Date): boolean {
   } else {
     // Convert Date object to locale date string (locale timezone) as YYYY-MM-DD
     eventLocaleDate = date.toLocaleDateString('en-CA', {
-      timeZone: localeTimeZone
+      timeZone: localeTimeZone,
     });
   }
 
@@ -246,32 +246,56 @@ export function formatEventDateTime(event: {
         return n + 'th';
     }
   }
-  
+
   // Check if this is an all-day event (no start_time)
   const isAllDay = !event.start_time;
-  
+
   // Parse event locale date/time strings (stored in locale time) into Date objects
   // Use TZDate to create dates directly in locale timezone to avoid date shifts
   const [startYear, startMonthNum, startDayNum] = event.start_date.split('-').map(Number);
-  
+
   // For all-day events, we don't need to create a TZDate with a time
   // We'll just format the date without time
-  const startEventLocaleDay = format(new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone), 'EEE', { in: tz(localeTimeZone) });
-  const startEventLocaleMonth = format(new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone), 'MMMM', { in: tz(localeTimeZone) });
-  const startEventLocaleDateNum = parseInt(format(new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone), 'd', { in: tz(localeTimeZone) }));
-  
+  const startEventLocaleDay = format(
+    new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone),
+    'EEE',
+    { in: tz(localeTimeZone) }
+  );
+  const startEventLocaleMonth = format(
+    new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone),
+    'MMMM',
+    { in: tz(localeTimeZone) }
+  );
+  const startEventLocaleDateNum = parseInt(
+    format(new TZDate(startYear, startMonthNum - 1, startDayNum, 12, 0, 0, localeTimeZone), 'd', {
+      in: tz(localeTimeZone),
+    })
+  );
+
   let result: string;
-  
+
   if (isAllDay) {
     // All-day event: just show the date(s), no time
     result = `${startEventLocaleDay} ${startEventLocaleMonth} ${ordinal(startEventLocaleDateNum)}`;
-    
+
     // If there's an end_date, show the date range
     if (event.end_date) {
       const [endYear, endMonthNum, endDayNum] = event.end_date.split('-').map(Number);
-      const endEventLocaleDay = format(new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone), 'EEE', { in: tz(localeTimeZone) });
-      const endEventLocaleMonth = format(new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone), 'MMMM', { in: tz(localeTimeZone) });
-      const endEventLocaleDateNum = parseInt(format(new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone), 'd', { in: tz(localeTimeZone) }));
+      const endEventLocaleDay = format(
+        new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone),
+        'EEE',
+        { in: tz(localeTimeZone) }
+      );
+      const endEventLocaleMonth = format(
+        new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone),
+        'MMMM',
+        { in: tz(localeTimeZone) }
+      );
+      const endEventLocaleDateNum = parseInt(
+        format(new TZDate(endYear, endMonthNum - 1, endDayNum, 12, 0, 0, localeTimeZone), 'd', {
+          in: tz(localeTimeZone),
+        })
+      );
       result += ` – ${endEventLocaleDay} ${endEventLocaleMonth} ${ordinal(endEventLocaleDateNum)}`;
     }
   } else {
@@ -287,10 +311,10 @@ export function formatEventDateTime(event: {
       startTimeParts[2] || 0,
       localeTimeZone
     );
-    
+
     const startEventLocaleTime = format(startLocaleTZDate, 'h:mm a', { in: tz(localeTimeZone) });
     result = `${startEventLocaleDay} ${startEventLocaleMonth} ${ordinal(startEventLocaleDateNum)} at ${startEventLocaleTime}`;
-    
+
     // Keep track of whether we have an end date/time for later formatting
     let hasEndDate = false;
     let endLocaleTZDate: TZDate | null = null;
@@ -320,16 +344,22 @@ export function formatEventDateTime(event: {
       );
       hasEndDate = false; // Same day, only time matters
     }
-    
+
     if (endLocaleTZDate) {
       const endEventLocaleDay = format(endLocaleTZDate, 'EEE', { in: tz(localeTimeZone) });
       const endEventLocaleMonth = format(endLocaleTZDate, 'MMMM', { in: tz(localeTimeZone) });
-      const endEventLocaleDateNum = parseInt(format(endLocaleTZDate, 'd', { in: tz(localeTimeZone) }));
+      const endEventLocaleDateNum = parseInt(
+        format(endLocaleTZDate, 'd', { in: tz(localeTimeZone) })
+      );
       const endEventLocaleTime = format(endLocaleTZDate, 'h:mm a', { in: tz(localeTimeZone) });
-      
-      const startEventLocaleDateStr = format(startLocaleTZDate, 'yyyy-MM-dd', { in: tz(localeTimeZone) });
-      const endEventLocaleDateStr = format(endLocaleTZDate, 'yyyy-MM-dd', { in: tz(localeTimeZone) });
-      
+
+      const startEventLocaleDateStr = format(startLocaleTZDate, 'yyyy-MM-dd', {
+        in: tz(localeTimeZone),
+      });
+      const endEventLocaleDateStr = format(endLocaleTZDate, 'yyyy-MM-dd', {
+        in: tz(localeTimeZone),
+      });
+
       if (hasEndDate && endEventLocaleDateStr !== startEventLocaleDateStr) {
         result += ` – ${endEventLocaleDay} ${endEventLocaleMonth} ${ordinal(endEventLocaleDateNum)} at ${endEventLocaleTime}`;
       } else if (event.end_time) {
@@ -337,7 +367,7 @@ export function formatEventDateTime(event: {
       }
     }
   }
-  
+
   return result;
 }
 

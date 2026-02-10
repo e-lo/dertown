@@ -11,7 +11,7 @@ import { marked } from 'marked';
  */
 marked.setOptions({
   breaks: true, // Convert single line breaks to <br>
-  gfm: true,    // GitHub Flavored Markdown
+  gfm: true, // GitHub Flavored Markdown
 });
 
 /**
@@ -23,7 +23,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
   if (!markdown) {
     return '';
   }
-  
+
   try {
     return marked.parse(markdown) as string;
   } catch (error) {
@@ -46,11 +46,14 @@ export function renderMarkdown(markdown: string | null | undefined): string {
  * @param maxLength - Maximum length of the preview
  * @returns Plain text preview
  */
-export function renderMarkdownPreview(markdown: string | null | undefined, maxLength: number = 150): string {
+export function renderMarkdownPreview(
+  markdown: string | null | undefined,
+  maxLength: number = 150
+): string {
   if (!markdown) {
     return '';
   }
-  
+
   // Remove markdown syntax for preview
   let plain = markdown
     .replace(/#{1,6}\s+/g, '') // Remove headers
@@ -61,13 +64,11 @@ export function renderMarkdownPreview(markdown: string | null | undefined, maxLe
     .replace(/^\s*[-*+]\s+/gm, '') // Remove list markers
     .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered list markers
     .trim();
-  
+
   // Truncate if needed
   if (plain.length > maxLength) {
     plain = plain.substring(0, maxLength).trim() + '...';
   }
-  
+
   return plain;
 }
-
-

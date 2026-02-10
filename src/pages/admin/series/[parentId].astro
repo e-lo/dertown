@@ -1,6 +1,7 @@
 ---
 // Server-side logic for series detail page
 import { checkAdminAccess, getSessionFromCookies } from '../../../lib/session';
+import AdminAuthRefresh from '../../../components/AdminAuthRefresh.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
 // Check if user is already logged in using cookies
@@ -129,6 +130,7 @@ import '../../../styles/admin.css';
   </div>
 
   <div id="message"></div>
+  <AdminAuthRefresh />
 
   <!-- Series Summary -->
   <div class="section">
@@ -286,7 +288,7 @@ import '../../../styles/admin.css';
 
   // Edit event - redirect to admin page
   window.editEvent = function(eventId) {
-    window.location.href = `/admin?editEvent=${eventId}`;
+    window.location.href = `/admin/events/${eventId}`;
   };
 
   // Duplicate event - fetch and open duplicate modal on admin page
@@ -314,4 +316,3 @@ import '../../../styles/admin.css';
 
 </body>
 </html>
-

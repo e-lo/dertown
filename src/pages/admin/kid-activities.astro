@@ -5,6 +5,7 @@ import { checkAdminAccess } from '../../lib/session';
 import type { Database } from '../../types/database';
 import MeetingPatternForm from '../../components/MeetingPatternForm.astro';
 import ActivityScheduleForm from '../../components/ActivityScheduleForm.astro';
+import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
 
 // Server-side authentication check using cookies
 const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
@@ -67,6 +68,7 @@ const hierarchyTree = buildHierarchy(activities || []);
 ---
 
 <Layout title="Admin - Kid Activities">
+  <AdminAuthRefresh />
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-8">Kid Activities Admin</h1>
 

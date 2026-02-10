@@ -1,0 +1,597 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../../../lib/session';
+import EditEventModal from '../../../components/ui/EditEventModal.astro';
+import AddLocationModal from '../../../components/ui/AddLocationModal.astro';
+import AddOrganizationModal from '../../../components/ui/AddOrganizationModal.astro';
+import LoginModal from '../../../components/ui/LoginModal.astro';
+import AdminAuthRefresh from '../../../components/AdminAuthRefresh.astro';
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/admin');
+}
+
+import '../../../styles/global.css';
+import '../../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Event - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <style>
+    .btn-series {
+      display: none;
+    }
+  </style>
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed" data-mode="edit" data-event-id={id}>
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Edit Event</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin Dashboard">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+  <EditEventModal />
+  <AddLocationModal />
+  <AddOrganizationModal />
+  <AdminAuthRefresh />
+</div>
+
+<LoginModal 
+  title="Session Expired"
+  description="Your session has expired. Please log in again to continue."
+  redirectUrl={Astro.url.pathname + Astro.url.search}
+  reloadOnSuccess={true}
+/>
+
+<script type="module">
+  function normalizeUrl(url) {
+    if (!url || url.trim() === '') return null;
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return 'https://' + trimmed;
+  }
+
+  function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+      type === 'error' ? 'bg-red-600' :
+      type === 'success' ? 'bg-green-600' :
+      'bg-blue-600'
+    }`;
+
+    document.body.appendChild(messageDiv);
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 5000);
+  }
+
+  function getEventStatusFromForm() {
+    const cancelled = document.getElementById('editEventCancelled')?.checked;
+    if (cancelled) return 'cancelled';
+    const draft = document.getElementById('editEventDraft')?.checked;
+    return draft ? 'pending' : 'approved';
+  }
+
+  function syncEventStatusControls() {
+    const cancelledCheckbox = document.getElementById('editEventCancelled');
+    const draftCheckbox = document.getElementById('editEventDraft');
+    if (!cancelledCheckbox || !draftCheckbox) return;
+
+    if (cancelledCheckbox.checked) {
+      draftCheckbox.checked = false;
+      draftCheckbox.disabled = true;
+    } else {
+      draftCheckbox.disabled = false;
+    }
+  }
+
+  let allLocations = [];
+  let allOrganizations = [];
+  let allTags = [];
+  let allParentEvents = [];
+  let currentEditId = null;
+  let isDuplicateMode = false;
+
+  async function loadReferenceData() {
+    try {
+      const [locationsRes, orgsRes, tagsRes, parentEventsRes] = await Promise.all([
+        fetch('/api/admin/locations', { credentials: 'include' }),
+        fetch('/api/admin/organizations', { credentials: 'include' }),
+        fetch('/api/admin/tags', { credentials: 'include' }),
+        fetch('/api/admin/parent-events', { credentials: 'include' })
+      ]);
+
+      if (locationsRes.ok) {
+        allLocations = await locationsRes.json();
+      }
+      if (orgsRes.ok) {
+        allOrganizations = await orgsRes.json();
+      }
+      if (tagsRes.ok) {
+        allTags = await tagsRes.json();
+        const primaryTagSelect = document.getElementById('editEventPrimaryTag');
+        const secondaryTagSelect = document.getElementById('editEventSecondaryTag');
+        if (primaryTagSelect && secondaryTagSelect) {
+          allTags.forEach(tag => {
+            const option1 = document.createElement('option');
+            option1.value = tag.id;
+            option1.textContent = tag.name;
+            primaryTagSelect.appendChild(option1);
+
+            const option2 = document.createElement('option');
+            option2.value = tag.id;
+            option2.textContent = tag.name;
+            secondaryTagSelect.appendChild(option2);
+          });
+        }
+      }
+      if (parentEventsRes.ok) {
+        allParentEvents = await parentEventsRes.json();
+      }
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+    }
+  }
+
+  function setupAutocomplete({ inputId, dropdownId, hiddenId, dataSource, display }) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hidden = document.getElementById(hiddenId);
+    if (!input || !dropdown || !hidden) return;
+
+    const closeDropdown = () => {
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      dropdown.innerHTML = '';
+    };
+
+    input.addEventListener('input', () => {
+      const query = input.value.toLowerCase().trim();
+      hidden.value = '';
+      if (!query) {
+        closeDropdown();
+        return;
+      }
+
+      const matches = dataSource()
+        .filter(item => display(item).toLowerCase().includes(query))
+        .slice(0, 8);
+
+      if (matches.length === 0) {
+        closeDropdown();
+        return;
+      }
+
+      dropdown.innerHTML = '';
+      matches.forEach(item => {
+        const option = document.createElement('div');
+        option.className = 'autocomplete-dropdown-item';
+        option.textContent = display(item);
+        option.addEventListener('click', () => {
+          input.value = display(item);
+          hidden.value = item.id;
+          closeDropdown();
+        });
+        dropdown.appendChild(option);
+      });
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value.trim()) {
+        input.dispatchEvent(new Event('input'));
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!dropdown.contains(event.target) && event.target !== input) {
+        closeDropdown();
+      }
+    });
+  }
+
+  function setupAutocompletes() {
+    setupAutocomplete({
+      inputId: 'editEventLocationSearch',
+      dropdownId: 'editEventLocationDropdown',
+      hiddenId: 'editEventLocationId',
+      dataSource: () => allLocations,
+      display: (loc) => loc.name || ''
+    });
+
+    setupAutocomplete({
+      inputId: 'editEventOrganizationSearch',
+      dropdownId: 'editEventOrganizationDropdown',
+      hiddenId: 'editEventOrganizationId',
+      dataSource: () => allOrganizations,
+      display: (org) => org.name || ''
+    });
+
+    setupAutocomplete({
+      inputId: 'editEventParentEventSearch',
+      dropdownId: 'editEventParentEventDropdown',
+      hiddenId: 'editEventParentEventId',
+      dataSource: () => allParentEvents,
+      display: (event) => {
+        const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : '';
+        const timeStr = event.start_time ? event.start_time.substring(0, 5) : '';
+        return `${event.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+      }
+    });
+  }
+
+  function openEditModal() {
+    const modal = document.getElementById('editEventModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function closeEditEventModal() {
+    window.location.href = '/admin';
+  }
+
+  function populateEventForm(event) {
+    const titleElement = document.getElementById('editEventModalTitle');
+    if (titleElement) {
+      titleElement.textContent = 'Edit Event';
+      titleElement.style.color = '';
+      titleElement.style.fontWeight = '';
+    }
+
+    document.getElementById('editEventTitle').value = event.title || '';
+    document.getElementById('editEventDescription').value = event.description || '';
+    document.getElementById('editEventStartDate').value = event.start_date || '';
+    document.getElementById('editEventEndDate').value = event.end_date || '';
+    document.getElementById('editEventStartTime').value = event.start_time || '';
+    document.getElementById('editEventEndTime').value = event.end_time || '';
+    document.getElementById('editEventEmail').value = event.email || '';
+    document.getElementById('editEventWebsite').value = event.website || '';
+    document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
+    document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
+    document.getElementById('editEventCost').value = event.cost || '';
+    document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
+    document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
+
+    document.getElementById('editEventRegistration').checked = event.registration || false;
+    document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
+    document.getElementById('editEventFeatured').checked = event.featured || false;
+    const isCancelled = event.status === 'cancelled';
+    document.getElementById('editEventCancelled').checked = isCancelled;
+    document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
+    syncEventStatusControls();
+
+    if (event.location_id && event.location) {
+      document.getElementById('editEventLocationSearch').value = event.location.name || '';
+      document.getElementById('editEventLocationId').value = event.location_id;
+    } else {
+      document.getElementById('editEventLocationSearch').value = '';
+      document.getElementById('editEventLocationId').value = '';
+    }
+
+    if (event.organization_id && event.organization) {
+      document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
+      document.getElementById('editEventOrganizationId').value = event.organization_id;
+    } else {
+      document.getElementById('editEventOrganizationSearch').value = '';
+      document.getElementById('editEventOrganizationId').value = '';
+    }
+
+    if (event.parent_event_id) {
+      const parentEvent = allParentEvents.find(e => e.id === event.parent_event_id);
+      if (parentEvent) {
+        const dateStr = parentEvent.start_date ? new Date(parentEvent.start_date).toLocaleDateString() : '';
+        const timeStr = parentEvent.start_time ? parentEvent.start_time.substring(0, 5) : '';
+        const displayStr = `${parentEvent.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+        document.getElementById('editEventParentEventSearch').value = displayStr;
+        document.getElementById('editEventParentEventId').value = event.parent_event_id;
+      } else {
+        document.getElementById('editEventParentEventSearch').value = '';
+        document.getElementById('editEventParentEventId').value = event.parent_event_id;
+      }
+    } else {
+      document.getElementById('editEventParentEventSearch').value = '';
+      document.getElementById('editEventParentEventId').value = '';
+    }
+
+    document.getElementById('editEventComments').value = event.comments || '';
+    openEditModal();
+  }
+
+  async function loadEvent(eventId) {
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}`, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error(`Failed to load event (${response.status})`);
+      }
+      const data = await response.json();
+      if (!data.event) {
+        throw new Error('Event not found');
+      }
+      currentEditId = data.event.id;
+      isDuplicateMode = false;
+      populateEventForm(data.event);
+    } catch (error) {
+      showMessage(error.message || 'Failed to load event', 'error');
+    }
+  }
+
+  async function updateEvent() {
+    if (!currentEditId) return;
+
+    let formData = {
+      id: currentEditId,
+      title: document.getElementById('editEventTitle').value,
+    };
+
+    formData.description = document.getElementById('editEventDescription').value;
+    formData.email = document.getElementById('editEventEmail').value;
+    formData.comments = document.getElementById('editEventComments').value;
+
+    const primaryTag = document.getElementById('editEventPrimaryTag').value;
+    if (!primaryTag) {
+      showMessage('Primary tag is required before saving', 'error');
+      return;
+    }
+
+    formData.start_date = document.getElementById('editEventStartDate').value;
+    formData.end_date = document.getElementById('editEventEndDate').value || null;
+    formData.start_time = document.getElementById('editEventStartTime').value || null;
+    formData.end_time = document.getElementById('editEventEndTime').value || null;
+    formData.website = normalizeUrl(document.getElementById('editEventWebsite').value);
+    formData.registration_link = normalizeUrl(document.getElementById('editEventRegistrationLink').value);
+    formData.external_image_url = normalizeUrl(document.getElementById('editEventExternalImageUrl').value);
+    formData.cost = document.getElementById('editEventCost').value || null;
+    formData.primary_tag_id = primaryTag || null;
+    formData.secondary_tag_id = document.getElementById('editEventSecondaryTag').value || null;
+    formData.registration = document.getElementById('editEventRegistration').checked;
+    formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
+    formData.featured = document.getElementById('editEventFeatured').checked;
+    formData.status = getEventStatusFromForm();
+
+    formData.location_id = document.getElementById('editEventLocationId').value || null;
+    formData.organization_id = document.getElementById('editEventOrganizationId').value || null;
+
+    const parentEventId = document.getElementById('editEventParentEventId').value;
+    formData.parent_event_id = parentEventId || null;
+
+    try {
+      const response = await fetch('/api/admin/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        showMessage('Updated successfully!', 'success');
+        setTimeout(() => {
+          window.location.href = `/events/${currentEditId}`;
+        }, 500);
+      } else {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update event');
+      }
+    } catch (error) {
+      showMessage('Error updating: ' + error.message, 'error');
+    }
+  }
+
+  async function createEvent() {
+    const formData = {
+      title: document.getElementById('editEventTitle').value,
+      description: document.getElementById('editEventDescription').value,
+      start_date: document.getElementById('editEventStartDate').value,
+      end_date: document.getElementById('editEventEndDate').value || null,
+      start_time: document.getElementById('editEventStartTime').value || null,
+      end_time: document.getElementById('editEventEndTime').value || null,
+      email: document.getElementById('editEventEmail').value || null,
+      website: normalizeUrl(document.getElementById('editEventWebsite').value),
+      registration_link: normalizeUrl(document.getElementById('editEventRegistrationLink').value),
+      external_image_url: normalizeUrl(document.getElementById('editEventExternalImageUrl').value),
+      cost: document.getElementById('editEventCost').value || null,
+      primary_tag_id: document.getElementById('editEventPrimaryTag').value || null,
+      secondary_tag_id: document.getElementById('editEventSecondaryTag').value || null,
+      location_id: document.getElementById('editEventLocationId').value || null,
+      organization_id: document.getElementById('editEventOrganizationId').value || null,
+      parent_event_id: document.getElementById('editEventParentEventId').value || null,
+      comments: document.getElementById('editEventComments').value || null,
+      registration: document.getElementById('editEventRegistration').checked,
+      exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
+      featured: document.getElementById('editEventFeatured').checked,
+      status: getEventStatusFromForm(),
+    };
+
+    if (!formData.title || !formData.start_date) {
+      showMessage('Title and start date are required', 'error');
+      return;
+    }
+
+    if (!formData.primary_tag_id) {
+      showMessage('Primary tag is required', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/events/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showMessage('Event created successfully!', 'success');
+        if (data.event && data.event.id) {
+          setTimeout(() => {
+            window.location.href = `/events/${data.event.id}`;
+          }, 500);
+        } else {
+          closeEditEventModal();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create event');
+      }
+    } catch (error) {
+      showMessage('Error creating event: ' + error.message, 'error');
+    }
+  }
+
+  function duplicateCurrentEvent() {
+    const eventData = {
+      title: document.getElementById('editEventTitle').value,
+      description: document.getElementById('editEventDescription').value,
+      start_time: document.getElementById('editEventStartTime').value,
+      end_time: document.getElementById('editEventEndTime').value,
+      email: document.getElementById('editEventEmail').value,
+      website: document.getElementById('editEventWebsite').value,
+      registration_link: document.getElementById('editEventRegistrationLink').value,
+      external_image_url: document.getElementById('editEventExternalImageUrl').value,
+      cost: document.getElementById('editEventCost').value,
+      primary_tag_id: document.getElementById('editEventPrimaryTag').value,
+      secondary_tag_id: document.getElementById('editEventSecondaryTag').value,
+      location_id: document.getElementById('editEventLocationId').value,
+      organization_id: document.getElementById('editEventOrganizationId').value,
+      parent_event_id: document.getElementById('editEventParentEventId').value,
+      registration: document.getElementById('editEventRegistration').checked,
+      exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
+      featured: document.getElementById('editEventFeatured').checked,
+    };
+
+    const titleElement = document.getElementById('editEventModalTitle');
+    titleElement.textContent = 'Duplicate Event';
+    titleElement.style.color = '#4f46e5';
+    titleElement.style.fontWeight = '600';
+
+    document.getElementById('editEventTitle').value = eventData.title || '';
+    document.getElementById('editEventDescription').value = eventData.description || '';
+    document.getElementById('editEventStartDate').value = '';
+    document.getElementById('editEventEndDate').value = '';
+    document.getElementById('editEventStartTime').value = eventData.start_time || '';
+    document.getElementById('editEventEndTime').value = eventData.end_time || '';
+    document.getElementById('editEventEmail').value = eventData.email || '';
+    document.getElementById('editEventWebsite').value = eventData.website || '';
+    document.getElementById('editEventRegistrationLink').value = eventData.registration_link || '';
+    document.getElementById('editEventExternalImageUrl').value = eventData.external_image_url || '';
+    document.getElementById('editEventCost').value = eventData.cost || '';
+    document.getElementById('editEventPrimaryTag').value = eventData.primary_tag_id || '';
+    document.getElementById('editEventSecondaryTag').value = eventData.secondary_tag_id || '';
+
+    document.getElementById('editEventRegistration').checked = eventData.registration || false;
+    document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
+    document.getElementById('editEventFeatured').checked = eventData.featured || false;
+    document.getElementById('editEventDraft').checked = false;
+    document.getElementById('editEventCancelled').checked = false;
+    syncEventStatusControls();
+
+    currentEditId = null;
+    isDuplicateMode = true;
+    openEditModal();
+  }
+
+  function applyCreatedLocation(location) {
+    if (!location?.id) return;
+    allLocations = allLocations.some(l => l.id === location.id) ? allLocations : [...allLocations, { id: location.id, name: location.name || '', address: location.address || '' }];
+    document.getElementById('editEventLocationId').value = location.id;
+    document.getElementById('editEventLocationSearch').value = location.name || '';
+  }
+
+  function applyCreatedOrganization(organization) {
+    if (!organization?.id) return;
+    allOrganizations = allOrganizations.some(o => o.id === organization.id) ? allOrganizations : [...allOrganizations, { id: organization.id, name: organization.name || '' }];
+    document.getElementById('editEventOrganizationId').value = organization.id;
+    document.getElementById('editEventOrganizationSearch').value = organization.name || '';
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const eventId = document.body.getAttribute('data-event-id');
+    await loadReferenceData();
+    setupAutocompletes();
+
+    window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
+    window.addEventListener('admin:organization-created', (e) => applyCreatedOrganization(e.detail?.organization));
+
+    const cancelledCheckbox = document.getElementById('editEventCancelled');
+    if (cancelledCheckbox) {
+      cancelledCheckbox.addEventListener('change', syncEventStatusControls);
+      syncEventStatusControls();
+    }
+
+    if (eventId) {
+      await loadEvent(eventId);
+    }
+
+    const editEventForm = document.getElementById('editEventForm');
+    if (editEventForm) {
+      editEventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isDuplicateMode) {
+          await createEvent();
+        } else {
+          await updateEvent();
+        }
+      });
+    }
+  });
+
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.warn('[LOGOUT] Failed to log out cleanly', error);
+    } finally {
+      window.location.href = '/';
+    }
+  }
+
+  window.closeEditEventModal = closeEditEventModal;
+  window.duplicateCurrentEvent = duplicateCurrentEvent;
+  window.logout = logout;
+</script>

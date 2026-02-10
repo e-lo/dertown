@@ -1,0 +1,30 @@
+<script>
+  const REFRESH_INTERVAL_MS = 25 * 60 * 1000;
+
+  async function refreshSessionIfVisible() {
+    if (document.visibilityState !== 'visible') return;
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        if (typeof window.openLoginModal === 'function') {
+          window.openLoginModal();
+        }
+      }
+    } catch (error) {
+      console.warn('[AUTH REFRESH] Failed to refresh session', error);
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshSessionIfVisible();
+    }
+  });
+
+  refreshSessionIfVisible();
+  setInterval(refreshSessionIfVisible, REFRESH_INTERVAL_MS);
+</script>

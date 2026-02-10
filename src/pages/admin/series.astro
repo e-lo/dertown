@@ -1,6 +1,7 @@
 ---
 // Server-side logic for series management page
 import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
 
 // Check if user is already logged in using cookies
 const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
@@ -55,6 +56,7 @@ import '../../styles/admin.css';
   </div>
 
   <div id="message"></div>
+  <AdminAuthRefresh />
 
   <!-- Active Series Section -->
   <div class="section">
@@ -1372,4 +1374,3 @@ import '../../styles/admin.css';
 
 </body>
 </html>
-

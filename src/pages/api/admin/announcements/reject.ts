@@ -28,9 +28,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Note: "rejected" is not a valid status, so we use "archived" instead
     const { data, error } = await supabaseAdmin
       .from('announcements')
-      .update({ 
+      .update({
         status: 'archived' as const,
-        comments: reason ? `Rejected: ${reason}` : 'Rejected by admin'
+        comments: reason ? `Rejected: ${reason}` : 'Rejected by admin',
       })
       .eq('id', announcementId)
       .select()

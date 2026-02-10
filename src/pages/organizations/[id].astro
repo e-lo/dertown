@@ -1,0 +1,275 @@
+---
+export const prerender = false;
+
+import Layout from '../../components/Layout.astro';
+import EventListCard from '../../components/EventListCard.astro';
+import ShareButton from '../../components/ui/ShareButton.astro';
+import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
+import { checkAdminAccess } from '../../lib/session';
+
+const { id } = Astro.params;
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+
+if (!id) {
+  return Astro.redirect('/events');
+}
+
+const { data: organization, error: organizationError } = await supabase
+  .from('organizations')
+  .select(`
+    *,
+    location:locations(*)
+  `)
+  .eq('id', id)
+  .single();
+
+if (organizationError || !organization) {
+  return Astro.redirect('/events');
+}
+
+let parentOrganization = null;
+if (organization.parent_organization_id) {
+  const { data } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('id', organization.parent_organization_id)
+    .single();
+  parentOrganization = data || null;
+}
+
+let siblingOrganizations = [];
+if (organization.parent_organization_id) {
+  const { data } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('parent_organization_id', organization.parent_organization_id)
+    .neq('id', organization.id);
+  siblingOrganizations = data || [];
+}
+
+const { data: childOrganizations } = await supabase
+  .from('organizations')
+  .select('*')
+  .eq('parent_organization_id', organization.id);
+
+// Events for this organization and any child organizations
+const orgIds = [organization.id, ...(childOrganizations || []).map((o: { id: string }) => o.id)];
+const { data: orgEvents } = await supabase
+  .from('public_events')
+  .select('*')
+  .in('organization_id', orgIds)
+  .order('start_date', { ascending: true });
+
+const upcomingEvents = filterCurrentAndFutureEvents(orgEvents || []);
+
+const mapLat = organization.location?.latitude;
+const mapLon = organization.location?.longitude;
+let mapLinkUrl = null;
+if (typeof mapLat === 'number' && typeof mapLon === 'number') {
+  mapLinkUrl = `https://www.openstreetmap.org/?mlat=${mapLat}&mlon=${mapLon}#map=16/${mapLat}/${mapLon}`;
+}
+const hasMap = typeof mapLat === 'number' && typeof mapLon === 'number';
+const orgMapMarkers = hasMap ? [{ lat: mapLat, lon: mapLon, label: organization.name || 'Organization', type: 'current' }] : [];
+
+const formatPhone = (phone) => phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+const organizationTitle = organization.name || 'Organization';
+const organizationDescription = organization.description || `Events from ${organizationTitle}`;
+
+const hasOrganizationDetails = !!(organization.email || organization.phone || organization.website || organization.location);
+const hasRelatedOrgs = !!(parentOrganization || ((siblingOrganizations?.length ?? 0) > 0) || ((childOrganizations?.length ?? 0) > 0));
+const organizationPageUrl = Astro.url.href;
+---
+
+<Layout title={`${organizationTitle} - Organization`} description={organizationDescription}>
+  <style is:global>
+    .location-marker-tooltip { background: white; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  </style>
+  <section class="max-w-6xl mx-auto px-4 py-10">
+    <div class="flex flex-col gap-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 relative">
+        <div id="organization-admin-status" data-is-admin={isAdmin} class="hidden" aria-hidden="true"></div>
+        <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
+          {organization.website && (
+            <a href={organization.website} target="_blank" rel="noopener noreferrer" class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Open website" title="Open website">
+              <span class="material-symbols-outlined text-2xl">link</span>
+              <span class="tooltip -top-10 left-auto right-8">Open website</span>
+            </a>
+          )}
+          {isAdmin && (
+            <a href={`/admin/organizations?edit=${organization.id}`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit organization" title="Edit organization">
+              <span class="material-symbols-outlined text-2xl">edit</span>
+              <span class="tooltip -top-10 left-auto right-8">Edit organization</span>
+            </a>
+          )}
+          <ShareButton url={organizationPageUrl} title={organizationTitle} tooltipText="Share this organization" shareText="Share organization" />
+        </div>
+        <div class="flex flex-col gap-2 pr-24 sm:pr-28">
+          <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Organization</p>
+          <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{organizationTitle}</h1>
+        </div>
+      </div>
+
+      <div class={`grid grid-cols-1 gap-8 ${(hasMap || organization.location || organization.description || organization.email || organization.phone) ? 'lg:grid-cols-2' : ''}`}>
+        <div class="space-y-6">
+          {(hasMap || organization.location) && (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div class="p-6 space-y-4">
+                {organization.location && (
+                  <div class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">location_on</span>
+                    <div>
+                      <a class="text-blue-600 hover:underline break-words font-medium" href={`/locations/${organization.location.id}`}>{organization.location.name}</a>
+                      {organization.location.address && (
+                        <span class="text-gray-500 block text-sm">{organization.location.address}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {hasMap && (
+                  <div id="organization-map" class="w-full h-64 rounded-lg overflow-hidden" data-markers={JSON.stringify(orgMapMarkers)} data-zoom="16"></div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasRelatedOrgs && (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+              <h2 class="text-lg font-semibold text-gray-900">Related Organizations</h2>
+              {parentOrganization && (
+                <div>
+                  <p class="text-xs uppercase tracking-[0.15em] text-gray-500">Parent</p>
+                  <a class="text-blue-600 hover:underline" href={`/organizations/${parentOrganization.id}`}>{parentOrganization.name}</a>
+                </div>
+              )}
+              {siblingOrganizations && siblingOrganizations.length > 0 && (
+                <div>
+                  <p class="text-xs uppercase tracking-[0.15em] text-gray-500">Siblings</p>
+                  <div class="flex flex-wrap gap-2">
+                    {siblingOrganizations.map((sibling) => (
+                      <a class="text-sm text-blue-600 hover:underline" href={`/organizations/${sibling.id}`}>{sibling.name}</a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {childOrganizations && childOrganizations.length > 0 && (
+                <div>
+                  <p class="text-xs uppercase tracking-[0.15em] text-gray-500">Child Organizations</p>
+                  <div class="flex flex-wrap gap-2">
+                    {childOrganizations.map((child) => (
+                      <a class="text-sm text-blue-600 hover:underline" href={`/organizations/${child.id}`}>{child.name}</a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div class="space-y-6">
+          {(organization.description || organization.email || organization.phone) && (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="space-y-3 text-base text-gray-700">
+                {organization.description && (
+                  <p class="text-gray-600">{organization.description}</p>
+                )}
+                {organization.email && (
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">mail</span>
+                    <a class="text-blue-600 hover:underline break-all" href={`mailto:${organization.email}`}>{organization.email}</a>
+                  </div>
+                )}
+                {organization.phone && (
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">phone</span>
+                    <a class="text-blue-600 hover:underline" href={`tel:${organization.phone.replace(/\D/g, '')}`}>{formatPhone(organization.phone)}</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold text-gray-900">Upcoming Events</h2>
+          <p class="text-sm text-gray-500">{upcomingEvents.length} upcoming</p>
+        </div>
+        {upcomingEvents.length === 0 ? (
+          <div class="bg-white rounded-2xl border border-gray-100 p-6 text-gray-500">
+            No upcoming events have been listed for this organization yet.
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {upcomingEvents.map((event) => (
+              <EventListCard
+                event={event}
+                tags={{
+                  primary: event.primary_tag_name || '',
+                  secondary: event.secondary_tag_name || ''
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+  <script define:vars={{ hasMap }}>
+    document.addEventListener('DOMContentLoaded', function() {
+      window.shareEvent = function(ev) {
+        const button = (ev && ev.target && ev.target.closest('button')) || document.querySelector('[data-share-url]');
+        if (!button) return;
+        const url = button.getAttribute('data-share-url');
+        const title = button.getAttribute('data-share-title');
+        if (navigator.share) {
+          navigator.share({ title: title || 'Organization', url: url || window.location.href });
+        } else {
+          navigator.clipboard.writeText(url || window.location.href).then(function() {
+            var n = document.createElement('div');
+            n.textContent = 'Link copied to clipboard!';
+            n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
+            document.body.appendChild(n);
+            setTimeout(function() { n.remove(); }, 2000);
+          });
+        }
+      };
+
+      if (hasMap) {
+        var mapEl = document.getElementById('organization-map');
+        if (!mapEl) return;
+        var markersJson = mapEl.getAttribute('data-markers');
+        var zoom = parseInt(mapEl.getAttribute('data-zoom') || '16', 10) || 16;
+        var markers = [];
+        try { markers = JSON.parse(markersJson || '[]'); } catch { /* use default [] */ }
+        if (markers.length === 0) return;
+        var center = [markers[0].lat, markers[0].lon];
+        function loadLeaflet(cb) {
+          if (typeof globalThis.L !== 'undefined') { cb(); return; }
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          link.crossOrigin = '';
+          document.head.appendChild(link);
+          var script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.crossOrigin = '';
+          script.onload = cb;
+          document.head.appendChild(script);
+        }
+        loadLeaflet(function() {
+          var L = globalThis.L;
+          var map = L.map('organization-map').setView(center, zoom);
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          }).addTo(map);
+          markers.forEach(function(m) {
+            var marker = L.marker([m.lat, m.lon]).addTo(map);
+            if (m.label) marker.bindTooltip(m.label, { permanent: false, direction: 'top', className: 'location-marker-tooltip' });
+          });
+        });
+      }
+    });
+  </script>
+</Layout>

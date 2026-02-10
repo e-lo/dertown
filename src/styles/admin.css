@@ -308,13 +308,12 @@
   .admin-card {
     @apply p-4;
   }
-  
+
   .header h1 {
     @apply text-xl;
   }
-  
+
   .section-title {
     @apply text-lg;
   }
 }
-

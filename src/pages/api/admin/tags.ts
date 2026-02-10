@@ -15,10 +15,7 @@ export const GET: APIRoute = async ({ cookies }) => {
       });
     }
 
-    const { data: tags, error } = await supabaseAdmin
-      .from('tags')
-      .select('id, name')
-      .order('name');
+    const { data: tags, error } = await supabaseAdmin.from('tags').select('id, name').order('name');
 
     if (error) {
       console.error('Error fetching tags:', error);
@@ -40,5 +37,3 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 };
-
-

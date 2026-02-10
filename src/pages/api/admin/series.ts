@@ -32,7 +32,11 @@ export const GET: APIRoute = async ({ cookies }) => {
       });
     }
 
-    const parentEventIds = [...new Set((childEvents || []).map(e => e.parent_event_id).filter((id): id is string => id !== null))];
+    const parentEventIds = [
+      ...new Set(
+        (childEvents || []).map((e) => e.parent_event_id).filter((id): id is string => id !== null)
+      ),
+    ];
 
     if (parentEventIds.length === 0) {
       return new Response(JSON.stringify({ activeSeries: [], pastSeries: [] }), {
@@ -44,13 +48,15 @@ export const GET: APIRoute = async ({ cookies }) => {
     // Fetch parent events
     const { data: parentEvents, error: parentError } = await supabaseAdmin
       .from('events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .in('id', parentEventIds);
 
     if (parentError) {
@@ -64,13 +70,15 @@ export const GET: APIRoute = async ({ cookies }) => {
     // Fetch all child events for these parents
     const { data: allChildEvents, error: allChildError } = await supabaseAdmin
       .from('events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .in('parent_event_id', parentEventIds)
       .order('start_date', { ascending: true });
 
@@ -84,7 +92,7 @@ export const GET: APIRoute = async ({ cookies }) => {
 
     // Group child events by parent
     const childrenByParent = new Map<string, typeof allChildEvents>();
-    (allChildEvents || []).forEach(child => {
+    (allChildEvents || []).forEach((child) => {
       if (child.parent_event_id) {
         if (!childrenByParent.has(child.parent_event_id)) {
           childrenByParent.set(child.parent_event_id, []);
@@ -97,16 +105,20 @@ export const GET: APIRoute = async ({ cookies }) => {
     const activeSeries: any[] = [];
     const pastSeries: any[] = [];
 
-    (parentEvents || []).forEach(parent => {
+    (parentEvents || []).forEach((parent) => {
       const children = childrenByParent.get(parent.id) || [];
-      
+
       // Calculate metadata
-      const futureChildren = children.filter(c => c.start_date >= today);
-      const pastChildren = children.filter(c => c.start_date < today);
-      const allDates = children.map(c => c.start_date).filter(Boolean).sort();
-      const dateRange = allDates.length > 0 
-        ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
-        : null;
+      const futureChildren = children.filter((c) => c.start_date >= today);
+      const pastChildren = children.filter((c) => c.start_date < today);
+      const allDates = children
+        .map((c) => c.start_date)
+        .filter(Boolean)
+        .sort();
+      const dateRange =
+        allDates.length > 0
+          ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
+          : null;
 
       const seriesData = {
         parent,
@@ -152,4 +164,3 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 };
-

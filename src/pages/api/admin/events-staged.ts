@@ -14,9 +14,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('events_staged')
-    .select(`
+  const { data, error } = await supabaseAdmin.from('events_staged').select(`
       *,
       primary_tag:tags!events_staged_primary_tag_id_fkey(name),
       secondary_tag:tags!events_staged_secondary_tag_id_fkey(name),

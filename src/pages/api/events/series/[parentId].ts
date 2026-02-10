@@ -21,12 +21,14 @@ export const GET: APIRoute = async ({ params }) => {
 
     const { data, error } = await supabase
       .from('events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address)
-      `)
+      `
+      )
       .eq('parent_event_id', parentId)
       .eq('status', 'approved')
       .eq('exclude_from_calendar', false)
@@ -53,4 +55,3 @@ export const GET: APIRoute = async ({ params }) => {
     });
   }
 };
-

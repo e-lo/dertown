@@ -1,6 +1,6 @@
 /**
  * Tests for event filtering functions
- * 
+ *
  * Verifies that:
  * 1. Events are filtered based on Pacific timezone dates, not UTC dates
  * 2. Today's events are included even if they're "tomorrow" in UTC
@@ -14,29 +14,29 @@ import { localeTimeZone } from '../calendar-utils';
 function getTodayLocale(): string {
   // Get current UTC time
   const nowUtc = new Date();
-  
+
   // Convert to locale timezone date string (YYYY-MM-DD format)
   // Use 'en-CA' locale which gives us YYYY-MM-DD format directly
-  const todayLocaleDateStr = nowUtc.toLocaleDateString('en-CA', { 
-    timeZone: localeTimeZone 
+  const todayLocaleDateStr = nowUtc.toLocaleDateString('en-CA', {
+    timeZone: localeTimeZone,
   });
-  
+
   return todayLocaleDateStr;
 }
 
 function filterCurrentAndFutureEvents(events: any[]): any[] {
   if (!events) return [];
-  
+
   const todayLocale = getTodayLocale();
-  
+
   return events.filter((event: any) => {
     // Must have at least a start_date
     if (!event.start_date) return false;
-    
+
     // Check if start_date >= today (date comparison in locale time)
     const startDateStr = event.start_date;
     const startDateIsTodayOrFuture = startDateStr >= todayLocale;
-    
+
     // Check if end_date >= today (if end_date exists)
     if (event.end_date) {
       const endDateStr = event.end_date;
@@ -44,7 +44,7 @@ function filterCurrentAndFutureEvents(events: any[]): any[] {
       // Include if either start_date or end_date is today or future
       return startDateIsTodayOrFuture || endDateIsTodayOrFuture;
     }
-    
+
     // If no end_date, only check start_date
     return startDateIsTodayOrFuture;
   });
@@ -82,9 +82,9 @@ async function runTests() {
     console.log(`Expected: 1 event (included)`);
 
     if (isIncluded) {
-      console.log('✅ PASS: Today\'s event is included\n');
+      console.log("✅ PASS: Today's event is included\n");
     } else {
-      console.log('❌ FAIL: Today\'s event was filtered out\n');
+      console.log("❌ FAIL: Today's event was filtered out\n");
       allTestsPassed = false;
     }
   } catch (error) {
@@ -119,9 +119,9 @@ async function runTests() {
     console.log(`Expected: 1 event (included)`);
 
     if (isIncluded) {
-      console.log('✅ PASS: Tomorrow\'s event is included\n');
+      console.log("✅ PASS: Tomorrow's event is included\n");
     } else {
-      console.log('❌ FAIL: Tomorrow\'s event was filtered out\n');
+      console.log("❌ FAIL: Tomorrow's event was filtered out\n");
       allTestsPassed = false;
     }
   } catch (error) {
@@ -156,9 +156,9 @@ async function runTests() {
     console.log(`Expected: 0 events (excluded)`);
 
     if (isExcluded) {
-      console.log('✅ PASS: Yesterday\'s event is excluded\n');
+      console.log("✅ PASS: Yesterday's event is excluded\n");
     } else {
-      console.log('❌ FAIL: Yesterday\'s event was included\n');
+      console.log("❌ FAIL: Yesterday's event was included\n");
       allTestsPassed = false;
     }
   } catch (error) {
@@ -197,9 +197,9 @@ async function runTests() {
     console.log(`Expected: 1 event (included, based on Pacific date, not UTC)`);
 
     if (isIncluded) {
-      console.log('✅ PASS: Today\'s 5pm event is included (correctly using Pacific date)\n');
+      console.log("✅ PASS: Today's 5pm event is included (correctly using Pacific date)\n");
     } else {
-      console.log('❌ FAIL: Today\'s 5pm event was filtered out (might be using UTC date)\n');
+      console.log("❌ FAIL: Today's 5pm event was filtered out (might be using UTC date)\n");
       allTestsPassed = false;
     }
   } catch (error) {
@@ -216,7 +216,7 @@ async function runTests() {
     const yesterdayDate = new Date(todayDate);
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterdayLocale = yesterdayDate.toISOString().split('T')[0];
-    
+
     const tomorrowDate = new Date(todayDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowLocale = tomorrowDate.toISOString().split('T')[0];
@@ -269,9 +269,9 @@ async function runTests() {
     console.log(`Expected: 1 event (included)`);
 
     if (isIncluded) {
-      console.log('✅ PASS: Today\'s all-day event is included\n');
+      console.log("✅ PASS: Today's all-day event is included\n");
     } else {
-      console.log('❌ FAIL: Today\'s all-day event was filtered out\n');
+      console.log("❌ FAIL: Today's all-day event was filtered out\n");
       allTestsPassed = false;
     }
   } catch (error) {
@@ -287,7 +287,7 @@ async function runTests() {
     const yesterdayDate = new Date(todayDate);
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterdayLocale = yesterdayDate.toISOString().split('T')[0];
-    
+
     const tomorrowDate = new Date(todayDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowLocale = tomorrowDate.toISOString().split('T')[0];
@@ -295,7 +295,12 @@ async function runTests() {
     const mixedEvents = [
       { id: 'past', title: 'Past Event', start_date: yesterdayLocale, start_time: '10:00:00' },
       { id: 'today', title: 'Today Event', start_date: todayLocale, start_time: '14:00:00' },
-      { id: 'tomorrow', title: 'Tomorrow Event', start_date: tomorrowLocale, start_time: '16:00:00' },
+      {
+        id: 'tomorrow',
+        title: 'Tomorrow Event',
+        start_date: tomorrowLocale,
+        start_time: '16:00:00',
+      },
     ];
 
     const filtered = filterCurrentAndFutureEvents(mixedEvents);
@@ -306,9 +311,11 @@ async function runTests() {
     console.log(`Filtered result: ${filtered.length} event(s) - IDs: ${includedIds.join(', ')}`);
     console.log(`Expected: 2 events - IDs: ${expectedIds.join(', ')}`);
 
-    if (filtered.length === 2 && 
-        includedIds[0] === expectedIds[0] && 
-        includedIds[1] === expectedIds[1]) {
+    if (
+      filtered.length === 2 &&
+      includedIds[0] === expectedIds[0] &&
+      includedIds[1] === expectedIds[1]
+    ) {
       console.log('✅ PASS: Correct events included/excluded\n');
     } else {
       console.log(`❌ FAIL: Expected ${expectedIds.join(', ')}, got ${includedIds.join(', ')}\n`);
@@ -327,19 +334,20 @@ async function runTests() {
     console.log('❌ SOME TESTS FAILED');
   }
   console.log('='.repeat(60));
-  
+
   return allTestsPassed;
 }
 
 // Run tests if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
-  runTests().then((success) => {
-    process.exit(success ? 0 : 1);
-  }).catch((error) => {
-    console.error('Test execution error:', error);
-    process.exit(1);
-  });
+  runTests()
+    .then((success) => {
+      process.exit(success ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error('Test execution error:', error);
+      process.exit(1);
+    });
 }
 
 export { runTests };
-

@@ -80,26 +80,24 @@
       </div>
       <div class="form-field">
         <label class="form-label">Location:</label>
-        <div class="autocomplete-container">
-          <input type="text" id="editEventLocationSearch" placeholder="Type to search existing locations..." autocomplete="off" class="form-input-base">
-          <input type="hidden" id="editEventLocationId">
-          <div id="editEventLocationDropdown" class="autocomplete-dropdown hidden"></div>
-        </div>
-        <div id="editEventLocationAddedContainer" class="mt-2 hidden">
-          <label class="block mb-2 font-medium text-sm">Or add new location:</label>
-          <input type="text" id="editEventLocationAdded" placeholder="Leave empty if using existing location" class="form-input-base">
+        <div class="flex gap-2 items-center flex-wrap">
+          <div class="autocomplete-container flex-1 min-w-[200px]">
+            <input type="text" id="editEventLocationSearch" placeholder="Type to search existing locations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="editEventLocationId">
+            <div id="editEventLocationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <button type="button" onclick="window.openAddLocationModal?.()" class="btn-save text-sm py-2 px-3" title="Add new location">+ Add location</button>
         </div>
       </div>
       <div class="form-field">
         <label class="form-label">Organization:</label>
-        <div class="autocomplete-container">
-          <input type="text" id="editEventOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
-          <input type="hidden" id="editEventOrganizationId">
-          <div id="editEventOrganizationDropdown" class="autocomplete-dropdown hidden"></div>
-        </div>
-        <div id="editEventOrganizationAddedContainer" class="mt-2 hidden">
-          <label class="block mb-2 font-medium text-sm">Or add new organization:</label>
-          <input type="text" id="editEventOrganizationAdded" placeholder="Leave empty if using existing organization" class="form-input-base">
+        <div class="flex gap-2 items-center flex-wrap">
+          <div class="autocomplete-container flex-1 min-w-[200px]">
+            <input type="text" id="editEventOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="editEventOrganizationId">
+            <div id="editEventOrganizationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <button type="button" onclick="window.openAddOrganizationModal?.()" class="btn-save text-sm py-2 px-3" title="Add new organization">+ Add organization</button>
         </div>
       </div>
       <div class="form-field">
@@ -113,6 +111,10 @@
       </div>
       <div class="form-field">
         <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editEventCancelled" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="form-label">Cancelled Event</span>
+          </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="editEventExcludeFromCalendar" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
             <span class="form-label">Exclude from Calendar</span>
@@ -150,4 +152,3 @@
     </form>
   </div>
 </div>
-

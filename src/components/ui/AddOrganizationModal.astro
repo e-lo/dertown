@@ -1,0 +1,271 @@
+---
+// Modal to add or edit an organization. Used from event form (pop-out) and from admin organizations page.
+// Dispatches 'admin:organization-created' or 'admin:organization-updated' with { organization } on success.
+---
+
+<div id="addOrganizationModal" class="modal-overlay hidden" style="z-index: 1001;">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 id="addOrganizationModalTitle" class="modal-title">Add Organization</h3>
+      <button type="button" onclick="window.closeAddOrganizationModal?.()" class="modal-close-btn" aria-label="Close">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <form id="addOrganizationForm">
+      <input type="hidden" id="addOrganizationId" value="">
+      <div class="form-field">
+        <label class="form-label">Name <span class="form-label-required">*</span></label>
+        <input type="text" id="addOrganizationName" required class="form-input-base" placeholder="Organization name">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Description</label>
+        <textarea id="addOrganizationDescription" rows="2" class="form-input-base" placeholder="Brief description"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input type="email" id="addOrganizationEmail" class="form-input-base" placeholder="contact@example.com">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Phone</label>
+        <input type="text" id="addOrganizationPhone" class="form-input-base" placeholder="(555) 123-4567">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Website</label>
+        <input type="text" id="addOrganizationWebsite" class="form-input-base" placeholder="https://...">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Location</label>
+        <div class="flex gap-2 items-center flex-wrap">
+          <div class="autocomplete-container flex-1 min-w-[200px]">
+            <input type="text" id="addOrganizationLocationSearch" placeholder="Type to search locations..." autocomplete="off" class="form-input-base">
+            <input type="hidden" id="addOrganizationLocationId" value="">
+            <div id="addOrganizationLocationDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <button type="button" onclick="window.openAddLocationModal?.()" class="btn-save text-sm py-2 px-3" title="Create new location">+ Add location</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Parent Organization</label>
+        <div class="autocomplete-container">
+          <input type="text" id="addOrganizationParentSearch" placeholder="Type to search organizations..." autocomplete="off" class="form-input-base">
+          <input type="hidden" id="addOrganizationParentId" value="">
+          <div id="addOrganizationParentDropdown" class="autocomplete-dropdown hidden"></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Status</label>
+        <select id="addOrganizationStatus" class="form-input-base">
+          <option value="approved">Approved</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" onclick="window.closeAddOrganizationModal?.()" class="btn-cancel">Cancel</button>
+        <button type="submit" class="btn-save">Save Organization</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function() {
+    let orgLocationList = [];
+    let orgParentList = [];
+
+    const modal = document.getElementById('addOrganizationModal');
+    const form = document.getElementById('addOrganizationForm');
+    const titleEl = document.getElementById('addOrganizationModalTitle');
+    const idInput = document.getElementById('addOrganizationId');
+    const locationSearch = document.getElementById('addOrganizationLocationSearch');
+    const locationIdHidden = document.getElementById('addOrganizationLocationId');
+    const locationDropdown = document.getElementById('addOrganizationLocationDropdown');
+    const parentSearch = document.getElementById('addOrganizationParentSearch');
+    const parentIdHidden = document.getElementById('addOrganizationParentId');
+    const parentDropdown = document.getElementById('addOrganizationParentDropdown');
+
+    async function loadOrgLists(excludeOrgId) {
+      const [locRes, orgRes] = await Promise.all([
+        fetch('/api/admin/locations?all=true', { credentials: 'include' }),
+        fetch('/api/admin/organizations?all=true', { credentials: 'include' }),
+      ]);
+      orgLocationList = locRes.ok ? await locRes.json() : [];
+      orgParentList = orgRes.ok ? (await orgRes.json()).filter(o => o.id !== excludeOrgId) : [];
+    }
+
+    function displayLoc(loc) {
+      return (loc.name || '') + (loc.address ? ' — ' + loc.address : '');
+    }
+
+    function setupLocationAutocomplete() {
+      if (!locationSearch || !locationDropdown || !locationIdHidden) return;
+      locationSearch.addEventListener('input', () => {
+        const q = locationSearch.value.toLowerCase().trim();
+        locationIdHidden.value = '';
+        if (!q) {
+          locationDropdown.classList.add('hidden');
+          locationDropdown.innerHTML = '';
+          return;
+        }
+        const matches = orgLocationList.filter(loc =>
+          displayLoc(loc).toLowerCase().includes(q)
+        ).slice(0, 10);
+        if (matches.length === 0) {
+          locationDropdown.classList.add('hidden');
+          locationDropdown.innerHTML = '';
+          return;
+        }
+        locationDropdown.innerHTML = matches.map(loc =>
+          '<div class="autocomplete-dropdown-item" data-id="' + loc.id + '" data-label="' + (displayLoc(loc).replace(/"/g, '&quot;').replace(/</g, '&lt;')) + '">' + (displayLoc(loc).replace(/</g, '&lt;')) + '</div>'
+        ).join('');
+        locationDropdown.classList.remove('hidden');
+        locationDropdown.classList.add('block');
+        locationDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+          el.addEventListener('click', () => {
+            locationIdHidden.value = el.getAttribute('data-id');
+            locationSearch.value = el.getAttribute('data-label') || '';
+            locationDropdown.classList.add('hidden');
+            locationDropdown.innerHTML = '';
+          });
+        });
+      });
+      locationSearch.addEventListener('focus', () => { if (locationSearch.value.trim()) locationSearch.dispatchEvent(new Event('input')); });
+      document.addEventListener('click', (e) => {
+        if (e.target !== locationSearch && !locationDropdown.contains(e.target)) locationDropdown.classList.add('hidden');
+      });
+    }
+
+    function setupParentAutocomplete() {
+      if (!parentSearch || !parentDropdown || !parentIdHidden) return;
+      parentSearch.addEventListener('input', () => {
+        const q = parentSearch.value.toLowerCase().trim();
+        parentIdHidden.value = '';
+        if (!q) {
+          parentDropdown.classList.add('hidden');
+          parentDropdown.innerHTML = '';
+          return;
+        }
+        const matches = orgParentList.filter(org =>
+          (org.name || '').toLowerCase().includes(q)
+        ).slice(0, 10);
+        if (matches.length === 0) {
+          parentDropdown.classList.add('hidden');
+          parentDropdown.innerHTML = '';
+          return;
+        }
+        parentDropdown.innerHTML = matches.map(org =>
+          '<div class="autocomplete-dropdown-item" data-id="' + org.id + '" data-label="' + ((org.name || '').replace(/"/g, '&quot;').replace(/</g, '&lt;')) + '">' + (org.name || '').replace(/</g, '&lt;') + '</div>'
+        ).join('');
+        parentDropdown.classList.remove('hidden');
+        parentDropdown.classList.add('block');
+        parentDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+          el.addEventListener('click', () => {
+            parentIdHidden.value = el.getAttribute('data-id');
+            parentSearch.value = el.getAttribute('data-label') || '';
+            parentDropdown.classList.add('hidden');
+            parentDropdown.innerHTML = '';
+          });
+        });
+      });
+      parentSearch.addEventListener('focus', () => { if (parentSearch.value.trim()) parentSearch.dispatchEvent(new Event('input')); });
+      document.addEventListener('click', (e) => {
+        if (e.target !== parentSearch && !parentDropdown.contains(e.target)) parentDropdown.classList.add('hidden');
+      });
+    }
+
+    function applyCreatedLocation(location) {
+      if (!location?.id || !modal || !modal.classList.contains('flex')) return;
+      orgLocationList = orgLocationList.some(l => l.id === location.id) ? orgLocationList : [...orgLocationList, { id: location.id, name: location.name || '', address: location.address || '' }];
+      if (locationIdHidden) locationIdHidden.value = location.id;
+      if (locationSearch) locationSearch.value = (location.name || '') + (location.address ? ' — ' + location.address : '');
+    }
+
+    window.openAddOrganizationModal = async function(editId) {
+      if (!modal || !form) return;
+      idInput.value = editId || '';
+      titleEl.textContent = editId ? 'Edit Organization' : 'Add Organization';
+      form.reset();
+      idInput.value = editId || '';
+      if (locationIdHidden) locationIdHidden.value = '';
+      if (locationSearch) locationSearch.value = '';
+      if (parentIdHidden) parentIdHidden.value = '';
+      if (parentSearch) parentSearch.value = '';
+      await loadOrgLists(editId || undefined);
+
+      if (editId) {
+        const res = await fetch(`/api/admin/organizations/${editId}`, { credentials: 'include' });
+        if (!res.ok) return;
+        const org = await res.json();
+        document.getElementById('addOrganizationName').value = org.name || '';
+        document.getElementById('addOrganizationDescription').value = org.description || '';
+        document.getElementById('addOrganizationEmail').value = org.email || '';
+        document.getElementById('addOrganizationPhone').value = org.phone || '';
+        document.getElementById('addOrganizationWebsite').value = org.website || '';
+        document.getElementById('addOrganizationStatus').value = org.status || 'approved';
+        if (org.location_id) {
+          locationIdHidden.value = org.location_id;
+          const loc = orgLocationList.find(l => l.id === org.location_id);
+          locationSearch.value = loc ? displayLoc(loc) : '';
+        }
+        if (org.parent_organization_id) {
+          parentIdHidden.value = org.parent_organization_id;
+          const parent = orgParentList.find(p => p.id === org.parent_organization_id);
+          parentSearch.value = parent ? parent.name || '' : '';
+        }
+      } else {
+        document.getElementById('addOrganizationStatus').value = 'approved';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.closeAddOrganizationModal = function() {
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    };
+
+    setupLocationAutocomplete();
+    setupParentAutocomplete();
+    window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = idInput.value.trim();
+      const payload = {
+        name: document.getElementById('addOrganizationName').value.trim(),
+        description: document.getElementById('addOrganizationDescription').value.trim() || null,
+        email: document.getElementById('addOrganizationEmail').value.trim() || null,
+        phone: document.getElementById('addOrganizationPhone').value.trim() || null,
+        website: document.getElementById('addOrganizationWebsite').value.trim() || null,
+        location_id: locationIdHidden?.value || null,
+        parent_organization_id: parentIdHidden?.value || null,
+        status: document.getElementById('addOrganizationStatus').value,
+      };
+
+      const url = id ? `/api/admin/organizations/${id}` : '/api/admin/organizations';
+      const method = id ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Failed to save organization');
+        return;
+      }
+
+      const organization = await res.json();
+      window.closeAddOrganizationModal();
+      if (id) {
+        window.dispatchEvent(new CustomEvent('admin:organization-updated', { detail: { organization } }));
+      } else {
+        window.dispatchEvent(new CustomEvent('admin:organization-created', { detail: { organization } }));
+      }
+    });
+  })();
+</script>

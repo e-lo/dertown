@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     // Also include staged events that don't have a parent (so they can be parents)
     // Exclude events that are already children (have a parent_event_id)
     // Order by start_date descending to show most recent first
-    
+
     // Get approved events
     const { data: approvedEvents, error: approvedError } = await supabaseAdmin
       .from('events')
@@ -47,9 +47,7 @@ export const GET: APIRoute = async ({ cookies }) => {
 
     // Combine and deduplicate by ID
     const allEvents = [...(approvedEvents || []), ...(stagedEvents || [])];
-    const uniqueEvents = Array.from(
-      new Map(allEvents.map(event => [event.id, event])).values()
-    );
+    const uniqueEvents = Array.from(new Map(allEvents.map((event) => [event.id, event])).values());
 
     return new Response(JSON.stringify(uniqueEvents), {
       status: 200,
@@ -63,4 +61,3 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 };
-

@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ cookies }) => {
       .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-    
+
     // Get other non-published announcements
     const { data: otherAnnouncements, error: otherError } = await supabaseAdmin
       .from('announcements')
@@ -31,7 +31,7 @@ export const GET: APIRoute = async ({ cookies }) => {
       .neq('status', 'published')
       .neq('status', 'pending') // Exclude pending since we already got them
       .order('created_at', { ascending: false });
-    
+
     const error = pendingError || otherError;
     const data = [...(pendingAnnouncements || []), ...(otherAnnouncements || [])];
 

@@ -40,10 +40,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Validate that primary_tag_id is set
     if (!stagedEvent.primary_tag_id) {
-      return new Response(JSON.stringify({ error: 'Event must have a primary tag selected before approval' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Event must have a primary tag selected before approval' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     let locationId = stagedEvent.location_id;
@@ -98,33 +101,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Create the approved event using admin client
-    const { error: createError } = await supabaseAdmin
-      .from('events')
-      .insert({
-        title: stagedEvent.title,
-        description: stagedEvent.description,
-        start_date: stagedEvent.start_date,
-        end_date: stagedEvent.end_date,
-        start_time: stagedEvent.start_time,
-        end_time: stagedEvent.end_time,
-        location_id: locationId,
-        organization_id: organizationId,
-        email: stagedEvent.email,
-        website: stagedEvent.website,
-        registration_link: stagedEvent.registration_link,
-        primary_tag_id: stagedEvent.primary_tag_id,
-        secondary_tag_id: stagedEvent.secondary_tag_id,
-        image_id: stagedEvent.image_id,
-        external_image_url: stagedEvent.external_image_url,
-        featured: stagedEvent.featured,
-        parent_event_id: stagedEvent.parent_event_id,
-        exclude_from_calendar: stagedEvent.exclude_from_calendar,
-        registration: stagedEvent.registration,
-        cost: stagedEvent.cost,
-        comments: stagedEvent.comments,
-        status: 'approved',
-        source_id: stagedEvent.source_id,
-      });
+    const { error: createError } = await supabaseAdmin.from('events').insert({
+      title: stagedEvent.title,
+      description: stagedEvent.description,
+      start_date: stagedEvent.start_date,
+      end_date: stagedEvent.end_date,
+      start_time: stagedEvent.start_time,
+      end_time: stagedEvent.end_time,
+      location_id: locationId,
+      organization_id: organizationId,
+      email: stagedEvent.email,
+      website: stagedEvent.website,
+      registration_link: stagedEvent.registration_link,
+      primary_tag_id: stagedEvent.primary_tag_id,
+      secondary_tag_id: stagedEvent.secondary_tag_id,
+      image_id: stagedEvent.image_id,
+      external_image_url: stagedEvent.external_image_url,
+      featured: stagedEvent.featured,
+      parent_event_id: stagedEvent.parent_event_id,
+      exclude_from_calendar: stagedEvent.exclude_from_calendar,
+      registration: stagedEvent.registration,
+      cost: stagedEvent.cost,
+      comments: stagedEvent.comments,
+      status: 'approved',
+      source_id: stagedEvent.source_id,
+    });
 
     if (createError) {
       return new Response(JSON.stringify({ error: 'Failed to create approved event' }), {

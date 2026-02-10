@@ -73,7 +73,7 @@ if (isAdmin) {
         
         // If we have an editEvent parameter, redirect to admin with edit modal
         if (editEventId) {
-          window.location.href = `/admin?editEvent=${editEventId}`;
+          window.location.href = `/admin/events/${editEventId}`;
         } else {
           window.location.href = redirectTo;
         }

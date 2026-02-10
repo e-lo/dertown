@@ -11,7 +11,9 @@ const supabaseAnonKey = useLocalDb
   : import.meta.env.PUBLIC_SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required environment variables: PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_KEY');
+  throw new Error(
+    'Missing required environment variables: PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_KEY'
+  );
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -61,10 +63,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Set session cookies using Astro's cookies object
     // Determine if we're in production (HTTPS) based on environment
-    const isProduction = import.meta.env.PROD || 
-                        (typeof request.headers.get('x-forwarded-proto') === 'string' && 
-                         request.headers.get('x-forwarded-proto') === 'https');
-    
+    const isProduction =
+      import.meta.env.PROD ||
+      (typeof request.headers.get('x-forwarded-proto') === 'string' &&
+        request.headers.get('x-forwarded-proto') === 'https');
+
     if (data.session.access_token) {
       cookies.set('sb-access-token', data.session.access_token, {
         path: '/',
@@ -74,7 +77,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         secure: isProduction, // true in production (HTTPS), false in local dev
       });
     }
-    
+
     if (data.session.refresh_token) {
       cookies.set('sb-refresh-token', data.session.refresh_token, {
         path: '/',
