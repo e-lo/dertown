@@ -8,7 +8,7 @@
  */
 export function getCurrentSeason(date: Date = new Date()): 'winter' | 'spring' | 'summer' | 'fall' {
   const month = date.getMonth() + 1; // getMonth() returns 0-11, so add 1
-  
+
   if (month === 12 || month <= 2) {
     return 'winter';
   } else if (month >= 3 && month <= 5) {
@@ -21,4 +21,3 @@ export function getCurrentSeason(date: Date = new Date()): 'winter' | 'spring' |
 }
 
 export type Season = 'winter' | 'spring' | 'summer' | 'fall';
-

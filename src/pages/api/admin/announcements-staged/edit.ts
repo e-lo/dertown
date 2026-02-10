@@ -49,10 +49,13 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 
     if (error) {
       console.error('Error updating staged announcement:', error);
-      return new Response(JSON.stringify({ error: 'Failed to update announcement', details: error.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Failed to update announcement', details: error.message }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (!data || data.length === 0) {

@@ -1,0 +1,198 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
+import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../../styles/global.css';
+import '../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organizations - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Organizations</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <button type="button" onclick="window.openAddOrganizationModal?.()" class="btn-save">
+        <span class="material-symbols-outlined text-lg align-middle mr-1">add</span>
+        Add organization
+      </button>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <AddOrganizationModal />
+  <AdminAuthRefresh />
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">business</span>
+        All organizations
+      </div>
+    </div>
+    <div class="mb-4 relative max-w-md">
+      <label for="organization-search" class="sr-only">Search organizations</label>
+      <input type="text" id="organization-search" class="form-input-base w-full" placeholder="Type to search organizations..." autocomplete="off" />
+      <div id="organization-search-dropdown" class="autocomplete-dropdown hidden"></div>
+    </div>
+    <div id="organizations-loading" class="loading">Loading organizations...</div>
+    <div id="organizations-container"></div>
+  </div>
+</div>
+
+<script>
+  let organizations = [];
+
+  async function loadOrganizations() {
+    const el = document.getElementById('organizations-loading');
+    const container = document.getElementById('organizations-container');
+    if (!el || !container) return;
+    try {
+      const res = await fetch('/api/admin/organizations?all=true', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load organizations');
+      organizations = await res.json();
+      renderOrganizations();
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-600">' + (err.message || 'Failed to load organizations') + '</p>';
+    } finally {
+      el.classList.add('hidden');
+    }
+  }
+
+  let organizationSearchQuery = '';
+
+  function getFilteredOrganizations() {
+    const q = organizationSearchQuery.toLowerCase().trim();
+    if (!q) return organizations;
+    return organizations.filter(org => (org.name || '').toLowerCase().includes(q));
+  }
+
+  function renderOrganizations() {
+    const container = document.getElementById('organizations-container');
+    if (!container) return;
+    if (!organizations.length) {
+      container.innerHTML = '<p class="text-gray-600">No organizations yet. Click “Add organization” to create one.</p>';
+      return;
+    }
+    const list = getFilteredOrganizations();
+    const table = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden"><thead class="bg-gray-100"><tr><th class="text-left p-3">Name</th><th class="text-left p-3">Status</th><th class="w-24 p-3"></th></tr></thead><tbody>' +
+      list.map(org => '<tr id="organization-row-' + org.id + '" class="organization-row border-t border-gray-200 hover:bg-gray-50"><td class="p-3 font-medium">' + (org.name || '') + '</td><td class="p-3"><span class="text-sm ' + (org.status === 'approved' ? 'text-green-600' : 'text-amber-600') + '">' + (org.status || '') + '</span></td><td class="p-3" style="white-space: nowrap;"><a href="/organizations/' + org.id + '" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span><span class="tooltip">View</span></a><button type="button" onclick="editOrganization(\'' + org.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button></td></tr>').join('') +
+      '</tbody></table>';
+    container.innerHTML = list.length ? table : '<p class="text-gray-600">No organizations match "' + (organizationSearchQuery || '').replace(/</g, '&lt;') + '".</p>';
+  }
+
+  function setupOrganizationSearch() {
+    const input = document.getElementById('organization-search');
+    const dropdown = document.getElementById('organization-search-dropdown');
+    if (!input || !dropdown) return;
+
+    function closeDropdown() {
+      dropdown.classList.add('hidden');
+      dropdown.classList.remove('block');
+      dropdown.innerHTML = '';
+    }
+
+    function showMatches() {
+      const q = input.value.toLowerCase().trim();
+      organizationSearchQuery = input.value.trim();
+      renderOrganizations();
+      if (!q) {
+        closeDropdown();
+        return;
+      }
+      const matches = organizations.filter(org => (org.name || '').toLowerCase().includes(q)).slice(0, 12);
+      if (matches.length === 0) {
+        closeDropdown();
+        return;
+      }
+      dropdown.innerHTML = matches.map(org => {
+        const label = org.name || '';
+        return '<div class="autocomplete-dropdown-item" data-id="' + org.id + '" data-name="' + (org.name || '').replace(/"/g, '&quot;') + '">' + label.replace(/</g, '&lt;') + '</div>';
+      }).join('');
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.getAttribute('data-id');
+          const name = el.getAttribute('data-name');
+          if (name !== null) input.value = name;
+          organizationSearchQuery = name || '';
+          renderOrganizations();
+          closeDropdown();
+          const row = document.getElementById('organization-row-' + id);
+          if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            row.classList.add('bg-indigo-50');
+            setTimeout(() => row.classList.remove('bg-indigo-50'), 2000);
+          }
+        });
+      });
+    }
+
+    input.addEventListener('input', showMatches);
+    input.addEventListener('focus', () => { if (input.value.trim()) showMatches(); });
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !dropdown.contains(e.target)) closeDropdown();
+    });
+  }
+
+  window.editOrganization = function(id) {
+    window.openAddOrganizationModal?.(id);
+  };
+
+  window.addEventListener('admin:organization-created', () => loadOrganizations());
+  window.addEventListener('admin:organization-updated', () => loadOrganizations());
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadOrganizations();
+    setupOrganizationSearch();
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId && typeof window.openAddOrganizationModal === 'function') {
+      setTimeout(() => window.openAddOrganizationModal(editId), 300);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  });
+
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
+    window.location.href = '/';
+  }
+</script>
+</body>
+</html>

@@ -53,13 +53,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (locationError) {
         console.error('[CREATE EVENT] Location creation error:', locationError);
-        return new Response(JSON.stringify({ 
-          error: 'Failed to create new location', 
-          details: locationError.message 
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create new location',
+            details: locationError.message,
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       if (newLocation) {
@@ -80,13 +83,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (orgError) {
         console.error('[CREATE EVENT] Organization creation error:', orgError);
-        return new Response(JSON.stringify({ 
-          error: 'Failed to create new organization', 
-          details: orgError.message 
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create new organization',
+            details: orgError.message,
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       if (newOrganization) {
@@ -127,22 +133,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data, error } = await supabaseAdmin
       .from('events')
       .insert(cleanedData)
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .single();
 
     if (error) {
       console.error('[CREATE EVENT] Error creating event:', error);
       console.error('[CREATE EVENT] Event data:', JSON.stringify(cleanedData, null, 2));
-      return new Response(JSON.stringify({ error: 'Failed to create event', details: error.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Failed to create event', details: error.message }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(JSON.stringify({ event: data }), {
@@ -155,13 +166,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('[CREATE EVENT] Error message:', error.message);
       console.error('[CREATE EVENT] Error stack:', error.stack);
     }
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 };
-

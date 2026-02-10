@@ -58,4 +58,3 @@ export const GET: APIRoute = async ({ params, cookies }) => {
     });
   }
 };
-

@@ -1,0 +1,309 @@
+---
+export const prerender = false;
+
+import Layout from '../../components/Layout.astro';
+import EventListCard from '../../components/EventListCard.astro';
+import ShareButton from '../../components/ui/ShareButton.astro';
+import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
+import { checkAdminAccess } from '../../lib/session';
+
+const { id } = Astro.params;
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+
+if (!id) {
+  return Astro.redirect('/events');
+}
+
+const { data: location, error: locationError } = await supabase
+  .from('locations')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (locationError || !location) {
+  return Astro.redirect('/events');
+}
+
+let parentLocation = null;
+if (location.parent_location_id) {
+  const { data } = await supabase
+    .from('locations')
+    .select('*')
+    .eq('id', location.parent_location_id)
+    .single();
+  parentLocation = data || null;
+}
+
+let siblingLocations = [];
+if (location.parent_location_id) {
+  const { data } = await supabase
+    .from('locations')
+    .select('*')
+    .eq('parent_location_id', location.parent_location_id)
+    .neq('id', location.id);
+  siblingLocations = data || [];
+}
+
+const { data: childLocationsRaw } = await supabase
+  .from('locations')
+  .select('*')
+  .eq('parent_location_id', location.id)
+  .order('name');
+const childLocations = childLocationsRaw || [];
+
+// Events at this location and at any child locations
+const locationIds = [location.id, ...childLocations.map((c: { id: string }) => c.id)];
+const { data: locationEvents } = await supabase
+  .from('public_events')
+  .select('*')
+  .in('location_id', locationIds)
+  .order('start_date', { ascending: true });
+
+const upcomingEvents = filterCurrentAndFutureEvents(locationEvents || []);
+
+const mapLat = location.latitude;
+const mapLon = location.longitude;
+let mapLinkUrl = null;
+if (typeof mapLat === 'number' && typeof mapLon === 'number') {
+  mapLinkUrl = `https://www.openstreetmap.org/?mlat=${mapLat}&mlon=${mapLon}#map=16/${mapLat}/${mapLon}`;
+}
+// Build map markers for Leaflet: current + parent + siblings + children that have coords
+function hasCoords(loc: { latitude?: number | null; longitude?: number | null }) {
+  return typeof loc?.latitude === 'number' && typeof loc?.longitude === 'number';
+}
+const mapMarkers: Array<{ lat: number; lon: number; label: string; type: 'current' | 'parent' | 'sibling' | 'child' }> = [];
+if (typeof mapLat === 'number' && typeof mapLon === 'number') {
+  mapMarkers.push({ lat: mapLat, lon: mapLon, label: location.name || 'Location', type: 'current' });
+  if (parentLocation && hasCoords(parentLocation)) {
+    mapMarkers.push({ lat: parentLocation.latitude!, lon: parentLocation.longitude!, label: parentLocation.name || 'Location', type: 'parent' });
+  }
+  (siblingLocations || []).forEach((s: { latitude?: number | null; longitude?: number | null; name?: string }) => {
+    if (hasCoords(s)) mapMarkers.push({ lat: s.latitude!, lon: s.longitude!, label: s.name || 'Location', type: 'sibling' });
+  });
+  childLocations.forEach((c: { latitude?: number | null; longitude?: number | null; name?: string }) => {
+    if (hasCoords(c)) mapMarkers.push({ lat: c.latitude!, lon: c.longitude!, label: c.name || 'Location', type: 'child' });
+  });
+}
+
+const formatPhone = (phone) => phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+const locationTitle = location.name || 'Location';
+const locationDescription = location.address ? `${locationTitle} at ${location.address}` : `Events at ${locationTitle}`;
+
+const hasRelatedLocations = !!(parentLocation || (siblingLocations?.length > 0) || (childLocations?.length > 0));
+const hasMap = typeof mapLat === 'number' && typeof mapLon === 'number';
+const hasAddressLink = !hasMap && !!location.address?.trim();
+const mapSearchUrl = location.address
+  ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(location.address)}`
+  : null;
+// URL for "Open in maps" (Google Maps works well for navigation on desktop and mobile)
+const mapsAppUrl = (typeof mapLat === 'number' && typeof mapLon === 'number')
+  ? `https://www.google.com/maps/search/?api=1&query=${mapLat},${mapLon}`
+  : location.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}`
+    : null;
+const locationPageUrl = Astro.url.href;
+---
+
+<Layout title={`${locationTitle} - Location`} description={locationDescription}>
+  <style is:global>
+    .location-marker-tooltip { background: white; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  </style>
+  <section class="max-w-6xl mx-auto px-4 py-10">
+    <div class="flex flex-col gap-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 relative">
+        <div id="location-admin-status" data-is-admin={isAdmin} class="hidden" aria-hidden="true"></div>
+        <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
+          {isAdmin && (
+            <a href={`/admin/locations?edit=${location.id}`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit location" title="Edit location">
+              <span class="material-symbols-outlined text-2xl">edit</span>
+              <span class="tooltip -top-10 left-auto right-8">Edit location</span>
+            </a>
+          )}
+          <ShareButton url={locationPageUrl} title={locationTitle} tooltipText="Share this location" shareText="Share location" />
+          {mapsAppUrl && (
+            <a href={mapsAppUrl} target="_blank" rel="noopener noreferrer" class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Open in maps app to navigate" title="Open in maps app to navigate">
+              <span class="material-symbols-outlined text-2xl">map</span>
+              <span class="tooltip -top-10 left-auto right-8">Open in maps app to navigate</span>
+            </a>
+          )}
+        </div>
+        <div class="flex flex-col gap-2 pr-24 sm:pr-28">
+          <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Location</p>
+          <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{locationTitle}</h1>
+          {location.address && (
+            <p class="text-gray-600 text-sm sm:text-base">{location.address}</p>
+          )}
+        </div>
+      </div>
+
+      <div class={`grid grid-cols-1 gap-8 ${hasMap || hasAddressLink ? 'lg:grid-cols-[1.4fr_1fr]' : ''}`}>
+        {/* Map first on mobile (order-first), right column on desktop (lg:order-2) */}
+        {(hasMap || hasAddressLink) && (
+          <div class="space-y-6 order-first lg:order-2">
+            {hasMap ? (
+              <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h2 class="text-lg font-semibold text-gray-900">Map</h2>
+                  {mapLinkUrl && (
+                    <a class="text-sm text-blue-600 hover:underline" href={mapLinkUrl} target="_blank" rel="noopener noreferrer">Open in map</a>
+                  )}
+                </div>
+                <div id="location-map" class="w-full h-64" data-markers={JSON.stringify(mapMarkers)} data-zoom="16"></div>
+              </div>
+            ) : mapSearchUrl ? (
+              <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Map</h2>
+                <p class="text-sm text-gray-600 mb-3">View this address on a map.</p>
+                <a class="text-sm text-blue-600 hover:underline" href={mapSearchUrl} target="_blank" rel="noopener noreferrer">Open in OpenStreetMap →</a>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* Details + related after map on mobile (order-2), left column on desktop (lg:order-1) */}
+        <div class="space-y-6 order-2 lg:order-1">
+          {(location.address || location.phone || location.website) && (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="space-y-2 text-base text-gray-700">
+                {location.address && (
+                  <div class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">location_on</span>
+                    {mapsAppUrl ? (
+                      <a class="text-blue-600 hover:underline break-words" href={mapsAppUrl} target="_blank" rel="noopener noreferrer">{location.address}</a>
+                    ) : (
+                      <span class="break-words">{location.address}</span>
+                    )}
+                  </div>
+                )}
+                {location.phone && (
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">phone</span>
+                    <a class="text-blue-600 hover:underline" href={`tel:${location.phone.replace(/\D/g, '')}`}>{formatPhone(location.phone)}</a>
+                  </div>
+                )}
+                {location.website && (
+                  <a href={location.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-blue-600 hover:underline">
+                    <span class="material-symbols-outlined text-blue-600 shrink-0">link</span>
+                    <span>Website</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasRelatedLocations && (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+              {parentLocation && (
+                <p class="text-lg font-medium text-gray-900 tracking-tight">
+                  Part of <a class="text-blue-600 hover:underline font-semibold" href={`/locations/${parentLocation.id}`}>{parentLocation.name}</a>
+                </p>
+              )}
+              {(siblingLocations?.length > 0 || childLocations.length > 0) && (
+                <div>
+                  <p class="text-xs uppercase tracking-[0.15em] text-gray-500 mb-2">Related:</p>
+                  <ul class="list-none space-y-1.5 pl-0">
+                    {siblingLocations?.map((sibling) => (
+                      <li><a class="text-sm text-blue-600 hover:underline block" href={`/locations/${sibling.id}`}>{sibling.name}</a></li>
+                    ))}
+                    {childLocations.map((child) => (
+                      <li><a class="text-sm text-blue-600 hover:underline block" href={`/locations/${child.id}`}>{child.name}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold text-gray-900">Upcoming Events</h2>
+          <p class="text-sm text-gray-500">{upcomingEvents.length} upcoming</p>
+        </div>
+        {upcomingEvents.length === 0 ? (
+          <div class="bg-white rounded-2xl border border-gray-100 p-6 text-gray-500">
+            No upcoming events have been listed for this location yet.
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {upcomingEvents.map((event) => (
+              <EventListCard
+                event={event}
+                tags={{
+                  primary: event.primary_tag_name || '',
+                  secondary: event.secondary_tag_name || ''
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+  <script define:vars={{ hasMap }}>
+    document.addEventListener('DOMContentLoaded', function() {
+      window.shareEvent = function(ev) {
+        const button = (ev && ev.target && ev.target.closest('button')) || document.querySelector('[data-share-url]');
+        if (!button) return;
+        const url = button.getAttribute('data-share-url');
+        const title = button.getAttribute('data-share-title');
+        if (navigator.share) {
+          navigator.share({ title: title || 'Location', url: url || window.location.href });
+        } else {
+          navigator.clipboard.writeText(url || window.location.href).then(function() {
+            var n = document.createElement('div');
+            n.textContent = 'Link copied to clipboard!';
+            n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
+            document.body.appendChild(n);
+            setTimeout(function() { n.remove(); }, 2000);
+          });
+        }
+      };
+
+      if (hasMap) {
+        var mapEl = document.getElementById('location-map');
+        if (!mapEl) return;
+        var markersJson = mapEl.getAttribute('data-markers');
+        var zoom = parseInt(mapEl.getAttribute('data-zoom') || '16', 10) || 16;
+        var markers = [];
+        try { markers = JSON.parse(markersJson || '[]'); } catch { /* use default [] */ }
+        if (markers.length === 0) return;
+        var current = markers.find(function(m) { return m.type === 'current'; });
+        var center = current ? [current.lat, current.lon] : [markers[0].lat, markers[0].lon];
+
+        function loadLeaflet(cb) {
+          if (typeof globalThis.L !== 'undefined') { cb(); return; }
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          link.crossOrigin = '';
+          document.head.appendChild(link);
+          var script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.crossOrigin = '';
+          script.onload = cb;
+          document.head.appendChild(script);
+        }
+        loadLeaflet(function() {
+          var L = globalThis.L;
+          var map = L.map('location-map').setView(center, zoom);
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          }).addTo(map);
+          var tooltipOpts = { permanent: false, direction: 'top', className: 'location-marker-tooltip' };
+          markers.forEach(function(m) {
+            if (m.type === 'current') {
+              var marker = L.marker([m.lat, m.lon]).addTo(map);
+              marker.bindTooltip(m.label || '', tooltipOpts);
+            } else {
+              var dot = L.circleMarker([m.lat, m.lon], { radius: 6, fillColor: '#2563eb', color: '#1d4ed8', weight: 1, fillOpacity: 0.9 }).addTo(map);
+              dot.bindTooltip(m.label || '', tooltipOpts);
+            }
+          });
+        });
+      }
+    });
+  </script>
+</Layout>

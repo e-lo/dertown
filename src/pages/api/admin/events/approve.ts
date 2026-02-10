@@ -39,10 +39,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (!event.primary_tag_id) {
-      return new Response(JSON.stringify({ error: 'Event must have a primary tag selected before approval' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Event must have a primary tag selected before approval' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Update event status to approved using admin client

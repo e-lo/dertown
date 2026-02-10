@@ -19,12 +19,15 @@ export const GET: APIRoute = async () => {
     // Transform events for FullCalendar using the same function as Calendar.astro
     // This ensures consistency and uses timezone-aware ISO strings
     const calendarEvents = (events || [])
-      .filter((event): event is typeof event & { id: string } => event.id !== null && event.id !== undefined) // Filter out events with null IDs
+      .filter(
+        (event): event is typeof event & { id: string } =>
+          event.id !== null && event.id !== undefined
+      ) // Filter out events with null IDs
       .map((event) => {
         try {
           const transformed = transformEventForCalendar(event);
           if (!transformed) return null;
-          
+
           return {
             ...transformed,
             extendedProps: {

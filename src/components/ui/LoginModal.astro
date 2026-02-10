@@ -3,7 +3,7 @@ export interface Props {
   title?: string; // Modal title
   description?: string; // Modal description text
   redirectUrl?: string; // URL to redirect to after successful login
-  editEventId?: string; // Optional event ID to edit after login (redirects to admin with edit modal)
+  editEventId?: string; // Optional event ID to edit after login (redirects to event editor)
   onSuccessCallback?: string; // JavaScript function name to call on success
   reloadOnSuccess?: boolean; // Whether to reload the page on success (default: false)
 }
@@ -129,7 +129,7 @@ const {
           // Handle success based on configuration
           if (editEventId) {
             // Priority 1: Redirect to admin with edit modal
-            window.location.href = '/admin?editEvent=' + editEventId;
+            window.location.href = '/admin/events/' + editEventId;
           } else if (redirectUrl) {
             // Priority 2: Redirect to specified URL
             window.location.href = redirectUrl;
@@ -161,4 +161,3 @@ const {
     });
   });
 </script>
-

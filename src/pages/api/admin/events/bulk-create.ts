@@ -30,19 +30,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { events, location_added, organization_added } = requestData;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
-      return new Response(JSON.stringify({ error: 'Events array is required and must not be empty' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Events array is required and must not be empty' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Validate required fields for all events
     for (const event of events) {
       if (!event.title || !event.start_date) {
-        return new Response(JSON.stringify({ error: 'Title and start date are required for all events' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({ error: 'Title and start date are required for all events' }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
     }
 
@@ -62,13 +68,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (locationError) {
         console.error('[BULK CREATE] Location creation error:', locationError);
-        return new Response(JSON.stringify({ 
-          error: 'Failed to create new location', 
-          details: locationError.message 
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create new location',
+            details: locationError.message,
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       if (newLocation) {
@@ -89,13 +98,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (orgError) {
         console.error('[BULK CREATE] Organization creation error:', orgError);
-        return new Response(JSON.stringify({ 
-          error: 'Failed to create new organization', 
-          details: orgError.message 
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create new organization',
+            details: orgError.message,
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       if (newOrganization) {
@@ -104,9 +116,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Prepare events for insertion
-    const eventsToInsert = events.map(eventData => {
+    const eventsToInsert = events.map((eventData) => {
       const cleanedData: any = {};
-      
+
       // Copy all event fields
       for (const [key, value] of Object.entries(eventData)) {
         if (key === 'location_added' || key === 'organization_added') {
@@ -139,10 +151,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     // Insert all events
-    const { data, error } = await supabaseAdmin
-      .from('events')
-      .insert(eventsToInsert)
-      .select(`
+    const { data, error } = await supabaseAdmin.from('events').insert(eventsToInsert).select(`
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
@@ -153,10 +162,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (error) {
       console.error('[BULK CREATE] Error creating events:', error);
       console.error('[BULK CREATE] Events data:', JSON.stringify(eventsToInsert, null, 2));
-      return new Response(JSON.stringify({ error: 'Failed to create events', details: error.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Failed to create events', details: error.message }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(JSON.stringify({ events: data || [], count: data?.length || 0 }), {
@@ -169,13 +181,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('[BULK CREATE] Error message:', error.message);
       console.error('[BULK CREATE] Error stack:', error.stack);
     }
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 };
-

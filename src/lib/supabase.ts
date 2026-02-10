@@ -27,13 +27,13 @@ const FEATURED_EVENTS_LIMIT = 8;
 export function getTodayLocale(): string {
   // Get current UTC time
   const nowUtc = new Date();
-  
+
   // Convert to locale timezone date string (YYYY-MM-DD format)
   // Use 'en-CA' locale which gives us YYYY-MM-DD format directly
-  const todayLocaleDateStr = nowUtc.toLocaleDateString('en-CA', { 
-    timeZone: localeTimeZone 
+  const todayLocaleDateStr = nowUtc.toLocaleDateString('en-CA', {
+    timeZone: localeTimeZone,
   });
-  
+
   return todayLocaleDateStr;
 }
 
@@ -42,23 +42,23 @@ export function getTodayLocale(): string {
  * An event is included if:
  * - start_date >= today (Pacific time), OR
  * - end_date >= today (Pacific time)
- * 
+ *
  * @param {any[]} events - Array of event objects to filter
  * @returns {any[]} Filtered array of events
  */
 export function filterCurrentAndFutureEvents(events: any[]): any[] {
   if (!events) return [];
-  
+
   const todayLocale = getTodayLocale();
-  
+
   return events.filter((event: any) => {
     // Must have at least a start_date
     if (!event.start_date) return false;
-    
+
     // Check if start_date >= today (date comparison in locale time)
     const startDateStr = event.start_date;
     const startDateIsTodayOrFuture = startDateStr >= todayLocale;
-    
+
     // Check if end_date >= today (if end_date exists)
     if (event.end_date) {
       const endDateStr = event.end_date;
@@ -66,7 +66,7 @@ export function filterCurrentAndFutureEvents(events: any[]): any[] {
       // Include if either start_date or end_date is today or future
       return startDateIsTodayOrFuture || endDateIsTodayOrFuture;
     }
-    
+
     // If no end_date, only check start_date
     return startDateIsTodayOrFuture;
   });
@@ -76,36 +76,52 @@ export function filterCurrentAndFutureEvents(events: any[]): any[] {
 export const db = {
   // Events
   events: {
-    getById: (id: string) => supabase.from('public_events').select(`
+    getById: (id: string) =>
+      supabase
+        .from('public_events')
+        .select(
+          `
       *,
       primary_tag:tags!events_primary_tag_id_fkey(name),
       secondary_tag:tags!events_secondary_tag_id_fkey(name),
       location:locations!events_location_id_fkey(name, address),
       organization:organizations!events_organization_id_fkey(name)
-    `).eq('id', id).single(),
+    `
+        )
+        .eq('id', id)
+        .single(),
     getByParentEventId: async (parentEventId: string) => {
       // Query public_events view - it should include parent_event_id after migration is applied
       // If the view doesn't have parent_event_id yet, this will fail gracefully
       const { data, error } = await supabase
         .from('public_events')
-        .select(`
+        .select(
+          `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
-        `)
+        `
+        )
         .eq('parent_event_id', parentEventId)
+        .neq('status', 'cancelled')
         .order('start_date', { ascending: true });
 
       // If error is about missing column, the migration hasn't been run yet
       if (error && error.code === '42703') {
-        console.warn('public_events view does not have parent_event_id column. Migration may need to be run.');
+        console.warn(
+          'public_events view does not have parent_event_id column. Migration may need to be run.'
+        );
         return { data: [], error: null };
       }
 
       return { data: data || [], error };
     },
-    getRelated: async (eventId: string, organizationId: string | null, locationId: string | null) => {
+    getRelated: async (
+      eventId: string,
+      organizationId: string | null,
+      locationId: string | null
+    ) => {
       // First, try to get the parent event to exclude series events
       const { data: currentEvent } = await supabase
         .from('public_events')
@@ -115,18 +131,23 @@ export const db = {
 
       let query = supabase
         .from('public_events')
-        .select(`
+        .select(
+          `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
-        `)
+        `
+        )
         .neq('id', eventId)
+        .neq('status', 'cancelled')
         .limit(RELATED_EVENTS_LIMIT);
 
       // Exclude events from the same series (same parent_event_id)
       if (currentEvent?.parent_event_id) {
-        query = query.or(`parent_event_id.is.null,parent_event_id.neq.${currentEvent.parent_event_id}`);
+        query = query.or(
+          `parent_event_id.is.null,parent_event_id.neq.${currentEvent.parent_event_id}`
+        );
       }
 
       // Only use organization/location matching when parent_event_id is NULL
@@ -143,25 +164,31 @@ export const db = {
     getFeatured: async () => {
       const { data, error } = await supabase
         .from('public_events')
-        .select(`
+        .select(
+          `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
-        `)
-        .eq('featured', true);
+        `
+        )
+        .eq('featured', true)
+        .neq('status', 'cancelled');
 
       return { data: data || [], error };
     },
     getAll: async () => {
       const { data, error } = await supabase
         .from('public_events')
-        .select(`
+        .select(
+          `
           *,
           primary_tag:tags!events_primary_tag_id_fkey(name),
           secondary_tag:tags!events_secondary_tag_id_fkey(name),
           location:locations!events_location_id_fkey(name, address)
-        `)
+        `
+        )
+        .neq('status', 'cancelled')
         .order('start_date', { ascending: true });
 
       return { data: data || [], error };
@@ -170,7 +197,7 @@ export const db = {
       // Get all events and filter client-side
       const result = await db.events.getAll();
       if (result.error) return { data: null, error: result.error };
-      
+
       // Filter to only current and future events
       const filteredData = filterCurrentAndFutureEvents(result.data || []);
 

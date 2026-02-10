@@ -3,6 +3,7 @@
 import { supabase } from '../lib/supabase';
 import { checkAdminAccess, getSessionFromCookies } from '../lib/session';
 import LoginModal from '../components/ui/LoginModal.astro';
+import AdminAuthRefresh from '../components/AdminAuthRefresh.astro';
 
 // Check if user is already logged in using cookies
 const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
@@ -20,6 +21,8 @@ const user = session?.user;
 import '../styles/global.css';
 import '../styles/admin.css';
 import EditEventModal from '../components/ui/EditEventModal.astro';
+import AddLocationModal from '../components/ui/AddLocationModal.astro';
+import AddOrganizationModal from '../components/ui/AddOrganizationModal.astro';
 import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro';
 import SeriesModal from '../components/ui/SeriesModal.astro';
 ---
@@ -48,14 +51,22 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       </div>
     </div>
     <div class="flex gap-2 items-center">
+      <a href="/admin/locations" class="icon-btn btn-edit" aria-label="Locations" style="background: linear-gradient(to bottom right, #059669, #047857);">
+        <span class="material-symbols-outlined text-2xl">location_on</span>
+        <span class="tooltip">Locations</span>
+      </a>
+      <a href="/admin/organizations" class="icon-btn btn-edit" aria-label="Organizations" style="background: linear-gradient(to bottom right, #0d9488, #0f766e);">
+        <span class="material-symbols-outlined text-2xl">business</span>
+        <span class="tooltip">Organizations</span>
+      </a>
       <a href="/admin/series" class="icon-btn btn-edit" aria-label="Manage Series" style="background: linear-gradient(to bottom right, #7c3aed, #6d28d9);">
         <span class="material-symbols-outlined text-2xl">event_repeat</span>
         <span class="tooltip">Manage Series</span>
       </a>
-      <button class="icon-btn btn-create" onclick="openCreateEventModal()" aria-label="Create New Event">
+      <a href="/admin/events/new" class="icon-btn btn-create" aria-label="Create New Event">
         <span class="material-symbols-outlined text-2xl">event</span>
         <span class="tooltip">Create New Event</span>
-      </button>
+      </a>
       <button class="icon-btn btn-create" onclick="openCreateSeriesModal()" aria-label="Create Event Series" style="background: linear-gradient(to bottom right, #9333ea, #7e22ce);">
         <span class="material-symbols-outlined text-2xl">repeat</span>
         <span class="tooltip">Create Event Series</span>
@@ -73,10 +84,32 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
 
   <div id="message"></div>
 
+  <div id="pending-locations-orgs" class="section hidden">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">warning</span>
+        Pending approval
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-4">
+      <a id="pending-locations-link" href="/admin/locations" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 text-amber-900 hover:bg-amber-200 font-medium">
+        <span class="material-symbols-outlined">location_on</span>
+        <span id="pending-locations-count">0</span> pending location(s)
+      </a>
+      <a id="pending-organizations-link" href="/admin/organizations" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 text-amber-900 hover:bg-amber-200 font-medium">
+        <span class="material-symbols-outlined">business</span>
+        <span id="pending-organizations-count">0</span> pending organization(s)
+      </a>
+    </div>
+  </div>
+
   <!-- Modals -->
   <EditEventModal />
+  <AddLocationModal />
+  <AddOrganizationModal />
   <EditAnnouncementModal />
   <SeriesModal />
+  <AdminAuthRefresh />
 
   <div class="section">
     <div class="section-header">
@@ -162,6 +195,26 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     }
     // Otherwise, add https://
     return 'https://' + trimmed;
+  }
+
+  function getEventStatusFromForm() {
+    const cancelled = document.getElementById('editEventCancelled')?.checked;
+    if (cancelled) return 'cancelled';
+    const draft = document.getElementById('editEventDraft')?.checked;
+    return draft ? 'pending' : 'approved';
+  }
+
+  function syncEventStatusControls() {
+    const cancelledCheckbox = document.getElementById('editEventCancelled');
+    const draftCheckbox = document.getElementById('editEventDraft');
+    if (!cancelledCheckbox || !draftCheckbox) return;
+
+    if (cancelledCheckbox.checked) {
+      draftCheckbox.checked = false;
+      draftCheckbox.disabled = true;
+    } else {
+      draftCheckbox.disabled = false;
+    }
   }
 
   /**
@@ -332,7 +385,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     const searchInput = document.getElementById('editEventLocationSearch');
     const hiddenInput = document.getElementById('editEventLocationId');
     const dropdown = document.getElementById('editEventLocationDropdown');
-    const newLocationInput = document.getElementById('editEventLocationAdded');
 
     if (!searchInput || !hiddenInput || !dropdown) {
       if (autocompleteSetupRetries.location < MAX_RETRIES) {
@@ -399,7 +451,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       hiddenInput.value = id;
       dropdown.classList.add('hidden');
       dropdown.classList.remove('block');
-      if (newLocationInput) newLocationInput.value = ''; // Clear new location if existing one selected
     };
   }
 
@@ -410,7 +461,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     const searchInput = document.getElementById('editEventOrganizationSearch');
     const hiddenInput = document.getElementById('editEventOrganizationId');
     const dropdown = document.getElementById('editEventOrganizationDropdown');
-    const newOrgInput = document.getElementById('editEventOrganizationAdded');
 
     if (!searchInput || !hiddenInput || !dropdown) {
       if (autocompleteSetupRetries.organization < MAX_RETRIES) {
@@ -477,7 +527,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       hiddenInput.value = id;
       dropdown.classList.add('hidden');
       dropdown.classList.remove('block');
-      newOrgInput.value = ''; // Clear new organization if existing one selected
     };
   }
 
@@ -785,6 +834,35 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     }
   }
 
+  async function loadPendingLocationsOrgs() {
+    try {
+      const [locRes, orgRes] = await Promise.all([
+        fetch('/api/admin/locations?all=true', { credentials: 'include' }),
+        fetch('/api/admin/organizations?all=true', { credentials: 'include' }),
+      ]);
+      const locations = locRes.ok ? await locRes.json() : [];
+      const organizations = orgRes.ok ? await orgRes.json() : [];
+      const pendingLoc = locations.filter(l => l.status === 'pending').length;
+      const pendingOrg = organizations.filter(o => o.status === 'pending').length;
+      const block = document.getElementById('pending-locations-orgs');
+      const locCountEl = document.getElementById('pending-locations-count');
+      const orgCountEl = document.getElementById('pending-organizations-count');
+      const locLink = document.getElementById('pending-locations-link');
+      const orgLink = document.getElementById('pending-organizations-link');
+      if (locCountEl) locCountEl.textContent = String(pendingLoc);
+      if (orgCountEl) orgCountEl.textContent = String(pendingOrg);
+      if (block) {
+        if (pendingLoc > 0 || pendingOrg > 0) {
+          block.classList.remove('hidden');
+        } else {
+          block.classList.add('hidden');
+        }
+      }
+    } catch (e) {
+      // Non-fatal: leave section hidden
+    }
+  }
+
   /**
    * Displays upcoming announcements in a table format (read-only with edit option)
    */
@@ -1002,6 +1080,32 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     try {
       // Load reference data first
       await loadReferenceData();
+
+      // When a location is created from the Add Location modal, add to list and select it in event form
+      window.addEventListener('admin:location-created', (e) => {
+        const location = e.detail?.location;
+        if (!location?.id) return;
+        allLocations = allLocations.some(l => l.id === location.id) ? allLocations : [...allLocations, { id: location.id, name: location.name || '', address: location.address || '' }];
+        const locIdEl = document.getElementById('editEventLocationId');
+        const locSearchEl = document.getElementById('editEventLocationSearch');
+        if (locIdEl) locIdEl.value = location.id;
+        if (locSearchEl) locSearchEl.value = location.name || '';
+      });
+      window.addEventListener('admin:organization-created', (e) => {
+        const organization = e.detail?.organization;
+        if (!organization?.id) return;
+        allOrganizations = allOrganizations.some(o => o.id === organization.id) ? allOrganizations : [...allOrganizations, { id: organization.id, name: organization.name || '' }];
+        const orgIdEl = document.getElementById('editEventOrganizationId');
+        const orgSearchEl = document.getElementById('editEventOrganizationSearch');
+        if (orgIdEl) orgIdEl.value = organization.id;
+        if (orgSearchEl) orgSearchEl.value = organization.name || '';
+      });
+
+      const cancelledCheckbox = document.getElementById('editEventCancelled');
+      if (cancelledCheckbox) {
+        cancelledCheckbox.addEventListener('change', syncEventStatusControls);
+        syncEventStatusControls();
+      }
       
       // Wait a bit for Astro components to fully render
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -1016,13 +1120,19 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
         loadEventsToApprove(),
         loadIncompleteEvents(),
         loadAnnouncementsToApprove(),
-        loadUpcomingAnnouncements()
+        loadUpcomingAnnouncements(),
+        loadPendingLocationsOrgs()
       ]);
 
       // Check if we should open edit modal for a specific event (from URL query param)
       const urlParams = new URLSearchParams(window.location.search);
       const editEventId = urlParams.get('editEvent');
       const duplicateEventId = urlParams.get('duplicateEvent');
+
+      if (editEventId) {
+        window.location.href = `/admin/events/${editEventId}`;
+        return;
+      }
       
       if (duplicateEventId) {
         // Handle duplicate event from URL parameter
@@ -1457,42 +1567,27 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
         document.getElementById('editEventRegistration').checked = event.registration || false;
         document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
         document.getElementById('editEventFeatured').checked = event.featured || false;
-        document.getElementById('editEventDraft').checked = (event.status === 'pending' || event.status === null);
-        
-        // Show "add new" fields for staged events (they support location_added/organization_added)
-        const locationContainer = document.getElementById('editEventLocationAddedContainer');
-        const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
-        if (locationContainer) locationContainer.classList.remove('hidden');
-        if (orgContainer) orgContainer.classList.remove('hidden');
+        const isCancelled = event.status === 'cancelled';
+        document.getElementById('editEventCancelled').checked = isCancelled;
+        document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
+        syncEventStatusControls();
         
         // Set location
         if (event.location_id && event.location) {
           document.getElementById('editEventLocationSearch').value = event.location.name || '';
           document.getElementById('editEventLocationId').value = event.location_id;
-          document.getElementById('editEventLocationAdded').value = '';
-        } else if (event.location_added) {
-          document.getElementById('editEventLocationSearch').value = '';
-          document.getElementById('editEventLocationId').value = '';
-          document.getElementById('editEventLocationAdded').value = event.location_added;
         } else {
           document.getElementById('editEventLocationSearch').value = '';
           document.getElementById('editEventLocationId').value = '';
-          document.getElementById('editEventLocationAdded').value = '';
         }
         
         // Set organization
         if (event.organization_id && event.organization) {
           document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
           document.getElementById('editEventOrganizationId').value = event.organization_id;
-          document.getElementById('editEventOrganizationAdded').value = '';
-        } else if (event.organization_added) {
-          document.getElementById('editEventOrganizationSearch').value = '';
-          document.getElementById('editEventOrganizationId').value = '';
-          document.getElementById('editEventOrganizationAdded').value = event.organization_added;
         } else {
           document.getElementById('editEventOrganizationSearch').value = '';
           document.getElementById('editEventOrganizationId').value = '';
-          document.getElementById('editEventOrganizationAdded').value = '';
         }
         
         // Set parent event
@@ -1569,34 +1664,27 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
         document.getElementById('editEventRegistration').checked = event.registration || false;
         document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
         document.getElementById('editEventFeatured').checked = event.featured || false;
-        document.getElementById('editEventDraft').checked = (event.status === 'pending' || event.status === null);
-        
-        // Show "add new" fields for existing events too (we'll create them on the backend)
-        const locationContainer = document.getElementById('editEventLocationAddedContainer');
-        const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
-        if (locationContainer) locationContainer.classList.remove('hidden');
-        if (orgContainer) orgContainer.classList.remove('hidden');
+        const isCancelled = event.status === 'cancelled';
+        document.getElementById('editEventCancelled').checked = isCancelled;
+        document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
+        syncEventStatusControls();
         
         // Set location
         if (event.location_id && event.location) {
           document.getElementById('editEventLocationSearch').value = event.location.name || '';
           document.getElementById('editEventLocationId').value = event.location_id;
-          document.getElementById('editEventLocationAdded').value = '';
         } else {
           document.getElementById('editEventLocationSearch').value = '';
           document.getElementById('editEventLocationId').value = '';
-          document.getElementById('editEventLocationAdded').value = '';
         }
         
         // Set organization
         if (event.organization_id && event.organization) {
           document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
           document.getElementById('editEventOrganizationId').value = event.organization_id;
-          document.getElementById('editEventOrganizationAdded').value = '';
         } else {
           document.getElementById('editEventOrganizationSearch').value = '';
           document.getElementById('editEventOrganizationId').value = '';
-          document.getElementById('editEventOrganizationAdded').value = '';
         }
         
         // Set parent event
@@ -1699,27 +1787,25 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
       document.getElementById('editEventFeatured').checked = event.featured || false;
       document.getElementById('editEventDraft').checked = false; // New duplicates default to approved
+      document.getElementById('editEventCancelled').checked = false;
+      syncEventStatusControls();
       
       // Set location
       if (event.location_id && event.location) {
         document.getElementById('editEventLocationSearch').value = event.location.name || '';
         document.getElementById('editEventLocationId').value = event.location_id;
-        document.getElementById('editEventLocationAdded').value = '';
       } else {
         document.getElementById('editEventLocationSearch').value = '';
         document.getElementById('editEventLocationId').value = '';
-        document.getElementById('editEventLocationAdded').value = '';
       }
       
       // Set organization
       if (event.organization_id && event.organization) {
         document.getElementById('editEventOrganizationSearch').value = event.organization.name || '';
         document.getElementById('editEventOrganizationId').value = event.organization_id;
-        document.getElementById('editEventOrganizationAdded').value = '';
       } else {
         document.getElementById('editEventOrganizationSearch').value = '';
         document.getElementById('editEventOrganizationId').value = '';
-        document.getElementById('editEventOrganizationAdded').value = '';
       }
       
       // Set parent event (optional - user might want to change this)
@@ -1741,12 +1827,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       }
       
       document.getElementById('editEventComments').value = '';
-      
-      // Show "add new" fields
-      const locationContainer = document.getElementById('editEventLocationAddedContainer');
-      const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
-      if (locationContainer) locationContainer.classList.remove('hidden');
-      if (orgContainer) orgContainer.classList.remove('hidden');
       
       const modal = document.getElementById('editEventModal');
       if (modal) {
@@ -1807,22 +1887,21 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
-      status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
+      status: getEventStatusFromForm(),
     };
     
-    // Get location/organization names if available
+    // Get location/organization display names for pre-filling duplicate form
     if (eventData.location_id) {
       const loc = allLocations.find(l => l.id === eventData.location_id);
-      if (loc) {
-        eventData.location = { name: loc.name };
-      }
+      eventData.location_name = loc ? loc.name : document.getElementById('editEventLocationSearch').value || '';
+    } else {
+      eventData.location_name = '';
     }
-    
     if (eventData.organization_id) {
       const org = allOrganizations.find(o => o.id === eventData.organization_id);
-      if (org) {
-        eventData.organization = { name: org.name };
-      }
+      eventData.organization_name = org ? org.name : document.getElementById('editEventOrganizationSearch').value || '';
+    } else {
+      eventData.organization_name = '';
     }
     
     // Open duplicate modal with form data (dates will be cleared)
@@ -1855,28 +1934,16 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
     document.getElementById('editEventFeatured').checked = eventData.featured || false;
     document.getElementById('editEventDraft').checked = false;
+    document.getElementById('editEventCancelled').checked = false;
+    syncEventStatusControls();
     
-    // Set location
-    if (eventData.location_id && eventData.location) {
-      document.getElementById('editEventLocationSearch').value = eventData.location.name || '';
-      document.getElementById('editEventLocationId').value = eventData.location_id;
-      document.getElementById('editEventLocationAdded').value = '';
-    } else {
-      document.getElementById('editEventLocationSearch').value = '';
-      document.getElementById('editEventLocationId').value = '';
-      document.getElementById('editEventLocationAdded').value = '';
-    }
+    // Set location (from current form)
+    document.getElementById('editEventLocationSearch').value = eventData.location_name || '';
+    document.getElementById('editEventLocationId').value = eventData.location_id || '';
     
-    // Set organization
-    if (eventData.organization_id && eventData.organization) {
-      document.getElementById('editEventOrganizationSearch').value = eventData.organization.name || '';
-      document.getElementById('editEventOrganizationId').value = eventData.organization_id;
-      document.getElementById('editEventOrganizationAdded').value = '';
-    } else {
-      document.getElementById('editEventOrganizationSearch').value = '';
-      document.getElementById('editEventOrganizationId').value = '';
-      document.getElementById('editEventOrganizationAdded').value = '';
-    }
+    // Set organization (from current form)
+    document.getElementById('editEventOrganizationSearch').value = eventData.organization_name || '';
+    document.getElementById('editEventOrganizationId').value = eventData.organization_id || '';
     
     // Set parent event
     if (eventData.parent_event_id) {
@@ -1898,12 +1965,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     
     document.getElementById('editEventComments').value = '';
     
-    // Show "add new" fields
-    const locationContainer = document.getElementById('editEventLocationAddedContainer');
-    const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
-    if (locationContainer) locationContainer.classList.remove('hidden');
-    if (orgContainer) orgContainer.classList.remove('hidden');
-    
     const modal = document.getElementById('editEventModal');
     if (modal) {
       modal.classList.remove('hidden');
@@ -1916,9 +1977,7 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
         if (modalContainer) {
           modalContainer.scrollTop = 0;
         }
-        // Ensure page is at top
         window.scrollTo({ top: 0, behavior: 'instant' });
-        // Scroll the modal header into view
         const modalHeader = modal.querySelector('.modal-header');
         if (modalHeader) {
           modalHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1996,7 +2055,7 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
-      status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
+      status: getEventStatusFromForm(),
     };
     
     // Get location name if available
@@ -2914,10 +2973,8 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       document.getElementById('editEventSecondaryTag').value = '';
       document.getElementById('editEventLocationSearch').value = '';
       document.getElementById('editEventLocationId').value = '';
-      document.getElementById('editEventLocationAdded').value = '';
       document.getElementById('editEventOrganizationSearch').value = '';
       document.getElementById('editEventOrganizationId').value = '';
-      document.getElementById('editEventOrganizationAdded').value = '';
       document.getElementById('editEventParentEventSearch').value = '';
       document.getElementById('editEventParentEventId').value = '';
       document.getElementById('editEventComments').value = '';
@@ -2927,12 +2984,8 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       document.getElementById('editEventExcludeFromCalendar').checked = false;
       document.getElementById('editEventFeatured').checked = false;
       document.getElementById('editEventDraft').checked = false;
-      
-      // Show "add new" fields
-      const locationContainer = document.getElementById('editEventLocationAddedContainer');
-      const orgContainer = document.getElementById('editEventOrganizationAddedContainer');
-      if (locationContainer) locationContainer.classList.remove('hidden');
-      if (orgContainer) orgContainer.classList.remove('hidden');
+      document.getElementById('editEventCancelled').checked = false;
+      syncEventStatusControls();
       
       // Open modal
       const modal = document.getElementById('editEventModal');
@@ -3004,12 +3057,10 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
           organization_id: document.getElementById('editEventOrganizationId').value || null,
           parent_event_id: document.getElementById('editEventParentEventId').value || null,
           comments: document.getElementById('editEventComments').value || null,
-          location_added: document.getElementById('editEventLocationAdded').value || null,
-          organization_added: document.getElementById('editEventOrganizationAdded').value || null,
           registration: document.getElementById('editEventRegistration').checked,
           exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
           featured: document.getElementById('editEventFeatured').checked,
-          status: document.getElementById('editEventDraft').checked ? 'pending' : 'approved',
+          status: getEventStatusFromForm(),
         };
         
         // Validate required fields
@@ -3087,38 +3138,10 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       formData.registration = document.getElementById('editEventRegistration').checked;
       formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
       formData.featured = document.getElementById('editEventFeatured').checked;
-      formData.status = document.getElementById('editEventDraft').checked ? 'pending' : 'approved';
+      formData.status = getEventStatusFromForm();
       
-      // Handle location - either existing or new
-      const locationId = document.getElementById('editEventLocationId').value;
-      const locationAdded = document.getElementById('editEventLocationAdded').value.trim();
-      if (locationId) {
-        formData.location_id = locationId;
-        // Only include location_added for staged events
-        if (currentEditType === 'staged-event') {
-          formData.location_added = null;
-        }
-      } else if (locationAdded) {
-        formData.location_id = null;
-        formData.location_added = locationAdded;
-      } else {
-        formData.location_id = null;
-        formData.location_added = null;
-      }
-      
-      // Handle organization - either existing or new
-      const organizationId = document.getElementById('editEventOrganizationId').value;
-      const organizationAdded = document.getElementById('editEventOrganizationAdded').value.trim();
-      if (organizationId) {
-        formData.organization_id = organizationId;
-        formData.organization_added = null;
-      } else if (organizationAdded) {
-        formData.organization_id = null;
-        formData.organization_added = organizationAdded;
-      } else {
-        formData.organization_id = null;
-        formData.organization_added = null;
-      }
+      formData.location_id = document.getElementById('editEventLocationId').value || null;
+      formData.organization_id = document.getElementById('editEventOrganizationId').value || null;
       
       // Handle parent event
       const parentEventId = document.getElementById('editEventParentEventId').value;
