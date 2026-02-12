@@ -4,8 +4,10 @@ export const prerender = false;
 import Layout from '../../components/Layout.astro';
 import EventListCard from '../../components/EventListCard.astro';
 import ShareButton from '../../components/ui/ShareButton.astro';
+import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
 import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
+import '../../styles/admin.css';
 
 const { id } = Astro.params;
 const { isAdmin } = await checkAdminAccess(Astro.cookies);
@@ -37,14 +39,19 @@ if (organization.parent_organization_id) {
   parentOrganization = data || null;
 }
 
-let siblingOrganizations = [];
+type RelatedOrganization = {
+  id: string;
+  name?: string | null;
+};
+
+let siblingOrganizations: RelatedOrganization[] = [];
 if (organization.parent_organization_id) {
   const { data } = await supabase
     .from('organizations')
     .select('*')
     .eq('parent_organization_id', organization.parent_organization_id)
     .neq('id', organization.id);
-  siblingOrganizations = data || [];
+  siblingOrganizations = (data as RelatedOrganization[]) || [];
 }
 
 const { data: childOrganizations } = await supabase
@@ -71,7 +78,8 @@ if (typeof mapLat === 'number' && typeof mapLon === 'number') {
 const hasMap = typeof mapLat === 'number' && typeof mapLon === 'number';
 const orgMapMarkers = hasMap ? [{ lat: mapLat, lon: mapLon, label: organization.name || 'Organization', type: 'current' }] : [];
 
-const formatPhone = (phone) => phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+const formatPhone = (phone: string | null | undefined) =>
+  phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
 const organizationTitle = organization.name || 'Organization';
 const organizationDescription = organization.description || `Events from ${organizationTitle}`;
 
@@ -96,10 +104,10 @@ const organizationPageUrl = Astro.url.href;
             </a>
           )}
           {isAdmin && (
-            <a href={`/admin/organizations?edit=${organization.id}`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit organization" title="Edit organization">
+            <button type="button" onclick={`window.openAddOrganizationModal?.('${organization.id}')`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit organization" title="Edit organization">
               <span class="material-symbols-outlined text-2xl">edit</span>
               <span class="tooltip -top-10 left-auto right-8">Edit organization</span>
-            </a>
+            </button>
           )}
           <ShareButton url={organizationPageUrl} title={organizationTitle} tooltipText="Share this organization" shareText="Share organization" />
         </div>
@@ -272,4 +280,11 @@ const organizationPageUrl = Astro.url.href;
       }
     });
   </script>
+
+  {isAdmin && <AddOrganizationModal />}
+  {isAdmin && (
+    <script>
+      window.addEventListener('admin:organization-updated', () => window.location.reload());
+    </script>
+  )}
 </Layout>

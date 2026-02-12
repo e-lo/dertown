@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     let query = supabaseAdmin
       .from('organizations')
       .select(
-        'id, name, description, email, phone, website, location_id, parent_organization_id, status'
+        'id, name, description, email, phone, website, location_id, parent_organization_id, status, updated_at'
       )
       .order('name');
 

@@ -1,5 +1,5 @@
 <script>
-  const REFRESH_INTERVAL_MS = 25 * 60 * 1000;
+  const REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes - refresh before access token expires (1h)
 
   async function refreshSessionIfVisible() {
     if (document.visibilityState !== 'visible') return;

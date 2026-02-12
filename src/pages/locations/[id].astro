@@ -4,8 +4,10 @@ export const prerender = false;
 import Layout from '../../components/Layout.astro';
 import EventListCard from '../../components/EventListCard.astro';
 import ShareButton from '../../components/ui/ShareButton.astro';
+import AddLocationModal from '../../components/ui/AddLocationModal.astro';
 import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
+import '../../styles/admin.css';
 
 const { id } = Astro.params;
 const { isAdmin } = await checkAdminAccess(Astro.cookies);
@@ -34,14 +36,21 @@ if (location.parent_location_id) {
   parentLocation = data || null;
 }
 
-let siblingLocations = [];
+type RelatedLocation = {
+  id: string;
+  name?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+let siblingLocations: RelatedLocation[] = [];
 if (location.parent_location_id) {
   const { data } = await supabase
     .from('locations')
     .select('*')
     .eq('parent_location_id', location.parent_location_id)
     .neq('id', location.id);
-  siblingLocations = data || [];
+  siblingLocations = (data as RelatedLocation[]) || [];
 }
 
 const { data: childLocationsRaw } = await supabase
@@ -77,7 +86,7 @@ if (typeof mapLat === 'number' && typeof mapLon === 'number') {
   if (parentLocation && hasCoords(parentLocation)) {
     mapMarkers.push({ lat: parentLocation.latitude!, lon: parentLocation.longitude!, label: parentLocation.name || 'Location', type: 'parent' });
   }
-  (siblingLocations || []).forEach((s: { latitude?: number | null; longitude?: number | null; name?: string }) => {
+  (siblingLocations || []).forEach((s: RelatedLocation) => {
     if (hasCoords(s)) mapMarkers.push({ lat: s.latitude!, lon: s.longitude!, label: s.name || 'Location', type: 'sibling' });
   });
   childLocations.forEach((c: { latitude?: number | null; longitude?: number | null; name?: string }) => {
@@ -85,7 +94,8 @@ if (typeof mapLat === 'number' && typeof mapLon === 'number') {
   });
 }
 
-const formatPhone = (phone) => phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+const formatPhone = (phone: string | null | undefined) =>
+  phone?.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
 const locationTitle = location.name || 'Location';
 const locationDescription = location.address ? `${locationTitle} at ${location.address}` : `Events at ${locationTitle}`;
 
@@ -114,10 +124,10 @@ const locationPageUrl = Astro.url.href;
         <div id="location-admin-status" data-is-admin={isAdmin} class="hidden" aria-hidden="true"></div>
         <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
           {isAdmin && (
-            <a href={`/admin/locations?edit=${location.id}`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit location" title="Edit location">
+            <button type="button" onclick={`window.openAddLocationModal?.('${location.id}')`} class="p-2 bg-transparent text-gray-400 hover:text-blue-600 focus:outline-none group relative" aria-label="Edit location" title="Edit location">
               <span class="material-symbols-outlined text-2xl">edit</span>
               <span class="tooltip -top-10 left-auto right-8">Edit location</span>
-            </a>
+            </button>
           )}
           <ShareButton url={locationPageUrl} title={locationTitle} tooltipText="Share this location" shareText="Share location" />
           {mapsAppUrl && (
@@ -241,6 +251,15 @@ const locationPageUrl = Astro.url.href;
       </div>
     </div>
   </section>
+
+  {isAdmin && <AddLocationModal />}
+
+  {isAdmin && (
+    <script>
+      window.addEventListener('admin:location-updated', () => window.location.reload());
+    </script>
+  )}
+
   <script define:vars={{ hasMap }}>
     document.addEventListener('DOMContentLoaded', function() {
       window.shareEvent = function(ev) {

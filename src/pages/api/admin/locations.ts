@@ -17,7 +17,9 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     const all = url.searchParams.get('all') === 'true';
     let query = supabaseAdmin
       .from('locations')
-      .select('id, name, address, phone, website, latitude, longitude, parent_location_id, status')
+      .select(
+        'id, name, address, phone, website, latitude, longitude, parent_location_id, status, updated_at'
+      )
       .order('name');
 
     if (!all) {
