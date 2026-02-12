@@ -1,0 +1,237 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../../../lib/session';
+import AdminAuthRefresh from '../../../components/AdminAuthRefresh.astro';
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../../../styles/global.css';
+import '../../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Events</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <a href="/admin/events/new" class="icon-btn btn-create" aria-label="Create New Event">
+        <span class="material-symbols-outlined text-2xl">add</span>
+        <span class="tooltip">Create New Event</span>
+      </a>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <AdminAuthRefresh />
+
+  <div class="section">
+    <div class="mb-4 flex flex-wrap items-center gap-4">
+      <div class="relative max-w-md flex-1 min-w-[200px]">
+        <label for="event-search" class="sr-only">Search events</label>
+        <input type="text" id="event-search" class="form-input-base w-full" placeholder="Type to search any event..." autocomplete="off" />
+        <div id="event-search-dropdown" class="autocomplete-dropdown hidden"></div>
+      </div>
+      <p class="text-sm text-gray-500">Search opens any event by title. List shows approved, pending, and cancelled events in the next month.</p>
+    </div>
+    <div id="events-loading" class="loading">Loading events...</div>
+    <div id="events-container"></div>
+  </div>
+</div>
+
+<script>
+  import Tablesort from 'tablesort';
+
+  type ListEvent = {
+    id: string;
+    title?: string;
+    start_date?: string;
+    start_time?: string;
+    status?: string;
+    updated_at?: string;
+    location?: { name?: string };
+    organization?: { name?: string };
+    primary_tag?: { name?: string };
+  };
+
+  let events: ListEvent[] = [];
+  let searchTimeout: number | null = null;
+
+  function formatLastEdited(updatedAt: string | undefined) {
+    if (!updatedAt) return '—';
+    const d = new Date(updatedAt);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  async function loadEvents() {
+    const el = document.getElementById('events-loading');
+    const container = document.getElementById('events-container');
+    if (!el || !container) return;
+    try {
+      const res = await fetch('/api/admin/events/list?days=30', { credentials: 'include' });
+      if (res.status === 401) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to load events');
+      const data = await res.json();
+      events = /** @type {ListEvent[]} */ (data.events || []);
+      renderEvents();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load events';
+      container.innerHTML = '<p class="text-red-600">' + msg + '</p>';
+    } finally {
+      el.classList.add('hidden');
+    }
+  }
+
+  function renderEvents() {
+    const container = document.getElementById('events-container');
+    if (!container) return;
+    if (!events.length) {
+      container.innerHTML = '<p class="text-gray-600">No events in the next month.</p>';
+      return;
+    }
+    const locationDisplay = (e: ListEvent) =>
+      e.location && e.location.name ? String(e.location.name).replace(/</g, '&lt;') : '—';
+    const orgDisplay = (e: ListEvent) =>
+      e.organization && e.organization.name ? String(e.organization.name).replace(/</g, '&lt;') : '—';
+    const primaryTag = (e: ListEvent) =>
+      e.primary_tag && e.primary_tag.name ? String(e.primary_tag.name).replace(/</g, '&lt;') : '—';
+    const timeStr = (e: ListEvent) => (e.start_time ? String(e.start_time).substring(0, 5) : '—');
+    const lastEditedCell = (e: ListEvent) => {
+      const raw = e.updated_at || '';
+      const display = formatLastEdited(raw);
+      return '<td class="p-3 text-gray-600 text-sm whitespace-nowrap" data-sort="' + (raw || '0000-00-00').replace(/"/g, '&quot;') + '" title="' + (raw ? new Date(raw).toISOString() : '') + '">' + (display || '—').replace(/</g, '&lt;') + '</td>';
+    };
+    const th = (label: string, title?: string) =>
+      '<th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by ' +
+      (title || label).toLowerCase() +
+      '">' +
+      label +
+      '</th>';
+    const table =
+      '<table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table">' +
+      '<thead class="bg-gray-100"><tr>' +
+      th('Title', 'title') + th('Date', 'date') + th('Time', 'time') + th('Location', 'location') + th('Organization', 'organization') + th('Tag', 'tag') + th('Status', 'status') + th('Last edited', 'last edited') +
+      '<th class="w-24 p-3" data-sort-method="none"></th>' +
+      '</tr></thead><tbody>' +
+      events.map((e) => (
+        '<tr class="border-t border-gray-200 hover:bg-gray-50">' +
+        '<td class="p-3 font-medium">' + (e.title || '—').replace(/</g, '&lt;') + '</td>' +
+        '<td class="p-3">' + (e.start_date || '—') + '</td>' +
+        '<td class="p-3">' + timeStr(e) + '</td>' +
+        '<td class="p-3 text-gray-600">' + locationDisplay(e) + '</td>' +
+        '<td class="p-3 text-gray-600">' + orgDisplay(e) + '</td>' +
+        '<td class="p-3">' + primaryTag(e) + '</td>' +
+        '<td class="p-3"><span class="text-sm ' + (e.status === 'approved' ? 'text-green-600' : e.status === 'cancelled' ? 'text-red-600' : 'text-amber-600') + '">' + (e.status || '—') + '</span></td>' +
+        lastEditedCell(e) +
+        '<td class="p-3" style="white-space:nowrap;">' +
+        '<a href="/events/' + e.id + '" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;text-decoration:none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size:1.25rem;">visibility</span><span class="tooltip">View</span></a>' +
+        '<a href="/admin/events/' + e.id + '" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span><span class="tooltip">Edit</span></a>' +
+        '</td></tr>'
+      )).join('') +
+      '</tbody></table>';
+    container.innerHTML = table;
+    const tableEl = container.querySelector('table');
+    if (tableEl instanceof HTMLTableElement) {
+      // Tablesort comes from the 'tablesort' package, which does not ship TypeScript types by default.
+      // Cast to any to keep the runtime behavior while satisfying TypeScript.
+      const TS = Tablesort as unknown as new (el: HTMLTableElement) => unknown;
+      new TS(tableEl);
+    }
+  }
+
+  // Event search autocomplete
+  const searchInput = document.getElementById('event-search');
+  const dropdown = document.getElementById('event-search-dropdown');
+  if (searchInput && dropdown && searchInput instanceof HTMLInputElement) {
+    const inputEl = searchInput;
+    searchInput.addEventListener('input', () => {
+      const q = inputEl.value.trim();
+      if (q.length < 2) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+      if (searchTimeout !== null) {
+        clearTimeout(searchTimeout);
+      }
+      searchTimeout = window.setTimeout(async () => {
+        try {
+          const res = await fetch('/api/admin/events/search?q=' + encodeURIComponent(q), { credentials: 'include' });
+          if (!res.ok) return;
+          const list = await res.json();
+          if (!Array.isArray(list) || list.length === 0) {
+            dropdown.innerHTML = '<div class="autocomplete-dropdown-item">No events found</div>';
+          } else {
+            dropdown.innerHTML = list.map(ev => {
+              const dateStr = ev.start_date ? new Date(ev.start_date).toLocaleDateString() : '';
+              const timeStr = ev.start_time ? String(ev.start_time).substring(0, 5) : '';
+              const sub = [dateStr, timeStr].filter(Boolean).join(' ');
+              const escaped = (ev.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+              return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + (sub ? ' <span class="text-gray-500">' + sub + '</span>' : '') + '</div>';
+            }).join('');
+          }
+          dropdown.classList.remove('hidden');
+          dropdown.classList.add('block');
+          dropdown.querySelectorAll('.autocomplete-dropdown-item[data-id]').forEach(item => {
+            item.addEventListener('click', () => {
+              const id = item.getAttribute('data-id');
+              if (id) window.location.href = '/admin/events/' + id;
+            });
+          });
+        } catch {
+          dropdown.classList.add('hidden');
+        }
+      }, 200);
+    });
+    searchInput.addEventListener('focus', () => {
+      if (inputEl.value.trim().length >= 2 && dropdown.innerHTML) {
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('block');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      const target = e.target instanceof Node ? e.target : null;
+      if (target && !inputEl.contains(target) && !dropdown.contains(target)) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+  }
+
+  loadEvents();
+</script>
+</body>
+</html>

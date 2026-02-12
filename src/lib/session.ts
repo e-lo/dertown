@@ -60,7 +60,7 @@ export async function getSessionFromCookies(cookies: any) {
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: 60 * 60 * 24 * 30, // 30 days for refresh token (persist login)
         secure: isProduction,
       });
     }

@@ -51,18 +51,14 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       </div>
     </div>
     <div class="flex gap-2 items-center">
-      <a href="/admin/locations" class="icon-btn btn-edit" aria-label="Locations" style="background: linear-gradient(to bottom right, #059669, #047857);">
+      <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-create" aria-label="Add location" style="background: linear-gradient(to bottom right, #059669, #047857);">
         <span class="material-symbols-outlined text-2xl">location_on</span>
-        <span class="tooltip">Locations</span>
-      </a>
-      <a href="/admin/organizations" class="icon-btn btn-edit" aria-label="Organizations" style="background: linear-gradient(to bottom right, #0d9488, #0f766e);">
+        <span class="tooltip">Add location</span>
+      </button>
+      <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-create" aria-label="Add organization" style="background: linear-gradient(to bottom right, #0d9488, #0f766e);">
         <span class="material-symbols-outlined text-2xl">business</span>
-        <span class="tooltip">Organizations</span>
-      </a>
-      <a href="/admin/series" class="icon-btn btn-edit" aria-label="Manage Series" style="background: linear-gradient(to bottom right, #7c3aed, #6d28d9);">
-        <span class="material-symbols-outlined text-2xl">event_repeat</span>
-        <span class="tooltip">Manage Series</span>
-      </a>
+        <span class="tooltip">Add organization</span>
+      </button>
       <a href="/admin/events/new" class="icon-btn btn-create" aria-label="Create New Event">
         <span class="material-symbols-outlined text-2xl">event</span>
         <span class="tooltip">Create New Event</span>
@@ -81,6 +77,19 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     </button>
     </div>
   </div>
+
+  <nav class="view-all-nav" aria-label="View all content">
+    <span class="view-all-label">View all:</span>
+    <a href="/admin/locations">Locations</a>
+    <span class="view-all-sep" aria-hidden="true">·</span>
+    <a href="/admin/organizations">Organizations</a>
+    <span class="view-all-sep" aria-hidden="true">·</span>
+    <a href="/admin/series">Series</a>
+    <span class="view-all-sep" aria-hidden="true">·</span>
+    <a href="/admin/events">Events</a>
+    <span class="view-all-sep" aria-hidden="true">·</span>
+    <a href="/admin/announcements">Announcements</a>
+  </nav>
 
   <div id="message"></div>
 

@@ -1,0 +1,161 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+
+import '../../styles/global.css';
+import '../../styles/admin.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Announcements - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>Announcements</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="tooltip">Back to Dashboard</span>
+      </a>
+      <a href="/admin#announcements-container" class="icon-btn btn-create" aria-label="Create / manage announcements">
+        <span class="material-symbols-outlined text-2xl">campaign</span>
+        <span class="tooltip">Manage on Dashboard</span>
+      </a>
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <AdminAuthRefresh />
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="material-symbols-outlined">campaign</span>
+        Announcements (recent and upcoming)
+      </div>
+    </div>
+    <div class="mb-4 flex flex-wrap items-center gap-4">
+      <div class="relative max-w-md flex-1 min-w-[200px]">
+        <label for="announcement-search" class="sr-only">Search announcements</label>
+        <input type="text" id="announcement-search" class="form-input-base w-full" placeholder="Type to search by title or message..." autocomplete="off" />
+      </div>
+      <p class="text-sm text-gray-500">Limited to pending and published announcements within ±14 days of show date. Approve or edit from the dashboard.</p>
+    </div>
+    <div id="announcements-loading" class="loading">Loading announcements...</div>
+    <div id="announcements-container"></div>
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck - script runs in browser; JSDoc types kept for documentation
+  /** @typedef {{ id: string; title?: string; message?: string; show_at?: string; expires_at?: string; status?: string }} ListAnnouncement */
+  /** @type {ListAnnouncement[]} */
+  let announcements = /** @type {ListAnnouncement[]} */ ([]);
+  /** @type {ListAnnouncement[]} */
+  let filtered = /** @type {ListAnnouncement[]} */ ([]);
+
+  async function loadAnnouncements() {
+    const el = document.getElementById('announcements-loading');
+    const container = document.getElementById('announcements-container');
+    if (!el || !container) return;
+    try {
+      const res = await fetch('/api/admin/announcements/list?days=14', { credentials: 'include' });
+      if (res.status === 401) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to load announcements');
+      const data = await res.json();
+      announcements = /** @type {ListAnnouncement[]} */ (data.announcements || []);
+      applyFilter();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load announcements';
+      container.innerHTML = '<p class="text-red-600">' + msg + '</p>';
+    } finally {
+      el.classList.add('hidden');
+    }
+  }
+
+  function applyFilter() {
+    const searchEl = document.getElementById('announcement-search');
+    const q = (searchEl instanceof HTMLInputElement ? searchEl.value : '').toLowerCase().trim();
+    filtered = /** @type {ListAnnouncement[]} */ (
+      !q
+        ? announcements.slice()
+        : announcements.filter(a =>
+            (a.title || '').toLowerCase().includes(q) ||
+            (a.message || '').toLowerCase().includes(q)
+          )
+    );
+    renderAnnouncements();
+  }
+
+  function renderAnnouncements() {
+    const container = document.getElementById('announcements-container');
+    if (!container) return;
+    if (!announcements.length) {
+      container.innerHTML = '<p class="text-gray-600">No announcements in this range.</p>';
+      return;
+    }
+    if (!filtered.length) {
+      container.innerHTML = '<p class="text-gray-600">No announcements match your search.</p>';
+      return;
+    }
+    const table =
+      '<table class="data-table">' +
+      '<thead><tr>' +
+      '<th>Title</th><th>Message</th><th>Show At</th><th>Expires At</th><th>Status</th><th>Actions</th>' +
+      '</tr></thead><tbody>' +
+      filtered.map(a => (
+        '<tr>' +
+        '<td>' + (a.title || '—') + '</td>' +
+        '<td>' + (a.message || '').substring(0, 80) + (a.message && a.message.length > 80 ? '...' : '') + '</td>' +
+        '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : '—') + '</td>' +
+        '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : '—') + '</td>' +
+        '<td>' + (a.status || '—') + '</td>' +
+        '<td style="white-space:nowrap;">' +
+        '<a href="/admin#announcements-container" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" aria-label="Manage on dashboard">' +
+        '<span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span>' +
+        '<span class="tooltip">Manage on Dashboard</span></a>' +
+        '</td></tr>'
+      )).join('') +
+      '</tbody></table>';
+    container.innerHTML = table;
+  }
+
+  const searchInput = document.getElementById('announcement-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', applyFilter);
+  }
+
+  loadAnnouncements();
+</script>
+</body>
+</html>

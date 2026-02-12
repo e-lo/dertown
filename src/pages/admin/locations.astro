@@ -42,9 +42,9 @@ import '../../styles/admin.css';
         <span class="material-symbols-outlined text-2xl">arrow_back</span>
         <span class="tooltip">Back to Dashboard</span>
       </a>
-      <button type="button" onclick="window.openAddLocationModal?.()" class="btn-save">
-        <span class="material-symbols-outlined text-lg align-middle mr-1">add</span>
-        Add location
+      <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-save" aria-label="Add location">
+        <span class="material-symbols-outlined text-2xl">add</span>
+        <span class="tooltip">Add location</span>
       </button>
       <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
         <span class="material-symbols-outlined text-2xl">exit_to_app</span>
@@ -57,23 +57,14 @@ import '../../styles/admin.css';
   <AdminAuthRefresh />
 
   <div class="section">
-    <div class="section-header">
-      <div class="section-title">
-        <span class="material-symbols-outlined">location_on</span>
-        All locations
-      </div>
-    </div>
-    <div class="mb-4 relative max-w-md">
-      <label for="location-search" class="sr-only">Search locations</label>
-      <input type="text" id="location-search" class="form-input-base w-full" placeholder="Type to search locations..." autocomplete="off" />
-      <div id="location-search-dropdown" class="autocomplete-dropdown hidden"></div>
-    </div>
     <div id="locations-loading" class="loading">Loading locations...</div>
     <div id="locations-container"></div>
   </div>
 </div>
 
 <script>
+  import Tablesort from 'tablesort';
+
   let locations = [];
 
   async function loadLocations() {
@@ -92,16 +83,21 @@ import '../../styles/admin.css';
     }
   }
 
-  let locationSearchQuery = '';
+  function hasCoords(loc) {
+    return typeof loc.latitude === 'number' && typeof loc.longitude === 'number';
+  }
 
-  function getFilteredLocations() {
-    const q = locationSearchQuery.toLowerCase().trim();
-    if (!q) return locations;
-    return locations.filter(loc => {
-      const name = (loc.name || '').toLowerCase();
-      const address = (loc.address || '').toLowerCase();
-      return name.includes(q) || address.includes(q);
-    });
+  function formatLastEdited(updatedAt) {
+    if (!updatedAt) return '—';
+    const d = new Date(updatedAt);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function getLocationsList() {
+    const list = locations.slice();
+    list.sort((a, b) => ((a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())));
+    return list;
   }
 
   function renderLocations() {
@@ -111,70 +107,26 @@ import '../../styles/admin.css';
       container.innerHTML = '<p class="text-gray-600">No locations yet. Click “Add location” to create one.</p>';
       return;
     }
-    const list = getFilteredLocations();
-    const table = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden"><thead class="bg-gray-100"><tr><th class="text-left p-3">Name</th><th class="text-left p-3">Address</th><th class="text-left p-3">Status</th><th class="w-24 p-3"></th></tr></thead><tbody>' +
-      list.map(loc => '<tr id="location-row-' + loc.id + '" class="location-row border-t border-gray-200 hover:bg-gray-50"><td class="p-3 font-medium">' + (loc.name || '') + '</td><td class="p-3 text-gray-600">' + (loc.address || '—') + '</td><td class="p-3"><span class="text-sm ' + (loc.status === 'approved' ? 'text-green-600' : 'text-amber-600') + '">' + (loc.status || '') + '</span></td><td class="p-3" style="white-space: nowrap;"><a href="/locations/' + loc.id + '" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span><span class="tooltip">View</span></a><button type="button" onclick="editLocation(\'' + loc.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button></td></tr>').join('') +
+    const list = getLocationsList();
+    const mapCell = (loc) => {
+      const has = hasCoords(loc);
+      const sortVal = has ? '1' : '0';
+      const content = has
+        ? '<span class="text-green-600" title="Has map coordinates"><span class="material-symbols-outlined" style="font-size:1.1rem;">place</span></span>'
+        : '<span class="text-amber-600" title="Missing map coordinates"><span class="material-symbols-outlined" style="font-size:1.1rem;">location_off</span></span>';
+      return '<td class="p-3 text-center" data-sort="' + sortVal + '">' + content + '</td>';
+    };
+    const lastEditedCell = (loc) => {
+      const raw = loc.updated_at || '';
+      const display = formatLastEdited(raw);
+      return '<td class="p-3 text-gray-600 text-sm whitespace-nowrap" data-sort="' + (raw || '0000-00-00').replace(/"/g, '&quot;') + '" title="' + (raw ? new Date(raw).toISOString() : '') + '">' + (display || '—').replace(/</g, '&lt;') + '</td>';
+    };
+    const table = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table"><thead class="bg-gray-100"><tr><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by name">Name</th><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by address">Address</th><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by status">Status</th><th class="text-center p-3 w-20 cursor-pointer hover:bg-gray-200 select-none" title="Sort by map">Map</th><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap" title="Sort by last edited">Last edited</th><th class="w-24 p-3" data-sort-method="none"></th></tr></thead><tbody>' +
+      list.map(loc => '<tr id="location-row-' + loc.id + '" class="location-row border-t border-gray-200 hover:bg-gray-50"><td class="p-3 font-medium">' + (loc.name || '').replace(/</g, '&lt;') + '</td><td class="p-3 text-gray-600">' + (loc.address || '—').replace(/</g, '&lt;') + '</td><td class="p-3"><span class="text-sm ' + (loc.status === 'approved' ? 'text-green-600' : 'text-amber-600') + '">' + (loc.status || '') + '</span></td>' + mapCell(loc) + lastEditedCell(loc) + '<td class="p-3" style="white-space: nowrap;"><a href="/locations/' + loc.id + '" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span><span class="tooltip">View</span></a><button type="button" onclick="editLocation(\'' + loc.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button></td></tr>').join('') +
       '</tbody></table>';
-    container.innerHTML = list.length ? table : '<p class="text-gray-600">No locations match “' + (locationSearchQuery || '').replace(/</g, '&lt;') + '”.</p>';
-  }
-
-  function setupLocationSearch() {
-    const input = document.getElementById('location-search');
-    const dropdown = document.getElementById('location-search-dropdown');
-    if (!input || !dropdown) return;
-
-    function closeDropdown() {
-      dropdown.classList.add('hidden');
-      dropdown.classList.remove('block');
-      dropdown.innerHTML = '';
-    }
-
-    function showMatches() {
-      const q = input.value.toLowerCase().trim();
-      locationSearchQuery = input.value.trim();
-      renderLocations();
-      if (!q) {
-        closeDropdown();
-        return;
-      }
-      const matches = locations.filter(loc => {
-        const name = (loc.name || '').toLowerCase();
-        const address = (loc.address || '').toLowerCase();
-        return name.includes(q) || address.includes(q);
-      }).slice(0, 12);
-      if (matches.length === 0) {
-        closeDropdown();
-        return;
-      }
-      dropdown.innerHTML = matches.map(loc => {
-        const label = (loc.name || '') + (loc.address ? ' — ' + loc.address : '');
-        return '<div class="autocomplete-dropdown-item" data-id="' + loc.id + '" data-name="' + (loc.name || '').replace(/"/g, '&quot;') + '">' + label.replace(/</g, '&lt;') + '</div>';
-      }).join('');
-      dropdown.classList.remove('hidden');
-      dropdown.classList.add('block');
-      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const id = el.getAttribute('data-id');
-          const name = el.getAttribute('data-name');
-          if (name !== null) input.value = name;
-          locationSearchQuery = name || '';
-          renderLocations();
-          closeDropdown();
-          const row = document.getElementById('location-row-' + id);
-          if (row) {
-            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            row.classList.add('bg-indigo-50');
-            setTimeout(() => row.classList.remove('bg-indigo-50'), 2000);
-          }
-        });
-      });
-    }
-
-    input.addEventListener('input', showMatches);
-    input.addEventListener('focus', () => { if (input.value.trim()) showMatches(); });
-    document.addEventListener('click', (e) => {
-      if (e.target !== input && !dropdown.contains(e.target)) closeDropdown();
-    });
+    container.innerHTML = table;
+    const tableEl = container.querySelector('table');
+    if (tableEl) new Tablesort(tableEl);
   }
 
   window.editLocation = function(id) {
@@ -186,7 +138,6 @@ import '../../styles/admin.css';
 
   document.addEventListener('DOMContentLoaded', async () => {
     await loadLocations();
-    setupLocationSearch();
     const params = new URLSearchParams(window.location.search);
     const editId = params.get('edit');
     if (editId && typeof window.openAddLocationModal === 'function') {

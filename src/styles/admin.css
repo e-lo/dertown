@@ -56,6 +56,22 @@
   @apply text-gray-500 text-sm m-0;
 }
 
+.view-all-nav {
+  @apply flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600 mb-6;
+}
+
+.view-all-nav .view-all-label {
+  @apply font-medium text-gray-700;
+}
+
+.view-all-nav a {
+  @apply text-indigo-600 hover:text-indigo-800 hover:underline;
+}
+
+.view-all-nav .view-all-sep {
+  @apply text-gray-400 select-none;
+}
+
 .logout-btn {
   @apply bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 border border-gray-300;
 }
@@ -235,6 +251,49 @@
 
 .modal-close-btn {
   @apply bg-transparent border-none cursor-pointer p-2 flex items-center justify-center text-gray-600 rounded transition-colors hover:bg-gray-100;
+}
+
+/* Tablesort: consistent vertical alignment for all sortable table headers */
+.sortable-table thead th {
+  vertical-align: middle;
+  line-height: 1.25;
+}
+
+/* Right-justified isosceles triangle arrows (like tablesort demo) */
+.sortable-table th[role='columnheader']:not([data-sort-method='none']) {
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.sortable-table th[role='columnheader']:not([data-sort-method='none'])::after {
+  content: '';
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: 0;
+  border-width: 0 4px 4px;
+  border-style: solid;
+  border-color: #404040 transparent;
+  visibility: hidden;
+  opacity: 0;
+  user-select: none;
+}
+
+.sortable-table th[aria-sort='ascending']:not([data-sort-method='none'])::after {
+  border-bottom: none;
+  border-width: 4px 4px 0;
+}
+
+.sortable-table th[aria-sort]:not([data-sort-method='none'])::after {
+  visibility: visible;
+  opacity: 0.6;
+}
+
+.sortable-table th[role='columnheader']:not([data-sort-method='none']):focus::after,
+.sortable-table th[role='columnheader']:not([data-sort-method='none']):hover::after {
+  visibility: visible;
+  opacity: 1;
 }
 
 /* Form field styles - using existing form-input from components.css */

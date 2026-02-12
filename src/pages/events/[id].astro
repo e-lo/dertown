@@ -7,11 +7,15 @@ import ShareButton from '../../components/ui/ShareButton.astro';
 import CalendarAddButton from '../../components/ui/CalendarAddButton.astro';
 import EditButton from '../../components/ui/EditButton.astro';
 import LoginModal from '../../components/ui/LoginModal.astro';
+import EditEventModal from '../../components/ui/EditEventModal.astro';
+import AddLocationModal from '../../components/ui/AddLocationModal.astro';
+import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
 import { db } from '../../lib/supabase';
 import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-utils';
 import { renderMarkdown } from '../../lib/markdown-utils';
 import EventListCard from '../../components/EventListCard.astro';
 import { checkAdminAccess } from '../../lib/session';
+import '../../styles/admin.css';
 
 // Check if user is logged in
 const { isAdmin } = await checkAdminAccess(Astro.cookies);
@@ -308,15 +312,13 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
     />
   )}
 
-  <!-- Edit Event Modal (for logged-in users) -->
-  <div id="editEventModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 10px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
-      <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem;">Edit Event</h3>
-      <div id="editEventModalContent">
-        <p>Loading...</p>
-      </div>
-    </div>
-  </div>
+  {isAdmin && (
+    <>
+      <EditEventModal />
+      <AddLocationModal />
+      <AddOrganizationModal />
+    </>
+  )}
 
   <!-- Suggest Edit Event Form (for non-logged-in users) -->
   <div id="suggestEditEventModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
@@ -400,22 +402,15 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
     const isAdminElement = document.getElementById('admin-status');
     const isAdmin = isAdminElement?.getAttribute('data-is-admin') === 'true';
     
-    // Check if we should redirect to admin after login (from URL params)
+    // When admin and ?editEvent=id, open the edit modal on this page instead of redirecting
     const urlParams = new URLSearchParams(window.location.search);
-    const editEventId = urlParams.get('editEvent');
-    if (editEventId && isAdmin) {
-      // User just logged in and wants to edit - redirect to event editor
-      window.location.href = `/admin/events/${editEventId}`;
-      return; // Don't continue with other initialization
-    }
-    
-    // All calendar functionality is now handled by the CalendarAddButton component
-    
+    const editEventIdFromUrl = urlParams.get('editEvent');
+
     // Make openEditEvent globally accessible
     (window as any).openEditEvent = async function(eventId: string) {
       if (isAdmin) {
-        // User is logged in - redirect to admin page with event ID
-        window.location.href = `/admin/events/${eventId}`;
+        // Open edit modal on top of this page; after save we'll refresh
+        (window as any).openEditEventModalOnDetailPage?.(eventId);
       } else {
       // User is not logged in - show suggest edit form
       const modal = document.getElementById('suggestEditEventModal');
@@ -563,6 +558,187 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
         editModal.style.display = 'none';
       }
     });
+
+    // --- Admin: edit event in a modal on this page, refresh on save ---
+    if (isAdmin) {
+      let refDataLoaded = false;
+      let allLocations: { id: string; name?: string }[] = [];
+      let allOrganizations: { id: string; name?: string }[] = [];
+      let allTags: { id: string; name?: string }[] = [];
+      let allParentEvents: { id: string; title?: string; start_date?: string; start_time?: string }[] = [];
+
+      function normalizeUrl(url: string | null) {
+        if (!url || url.trim() === '') return null;
+        const t = url.trim();
+        if (/^https?:\/\//i.test(t)) return t;
+        return 'https://' + t;
+      }
+      function getEventStatusFromForm() {
+        const cancelled = (document.getElementById('editEventCancelled') as HTMLInputElement)?.checked;
+        if (cancelled) return 'cancelled';
+        const draft = (document.getElementById('editEventDraft') as HTMLInputElement)?.checked;
+        return draft ? 'pending' : 'approved';
+      }
+      function syncEventStatusControls() {
+        const c = document.getElementById('editEventCancelled') as HTMLInputElement;
+        const d = document.getElementById('editEventDraft') as HTMLInputElement;
+        if (!c || !d) return;
+        if (c.checked) { d.checked = false; d.disabled = true; } else { d.disabled = false; }
+      }
+
+      async function loadReferenceData() {
+        if (refDataLoaded) return;
+        const [locRes, orgRes, tagsRes, parentRes] = await Promise.all([
+          fetch('/api/admin/locations', { credentials: 'include' }),
+          fetch('/api/admin/organizations', { credentials: 'include' }),
+          fetch('/api/admin/tags', { credentials: 'include' }),
+          fetch('/api/admin/parent-events', { credentials: 'include' }),
+        ]);
+        if (locRes.ok) allLocations = await locRes.json();
+        if (orgRes.ok) allOrganizations = await orgRes.json();
+        if (tagsRes.ok) {
+          allTags = await tagsRes.json();
+          const primary = document.getElementById('editEventPrimaryTag');
+          const secondary = document.getElementById('editEventSecondaryTag');
+          if (primary && secondary) {
+            allTags.forEach((tag: { id: string; name?: string }) => {
+              const o1 = document.createElement('option'); o1.value = tag.id; o1.textContent = tag.name || '';
+              const o2 = document.createElement('option'); o2.value = tag.id; o2.textContent = tag.name || '';
+              primary.appendChild(o1); secondary.appendChild(o2);
+            });
+          }
+        }
+        if (parentRes.ok) allParentEvents = await parentRes.json();
+        refDataLoaded = true;
+      }
+
+      function setupAc(inputId: string, dropdownId: string, hiddenId: string, dataSource: () => { id: string; [k: string]: any }[], display: (x: any) => string) {
+        const input = document.getElementById(inputId) as HTMLInputElement;
+        const dropdown = document.getElementById(dropdownId);
+        const hidden = document.getElementById(hiddenId) as HTMLInputElement;
+        if (!input || !dropdown || !hidden) return;
+        const close = () => { dropdown.classList.add('hidden'); dropdown.innerHTML = ''; };
+        input.addEventListener('input', () => {
+          const q = input.value.toLowerCase().trim();
+          hidden.value = '';
+          if (!q) { close(); return; }
+          const matches = dataSource().filter(i => display(i).toLowerCase().includes(q)).slice(0, 8);
+          if (!matches.length) { close(); return; }
+          dropdown.innerHTML = '';
+          matches.forEach(item => {
+            const div = document.createElement('div'); div.className = 'autocomplete-dropdown-item'; div.textContent = display(item);
+            div.addEventListener('click', () => { input.value = display(item); hidden.value = item.id; close(); });
+            dropdown.appendChild(div);
+          });
+          dropdown.classList.remove('hidden');
+        });
+        input.addEventListener('focus', () => { if (input.value.trim()) input.dispatchEvent(new Event('input')); });
+        document.addEventListener('click', (e) => { if (!dropdown.contains(e.target as Node) && e.target !== input) close(); });
+      }
+
+      function populateForm(event: any) {
+        const set = (id: string, val: string) => { const el = document.getElementById(id) as HTMLInputElement | null; if (el) el.value = val || ''; };
+        const setCheck = (id: string, val: boolean) => { const el = document.getElementById(id) as HTMLInputElement | null; if (el) el.checked = !!val; };
+        document.getElementById('editEventModalTitle')!.textContent = 'Edit Event';
+        set('editEventTitle', event.title); set('editEventDescription', event.description); set('editEventStartDate', event.start_date); set('editEventEndDate', event.end_date);
+        set('editEventStartTime', event.start_time); set('editEventEndTime', event.end_time); set('editEventEmail', event.email); set('editEventWebsite', event.website);
+        set('editEventRegistrationLink', event.registration_link); set('editEventExternalImageUrl', event.external_image_url); set('editEventCost', event.cost);
+        set('editEventPrimaryTag', event.primary_tag_id); set('editEventSecondaryTag', event.secondary_tag_id); set('editEventComments', event.comments);
+        setCheck('editEventRegistration', event.registration); setCheck('editEventExcludeFromCalendar', event.exclude_from_calendar); setCheck('editEventFeatured', event.featured);
+        const isCancelled = event.status === 'cancelled';
+        setCheck('editEventCancelled', isCancelled); setCheck('editEventDraft', !isCancelled && (event.status === 'pending' || event.status == null));
+        syncEventStatusControls();
+        if (event.location_id && event.location) { set('editEventLocationId', event.location_id); (document.getElementById('editEventLocationSearch') as HTMLInputElement).value = event.location.name || ''; }
+        else { set('editEventLocationId', ''); (document.getElementById('editEventLocationSearch') as HTMLInputElement).value = ''; }
+        if (event.organization_id && event.organization) { set('editEventOrganizationId', event.organization_id); (document.getElementById('editEventOrganizationSearch') as HTMLInputElement).value = event.organization.name || ''; }
+        else { set('editEventOrganizationId', ''); (document.getElementById('editEventOrganizationSearch') as HTMLInputElement).value = ''; }
+        if (event.parent_event_id) {
+          const parent = allParentEvents.find((e: any) => e.id === event.parent_event_id);
+          const disp = parent ? `${parent.title || ''}${parent.start_date ? ' - ' + new Date(parent.start_date).toLocaleDateString() : ''}${parent.start_time ? ' ' + parent.start_time.substring(0, 5) : ''}` : '';
+          (document.getElementById('editEventParentEventSearch') as HTMLInputElement).value = disp;
+          set('editEventParentEventId', event.parent_event_id);
+        } else { (document.getElementById('editEventParentEventSearch') as HTMLInputElement).value = ''; set('editEventParentEventId', ''); }
+      }
+
+      (window as any).closeEditEventModal = function() {
+        const modal = document.getElementById('editEventModal');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+      };
+
+      (window as any).openEditEventModalOnDetailPage = async function(eventId: string) {
+        await loadReferenceData();
+        const res = await fetch(`/api/admin/events/${eventId}`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.event) return;
+        const formEl = document.getElementById('editEventForm');
+        if (formEl) formEl.setAttribute('data-current-edit-id', eventId);
+        populateForm(data.event);
+        setupAc('editEventLocationSearch', 'editEventLocationDropdown', 'editEventLocationId', () => allLocations, (l: any) => l.name || '');
+        setupAc('editEventOrganizationSearch', 'editEventOrganizationDropdown', 'editEventOrganizationId', () => allOrganizations, (o: any) => o.name || '');
+        setupAc('editEventParentEventSearch', 'editEventParentEventDropdown', 'editEventParentEventId', () => allParentEvents, (e: any) =>
+          `${e.title || ''}${e.start_date ? ' - ' + new Date(e.start_date).toLocaleDateString() : ''}${e.start_time ? ' ' + e.start_time.substring(0, 5) : ''}`);
+        const modal = document.getElementById('editEventModal');
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      };
+
+      (window as any).duplicateCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/events/${id}`; };
+      (window as any).createSeriesFromCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/series?parent=${id}`; };
+
+      const form = document.getElementById('editEventForm');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const eventId = window.location.pathname.split('/').pop();
+          if (!eventId) return;
+          const primaryTag = (document.getElementById('editEventPrimaryTag') as HTMLSelectElement)?.value;
+          if (!primaryTag) { alert('Primary tag is required'); return; }
+          const formData = {
+            id: eventId,
+            title: (document.getElementById('editEventTitle') as HTMLInputElement)?.value,
+            description: (document.getElementById('editEventDescription') as HTMLInputElement)?.value,
+            start_date: (document.getElementById('editEventStartDate') as HTMLInputElement)?.value,
+            end_date: (document.getElementById('editEventEndDate') as HTMLInputElement)?.value || null,
+            start_time: (document.getElementById('editEventStartTime') as HTMLInputElement)?.value || null,
+            end_time: (document.getElementById('editEventEndTime') as HTMLInputElement)?.value || null,
+            email: (document.getElementById('editEventEmail') as HTMLInputElement)?.value || null,
+            website: normalizeUrl((document.getElementById('editEventWebsite') as HTMLInputElement)?.value),
+            registration_link: normalizeUrl((document.getElementById('editEventRegistrationLink') as HTMLInputElement)?.value),
+            external_image_url: normalizeUrl((document.getElementById('editEventExternalImageUrl') as HTMLInputElement)?.value),
+            cost: (document.getElementById('editEventCost') as HTMLInputElement)?.value || null,
+            primary_tag_id: primaryTag,
+            secondary_tag_id: (document.getElementById('editEventSecondaryTag') as HTMLSelectElement)?.value || null,
+            location_id: (document.getElementById('editEventLocationId') as HTMLInputElement)?.value || null,
+            organization_id: (document.getElementById('editEventOrganizationId') as HTMLInputElement)?.value || null,
+            parent_event_id: (document.getElementById('editEventParentEventId') as HTMLInputElement)?.value || null,
+            registration: (document.getElementById('editEventRegistration') as HTMLInputElement)?.checked,
+            exclude_from_calendar: (document.getElementById('editEventExcludeFromCalendar') as HTMLInputElement)?.checked,
+            featured: (document.getElementById('editEventFeatured') as HTMLInputElement)?.checked,
+            status: getEventStatusFromForm(),
+          };
+          try {
+            const putRes = await fetch('/api/admin/events', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(formData) });
+            if (putRes.ok) {
+              (window as any).closeEditEventModal();
+              window.location.reload();
+            } else {
+              const err = await putRes.json().catch(() => ({}));
+              alert(err.error || 'Failed to update event');
+            }
+          } catch (err) {
+            alert('Failed to update event');
+          }
+        });
+      }
+
+      const cancelledCheckbox = document.getElementById('editEventCancelled') as HTMLInputElement;
+      if (cancelledCheckbox) { cancelledCheckbox.addEventListener('change', syncEventStatusControls); syncEventStatusControls(); }
+
+      if (editEventIdFromUrl) {
+        (window as any).openEditEventModalOnDetailPage(editEventIdFromUrl);
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+      }
+    }
   });
 </script>
 
