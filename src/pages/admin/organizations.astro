@@ -63,7 +63,36 @@ import '../../styles/admin.css';
 </div>
 
 <script>
-  import Tablesort from 'tablesort';
+  import {
+    renderSortableTable,
+    textColumn,
+    statusColumn,
+    lastEditedColumn,
+    iconBadgeColumn,
+    actionsColumn,
+  } from '../../lib/admin/sortable-table';
+
+  type OrganizationRow = { id: string; name?: string; status?: string; website?: string; updated_at?: string };
+
+  const ORG_COLUMNS = [
+    textColumn<OrganizationRow>('name', 'Name', 'name'),
+    statusColumn<OrganizationRow>('status', 'Status', 'status'),
+    iconBadgeColumn<OrganizationRow>(
+      'web',
+      'Web',
+      (org) => typeof org.website === 'string' && org.website.trim() !== '',
+      'link',
+      'link_off',
+      'Has website',
+      'No website'
+    ),
+    lastEditedColumn<OrganizationRow>('lastEdited', 'Last edited'),
+    actionsColumn<OrganizationRow>(
+      'actions',
+      (org) => `/organizations/${org.id}`,
+      (org) => ({ onclick: `editOrganization('${org.id}')` })
+    ),
+  ];
 
   let organizations = [];
 
@@ -83,50 +112,17 @@ import '../../styles/admin.css';
     }
   }
 
-  function hasWebsite(org) {
-    return typeof org.website === 'string' && org.website.trim() !== '';
-  }
-
-  function formatLastEdited(updatedAt) {
-    if (!updatedAt) return '—';
-    const d = new Date(updatedAt);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  function getOrganizationsList() {
-    const list = organizations.slice();
-    list.sort((a, b) => ((a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())));
-    return list;
-  }
-
   function renderOrganizations() {
     const container = document.getElementById('organizations-container');
-    if (!container) return;
-    if (!organizations.length) {
-      container.innerHTML = '<p class="text-gray-600">No organizations yet. Click “Add organization” to create one.</p>';
-      return;
-    }
-    const list = getOrganizationsList();
-    const webCell = (org) => {
-      const has = hasWebsite(org);
-      const sortVal = has ? '1' : '0';
-      const content = has
-        ? '<span class="text-green-600" title="Has website"><span class="material-symbols-outlined" style="font-size:1.1rem;">link</span></span>'
-        : '<span class="text-amber-600" title="No website"><span class="material-symbols-outlined" style="font-size:1.1rem;">link_off</span></span>';
-      return '<td class="p-3 text-center" data-sort="' + sortVal + '">' + content + '</td>';
-    };
-    const lastEditedCell = (org) => {
-      const raw = org.updated_at || '';
-      const display = formatLastEdited(raw);
-      return '<td class="p-3 text-gray-600 text-sm whitespace-nowrap" data-sort="' + (raw || '0000-00-00').replace(/"/g, '&quot;') + '" title="' + (raw ? new Date(raw).toISOString() : '') + '">' + (display || '—').replace(/</g, '&lt;') + '</td>';
-    };
-    const table = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table"><thead class="bg-gray-100"><tr><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by name">Name</th><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by status">Status</th><th class="text-center p-3 w-20 cursor-pointer hover:bg-gray-200 select-none" title="Sort by website">Web</th><th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap" title="Sort by last edited">Last edited</th><th class="w-24 p-3" data-sort-method="none"></th></tr></thead><tbody>' +
-      list.map(org => '<tr id="organization-row-' + org.id + '" class="organization-row border-t border-gray-200 hover:bg-gray-50"><td class="p-3 font-medium">' + (org.name || '').replace(/</g, '&lt;') + '</td><td class="p-3"><span class="text-sm ' + (org.status === 'approved' ? 'text-green-600' : 'text-amber-600') + '">' + (org.status || '') + '</span></td>' + webCell(org) + lastEditedCell(org) + '<td class="p-3" style="white-space: nowrap;"><a href="/organizations/' + org.id + '" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; text-decoration: none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size: 1.25rem;">visibility</span><span class="tooltip">View</span></a><button type="button" onclick="editOrganization(\'' + org.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button></td></tr>').join('') +
-      '</tbody></table>';
-    container.innerHTML = table;
-    const tableEl = container.querySelector('table');
-    if (tableEl) new Tablesort(tableEl);
+    renderSortableTable(container, {
+      data: organizations,
+      columns: ORG_COLUMNS,
+      initialSortColumn: 'name',
+      maxRows: 100,
+      expandable: true,
+      emptyMessage: 'No organizations yet. Click "Add organization" to create one.',
+      rowIdPrefix: 'organization-row-',
+    });
   }
 
   window.editOrganization = function(id) {

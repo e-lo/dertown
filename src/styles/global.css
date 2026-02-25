@@ -1,9 +1,9 @@
 @import './theme.css';
 @import './components.css';
 
-/* Material Icons CSS */
+/* Material Symbols Outlined - used for icon ligatures (e.g. calendar_today, location_on) */
 .material-symbols-outlined {
-  font-family: 'Material Icons';
+  font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
