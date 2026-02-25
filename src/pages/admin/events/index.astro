@@ -69,7 +69,14 @@ import '../../../styles/admin.css';
 </div>
 
 <script>
-  import Tablesort from 'tablesort';
+  import {
+    renderSortableTable,
+    textColumn,
+    statusColumn,
+    lastEditedColumn,
+    derivedColumn,
+    actionsColumn,
+  } from '../../../lib/admin/sortable-table';
 
   type ListEvent = {
     id: string;
@@ -83,15 +90,29 @@ import '../../../styles/admin.css';
     primary_tag?: { name?: string };
   };
 
+  const EVENT_COLUMNS = [
+    textColumn<ListEvent>('title', 'Title', 'title'),
+    textColumn<ListEvent>('date', 'Date', 'start_date'),
+    derivedColumn<ListEvent>(
+      'time',
+      'Time',
+      (e) => (e.start_time ? String(e.start_time).substring(0, 5) : '—'),
+      (e) => e.start_time ?? ''
+    ),
+    textColumn<ListEvent>('location', 'Location', (e) => e.location?.name),
+    textColumn<ListEvent>('organization', 'Organization', (e) => e.organization?.name),
+    textColumn<ListEvent>('tag', 'Tag', (e) => e.primary_tag?.name),
+    statusColumn<ListEvent>('status', 'Status', 'status'),
+    lastEditedColumn<ListEvent>('lastEdited', 'Last edited'),
+    actionsColumn<ListEvent>(
+      'actions',
+      (e) => `/events/${e.id}`,
+      (e) => ({ href: `/admin/events/${e.id}` })
+    ),
+  ];
+
   let events: ListEvent[] = [];
   let searchTimeout: number | null = null;
-
-  function formatLastEdited(updatedAt: string | undefined) {
-    if (!updatedAt) return '—';
-    const d = new Date(updatedAt);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  }
 
   async function loadEvents() {
     const el = document.getElementById('events-loading');
@@ -117,59 +138,14 @@ import '../../../styles/admin.css';
 
   function renderEvents() {
     const container = document.getElementById('events-container');
-    if (!container) return;
-    if (!events.length) {
-      container.innerHTML = '<p class="text-gray-600">No events in the next month.</p>';
-      return;
-    }
-    const locationDisplay = (e: ListEvent) =>
-      e.location && e.location.name ? String(e.location.name).replace(/</g, '&lt;') : '—';
-    const orgDisplay = (e: ListEvent) =>
-      e.organization && e.organization.name ? String(e.organization.name).replace(/</g, '&lt;') : '—';
-    const primaryTag = (e: ListEvent) =>
-      e.primary_tag && e.primary_tag.name ? String(e.primary_tag.name).replace(/</g, '&lt;') : '—';
-    const timeStr = (e: ListEvent) => (e.start_time ? String(e.start_time).substring(0, 5) : '—');
-    const lastEditedCell = (e: ListEvent) => {
-      const raw = e.updated_at || '';
-      const display = formatLastEdited(raw);
-      return '<td class="p-3 text-gray-600 text-sm whitespace-nowrap" data-sort="' + (raw || '0000-00-00').replace(/"/g, '&quot;') + '" title="' + (raw ? new Date(raw).toISOString() : '') + '">' + (display || '—').replace(/</g, '&lt;') + '</td>';
-    };
-    const th = (label: string, title?: string) =>
-      '<th class="text-left p-3 cursor-pointer hover:bg-gray-200 select-none" title="Sort by ' +
-      (title || label).toLowerCase() +
-      '">' +
-      label +
-      '</th>';
-    const table =
-      '<table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table">' +
-      '<thead class="bg-gray-100"><tr>' +
-      th('Title', 'title') + th('Date', 'date') + th('Time', 'time') + th('Location', 'location') + th('Organization', 'organization') + th('Tag', 'tag') + th('Status', 'status') + th('Last edited', 'last edited') +
-      '<th class="w-24 p-3" data-sort-method="none"></th>' +
-      '</tr></thead><tbody>' +
-      events.map((e) => (
-        '<tr class="border-t border-gray-200 hover:bg-gray-50">' +
-        '<td class="p-3 font-medium">' + (e.title || '—').replace(/</g, '&lt;') + '</td>' +
-        '<td class="p-3">' + (e.start_date || '—') + '</td>' +
-        '<td class="p-3">' + timeStr(e) + '</td>' +
-        '<td class="p-3 text-gray-600">' + locationDisplay(e) + '</td>' +
-        '<td class="p-3 text-gray-600">' + orgDisplay(e) + '</td>' +
-        '<td class="p-3">' + primaryTag(e) + '</td>' +
-        '<td class="p-3"><span class="text-sm ' + (e.status === 'approved' ? 'text-green-600' : e.status === 'cancelled' ? 'text-red-600' : 'text-amber-600') + '">' + (e.status || '—') + '</span></td>' +
-        lastEditedCell(e) +
-        '<td class="p-3" style="white-space:nowrap;">' +
-        '<a href="/events/' + e.id + '" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;text-decoration:none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size:1.25rem;">visibility</span><span class="tooltip">View</span></a>' +
-        '<a href="/admin/events/' + e.id + '" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span><span class="tooltip">Edit</span></a>' +
-        '</td></tr>'
-      )).join('') +
-      '</tbody></table>';
-    container.innerHTML = table;
-    const tableEl = container.querySelector('table');
-    if (tableEl instanceof HTMLTableElement) {
-      // Tablesort comes from the 'tablesort' package, which does not ship TypeScript types by default.
-      // Cast to any to keep the runtime behavior while satisfying TypeScript.
-      const TS = Tablesort as unknown as new (el: HTMLTableElement) => unknown;
-      new TS(tableEl);
-    }
+    renderSortableTable(container, {
+      data: events,
+      columns: EVENT_COLUMNS,
+      initialSortColumn: 'date',
+      maxRows: 100,
+      expandable: true,
+      emptyMessage: 'No events in the next month.',
+    });
   }
 
   // Event search autocomplete
