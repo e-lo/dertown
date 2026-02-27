@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '@/lib/supabase';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -8,10 +9,7 @@ export const GET: APIRoute = async ({ params }) => {
     const { parentId } = params;
 
     if (!parentId) {
-      return new Response(JSON.stringify({ error: 'Parent event ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Parent event ID is required', 400);
     }
 
     // Query the base events table with the same filters as public_events view
@@ -37,21 +35,12 @@ export const GET: APIRoute = async ({ params }) => {
 
     if (error) {
       console.error('Error fetching series events:', error);
-      return new Response(JSON.stringify({ error: 'Failed to fetch series events' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Failed to fetch series events');
     }
 
-    return new Response(JSON.stringify({ events: data || [] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ events: data || [] });
   } catch (error) {
     console.error('Error in series events API:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

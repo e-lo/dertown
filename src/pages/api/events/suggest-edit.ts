@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { Resend } from 'resend';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -70,10 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { eventId, eventTitle, eventUrl, name, email, suggestions } = await request.json();
 
     if (!eventId || !name || !email || !suggestions) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Missing required fields', 400);
     }
 
     // Format email content
@@ -105,22 +103,13 @@ This email was sent from the Der Town event edit suggestion form.
     }
 
     // Always return success to the user (we don't want to expose email failures)
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message:
-          'Thank you for your suggestion! We will review it and update the event if appropriate.',
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return jsonResponse({
+      success: true,
+      message:
+        'Thank you for your suggestion! We will review it and update the event if appropriate.',
+    });
   } catch (error) {
     console.error('Error processing edit suggestion:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -8,15 +9,9 @@ export const POST: APIRoute = async ({ cookies }) => {
     cookies.delete('sb-access-token', { path: '/' });
     cookies.delete('sb-refresh-token', { path: '/' });
 
-    return new Response(JSON.stringify({ message: 'Logged out successfully' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

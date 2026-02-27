@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase';
 import type { TablesInsert } from '../../../lib/supabase';
 import { validateAnnouncementForm } from '../../../lib/validation';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -15,10 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
         '[SPAM DETECTED] Announcement submission with filled honeypot field:',
         data.website_url
       );
-      return new Response(JSON.stringify({ error: 'Invalid submission detected' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Invalid submission detected', 400);
     }
 
     // Basic rate limiting - check if submission is too fast (likely a bot)
@@ -30,19 +28,13 @@ export const POST: APIRoute = async ({ request }) => {
       // If submission is less than 3 seconds from the timestamp, it's likely a bot
       if (timeDiff < 3000) {
         console.log('[SPAM DETECTED] Announcement submission too fast:', timeDiff, 'ms');
-        return new Response(JSON.stringify({ error: 'Submission too fast, please try again' }), {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return jsonError('Submission too fast, please try again', 429);
       }
     }
 
     const validation = validateAnnouncementForm(data);
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({ error: 'Validation failed', details: validation.error.flatten() }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Validation failed', details: validation.error.flatten() }, 400);
     }
     const formData = validation.data;
 
@@ -86,12 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
     };
 
     if (!message || !title) {
-      return new Response(
-        JSON.stringify({
-          error: 'Title and message are required',
-        }),
-        { status: 400 }
-      );
+      return jsonError('Title and message are required', 400);
     }
 
     const insertData: TablesInsert<'announcements_staged'> = {
@@ -106,19 +93,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (error) {
       console.error('Error inserting announcement:', error);
-      return new Response(
-        JSON.stringify({ error: 'Database insert failed', details: error.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Database insert failed', details: error.message }, 500);
     }
-    return new Response(JSON.stringify({ success: true }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ success: true }, 201);
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Invalid request', details: String(err) }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Invalid request', details: String(err) }, 400);
   }
 };

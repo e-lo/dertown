@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -22,10 +23,7 @@ export const GET: APIRoute = async ({ url }) => {
     const { data: events, error } = await searchQuery;
 
     if (error) {
-      return new Response(JSON.stringify({ error: 'Failed to search events' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Failed to search events');
     }
 
     // Filter events based on search parameters (client-side filtering for now)
@@ -53,15 +51,9 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
-    return new Response(JSON.stringify({ events: filteredEvents }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ events: filteredEvents });
   } catch (error) {
     console.error('Error in events search API:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

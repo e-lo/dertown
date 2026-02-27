@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
 import { transformEventForCalendar, getCategoryBadgeVariant } from '../../../lib/event-utils.ts';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -10,10 +11,7 @@ export const GET: APIRoute = async () => {
     const { data: events, error } = await db.events.getAll();
 
     if (error) {
-      return new Response(JSON.stringify({ error: 'Failed to fetch events' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Failed to fetch events');
     }
 
     // Transform events for FullCalendar using the same function as Calendar.astro
@@ -48,15 +46,9 @@ export const GET: APIRoute = async () => {
       })
       .filter(Boolean); // Remove any null events
 
-    return new Response(JSON.stringify({ events: calendarEvents }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ events: calendarEvents });
   } catch (error) {
     console.error('Error in calendar events API:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

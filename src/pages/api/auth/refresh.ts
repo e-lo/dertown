@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../../types/database';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 // Support local Supabase for testing
 const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
@@ -24,10 +25,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       cookies.get('sb-localhost-refresh-token')?.value;
 
     if (!refreshToken) {
-      return new Response(JSON.stringify({ error: 'No refresh token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('No refresh token', 401);
     }
 
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
@@ -35,13 +33,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (error || !data.session) {
       console.error('[REFRESH DEBUG] Failed to refresh session:', error?.message);
-      return new Response(
-        JSON.stringify({ error: error?.message || 'Failed to refresh session' }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return jsonError(error?.message || 'Failed to refresh session', 401);
     }
 
     const isProduction =
@@ -67,15 +59,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    return new Response(JSON.stringify({ message: 'Session refreshed' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ message: 'Session refreshed' });
   } catch (error) {
     console.error('[REFRESH DEBUG] Error refreshing session:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };
