@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -65,17 +66,11 @@ export const GET: APIRoute = async ({ url }) => {
 
     if (error) {
       console.error('Error fetching activities:', error);
-      return new Response(JSON.stringify({ error: 'Failed to fetch activities' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Failed to fetch activities');
     }
 
     if (!activities || activities.length === 0) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse([]);
     }
 
     // Get all activity IDs to fetch events in bulk
@@ -135,9 +130,6 @@ export const GET: APIRoute = async ({ url }) => {
     });
   } catch (error) {
     console.error('Error in GET /api/kid-activities:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };

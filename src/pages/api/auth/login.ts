@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../../types/database';
+import { jsonResponse, jsonError } from '@/lib/api-utils';
 
 // Support local Supabase for testing
 const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
@@ -21,10 +22,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Email and password are required', 400);
     }
 
     // Create Supabase client
@@ -38,28 +36,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (error || !data.session) {
       console.error('[LOGIN DEBUG] Authentication failed:', error?.message);
-      return new Response(JSON.stringify({ error: error?.message || 'Login failed' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError(error?.message || 'Login failed', 401);
     }
 
     // All authenticated users are considered admins
 
     // Create response with session cookies using Astro's cookie handling
-    const response = new Response(
-      JSON.stringify({
-        message: 'Login successful',
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-        },
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    const response = jsonResponse({
+      message: 'Login successful',
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+      },
+    });
 
     // Set session cookies using Astro's cookies object
     // Determine if we're in production (HTTPS) based on environment
@@ -90,9 +79,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return response;
   } catch (error) {
     console.error('[LOGIN DEBUG] Login error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Internal server error');
   }
 };
