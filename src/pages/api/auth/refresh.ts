@@ -1,21 +1,7 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../../types/database';
+import { supabase } from '@/lib/supabase';
 import { jsonResponse, jsonError } from '@/lib/api-utils';
-
-// Support local Supabase for testing
-const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
-
-const supabaseUrl = useLocalDb ? 'http://127.0.0.1:54321' : import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = useLocalDb
-  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-  : import.meta.env.PUBLIC_SUPABASE_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Missing required environment variables: PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_KEY'
-  );
-}
+import { ACCESS_TOKEN_DEFAULT_TTL, REFRESH_TOKEN_TTL } from '@/lib/constants';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -28,7 +14,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return jsonError('No refresh token', 401);
     }
 
-    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
 
     if (error || !data.session) {
@@ -45,7 +30,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: data.session.expires_in || 3600,
+      maxAge: data.session.expires_in || ACCESS_TOKEN_DEFAULT_TTL,
       secure: isProduction,
     });
 
@@ -54,7 +39,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days (persist login)
+        maxAge: REFRESH_TOKEN_TTL, // 30 days (persist login)
         secure: isProduction,
       });
     }

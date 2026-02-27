@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/supabase.ts';
-import { parseEventTimesUTC } from '../../lib/calendar-utils.ts';
+import { type EventData, parseEventTimesUTC } from '../../lib/calendar-utils.ts';
 import { format } from 'date-fns';
 import { tz } from '@date-fns/tz';
 
@@ -30,20 +30,6 @@ export const GET: APIRoute = async () => {
   }
 };
 
-// Type for the event data structure
-type EventData = {
-  id: string | null;
-  title: string | null;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  start_time: string | null;
-  end_time: string | null;
-  website: string | null;
-  location?: { name: string; address: string | null } | null;
-  primary_tag?: { name: string } | null;
-  secondary_tag?: { name: string } | null;
-};
 
 function generateRSSContent(events: EventData[]): string {
   const now = new Date();

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase.ts';
 import { validateEventForm } from '../../../lib/validation';
 import { jsonResponse, jsonError } from '@/lib/api-utils';
+import { SPAM_RATE_LIMIT_MS } from '@/lib/constants';
 
 export const prerender = false;
 
@@ -22,7 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
       const timeDiff = now.getTime() - submissionTime.getTime();
 
       // If submission is less than 3 seconds from the timestamp, it's likely a bot
-      if (timeDiff < 3000) {
+      if (timeDiff < SPAM_RATE_LIMIT_MS) {
         console.log('[SPAM DETECTED] Event submission too fast:', timeDiff, 'ms');
         return jsonError('Submission too fast, please try again', 429);
       }

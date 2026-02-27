@@ -1,11 +1,21 @@
 import { z } from 'zod';
+import {
+  MAX_TITLE,
+  MAX_DESCRIPTION,
+  MAX_NAME,
+  MAX_ADDRESS,
+  MAX_PHONE,
+  MAX_COST,
+  MAX_COMMENTS,
+  MAX_ALT_TEXT,
+} from './constants';
 
 // Simple form validation schemas for user input
 // These match the database constraints but are kept simple for forms
 
 export const eventFormSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters'),
-  description: z.string().max(2000, 'Description must be less than 2000 characters').optional(),
+  title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
+  description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().optional(),
   start_time: z.string().optional(),
@@ -14,13 +24,13 @@ export const eventFormSchema = z.object({
   location_id: z.string().uuid().optional().or(z.literal('')),
   location_added: z
     .string()
-    .max(255, 'Location name must be less than 255 characters')
+    .max(MAX_NAME, `Location name must be less than ${MAX_NAME} characters`)
     .optional()
     .or(z.literal('')),
   organization_id: z.string().uuid().optional().or(z.literal('')),
   organization_added: z
     .string()
-    .max(255, 'Organization name must be less than 255 characters')
+    .max(MAX_NAME, `Organization name must be less than ${MAX_NAME} characters`)
     .optional()
     .or(z.literal('')),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
@@ -31,16 +41,16 @@ export const eventFormSchema = z.object({
   external_image_url: z.string().url('Invalid URL format').optional().or(z.literal('')),
   image_alt_text: z
     .string()
-    .max(255, 'Alt text must be less than 255 characters')
+    .max(MAX_ALT_TEXT, `Alt text must be less than ${MAX_ALT_TEXT} characters`)
     .optional()
     .or(z.literal('')),
   featured: z.boolean().optional(),
   exclude_from_calendar: z.boolean().optional(),
   registration: z.boolean().optional(),
-  cost: z.string().max(100, 'Cost must be less than 100 characters').optional(),
+  cost: z.string().max(MAX_COST, `Cost must be less than ${MAX_COST} characters`).optional(),
   comments: z
     .string()
-    .max(2000, 'Comments must be less than 2000 characters')
+    .max(MAX_COMMENTS, `Comments must be less than ${MAX_COMMENTS} characters`)
     .optional()
     .or(z.literal('')),
   // Honeypot field - should always be empty
@@ -50,31 +60,31 @@ export const eventFormSchema = z.object({
 });
 
 export const locationFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name must be less than 255 characters'),
-  address: z.string().max(500, 'Address must be less than 500 characters').optional(),
+  name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
+  address: z.string().max(MAX_ADDRESS, `Address must be less than ${MAX_ADDRESS} characters`).optional(),
   website: z.string().url('Invalid URL format').optional().or(z.literal('')),
-  phone: z.string().max(20, 'Phone must be less than 20 characters').optional(),
+  phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   parent_location_id: z.string().uuid().optional(),
 });
 
 export const organizationFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name must be less than 255 characters'),
-  description: z.string().max(2000, 'Description must be less than 2000 characters').optional(),
+  name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
+  description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
   website: z.string().url('Invalid URL format').optional().or(z.literal('')),
-  phone: z.string().max(20, 'Phone must be less than 20 characters').optional(),
+  phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
   location_id: z.string().uuid().optional(),
   parent_organization_id: z.string().uuid().optional(),
 });
 
 export const announcementFormSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters'),
+  title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
   message: z
     .string()
     .min(1, 'Message is required')
-    .max(2000, 'Message must be less than 2000 characters'),
+    .max(MAX_DESCRIPTION, `Message must be less than ${MAX_DESCRIPTION} characters`),
   show_at: z.string().optional(),
   expires_at: z.string().optional(),
   link: z.string().url('Invalid URL format').optional().or(z.literal('')),
@@ -82,17 +92,17 @@ export const announcementFormSchema = z.object({
   organization_id: z.string().uuid().optional().or(z.literal('')),
   organization_name: z
     .string()
-    .max(255, 'Organization name must be less than 255 characters')
+    .max(MAX_NAME, `Organization name must be less than ${MAX_NAME} characters`)
     .optional()
     .or(z.literal('')),
   organization_added: z
     .string()
-    .max(255, 'Organization name must be less than 255 characters')
+    .max(MAX_NAME, `Organization name must be less than ${MAX_NAME} characters`)
     .optional()
     .or(z.literal('')),
   comments: z
     .string()
-    .max(2000, 'Comments must be less than 2000 characters')
+    .max(MAX_COMMENTS, `Comments must be less than ${MAX_COMMENTS} characters`)
     .optional()
     .or(z.literal('')),
   // Honeypot field - should always be empty
