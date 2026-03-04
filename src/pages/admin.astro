@@ -1,25 +1,6 @@
 ---
-// Server-side logic for admin page
-import { supabase } from '../lib/supabase';
-import { checkAdminAccess, getSessionFromCookies } from '../lib/session';
+import AdminLayout from '../components/AdminLayout.astro';
 import LoginModal from '../components/ui/LoginModal.astro';
-import AdminAuthRefresh from '../components/AdminAuthRefresh.astro';
-
-// Check if user is already logged in using cookies
-const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
-
-if (!isAdmin) {
-  // Redirect to login with current URL as redirect parameter
-  const currentUrl = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-}
-
-// Get user info for display - we need to get the session to display user info
-const { session } = await getSessionFromCookies(Astro.cookies);
-const user = session?.user;
-
-import '../styles/global.css';
-import '../styles/admin.css';
 import EditEventModal from '../components/ui/EditEventModal.astro';
 import AddLocationModal from '../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../components/ui/AddOrganizationModal.astro';
@@ -27,56 +8,37 @@ import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro'
 import SeriesModal from '../components/ui/SeriesModal.astro';
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard - Der Town</title>
-  <!-- Material Symbols & Icons Font -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-</head>
-<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
-
-<div class="admin-card">
-  <div class="header">
-    <div class="header-left">
-      <a href="/" class="admin-logo-link">
-        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
-      </a>
-      <div class="header-title-section">
-        <h1>Admin Dashboard</h1>
-        <p>Welcome, {user?.email || 'Admin'}</p>
-      </div>
-    </div>
-    <div class="flex gap-2 items-center">
-      <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-create" aria-label="Add location" style="background: linear-gradient(to bottom right, #059669, #047857);">
-        <span class="material-symbols-outlined text-2xl">location_on</span>
-        <span class="tooltip">Add location</span>
-      </button>
-      <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-create" aria-label="Add organization" style="background: linear-gradient(to bottom right, #0d9488, #0f766e);">
-        <span class="material-symbols-outlined text-2xl">business</span>
-        <span class="tooltip">Add organization</span>
-      </button>
-      <a href="/admin/events/new" class="icon-btn btn-create" aria-label="Create New Event">
-        <span class="material-symbols-outlined text-2xl">event</span>
-        <span class="tooltip">Create New Event</span>
-      </a>
-      <button class="icon-btn btn-create" onclick="openCreateSeriesModal()" aria-label="Create Event Series" style="background: linear-gradient(to bottom right, #9333ea, #7e22ce);">
-        <span class="material-symbols-outlined text-2xl">repeat</span>
-        <span class="tooltip">Create Event Series</span>
-      </button>
-      <button class="icon-btn btn-create btn-announcement" onclick="openCreateAnnouncementModal()" aria-label="Create New Announcement">
-        <span class="material-symbols-outlined text-2xl">campaign</span>
-        <span class="tooltip">Create New Announcement</span>
-      </button>
-      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
-        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
-        <span class="tooltip">Logout</span>
+<AdminLayout title="Admin Dashboard" showBack={false}>
+  <Fragment slot="actions">
+    <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-create" aria-label="Add location" style="background: linear-gradient(to bottom right, #059669, #047857);">
+      <span class="material-symbols-outlined text-2xl">location_on</span>
+      <span class="tooltip">Add location</span>
     </button>
-    </div>
-  </div>
+    <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-create" aria-label="Add organization" style="background: linear-gradient(to bottom right, #0d9488, #0f766e);">
+      <span class="material-symbols-outlined text-2xl">business</span>
+      <span class="tooltip">Add organization</span>
+    </button>
+    <a href="/admin/events/new" class="icon-btn btn-create" aria-label="Create New Event">
+      <span class="material-symbols-outlined text-2xl">event</span>
+      <span class="tooltip">Create New Event</span>
+    </a>
+    <button class="icon-btn btn-create" onclick="openCreateSeriesModal()" aria-label="Create Event Series" style="background: linear-gradient(to bottom right, #9333ea, #7e22ce);">
+      <span class="material-symbols-outlined text-2xl">repeat</span>
+      <span class="tooltip">Create Event Series</span>
+    </button>
+    <button class="icon-btn btn-create btn-announcement" onclick="openCreateAnnouncementModal()" aria-label="Create New Announcement">
+      <span class="material-symbols-outlined text-2xl">campaign</span>
+      <span class="tooltip">Create New Announcement</span>
+    </button>
+  </Fragment>
+
+  <Fragment slot="modals">
+    <EditEventModal />
+    <AddLocationModal />
+    <AddOrganizationModal />
+    <EditAnnouncementModal />
+    <SeriesModal />
+  </Fragment>
 
   <nav class="view-all-nav" aria-label="View all content">
     <span class="view-all-label">View all:</span>
@@ -111,14 +73,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       </a>
     </div>
   </div>
-
-  <!-- Modals -->
-  <EditEventModal />
-  <AddLocationModal />
-  <AddOrganizationModal />
-  <EditAnnouncementModal />
-  <SeriesModal />
-  <AdminAuthRefresh />
 
   <div class="section">
     <div class="section-header">
@@ -161,15 +115,14 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     <div id="upcoming-announcements-loading" class="loading">Loading upcoming announcements...</div>
     <div id="upcoming-announcements-container"></div>
   </div>
-</div>
 
-<!-- Login Modal (for session expiration scenarios) -->
-<LoginModal 
-  title="Session Expired"
-  description="Your session has expired. Please log in again to continue."
-  redirectUrl={Astro.url.pathname + Astro.url.search}
-  reloadOnSuccess={true}
-/>
+  <LoginModal
+    title="Session Expired"
+    description="Your session has expired. Please log in again to continue."
+    redirectUrl={Astro.url.pathname + Astro.url.search}
+    reloadOnSuccess={true}
+  />
+</AdminLayout>
 
 <script type="module">
   /**
@@ -3425,25 +3378,6 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
       });
     }
     
-    window.logout = async function() {
-      try {
-        const response = await fetch('/api/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        if (response.ok) {
-          window.location.href = '/';
-        } else {
-          // Even if logout fails, redirect to home
-          window.location.href = '/';
-        }
-      } catch (error) {
-        console.error('Logout error:', error);
-        // Redirect anyway
-        window.location.href = '/';
-      }
-    };
-
     // Series form submission handler
     const seriesForm = document.getElementById('seriesForm');
     if (seriesForm) {
@@ -3669,5 +3603,3 @@ import SeriesModal from '../components/ui/SeriesModal.astro';
     }
   });
 </script>
-</body>
-</html>
