@@ -1,66 +1,23 @@
 ---
-import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
+import AdminLayout from '../../components/AdminLayout.astro';
 import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
-import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
-
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
-if (!isAdmin) {
-  const currentUrl = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-}
-
-const { session } = await getSessionFromCookies(Astro.cookies);
-const user = session?.user;
-
-import '../../styles/global.css';
-import '../../styles/admin.css';
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Organizations - Admin - Der Town</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-</head>
-<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+<AdminLayout title="Organizations">
+  <Fragment slot="actions">
+    <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-save" aria-label="Add organization" title="Add organization">
+      <span class="material-symbols-outlined text-2xl">add</span>
+      <span class="tooltip">Add organization</span>
+    </button>
+  </Fragment>
 
-<div class="admin-card">
-  <div class="header">
-    <div class="header-left">
-      <a href="/" class="admin-logo-link">
-        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
-      </a>
-      <div class="header-title-section">
-        <h1>Organizations</h1>
-        <p>Welcome, {user?.email || 'Admin'}</p>
-      </div>
-    </div>
-    <div class="flex gap-2 items-center">
-      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
-        <span class="material-symbols-outlined text-2xl">arrow_back</span>
-        <span class="tooltip">Back to Dashboard</span>
-      </a>
-      <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-save" aria-label="Add organization" title="Add organization">
-        <span class="material-symbols-outlined text-2xl">add</span>
-        <span class="tooltip">Add organization</span>
-      </button>
-      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
-        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
-        <span class="tooltip">Logout</span>
-      </button>
-    </div>
-  </div>
+  <Fragment slot="modals">
+    <AddOrganizationModal />
+  </Fragment>
 
-  <AddOrganizationModal />
-  <AdminAuthRefresh />
-
-  <div class="section">
-    <div id="organizations-loading" class="loading">Loading organizations...</div>
-    <div id="organizations-container"></div>
-  </div>
-</div>
+  <div id="organizations-loading" class="loading">Loading organizations...</div>
+  <div id="organizations-container"></div>
+</AdminLayout>
 
 <script>
   import {
@@ -141,13 +98,4 @@ import '../../styles/admin.css';
       window.history.replaceState({}, '', window.location.pathname);
     }
   });
-
-  async function logout() {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch (e) {}
-    window.location.href = '/';
-  }
 </script>
-</body>
-</html>

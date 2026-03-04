@@ -1,62 +1,58 @@
 ---
-// Server-side logic for series management page
-import { checkAdminAccess, getSessionFromCookies } from '../../lib/session';
-import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
-
-// Check if user is already logged in using cookies
-const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
-
-if (!isAdmin) {
-  // Redirect to login with current URL as redirect parameter
-  const currentUrl = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-}
-
-// Get user info for display
-const { session } = await getSessionFromCookies(Astro.cookies);
-const user = session?.user;
-
-import '../../styles/global.css';
-import '../../styles/admin.css';
+import AdminLayout from '../../components/AdminLayout.astro';
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manage Series - Admin Dashboard - Der Town</title>
-  <!-- Material Symbols & Icons Font -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-</head>
-<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
-
-<div class="admin-card">
-  <div class="header">
-    <div class="header-left">
-      <a href="/" class="admin-logo-link">
-        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
-      </a>
-      <div class="header-title-section">
-        <h1>Manage Series</h1>
-        <p>Welcome, {user?.email || 'Admin'}</p>
+<AdminLayout title="Manage Series">
+  <Fragment slot="modals">
+    <!-- Edit Series Modal -->
+    <div id="editSeriesModal" class="modal-overlay hidden">
+      <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <h3 id="editSeriesModalTitle" class="modal-title">Edit Series</h3>
+          <button type="button" onclick="closeEditSeriesModal()" class="modal-close-btn" aria-label="Close modal">
+            <span class="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+        <div id="editSeriesContent">
+          <p class="text-gray-600 mb-4">Select which events to update, then edit the fields below. Dates cannot be changed.</p>
+          <div id="editSeriesEventList" class="mb-4 p-3 border border-gray-300 rounded bg-gray-50 max-h-48 overflow-y-auto">
+            <!-- Event checkboxes will be populated here -->
+          </div>
+          <form id="editSeriesForm">
+            <!-- Form fields will be populated by JavaScript -->
+            <div class="form-actions">
+              <button type="button" onclick="closeEditSeriesModal()" class="btn-cancel">Cancel</button>
+              <button type="submit" class="btn-save">Update Selected Events</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="flex gap-2 items-center">
-      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin Dashboard">
-        <span class="material-symbols-outlined text-2xl">arrow_back</span>
-        <span class="tooltip">Back to Dashboard</span>
-      </a>
-      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
-        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
-        <span class="tooltip">Logout</span>
-      </button>
+
+    <!-- Add Occurrences Modal -->
+    <div id="addOccurrencesModal" class="modal-overlay hidden">
+      <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <h3 id="addOccurrencesModalTitle" class="modal-title">Add Occurrences to Series</h3>
+          <button type="button" onclick="closeAddOccurrencesModal()" class="modal-close-btn" aria-label="Close modal">
+            <span class="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+        <div id="addOccurrencesContent">
+          <p class="text-gray-600 mb-4">Add new dates to this series. The new events will use the same details as the existing series.</p>
+          <form id="addOccurrencesForm">
+            <!-- Form will be populated by JavaScript, reusing series creation pattern -->
+            <div class="form-actions">
+              <button type="button" onclick="closeAddOccurrencesModal()" class="btn-cancel">Cancel</button>
+              <button type="submit" class="btn-save">Add Occurrences</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-  </div>
+  </Fragment>
 
   <div id="message"></div>
-  <AdminAuthRefresh />
 
   <!-- Active Series Section -->
   <div class="section">
@@ -83,86 +79,21 @@ import '../../styles/admin.css';
     <div id="past-loading" class="loading">Loading past series...</div>
     <div id="past-series-container"></div>
   </div>
-</div>
-
-
-<!-- Edit Series Modal (will reuse EditEventModal pattern but for bulk editing) -->
-<div id="editSeriesModal" class="modal-overlay hidden">
-  <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-    <div class="modal-header">
-      <h3 id="editSeriesModalTitle" class="modal-title">Edit Series</h3>
-      <button type="button" onclick="closeEditSeriesModal()" class="modal-close-btn" aria-label="Close modal">
-        <span class="material-symbols-outlined text-2xl">close</span>
-      </button>
-    </div>
-    <div id="editSeriesContent">
-      <p class="text-gray-600 mb-4">Select which events to update, then edit the fields below. Dates cannot be changed.</p>
-      <div id="editSeriesEventList" class="mb-4 p-3 border border-gray-300 rounded bg-gray-50 max-h-48 overflow-y-auto">
-        <!-- Event checkboxes will be populated here -->
-      </div>
-      <form id="editSeriesForm">
-        <!-- Form fields will be populated by JavaScript -->
-        <div class="form-actions">
-          <button type="button" onclick="closeEditSeriesModal()" class="btn-cancel">Cancel</button>
-          <button type="submit" class="btn-save">Update Selected Events</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Add Occurrences Modal (simplified series creation) -->
-<div id="addOccurrencesModal" class="modal-overlay hidden">
-  <div class="modal-container" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-    <div class="modal-header">
-      <h3 id="addOccurrencesModalTitle" class="modal-title">Add Occurrences to Series</h3>
-      <button type="button" onclick="closeAddOccurrencesModal()" class="modal-close-btn" aria-label="Close modal">
-        <span class="material-symbols-outlined text-2xl">close</span>
-      </button>
-    </div>
-    <div id="addOccurrencesContent">
-      <p class="text-gray-600 mb-4">Add new dates to this series. The new events will use the same details as the existing series.</p>
-      <form id="addOccurrencesForm">
-        <!-- Form will be populated by JavaScript, reusing series creation pattern -->
-        <div class="form-actions">
-          <button type="button" onclick="closeAddOccurrencesModal()" class="btn-cancel">Cancel</button>
-          <button type="submit" class="btn-save">Add Occurrences</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+</AdminLayout>
 
 <script>
-  // Import logout function from admin page
-  // We'll need to define it here or import it
-  async function logout() {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (response.ok) {
-        window.location.href = '/login';
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      window.location.href = '/login';
-    }
-  }
-
   // Message display function
   function showMessage(message, type = 'info') {
     const messageDiv = document.getElementById('message');
     if (!messageDiv) return;
-    
+
     messageDiv.textContent = message;
     messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
-      type === 'error' ? 'bg-red-600' : 
-      type === 'success' ? 'bg-green-600' : 
+      type === 'error' ? 'bg-red-600' :
+      type === 'success' ? 'bg-green-600' :
       'bg-blue-600'
     }`;
-    
+
     setTimeout(() => {
       messageDiv.textContent = '';
       messageDiv.className = '';
@@ -177,7 +108,7 @@ import '../../styles/admin.css';
         throw new Error('Failed to load series data');
       }
       const data = await response.json();
-      
+
       displayActiveSeries(data.activeSeries || []);
       displayPastSeries(data.pastSeries || []);
     } catch (error) {
@@ -190,16 +121,16 @@ import '../../styles/admin.css';
   function displayActiveSeries(series) {
     const container = document.getElementById('active-series-container');
     const loading = document.getElementById('active-loading');
-    
+
     if (loading) loading.style.display = 'none';
-    
+
     if (!container) return;
-    
+
     if (series.length === 0) {
       container.innerHTML = '<p class="text-gray-600">No active series found.</p>';
       return;
     }
-    
+
     let html = '<table class="data-table"><thead><tr>';
     html += '<th>Parent Event</th>';
     html += '<th>Total Events</th>';
@@ -209,15 +140,15 @@ import '../../styles/admin.css';
     html += '<th>Organization</th>';
     html += '<th>Actions</th>';
     html += '</tr></thead><tbody>';
-    
+
     series.forEach(s => {
       const parent = s.parent;
-      const dateRange = s.dateRange 
+      const dateRange = s.dateRange
         ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
         : 'N/A';
       const location = parent.location?.name || 'N/A';
       const organization = parent.organization?.name || 'N/A';
-      
+
       html += '<tr>';
       html += `<td><strong>${parent.title || 'Untitled'}</strong></td>`;
       html += `<td>${s.totalCount}</td>`;
@@ -238,7 +169,7 @@ import '../../styles/admin.css';
       html += '</td>';
       html += '</tr>';
     });
-    
+
     html += '</tbody></table>';
     container.innerHTML = html;
   }
@@ -247,16 +178,16 @@ import '../../styles/admin.css';
   function displayPastSeries(series) {
     const container = document.getElementById('past-series-container');
     const loading = document.getElementById('past-loading');
-    
+
     if (loading) loading.style.display = 'none';
-    
+
     if (!container) return;
-    
+
     if (series.length === 0) {
       container.innerHTML = '<p class="text-gray-600">No past series found.</p>';
       return;
     }
-    
+
     let html = '<table class="data-table"><thead><tr>';
     html += '<th>Parent Event</th>';
     html += '<th>Total Events</th>';
@@ -265,15 +196,15 @@ import '../../styles/admin.css';
     html += '<th>Organization</th>';
     html += '<th>Actions</th>';
     html += '</tr></thead><tbody>';
-    
+
     series.forEach(s => {
       const parent = s.parent;
-      const dateRange = s.dateRange 
+      const dateRange = s.dateRange
         ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
         : 'N/A';
       const location = parent.location?.name || 'N/A';
       const organization = parent.organization?.name || 'N/A';
-      
+
       html += '<tr>';
       html += `<td><strong>${parent.title || 'Untitled'}</strong></td>`;
       html += `<td>${s.totalCount}</td>`;
@@ -293,7 +224,7 @@ import '../../styles/admin.css';
       html += '</td>';
       html += '</tr>';
     });
-    
+
     html += '</tbody></table>';
     container.innerHTML = html;
   }
@@ -305,7 +236,7 @@ import '../../styles/admin.css';
   let allLocations: any[] = [];
   let allOrganizations: any[] = [];
   let originalFormValues: any = {}; // Store original values to detect changes
-  
+
   // Calendar state for "Add Occurrences" modal
   let addOccCalendarCurrentMonth = new Date().getMonth();
   let addOccCalendarCurrentYear = new Date().getFullYear();
@@ -339,10 +270,10 @@ import '../../styles/admin.css';
       const response = await fetch('/api/admin/series', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to load series data');
       const data = await response.json();
-      
+
       const allSeries = [...(data.activeSeries || []), ...(data.pastSeries || [])];
       const series = allSeries.find(s => s.parent.id === parentId);
-      
+
       if (!series) {
         showMessage('Series not found', 'error');
         return;
@@ -354,7 +285,7 @@ import '../../styles/admin.css';
       const title = document.getElementById('editSeriesModalTitle');
       const eventList = document.getElementById('editSeriesEventList');
       const form = document.getElementById('editSeriesForm');
-      
+
       if (!modal || !title || !eventList || !form) return;
 
       title.textContent = `Edit Series: ${series.parent.title || 'Untitled'}`;
@@ -364,7 +295,7 @@ import '../../styles/admin.css';
       eventListHtml += '<input type="checkbox" id="selectAllEvents" onchange="toggleAllEvents()" class="w-4 h-4">';
       eventListHtml += '<span class="font-semibold">Select All</span></label></div>';
       eventListHtml += '<div class="space-y-2">';
-      
+
       series.children.forEach(event => {
         const isFuture = event.start_date >= new Date().toISOString().split('T')[0];
         const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
@@ -375,7 +306,7 @@ import '../../styles/admin.css';
         eventListHtml += `<span class="text-xs ${isFuture ? 'text-green-600' : 'text-gray-500'}">${isFuture ? 'Future' : 'Past'}</span>`;
         eventListHtml += `</label>`;
       });
-      
+
       eventListHtml += '</div>';
       eventList.innerHTML = eventListHtml;
 
@@ -501,7 +432,7 @@ import '../../styles/admin.css';
           opt1.textContent = tag.name;
           if (tag.id === commonValues.primary_tag_id) opt1.selected = true;
           primaryTagSelect.appendChild(opt1);
-          
+
           const opt2 = document.createElement('option');
           opt2.value = tag.id;
           opt2.textContent = tag.name;
@@ -562,13 +493,13 @@ import '../../styles/admin.css';
   // Setup autocomplete for edit series form
   let editSeriesLocationAutocompleteSetup = false;
   let editSeriesOrganizationAutocompleteSetup = false;
-  
+
   function setupEditSeriesAutocomplete() {
     // Location autocomplete
     const locSearch = document.getElementById('editSeriesLocationSearch');
     const locId = document.getElementById('editSeriesLocationId');
     const locDropdown = document.getElementById('editSeriesLocationDropdown');
-    
+
     if (locSearch && locId && locDropdown && !editSeriesLocationAutocompleteSetup) {
       editSeriesLocationAutocompleteSetup = true;
       locSearch.addEventListener('input', (e: any) => {
@@ -583,7 +514,7 @@ import '../../styles/admin.css';
           locDropdown.classList.remove('block');
           return;
         }
-        const matches = allLocations.filter((loc: any) => 
+        const matches = allLocations.filter((loc: any) =>
           loc && loc.name && loc.name.toLowerCase().includes(query)
         ).slice(0, 10);
         if (matches.length === 0) {
@@ -605,7 +536,7 @@ import '../../styles/admin.css';
     const orgSearch = document.getElementById('editSeriesOrganizationSearch');
     const orgId = document.getElementById('editSeriesOrganizationId');
     const orgDropdown = document.getElementById('editSeriesOrganizationDropdown');
-    
+
     if (orgSearch && orgId && orgDropdown && !editSeriesOrganizationAutocompleteSetup) {
       editSeriesOrganizationAutocompleteSetup = true;
       orgSearch.addEventListener('input', (e: any) => {
@@ -620,7 +551,7 @@ import '../../styles/admin.css';
           orgDropdown.classList.remove('block');
           return;
         }
-        const matches = allOrganizations.filter((org: any) => 
+        const matches = allOrganizations.filter((org: any) =>
           org && org.name && org.name.toLowerCase().includes(query)
         ).slice(0, 10);
         if (matches.length === 0) {
@@ -638,16 +569,16 @@ import '../../styles/admin.css';
       });
     }
   }
-  
+
   // Ensure autocomplete is set up with retry mechanism
   function ensureEditSeriesAutocompleteSetup() {
     let retries = 0;
     const maxRetries = 10;
-    
+
     const trySetup = () => {
       const locSearch = document.getElementById('editSeriesLocationSearch');
       const orgSearch = document.getElementById('editSeriesOrganizationSearch');
-      
+
       if (locSearch && orgSearch) {
         setupEditSeriesAutocomplete();
       } else if (retries < maxRetries) {
@@ -655,7 +586,7 @@ import '../../styles/admin.css';
         setTimeout(trySetup, 100);
       }
     };
-    
+
     trySetup();
   }
 
@@ -663,12 +594,12 @@ import '../../styles/admin.css';
     const locIdEl = document.getElementById('editSeriesLocationId');
     const locSearchEl = document.getElementById('editSeriesLocationSearch');
     const locDropdownEl = document.getElementById('editSeriesLocationDropdown');
-    
+
     if (locIdEl) locIdEl.value = id;
     if (locSearchEl) locSearchEl.value = name;
     if (locDropdownEl) {
       locDropdownEl.classList.add('hidden');
-      locDropdownEl.classList.remove('block'); // Explicitly remove block class
+      locDropdownEl.classList.remove('block');
     }
   };
 
@@ -676,12 +607,12 @@ import '../../styles/admin.css';
     const orgIdEl = document.getElementById('editSeriesOrganizationId');
     const orgSearchEl = document.getElementById('editSeriesOrganizationSearch');
     const orgDropdownEl = document.getElementById('editSeriesOrganizationDropdown');
-    
+
     if (orgIdEl) orgIdEl.value = id;
     if (orgSearchEl) orgSearchEl.value = name;
     if (orgDropdownEl) {
       orgDropdownEl.classList.add('hidden');
-      orgDropdownEl.classList.remove('block'); // Explicitly remove block class
+      orgDropdownEl.classList.remove('block');
     }
   };
 
@@ -690,11 +621,11 @@ import '../../styles/admin.css';
   if (editSeriesForm) {
     editSeriesForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       // Get selected event IDs
       const selectedCheckboxes = document.querySelectorAll('.event-checkbox:checked');
       const eventIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-      
+
       if (eventIds.length === 0) {
         showMessage('Please select at least one event to update', 'error');
         return;
@@ -833,10 +764,10 @@ import '../../styles/admin.css';
       const response = await fetch('/api/admin/series', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to load series data');
       const data = await response.json();
-      
+
       const allSeries = [...(data.activeSeries || []), ...(data.pastSeries || [])];
       const series = allSeries.find(s => s.parent.id === parentId);
-      
+
       if (!series) {
         showMessage('Series not found', 'error');
         return;
@@ -848,7 +779,7 @@ import '../../styles/admin.css';
       const title = document.getElementById('addOccurrencesModalTitle');
       const content = document.getElementById('addOccurrencesContent');
       const form = document.getElementById('addOccurrencesForm');
-      
+
       if (!modal || !title || !content || !form) return;
 
       title.textContent = `Add Occurrences: ${series.parent.title || 'Untitled'}`;
@@ -856,10 +787,10 @@ import '../../styles/admin.css';
       // Get template from first child event
       const template = series.children[0];
       const seriesLatestDate = series.dateRange?.latest;
-      
+
       // Reset calendar state
       addOccSelectedDatesSet.clear();
-      
+
       // Start calendar at current month (or month of latest date if it's in the future)
       const today = new Date();
       if (seriesLatestDate) {
@@ -960,11 +891,11 @@ import '../../styles/admin.css';
     const weekly = document.getElementById('addOccWeeklyOptions');
     const monthly = document.getElementById('addOccMonthlyOptions');
     const custom = document.getElementById('addOccCustomOptions');
-    
+
     if (weekly) weekly.classList.add('hidden');
     if (monthly) monthly.classList.add('hidden');
     if (custom) custom.classList.add('hidden');
-    
+
     if (pattern === 'weekly' && weekly) {
       weekly.classList.remove('hidden');
     } else if (pattern === 'monthly' && monthly) {
@@ -976,14 +907,14 @@ import '../../styles/admin.css';
         initAddOccCalendarMultiPicker();
       }, 50);
     }
-    
+
     updateAddOccPreview();
   };
-  
+
   // ============================================================================
   // CALENDAR MULTI-PICKER FUNCTIONS FOR "ADD OCCURRENCES" MODAL
   // ============================================================================
-  
+
   /**
    * Initializes the calendar multi-picker for Add Occurrences modal
    */
@@ -991,39 +922,39 @@ import '../../styles/admin.css';
     renderAddOccCalendar();
     updateAddOccSelectedDatesDisplay();
   }
-  
+
   /**
    * Renders the calendar grid for the current month (Add Occurrences)
    */
   function renderAddOccCalendar() {
     const grid = document.getElementById('addOccCalendarGrid');
     const monthYearEl = document.getElementById('addOccCalendarMonthYear');
-    
+
     if (!grid || !monthYearEl) return;
-    
+
     // Clear existing day cells (keep headers)
     while (grid.children.length > 7) {
       grid.removeChild(grid.lastChild!);
     }
-    
+
     // Update month/year display
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'];
     monthYearEl.textContent = `${monthNames[addOccCalendarCurrentMonth]} ${addOccCalendarCurrentYear}`;
-    
+
     // Get first day of month and number of days
     const firstDay = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth, 1);
     const lastDay = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       const emptyCell = document.createElement('div');
       emptyCell.className = 'h-10';
       grid.appendChild(emptyCell);
     }
-    
+
     // Add cells for each day of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(addOccCalendarCurrentYear, addOccCalendarCurrentMonth, day);
@@ -1034,30 +965,30 @@ import '../../styles/admin.css';
       const dateOnly = new Date(date);
       dateOnly.setHours(0, 0, 0, 0);
       const isToday = dateOnly.getTime() === today.getTime();
-      
+
       // Allow all dates to be selectable (no restriction based on latest date)
       // Users can add occurrences anywhere in the series timeline
       const dayCell = document.createElement('div');
       dayCell.className = `h-10 flex items-center justify-center rounded transition-colors ${
-        isSelected 
-          ? 'bg-indigo-500 text-white font-semibold cursor-pointer' 
+        isSelected
+          ? 'bg-indigo-500 text-white font-semibold cursor-pointer'
           : isToday
           ? 'bg-blue-100 text-blue-700 font-semibold cursor-pointer'
           : 'hover:bg-gray-100 text-gray-700 cursor-pointer'
       }`;
       dayCell.textContent = String(day);
-      
+
       dayCell.setAttribute('data-date', dateStr);
       dayCell.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         toggleAddOccDateSelection(dateStr);
       });
-      
+
       grid.appendChild(dayCell);
     }
   }
-  
+
   /**
    * Toggles date selection (Add Occurrences)
    */
@@ -1072,10 +1003,10 @@ import '../../styles/admin.css';
     updateAddOccCustomDatesInput();
     updateAddOccPreview();
   }
-  
+
   // Make it globally accessible for onclick handlers
   (window as any).toggleAddOccDateSelection = toggleAddOccDateSelection;
-  
+
   /**
    * Changes the calendar month (Add Occurrences)
    */
@@ -1090,21 +1021,21 @@ import '../../styles/admin.css';
     }
     renderAddOccCalendar();
   };
-  
+
   /**
    * Updates the selected dates display (Add Occurrences)
    */
   function updateAddOccSelectedDatesDisplay() {
     const listEl = document.getElementById('addOccSelectedDatesList');
     if (!listEl) return;
-    
+
     const sortedDates = Array.from(addOccSelectedDatesSet).sort();
-    
+
     if (sortedDates.length === 0) {
       listEl.innerHTML = '<p class="text-sm text-gray-500 m-0">No dates selected</p>';
       return;
     }
-    
+
     listEl.innerHTML = sortedDates.map((dateStr: string) => {
       const date = new Date(dateStr + 'T00:00:00'); // Add time to avoid timezone issues
       return `<span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm">
@@ -1113,7 +1044,7 @@ import '../../styles/admin.css';
       </span>`;
     }).join('');
   }
-  
+
   /**
    * Removes a date from selection (Add Occurrences)
    */
@@ -1124,7 +1055,7 @@ import '../../styles/admin.css';
     updateAddOccCustomDatesInput();
     updateAddOccPreview();
   };
-  
+
   /**
    * Updates the hidden input with selected dates (Add Occurrences)
    */
@@ -1134,7 +1065,7 @@ import '../../styles/admin.css';
       input.value = Array.from(addOccSelectedDatesSet).sort().join('\n');
     }
   }
-  
+
   /**
    * Updates custom dates from manual entry (Add Occurrences)
    */
@@ -1164,11 +1095,11 @@ import '../../styles/admin.css';
     const preview = document.getElementById('addOccPreview');
     const previewList = document.getElementById('addOccPreviewList');
     const previewCount = document.getElementById('addOccPreviewCount');
-    
+
     if (!pattern || !preview || !previewList || !previewCount) return;
 
     let dates = [];
-    
+
     if (pattern === 'weekly') {
       const startDate = document.getElementById('addOccStartDate')?.value;
       const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
@@ -1221,7 +1152,7 @@ import '../../styles/admin.css';
   if (addOccurrencesForm) {
     addOccurrencesForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       if (!currentSeriesData) {
         showMessage('Series data not found', 'error');
         return;
@@ -1234,7 +1165,7 @@ import '../../styles/admin.css';
       }
 
       let dates = [];
-      
+
       if (pattern === 'weekly') {
         const startDate = document.getElementById('addOccStartDate')?.value;
         const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
@@ -1346,12 +1277,12 @@ import '../../styles/admin.css';
   document.addEventListener('DOMContentLoaded', async () => {
     await loadReferenceData();
     await loadSeries();
-    
+
     // Check for URL parameters for editSeries or addOccurrences
     const urlParams = new URLSearchParams(window.location.search);
     const editSeriesId = urlParams.get('editSeries');
     const addOccurrencesId = urlParams.get('addOccurrences');
-    
+
     if (editSeriesId) {
       setTimeout(() => {
         if (typeof window.editSeries === 'function') {
@@ -1360,7 +1291,7 @@ import '../../styles/admin.css';
         }
       }, 500);
     }
-    
+
     if (addOccurrencesId) {
       setTimeout(() => {
         if (typeof window.addOccurrences === 'function') {
@@ -1371,6 +1302,3 @@ import '../../styles/admin.css';
     }
   });
 </script>
-
-</body>
-</html>

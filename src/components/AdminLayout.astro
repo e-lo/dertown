@@ -1,0 +1,79 @@
+---
+import { checkAdminAccess, getSessionFromCookies } from '../lib/session';
+import AdminAuthRefresh from './AdminAuthRefresh.astro';
+import '../styles/global.css';
+import '../styles/admin.css';
+
+interface Props {
+  title: string;
+  showBack?: boolean;
+}
+
+const { title, showBack = true } = Astro.props;
+
+const { isAdmin } = await checkAdminAccess(Astro.cookies);
+if (!isAdmin) {
+  const currentUrl = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+}
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+const user = session?.user;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} - Admin - Der Town</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <slot name="head" />
+</head>
+<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed">
+
+<div class="admin-card">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="admin-logo-link">
+        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
+      </a>
+      <div class="header-title-section">
+        <h1>{title}</h1>
+        <p>Welcome, {user?.email || 'Admin'}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 items-center">
+      {showBack && (
+        <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin">
+          <span class="material-symbols-outlined text-2xl">arrow_back</span>
+          <span class="tooltip">Back to Dashboard</span>
+        </a>
+      )}
+      <slot name="actions" />
+      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
+        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
+        <span class="tooltip">Logout</span>
+      </button>
+    </div>
+  </div>
+
+  <slot name="modals" />
+  <AdminAuthRefresh />
+
+  <div class="section">
+    <slot />
+  </div>
+</div>
+
+<script is:inline>
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
+    window.location.href = '/';
+  }
+</script>
+</body>
+</html>

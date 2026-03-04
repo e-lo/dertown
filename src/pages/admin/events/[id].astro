@@ -1,81 +1,43 @@
 ---
-import { checkAdminAccess, getSessionFromCookies } from '../../../lib/session';
+import AdminLayout from '../../../components/AdminLayout.astro';
 import EditEventModal from '../../../components/ui/EditEventModal.astro';
 import AddLocationModal from '../../../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../../../components/ui/AddOrganizationModal.astro';
 import LoginModal from '../../../components/ui/LoginModal.astro';
-import AdminAuthRefresh from '../../../components/AdminAuthRefresh.astro';
 
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
-if (!isAdmin) {
-  const currentUrl = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-}
-
-const { session } = await getSessionFromCookies(Astro.cookies);
-const user = session?.user;
 const { id } = Astro.params;
 
 if (!id) {
   return Astro.redirect('/admin');
 }
-
-import '../../../styles/global.css';
-import '../../../styles/admin.css';
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Edit Event - Admin - Der Town</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-  <style>
-    .btn-series {
-      display: none;
-    }
-  </style>
-</head>
-<body class="font-sans bg-gradient-to-br from-gray-50 to-gray-100 m-0 min-h-screen text-gray-900 leading-relaxed" data-mode="edit" data-event-id={id}>
+<AdminLayout title="Edit Event">
+  <Fragment slot="head">
+    <style>
+      .btn-series {
+        display: none;
+      }
+    </style>
+  </Fragment>
 
-<div class="admin-card">
-  <div class="header">
-    <div class="header-left">
-      <a href="/" class="admin-logo-link">
-        <img class="admin-logo" src="/logo.svg" alt="Der Town Logo" />
-      </a>
-      <div class="header-title-section">
-        <h1>Edit Event</h1>
-        <p>Welcome, {user?.email || 'Admin'}</p>
-      </div>
-    </div>
-    <div class="flex gap-2 items-center">
-      <a href="/admin" class="icon-btn btn-edit" aria-label="Back to Admin Dashboard">
-        <span class="material-symbols-outlined text-2xl">arrow_back</span>
-        <span class="tooltip">Back to Dashboard</span>
-      </a>
-      <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
-        <span class="material-symbols-outlined text-2xl">exit_to_app</span>
-        <span class="tooltip">Logout</span>
-      </button>
-    </div>
+  <Fragment slot="modals">
+    <EditEventModal />
+    <AddLocationModal />
+    <AddOrganizationModal />
+  </Fragment>
+
+  <div data-mode="edit" data-event-id={id}>
+    <div id="message"></div>
   </div>
 
-  <div id="message"></div>
-  <EditEventModal />
-  <AddLocationModal />
-  <AddOrganizationModal />
-  <AdminAuthRefresh />
-</div>
-
-<LoginModal 
-  title="Session Expired"
-  description="Your session has expired. Please log in again to continue."
-  redirectUrl={Astro.url.pathname + Astro.url.search}
-  reloadOnSuccess={true}
-/>
+  <LoginModal
+    title="Session Expired"
+    description="Your session has expired. Please log in again to continue."
+    redirectUrl={Astro.url.pathname + Astro.url.search}
+    reloadOnSuccess={true}
+  />
+</AdminLayout>
 
 <script type="module">
   function normalizeUrl(url) {
@@ -548,7 +510,7 @@ import '../../../styles/admin.css';
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    const eventId = document.body.getAttribute('data-event-id');
+    const eventId = document.querySelector('[data-event-id]')?.getAttribute('data-event-id');
     await loadReferenceData();
     setupAutocompletes();
 
@@ -578,20 +540,6 @@ import '../../../styles/admin.css';
     }
   });
 
-  async function logout() {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.warn('[LOGOUT] Failed to log out cleanly', error);
-    } finally {
-      window.location.href = '/';
-    }
-  }
-
   window.closeEditEventModal = closeEditEventModal;
   window.duplicateCurrentEvent = duplicateCurrentEvent;
-  window.logout = logout;
 </script>
