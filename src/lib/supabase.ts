@@ -193,6 +193,23 @@ export const db = {
 
       return { data: data || [], error };
     },
+    getAllForMap: async () => {
+      const { data, error } = await supabase
+        .from('public_events')
+        .select(
+          `
+          *,
+          primary_tag:tags!events_primary_tag_id_fkey(id, name),
+          secondary_tag:tags!events_secondary_tag_id_fkey(id, name),
+          location:locations!events_location_id_fkey(id, name, address, latitude, longitude),
+          organization:organizations!events_organization_id_fkey(id, name)
+        `
+        )
+        .neq('status', 'cancelled')
+        .order('start_date', { ascending: true });
+
+      return { data: data || [], error };
+    },
     getCurrentAndFuture: async () => {
       // Get all events and filter client-side
       const result = await db.events.getAll();
