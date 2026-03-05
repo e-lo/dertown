@@ -1,0 +1,399 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../../types/database';
+import type { ScrapedEvent, ProcessedEvent, SourceConfig } from './types';
+
+// ── String similarity ────────────────────────────────────────────────
+
+/** Normalize a string for comparison: lowercase, collapse whitespace, strip common suffixes. */
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[''`]/g, "'")
+    .replace(/[^\w\s'&-]/g, '') // keep letters, numbers, spaces, apostrophes, ampersands, hyphens
+    .replace(/\b(the|center|centre|for|of|and|at|in)\b/g, '') // strip common words
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Simple Levenshtein distance between two strings. */
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+/** Similarity score 0-1 based on Levenshtein distance. */
+function similarity(a: string, b: string): number {
+  const na = norm(a);
+  const nb = norm(b);
+  if (na === nb) return 1;
+  if (!na || !nb) return 0;
+  const dist = levenshtein(na, nb);
+  return 1 - dist / Math.max(na.length, nb.length);
+}
+
+const MATCH_THRESHOLD = 0.75;
+
+// ── Reference data cache ─────────────────────────────────────────────
+
+interface LocationRow {
+  id: string;
+  name: string;
+  address: string | null;
+}
+
+interface OrgRow {
+  id: string;
+  name: string;
+}
+
+interface TagRow {
+  id: string;
+  name: string;
+}
+
+interface ExistingEvent {
+  id: string;
+  title: string;
+  source_title: string | null;
+  source_id: string | null;
+  start_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  description: string | null;
+  cost: string | null;
+  registration_link: string | null;
+  location_id: string | null;
+}
+
+interface SourceSiteRow {
+  id: string;
+  name: string;
+  url: string;
+}
+
+export interface ReferenceData {
+  locations: LocationRow[];
+  organizations: OrgRow[];
+  tags: TagRow[];
+  sourceSites: SourceSiteRow[];
+  existingEvents: ExistingEvent[];
+  existingStaged: ExistingEvent[];
+}
+
+/** Load reference data from the database for matching. */
+export async function loadReferenceData(
+  db: SupabaseClient<Database>
+): Promise<ReferenceData> {
+  const [locRes, orgRes, tagRes, srcRes, evtRes, stagedRes] = await Promise.all([
+    db.from('locations').select('id, name, address'),
+    db.from('organizations').select('id, name'),
+    db.from('tags').select('id, name'),
+    db.from('source_sites').select('id, name, url'),
+    db.from('events').select('id, title, source_title, source_id, start_date, start_time, end_time, description, cost, registration_link, location_id'),
+    db.from('events_staged').select('id, title, source_title, source_id, start_date, start_time, end_time, description, cost, registration_link, location_id'),
+  ]);
+
+  return {
+    locations: (locRes.data || []) as LocationRow[],
+    organizations: (orgRes.data || []) as OrgRow[],
+    tags: (tagRes.data || []) as TagRow[],
+    sourceSites: (srcRes.data || []) as SourceSiteRow[],
+    existingEvents: (evtRes.data || []) as ExistingEvent[],
+    existingStaged: (stagedRes.data || []) as ExistingEvent[],
+  };
+}
+
+// ── Matching functions ───────────────────────────────────────────────
+
+/** Find the best matching location by name. Returns the location ID or null. */
+export function matchLocation(
+  name: string | null,
+  locations: LocationRow[]
+): string | null {
+  if (!name) return null;
+
+  let bestId: string | null = null;
+  let bestScore = 0;
+
+  for (const loc of locations) {
+    const score = similarity(name, loc.name);
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = loc.id;
+    }
+    // Also try matching against address if available
+    if (loc.address) {
+      const addrScore = similarity(name, loc.address) * 0.8; // weight address matches lower
+      if (addrScore > bestScore) {
+        bestScore = addrScore;
+        bestId = loc.id;
+      }
+    }
+  }
+
+  return bestScore >= MATCH_THRESHOLD ? bestId : null;
+}
+
+/** Find the best matching organization by name. Returns the org ID or null. */
+export function matchOrganization(
+  name: string | null,
+  organizations: OrgRow[]
+): string | null {
+  if (!name) return null;
+
+  let bestId: string | null = null;
+  let bestScore = 0;
+
+  for (const org of organizations) {
+    const score = similarity(name, org.name);
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = org.id;
+    }
+  }
+
+  return bestScore >= MATCH_THRESHOLD ? bestId : null;
+}
+
+/** Find a tag ID by name (exact match on tag name). */
+export function matchTag(
+  tagName: string | null,
+  tags: TagRow[]
+): string | null {
+  if (!tagName) return null;
+  const lower = tagName.toLowerCase();
+  const tag = tags.find((t) => t.name.toLowerCase() === lower);
+  return tag?.id || null;
+}
+
+/** Keyword-based tag inference from event title and description. */
+const TAG_KEYWORDS: Record<string, string[]> = {
+  'arts-culture': ['concert', 'music', 'performance', 'theater', 'theatre', 'art', 'gallery', 'film', 'movie', 'singer', 'songwriter', 'band'],
+  'outdoors': ['hike', 'trail', 'ski', 'snowshoe', 'climb', 'kayak', 'bike', 'mountain'],
+  'civic': ['meeting', 'council', 'board', 'commission', 'civic', 'town hall', 'vote'],
+  'family': ['kids', 'family', 'children', 'youth', 'camp', 'storytime'],
+  'nature': ['bird', 'wildlife', 'nature', 'garden', 'plant', 'ecology', 'river', 'tracking'],
+  'sports': ['race', 'tournament', 'league', 'game day', 'championship'],
+};
+
+export function inferTag(event: ScrapedEvent, tags: TagRow[]): string | null {
+  const text = `${event.title} ${event.description || ''}`.toLowerCase();
+
+  for (const [tagName, keywords] of Object.entries(TAG_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (text.includes(kw)) {
+        return matchTag(tagName, tags);
+      }
+    }
+  }
+
+  return null;
+}
+
+// ── Deduplication ────────────────────────────────────────────────────
+
+interface DedupResult {
+  action: 'new' | 'update' | 'skip';
+  existing_event_id?: string;
+  update_reason?: string;
+}
+
+/** Normalize a title for dedup comparison. */
+function normTitle(title: string): string {
+  return title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Check if an event already exists and decide what to do. */
+export function dedup(
+  event: ScrapedEvent,
+  sourceId: string,
+  existingEvents: ExistingEvent[],
+  existingStaged: ExistingEvent[]
+): DedupResult {
+  const allExisting = [...existingEvents, ...existingStaged];
+
+  // Find candidates: same source + same date
+  const candidates = allExisting.filter(
+    (e) => e.source_id === sourceId && e.start_date === event.start_date
+  );
+
+  if (candidates.length === 0) return { action: 'new' };
+
+  // Try matching on source_title first, then title
+  const eventTitleNorm = normTitle(event.title);
+
+  for (const existing of candidates) {
+    const existingTitleNorm = normTitle(existing.source_title || existing.title);
+    const titleSim = similarity(event.title, existing.source_title || existing.title);
+
+    if (existingTitleNorm === eventTitleNorm || titleSim >= 0.85) {
+      // Found a match — check if anything changed
+      const changes: string[] = [];
+
+      if (event.start_time && existing.start_time && event.start_time !== existing.start_time) {
+        changes.push(`time changed ${existing.start_time}→${event.start_time}`);
+      }
+      if (event.cost && existing.cost && event.cost !== existing.cost) {
+        changes.push(`cost changed ${existing.cost}→${event.cost}`);
+      }
+
+      // Check for major changes (flag for review)
+      if (event.start_date !== existing.start_date) {
+        return {
+          action: 'update',
+          existing_event_id: existing.id,
+          update_reason: `date changed ${existing.start_date}→${event.start_date}`,
+        };
+      }
+      if (event.location_name && existing.location_id) {
+        // Location change detection would require resolving the name — skip for now
+      }
+
+      if (changes.length === 0) {
+        return { action: 'skip', existing_event_id: existing.id };
+      }
+
+      // Minor changes — auto-update
+      return {
+        action: 'update',
+        existing_event_id: existing.id,
+        update_reason: changes.join(', '),
+      };
+    }
+  }
+
+  return { action: 'new' };
+}
+
+// ── Source site ID resolution ─────────────────────────────────────────
+
+/** Resolve a YAML config source ID (e.g. "icicle-creek") to the database UUID.
+ *  Matches on source_sites.name (fuzzy) or url (contains).
+ *  Returns the config ID as-is if no DB data available (dry-run mode).
+ */
+export function resolveSourceDbId(
+  configId: string,
+  configName: string,
+  configUrl: string,
+  sourceSites: { id: string; name: string; url: string }[]
+): string {
+  // Try exact name match first
+  const byName = sourceSites.find(
+    (s) => s.name.toLowerCase() === configName.toLowerCase()
+  );
+  if (byName) return byName.id;
+
+  // Try URL match
+  const byUrl = sourceSites.find(
+    (s) => s.url === configUrl || configUrl.includes(s.url) || s.url.includes(configUrl)
+  );
+  if (byUrl) return byUrl.id;
+
+  // Fuzzy name match
+  let bestId: string | null = null;
+  let bestScore = 0;
+  for (const s of sourceSites) {
+    const score = similarity(configName, s.name);
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = s.id;
+    }
+  }
+  if (bestScore >= MATCH_THRESHOLD && bestId) return bestId;
+
+  // No match — return config ID (will fail FK constraint if written to DB)
+  return configId;
+}
+
+// ── Main matching pipeline ───────────────────────────────────────────
+
+/** Process a batch of scraped events through matching and dedup.
+ *  Can work without DB (ref = null) for dry-run mode — uses source defaults only.
+ */
+export function matchEvents(
+  events: ScrapedEvent[],
+  source: SourceConfig,
+  ref: ReferenceData | null,
+  verbose: boolean
+): ProcessedEvent[] {
+  const processed: ProcessedEvent[] = [];
+
+  // Resolve source config ID to database UUID
+  const sourceDbId = ref
+    ? resolveSourceDbId(source.id, source.name, source.url, ref.sourceSites)
+    : source.id;
+
+  for (const event of events) {
+    // Location matching cascade: DB fuzzy → source default → flag unknown
+    let location_id: string | null = null;
+    let location_added: string | null = null;
+
+    if (ref) {
+      location_id = matchLocation(event.location_name, ref.locations);
+    }
+    if (!location_id && source.default_location && ref) {
+      location_id = matchLocation(source.default_location, ref.locations);
+    }
+    if (!location_id) {
+      location_added = event.location_name || source.default_location || null;
+    }
+
+    // Organization matching cascade: DB fuzzy → source default → flag unknown
+    let organization_id: string | null = null;
+    let organization_added: string | null = null;
+
+    if (source.default_organization && ref) {
+      organization_id = matchOrganization(source.default_organization, ref.organizations);
+    }
+    if (!organization_id) {
+      organization_added = source.default_organization || null;
+    }
+
+    // Tag matching: infer from content → source default → null
+    let primary_tag_id: string | null = null;
+    if (ref) {
+      primary_tag_id = inferTag(event, ref.tags);
+      if (!primary_tag_id && source.default_tag) {
+        primary_tag_id = matchTag(source.default_tag, ref.tags);
+      }
+    }
+
+    // Dedup
+    let dedupResult: DedupResult = { action: 'new' };
+    if (ref) {
+      dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged);
+    }
+
+    if (verbose && dedupResult.action !== 'new') {
+      const reason = dedupResult.update_reason || 'no changes';
+      console.log(`    DEDUP "${event.title}" → ${dedupResult.action} (${reason})`);
+    }
+
+    processed.push({
+      scraped: event,
+      action: dedupResult.action,
+      update_reason: dedupResult.update_reason,
+      location_id,
+      location_added,
+      organization_id,
+      organization_added,
+      primary_tag_id,
+      parent_event_id: null, // series detection is a future enhancement
+      source_id: sourceDbId,
+      existing_event_id: dedupResult.existing_event_id,
+    });
+  }
+
+  return processed;
+}

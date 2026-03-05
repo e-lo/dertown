@@ -96,6 +96,7 @@ export const POST = withAdminAuth(async ({ request }) => {
     comments: stagedEvent.comments,
     status: 'approved',
     source_id: stagedEvent.source_id,
+    source_title: stagedEvent.source_title,
   });
 
   if (createError) {

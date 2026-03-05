@@ -1,0 +1,63 @@
+# Der Town Event Scraper — Source Configuration
+# Each source maps to a row in the source_sites DB table.
+# Extraction rules, selectors, and filters are kept here (version-controlled).
+# Runtime state (last_scraped, last_status) lives in the DB.
+
+sources:
+  - id: "icicle-creek"
+    name: "Icicle Creek Center"
+    url: "https://icicle.org/find-events/"
+    type: "html"
+    selectors: {} # to be determined during implementation
+    geo_filter: null
+    default_organization: "Icicle Creek Center for the Arts"
+    default_location: null
+    default_tag: "arts-culture"
+    exclude: null
+
+  - id: "ncw-libraries"
+    name: "NCW Libraries"
+    url: "https://ncwlibraries.libcal.com/calendar/leavenworth"
+    type: "json-api"
+    api_url: "https://ncwlibraries.libcal.com/ajax/calendar/list"
+    api_cal_ids: "20171,20179"  # Leavenworth (20171) + Peshastin (20179)
+    geo_filter: null  # Not needed — calendar IDs already filter to local branches
+    default_organization: "NCW Libraries"
+    default_location: null
+    default_tag: null
+    exclude: null
+
+  - id: "ski-leavenworth"
+    name: "Ski Leavenworth"
+    url: "https://skileavenworth.com/events"
+    type: "html"
+    selectors: {}
+    geo_filter: null
+    default_organization: "Leavenworth Winter Sports Club"
+    default_location: "Leavenworth Ski Hill"
+    default_tag: "outdoors"
+    exclude: null
+
+  - id: "leavenworth-org"
+    name: "Leavenworth.org"
+    url: "https://leavenworth.org/calendar/"
+    type: "ical"
+    ical_url: "https://leavenworth.org/events/?ical=1"
+    geo_filter: null
+    default_organization: null
+    default_location: null
+    default_tag: null
+    exclude:
+      title_keywords: ["live music:", "live music at", "open mic night", "karaoke", "trivia night", "bingo @", "game night @"]
+      location_keywords: ["visconti's", "J5 Coffee"]
+
+  - id: "wenatchee-river-institute"
+    name: "Wenatchee River Institute"
+    url: "https://wenatcheeriverinstitute.org/event-calendar.html"
+    type: "html"
+    selectors: {}
+    geo_filter: null
+    default_organization: "Wenatchee River Institute"
+    default_location: "Wenatchee River Institute"
+    default_tag: "nature"
+    exclude: null
