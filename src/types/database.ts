@@ -612,6 +612,7 @@ export type Database = {
           registration_link: string | null;
           secondary_tag_id: string | null;
           source_id: string | null;
+          source_title: string | null;
           start_date: string;
           start_time: string | null;
           status: Database['public']['Enums']['event_status'] | null;
@@ -642,6 +643,7 @@ export type Database = {
           registration_link?: string | null;
           secondary_tag_id?: string | null;
           source_id?: string | null;
+          source_title?: string | null;
           start_date: string;
           start_time?: string | null;
           status?: Database['public']['Enums']['event_status'] | null;
@@ -672,6 +674,7 @@ export type Database = {
           registration_link?: string | null;
           secondary_tag_id?: string | null;
           source_id?: string | null;
+          source_title?: string | null;
           start_date?: string;
           start_time?: string | null;
           status?: Database['public']['Enums']['event_status'] | null;
@@ -757,6 +760,7 @@ export type Database = {
           registration_link: string | null;
           secondary_tag_id: string | null;
           source_id: string | null;
+          source_title: string | null;
           start_date: string;
           start_time: string | null;
           status: string | null;
@@ -790,6 +794,7 @@ export type Database = {
           registration_link?: string | null;
           secondary_tag_id?: string | null;
           source_id?: string | null;
+          source_title?: string | null;
           start_date: string;
           start_time?: string | null;
           status?: string | null;
@@ -823,6 +828,7 @@ export type Database = {
           registration_link?: string | null;
           secondary_tag_id?: string | null;
           source_id?: string | null;
+          source_title?: string | null;
           start_date?: string;
           start_time?: string | null;
           status?: string | null;

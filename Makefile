@@ -2,7 +2,7 @@
 # Essential commands for rapid development iteration
 
 .PHONY: help dev build preview clean venv venv-activate venv-install \
-	format lint test validate-all test-data \
+	format lint test validate-all test-data scrape \
 	db-local-reset db-local-migrate db-local-seed db-local-update-events db-backup
 
 # Default target
@@ -32,6 +32,8 @@ help:
 	@echo "  db-sync-full           - Full sync: schema + data from remote"
 	@echo "  db-diff                - Check schema differences"
 	@echo "  db-push-schema         - Push local schema changes to remote"
+	@echo ""
+	@echo "  scrape ARGS=\"--all\"    - Scrape events (dry run by default, --remote to write)"
 
 # Development server
 dev:
@@ -106,6 +108,20 @@ venv-activate:
 
 venv-install:
 	uv pip install -r requirements.txt
+
+# =====================
+# EVENT SCRAPER
+# =====================
+
+# Scrape events from configured sources (dry run by default).
+# Pass flags via ARGS variable:
+#   make scrape ARGS="--all"                 Dry run all sources
+#   make scrape ARGS="--source icicle-creek" Dry run one source
+#   make scrape ARGS="--all --remote"        Write to production DB
+#   make scrape ARGS="--all --local-db"      Write to local Supabase
+#   make scrape ARGS="--all --verbose"       Show per-event detail
+scrape:
+	npx tsx src/lib/scraper/index.ts $(ARGS)
 
 # =====================
 # LOCAL DEVELOPMENT DATABASE COMMANDS
