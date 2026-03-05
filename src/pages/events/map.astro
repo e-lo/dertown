@@ -1,0 +1,1265 @@
+---
+export const prerender = false;
+
+import Layout from '../../components/Layout.astro';
+import GroupedEventList from '../../components/GroupedEventList.astro';
+import { buildEventMapState, normalizeMapEvents } from '../../lib/event-map';
+import { db, getTodayLocale } from '../../lib/supabase';
+
+function formatDateLabel(dateString: string): string {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+const mapDataResult = await db.events.getAllForMap();
+const rawEvents = mapDataResult.data || [];
+const allMapEvents = normalizeMapEvents(rawEvents);
+const searchParams = new URL(Astro.url).searchParams;
+const state = buildEventMapState(rawEvents, searchParams);
+const requestedLocationId = searchParams.get('loc');
+const initialSelectedLocationId =
+  (requestedLocationId && state.groups.some((group) => group.id === requestedLocationId)
+    ? requestedLocationId
+    : state.groups[0]?.id) || '';
+const initialSelectedLocation =
+  state.groups.find((group) => group.id === initialSelectedLocationId) || null;
+const initialOrgValue =
+  state.organizations.find(
+    (organization) =>
+      organization.id === state.filters.selectedOrg || organization.slug === state.filters.selectedOrg
+  )?.name || '';
+
+const payload = JSON.stringify({
+  baseDate: getTodayLocale(),
+  events: allMapEvents,
+  tags: state.tags,
+  organizations: state.organizations,
+  initialFilters: state.filters,
+  initialSelectedLocationId,
+}).replace(/</g, '\\u003c');
+---
+
+<Layout
+  title="Events Map - Der Town"
+  description="Browse upcoming community events across town with a map-first view and grouped venue results."
+>
+  <section class="map-view-shell py-8 sm:py-10">
+    <div class="container-wide space-y-5">
+      <section class="map-view-card map-stage">
+        <div class="map-stage-head">
+          <p class="map-stage-kicker">
+            <span class="map-stage-eyebrow">Map View</span>
+            <span class="map-stage-title">Upcoming events across town</span>
+          </p>
+        </div>
+
+        <div class="map-canvas" id="event-map-canvas">
+          <div class="map-overlay">
+            <div class="overlay-row overlay-row-top">
+              <div class="map-badge">
+                <span class="material-symbols-outlined">travel_explore</span>
+                Explore the town map
+              </div>
+              <div class="compact-actions">
+                <button type="button" class="map-btn map-btn-ghost" id="event-map-reset">
+                  Reset
+                </button>
+                <button type="button" class="map-btn map-btn-primary" id="event-map-copy-link">
+                  Copy link
+                </button>
+              </div>
+            </div>
+
+            <div class="overlay-row overlay-row-filters">
+              <div class="date-range-shell">
+                <div class="date-range-head">
+                    <span class="range-label">Dates</span>
+                  <div class="range-summary">
+                    <span id="event-map-start-label">{formatDateLabel(state.filters.startDate)}</span>
+                    <span aria-hidden="true">to</span>
+                    <span id="event-map-end-label">{formatDateLabel(state.filters.endDate)}</span>
+                  </div>
+                </div>
+                <div class="double-range">
+                  <div class="double-range-track"></div>
+                  <div class="double-range-fill" id="event-map-range-fill"></div>
+                  <input
+                    id="event-map-start-offset"
+                    type="range"
+                    min="0"
+                    max="21"
+                    value={state.filters.fromOffset}
+                  />
+                  <input
+                    id="event-map-end-offset"
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={state.filters.toOffset}
+                  />
+                </div>
+              </div>
+
+              <div class="tag-pill-row" id="event-map-tag-filter">
+                <button
+                  type="button"
+                  class={`tag-pill ${!state.filters.selectedTag ? 'is-active' : ''}`}
+                  data-tag=""
+                >
+                  All
+                </button>
+                {state.tags.map((tag) => (
+                  <button
+                    type="button"
+                    class={`tag-pill ${state.filters.selectedTag === tag.slug ? 'is-active' : ''}`}
+                    data-tag={tag.slug}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+
+              <div class="org-filter-shell">
+                <span class="material-symbols-outlined">search</span>
+                <input
+                  id="event-map-org-input"
+                  type="text"
+                  value={initialOrgValue}
+                  list="event-map-org-options"
+                  aria-label="Filter by organization"
+                  placeholder="Organization"
+                />
+                <button
+                  type="button"
+                  class="org-clear"
+                  id="event-map-org-clear"
+                  aria-label="Clear organization filter"
+                >
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <datalist id="event-map-org-options">
+                {state.organizations.map((organization) => <option value={organization.name} />)}
+              </datalist>
+            </div>
+          </div>
+
+          <div class="map-tools in-map">
+            <button type="button" aria-label="Zoom in" id="event-map-zoom-in">+</button>
+            <button type="button" aria-label="Zoom out" id="event-map-zoom-out">-</button>
+            <button type="button" aria-label="Fit to results" id="event-map-fit">
+              <span class="material-symbols-outlined">my_location</span>
+            </button>
+          </div>
+
+          <div class="map-empty-backdrop"></div>
+
+          <div class="map-callout" id="event-map-callout">
+            {initialSelectedLocation ? (
+              <>
+                <p class="map-callout-eyebrow">Selected location</p>
+                <h3>{initialSelectedLocation.name}</h3>
+                <p>{initialSelectedLocation.eventCount} events in the active window</p>
+                <a href={`#location-${initialSelectedLocation.id}`}>Jump to grouped list</a>
+              </>
+            ) : (
+              <>
+                <p class="map-callout-eyebrow">No current matches</p>
+                <h3>No venues match these filters</h3>
+                <p>Adjust the date range, tags, or organization filter.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section class="map-view-card result-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-eyebrow">Showing <span id="event-map-event-count">{state.events.length}</span> events</p>
+            <h2>Grouped venue list</h2>
+          </div>
+          <div class="result-summary-badges">
+            <span><span id="event-map-location-count">{state.groups.length}</span> active locations</span>
+            <span id="event-map-permalink">{Astro.url.pathname}{Astro.url.search}</span>
+          </div>
+        </div>
+
+        <div id="event-map-list">
+          {state.groups.length > 0 ? (
+            <GroupedEventList
+              groups={state.groups}
+              selectedId={initialSelectedLocationId}
+              className="result-list"
+              idPrefix="location-"
+            />
+          ) : (
+            <div class="empty-state">
+              <h3>No matching events</h3>
+              <p>Try widening the date range or clearing a filter.</p>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <script id="event-map-data" type="application/json" set:text={payload}></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const dataElement = document.getElementById('event-map-data');
+      if (!dataElement?.textContent) return;
+
+      const payload = JSON.parse(dataElement.textContent);
+      const allEvents = Array.isArray(payload.events) ? payload.events : [];
+      const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
+
+      const startInput = document.getElementById('event-map-start-offset');
+      const endInput = document.getElementById('event-map-end-offset');
+      const startLabel = document.getElementById('event-map-start-label');
+      const endLabel = document.getElementById('event-map-end-label');
+      const rangeFill = document.getElementById('event-map-range-fill');
+      const tagFilter = document.getElementById('event-map-tag-filter');
+      const orgInput = document.getElementById('event-map-org-input');
+      const orgClear = document.getElementById('event-map-org-clear');
+      const resetButton = document.getElementById('event-map-reset');
+      const copyLinkButton = document.getElementById('event-map-copy-link');
+      const permalink = document.getElementById('event-map-permalink');
+      const eventCount = document.getElementById('event-map-event-count');
+      const locationCount = document.getElementById('event-map-location-count');
+      const listContainer = document.getElementById('event-map-list');
+      const callout = document.getElementById('event-map-callout');
+      const mapEl = document.getElementById('event-map-canvas');
+      const zoomInButton = document.getElementById('event-map-zoom-in');
+      const zoomOutButton = document.getElementById('event-map-zoom-out');
+      const fitButton = document.getElementById('event-map-fit');
+
+      if (!(startInput instanceof HTMLInputElement) || !(endInput instanceof HTMLInputElement)) return;
+      if (!(orgInput instanceof HTMLInputElement)) return;
+
+      const state = {
+        fromOffset: Number(payload.initialFilters?.fromOffset || 0),
+        toOffset: Number(payload.initialFilters?.toOffset || 10),
+        selectedTag: String(payload.initialFilters?.selectedTag || ''),
+        selectedOrg: String(payload.initialFilters?.selectedOrg || ''),
+        selectedLocationId: String(payload.initialSelectedLocationId || ''),
+      };
+
+      let currentGroups = [];
+      let currentEvents = [];
+      let leafletMap = null;
+      let markerLayer = null;
+      let hasLoadedLeaflet = false;
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function addDays(dateString, days) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+        date.setUTCDate(date.getUTCDate() + days);
+        return date.toISOString().slice(0, 10);
+      }
+
+      function formatDateLabel(dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      }
+
+      function matchesOrgInput(value) {
+        const normalized = value.trim().toLowerCase();
+        return organizations.find((organization) => organization.name.toLowerCase() === normalized) || null;
+      }
+
+      function updateRangeLabels() {
+        const startDate = addDays(payload.baseDate, state.fromOffset);
+        const endDate = addDays(payload.baseDate, state.toOffset);
+        if (startLabel) startLabel.textContent = formatDateLabel(startDate);
+        if (endLabel) endLabel.textContent = formatDateLabel(endDate);
+
+        if (rangeFill) {
+          const startPct = (state.fromOffset / 30) * 100;
+          const endPct = (state.toOffset / 30) * 100;
+          rangeFill.setAttribute(
+            'style',
+            `left:${startPct}%; width:${Math.max(endPct - startPct, 3)}%;`
+          );
+        }
+      }
+
+      function filterEvents() {
+        const startDate = addDays(payload.baseDate, state.fromOffset);
+        const endDate = addDays(payload.baseDate, state.toOffset);
+
+        return allEvents.filter((event) => {
+          const eventEnd = event.endDate || event.startDate;
+          if (!(event.startDate <= endDate && eventEnd >= startDate)) return false;
+
+          if (state.selectedTag) {
+            const matchesTag =
+              event.primaryTagSlug === state.selectedTag || event.secondaryTagSlug === state.selectedTag;
+            if (!matchesTag) return false;
+          }
+
+          if (state.selectedOrg) {
+            if (event.organization?.id !== state.selectedOrg && event.organization?.slug !== state.selectedOrg) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      function groupEvents(events) {
+        const grouped = new Map();
+
+        events.forEach((event) => {
+          const existing = grouped.get(event.location.id);
+          const summary = {
+            id: event.id,
+            title: event.title,
+            date: event.displayDate,
+            time: event.displayTime,
+            tag: event.primaryTag || event.secondaryTag || 'Event',
+            detailUrl: event.detailUrl,
+            sortKey: `${event.startDate}T${event.startTime || '00:00:00'}`,
+          };
+
+          if (existing) {
+            existing.eventCount += 1;
+            existing.events.push(summary);
+            return;
+          }
+
+          grouped.set(event.location.id, {
+            id: event.location.id,
+            name: event.location.name,
+            address: event.location.address || 'Address unavailable',
+            eventCount: 1,
+            latitude: event.location.latitude,
+            longitude: event.location.longitude,
+            sortKey: summary.sortKey,
+            events: [summary],
+          });
+        });
+
+        return Array.from(grouped.values()).sort((a, b) => {
+          if (a.sortKey && b.sortKey) {
+            const sortOrder = a.sortKey.localeCompare(b.sortKey);
+            if (sortOrder !== 0) return sortOrder;
+          }
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      function updatePermalink() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('from', String(state.fromOffset));
+        url.searchParams.set('to', String(state.toOffset));
+
+        if (state.selectedTag) url.searchParams.set('tag', state.selectedTag);
+        else url.searchParams.delete('tag');
+
+        if (state.selectedOrg) url.searchParams.set('org', state.selectedOrg);
+        else url.searchParams.delete('org');
+
+        if (state.selectedLocationId) url.searchParams.set('loc', state.selectedLocationId);
+        else url.searchParams.delete('loc');
+
+        history.replaceState({}, '', url);
+        if (permalink) permalink.textContent = `${url.pathname}${url.search}`;
+      }
+
+      function renderList(groups) {
+        if (!listContainer) return;
+
+        if (groups.length === 0) {
+          listContainer.innerHTML =
+            '<div class="empty-state"><h3>No matching events</h3><p>Try widening the date range or clearing a filter.</p></div>';
+          return;
+        }
+
+        listContainer.innerHTML = `
+          <div class="grouped-event-list result-list">
+            ${groups
+              .map(
+                (group) => `
+                  <article
+                    id="location-${escapeHtml(group.id)}"
+                    class="location-group-card ${group.id === state.selectedLocationId ? 'is-selected' : ''}"
+                    data-location-id="${escapeHtml(group.id)}"
+                  >
+                    <div class="location-group-head">
+                      <div>
+                        <div class="location-heading-row">
+                          <span class="location-count-dot"></span>
+                          <h3>${escapeHtml(group.name)}</h3>
+                        </div>
+                        <p class="location-meta">${escapeHtml(group.address)}</p>
+                      </div>
+                      <div class="location-count-badge">${group.eventCount} events</div>
+                    </div>
+                    <div class="event-stack">
+                      ${group.events
+                        .map(
+                          (event) => `
+                            <div class="mini-event-row">
+                              <div>
+                                <p class="mini-event-title"><a href="${escapeHtml(event.detailUrl)}">${escapeHtml(event.title)}</a></p>
+                                <p class="mini-event-meta">${escapeHtml(event.date)} · ${escapeHtml(event.time)}</p>
+                              </div>
+                              <span class="mini-tag">${escapeHtml(event.tag)}</span>
+                            </div>
+                          `
+                        )
+                        .join('')}
+                    </div>
+                  </article>
+                `
+              )
+              .join('')}
+          </div>
+        `;
+
+        listContainer.querySelectorAll('.location-group-card').forEach((card) => {
+          card.addEventListener('click', () => selectLocation(card.getAttribute('data-location-id')));
+        });
+      }
+
+      function updateSummary(groups, events) {
+        if (eventCount) eventCount.textContent = String(events.length);
+        if (locationCount) locationCount.textContent = String(groups.length);
+      }
+
+      function updateCallout() {
+        if (!callout) return;
+
+        const selectedGroup = currentGroups.find((group) => group.id === state.selectedLocationId);
+        if (!selectedGroup) {
+          callout.innerHTML = `
+            <p class="map-callout-eyebrow">No current matches</p>
+            <h3>No venues match these filters</h3>
+            <p>Adjust the date range, tags, or organization filter.</p>
+          `;
+          return;
+        }
+
+        callout.innerHTML = `
+          <p class="map-callout-eyebrow">Selected location</p>
+          <h3>${escapeHtml(selectedGroup.name)}</h3>
+          <p>${selectedGroup.eventCount} events in the active window</p>
+          <a href="#location-${escapeHtml(selectedGroup.id)}">Jump to grouped list</a>
+        `;
+      }
+
+      function ensureSelection(groups) {
+        if (groups.some((group) => group.id === state.selectedLocationId)) return;
+        state.selectedLocationId = groups[0]?.id || '';
+      }
+
+      function markerIcon(group, isSelected) {
+        return globalThis.L.divIcon({
+          className: '',
+          iconSize: [48, 48],
+          iconAnchor: [24, 24],
+          html: `
+            <div class="event-map-marker ${isSelected ? 'is-selected' : ''}">
+              <span>${group.eventCount}</span>
+            </div>
+          `,
+        });
+      }
+
+      function fitMapToGroups(groups) {
+        if (!leafletMap || typeof globalThis.L === 'undefined') return;
+
+        const targetGroups = groups.length > 0 ? groups : groupEvents(allEvents);
+        if (targetGroups.length === 0) {
+          leafletMap.setView([45.523, -122.676], 12);
+          return;
+        }
+
+        if (targetGroups.length === 1) {
+          leafletMap.setView([targetGroups[0].latitude, targetGroups[0].longitude], 14);
+          return;
+        }
+
+        const bounds = globalThis.L.latLngBounds(
+          targetGroups.map((group) => [group.latitude, group.longitude])
+        );
+        leafletMap.fitBounds(bounds, { padding: [64, 64] });
+      }
+
+      function renderMap(groups, shouldFit = false) {
+        if (!leafletMap || typeof globalThis.L === 'undefined') return;
+
+        if (markerLayer) {
+          markerLayer.remove();
+        }
+
+        markerLayer = globalThis.L.layerGroup();
+
+        groups.forEach((group) => {
+          const marker = globalThis.L.marker([group.latitude, group.longitude], {
+            icon: markerIcon(group, group.id === state.selectedLocationId),
+          });
+
+          marker.on('click', () => {
+            selectLocation(group.id, true);
+          });
+
+          markerLayer.addLayer(marker);
+        });
+
+        markerLayer.addTo(leafletMap);
+        if (shouldFit) fitMapToGroups(groups);
+      }
+
+      async function loadLeaflet() {
+        if (hasLoadedLeaflet) return;
+        if (typeof globalThis.L !== 'undefined') {
+          hasLoadedLeaflet = true;
+          return;
+        }
+
+        await new Promise((resolve, reject) => {
+          const existingLink = document.querySelector('link[data-event-map-leaflet]');
+          if (!existingLink) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.crossOrigin = '';
+            link.dataset.eventMapLeaflet = 'true';
+            document.head.appendChild(link);
+          }
+
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.crossOrigin = '';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+
+        hasLoadedLeaflet = true;
+      }
+
+      async function initMap() {
+        if (!mapEl) return;
+        await loadLeaflet();
+        if (typeof globalThis.L === 'undefined') return;
+
+        leafletMap = globalThis.L.map(mapEl, { zoomControl: false, scrollWheelZoom: true });
+        globalThis.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          subdomains: 'abcd',
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        }).addTo(leafletMap);
+
+        zoomInButton?.addEventListener('click', () => leafletMap?.zoomIn());
+        zoomOutButton?.addEventListener('click', () => leafletMap?.zoomOut());
+        fitButton?.addEventListener('click', () => fitMapToGroups(currentGroups));
+
+        renderMap(currentGroups, true);
+      }
+
+      function applyFilters() {
+        currentEvents = filterEvents();
+        currentGroups = groupEvents(currentEvents);
+        ensureSelection(currentGroups);
+        updateRangeLabels();
+        updateSummary(currentGroups, currentEvents);
+        renderList(currentGroups);
+        updateCallout();
+        updatePermalink();
+        if (leafletMap) renderMap(currentGroups, true);
+      }
+
+      function selectLocation(locationId, panToMarker = false) {
+        if (!locationId) return;
+        state.selectedLocationId = locationId;
+        renderList(currentGroups);
+        updateCallout();
+        updatePermalink();
+
+        if (leafletMap) {
+          renderMap(currentGroups, false);
+          if (panToMarker) {
+            const selectedGroup = currentGroups.find((group) => group.id === locationId);
+            if (selectedGroup) {
+              leafletMap.panTo([selectedGroup.latitude, selectedGroup.longitude]);
+            }
+          }
+        }
+      }
+
+      startInput.addEventListener('input', () => {
+        state.fromOffset = Number(startInput.value);
+        if (state.toOffset <= state.fromOffset) {
+          state.toOffset = state.fromOffset + 1;
+          endInput.value = String(state.toOffset);
+        }
+        applyFilters();
+      });
+
+      endInput.addEventListener('input', () => {
+        state.toOffset = Math.max(Number(endInput.value), state.fromOffset + 1);
+        endInput.value = String(state.toOffset);
+        applyFilters();
+      });
+
+      tagFilter?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const pill = target.closest('.tag-pill');
+        if (!(pill instanceof HTMLButtonElement)) return;
+
+        state.selectedTag = pill.dataset.tag || '';
+        tagFilter.querySelectorAll('.tag-pill').forEach((button) => {
+          button.classList.toggle('is-active', button === pill);
+        });
+        applyFilters();
+      });
+
+      orgInput.addEventListener('input', () => {
+        const match = matchesOrgInput(orgInput.value);
+        state.selectedOrg = match?.id || '';
+        applyFilters();
+      });
+
+      orgClear?.addEventListener('click', () => {
+        orgInput.value = '';
+        state.selectedOrg = '';
+        applyFilters();
+      });
+
+      resetButton?.addEventListener('click', () => {
+        state.fromOffset = 0;
+        state.toOffset = 10;
+        state.selectedTag = '';
+        state.selectedOrg = '';
+        state.selectedLocationId = '';
+        startInput.value = '0';
+        endInput.value = '10';
+        orgInput.value = '';
+        tagFilter?.querySelectorAll('.tag-pill').forEach((button) => {
+          button.classList.toggle('is-active', button.getAttribute('data-tag') === '');
+        });
+        applyFilters();
+      });
+
+      copyLinkButton?.addEventListener('click', async () => {
+        const url = window.location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+          copyLinkButton.textContent = 'Copied';
+          window.setTimeout(() => {
+            copyLinkButton.textContent = 'Copy link';
+          }, 1200);
+        } catch {
+          window.prompt('Copy this link', url);
+        }
+      });
+
+      applyFilters();
+      initMap();
+    });
+  </script>
+
+  <style>
+    .map-view-shell {
+      background:
+        radial-gradient(circle at top left, rgba(255, 230, 0, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(33, 158, 188, 0.14), transparent 32%),
+        linear-gradient(180deg, rgba(71, 64, 203, 0.06), rgba(255, 255, 255, 0.92) 24rem);
+    }
+
+    .map-view-card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(229, 231, 235, 0.95);
+      border-radius: 1.5rem;
+      box-shadow: 0 18px 48px rgba(47, 68, 69, 0.08);
+    }
+
+    .map-stage,
+    .result-panel {
+      padding: 0.9rem;
+    }
+
+    .map-stage-head {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.45rem;
+    }
+
+    .map-stage-kicker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 0.75rem;
+      align-items: center;
+      margin: 0;
+    }
+
+    .map-stage-eyebrow,
+    .panel-eyebrow,
+    .map-callout-eyebrow {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+
+    .map-stage-title,
+    .panel-header h2,
+    .map-callout h3 {
+      margin: 0;
+      color: #111827;
+      line-height: 1.05;
+    }
+
+    .map-stage-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .map-canvas {
+      position: relative;
+      overflow: hidden;
+      min-height: 42rem;
+      border-radius: 1.35rem;
+      border: 1px solid #dbe3ea;
+      background: linear-gradient(145deg, #edf6f5 0%, #f7fafc 44%, #eef2ff 100%);
+    }
+
+    .map-empty-backdrop {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.7), transparent 14rem),
+        radial-gradient(circle at 72% 68%, rgba(33, 158, 188, 0.12), transparent 18rem),
+        linear-gradient(145deg, rgba(237, 246, 245, 0.92) 0%, rgba(247, 250, 252, 0.85) 44%, rgba(238, 242, 255, 0.8) 100%);
+      pointer-events: none;
+    }
+
+    .map-overlay {
+      position: absolute;
+      top: 0.8rem;
+      left: 0.8rem;
+      right: 0.8rem;
+      z-index: 20;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .overlay-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+      padding: 0.5rem 0.65rem;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .overlay-row-top,
+    .overlay-row-filters {
+      justify-content: space-between;
+    }
+
+    .map-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(71, 64, 203, 0.08);
+      color: #312e81;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .compact-actions {
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .map-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .map-btn-primary {
+      background: var(--gradient-blues-bold);
+      color: #fff;
+    }
+
+    .map-btn-ghost {
+      background: #eef2ff;
+      color: #312e81;
+    }
+
+    .date-range-shell {
+      flex: 1 1 18rem;
+      max-width: 26rem;
+    }
+
+    .date-range-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .range-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+
+    .range-summary {
+      display: inline-flex;
+      gap: 0.4rem;
+      align-items: center;
+      color: #111827;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .double-range {
+      position: relative;
+      height: 1.35rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .double-range-track,
+    .double-range-fill {
+      position: absolute;
+      height: 0.35rem;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .double-range-track {
+      left: 0;
+      right: 0;
+      background: #d1d5db;
+    }
+
+    .double-range-fill {
+      left: 0;
+      width: 33%;
+      background: var(--gradient-blues-bold);
+    }
+
+    .double-range input[type='range'] {
+      position: absolute;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin: 0;
+      background: transparent;
+      pointer-events: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .double-range input[type='range']::-webkit-slider-runnable-track {
+      background: transparent;
+      height: 0.35rem;
+    }
+
+    .double-range input[type='range']::-moz-range-track {
+      background: transparent;
+      height: 0.35rem;
+    }
+
+    .double-range input[type='range']::-webkit-slider-thumb {
+      pointer-events: auto;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      background: #111827;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.2);
+      cursor: pointer;
+    }
+
+    .double-range input[type='range']::-moz-range-thumb {
+      pointer-events: auto;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      background: #111827;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.2);
+      cursor: pointer;
+    }
+
+    .tag-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .tag-pill {
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #374151;
+      border-radius: 999px;
+      padding: 0.4rem 0.7rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tag-pill.is-active {
+      border-color: transparent;
+      background: var(--gradient-blues-light);
+      color: #fff;
+    }
+
+    .org-filter-shell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.55rem;
+      min-width: min(100%, 17rem);
+      padding: 0.25rem 0.35rem 0.25rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    .org-filter-shell span.material-symbols-outlined {
+      color: #6b7280;
+    }
+
+    .org-filter-shell input {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font: inherit;
+      color: #111827;
+    }
+
+    .org-clear {
+      border: 0;
+      width: 1.9rem;
+      height: 1.9rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #312e81;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .map-tools {
+      display: inline-flex;
+      gap: 0.45rem;
+    }
+
+    .map-tools.in-map {
+      position: absolute;
+      right: 0.8rem;
+      bottom: 0.8rem;
+      z-index: 25;
+      flex-direction: column;
+    }
+
+    .map-tools button {
+      border: 0;
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 0.8rem;
+      background: rgba(255, 255, 255, 0.96);
+      color: #111827;
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .map-callout {
+      position: absolute;
+      left: 0.8rem;
+      bottom: 0.8rem;
+      width: min(18rem, calc(100% - 5rem));
+      padding: 0.95rem;
+      border-radius: 1.1rem;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(229, 231, 235, 0.95);
+      box-shadow: 0 16px 32px rgba(17, 24, 39, 0.12);
+      z-index: 10;
+    }
+
+    .map-callout p {
+      margin: 0.3rem 0 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .map-callout a {
+      display: inline-flex;
+      margin-top: 0.8rem;
+      color: #1d4ed8;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .result-list {
+      margin-top: 1rem;
+    }
+
+    .empty-state {
+      padding: 2rem 1rem;
+      border-radius: 1.1rem;
+      border: 1px dashed #d1d5db;
+      text-align: center;
+      color: #4b5563;
+    }
+
+    .empty-state h3 {
+      margin: 0;
+      color: #111827;
+    }
+
+    .empty-state p {
+      margin: 0.5rem 0 0;
+    }
+
+    :global(.grouped-event-list) {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    :global(.location-group-card) {
+      padding: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 1.15rem;
+      background: #fff;
+      cursor: pointer;
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        border-color 0.16s ease;
+    }
+
+    :global(.location-group-card:hover),
+    :global(.location-group-card.is-selected) {
+      transform: translateY(-1px);
+      border-color: rgba(71, 64, 203, 0.35);
+      box-shadow: 0 12px 28px rgba(71, 64, 203, 0.08);
+    }
+
+    :global(.location-group-head),
+    :global(.mini-event-row) {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    :global(.location-heading-row) {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    :global(.location-heading-row h3) {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #111827;
+    }
+
+    :global(.location-meta),
+    :global(.mini-event-meta) {
+      margin: 0.3rem 0 0;
+      color: #6b7280;
+      font-size: 0.92rem;
+    }
+
+    :global(.location-count-dot) {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--gradient-blues-bold);
+      box-shadow: 0 0 0 4px rgba(229, 231, 235, 0.8);
+    }
+
+    :global(.location-count-badge) {
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    :global(.event-stack) {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+    }
+
+    :global(.mini-event-row) {
+      padding-top: 0.7rem;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    :global(.mini-event-title) {
+      margin: 0;
+      color: #1f2937;
+      font-weight: 700;
+    }
+
+    :global(.mini-event-title a) {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    :global(.mini-event-title a:hover) {
+      text-decoration: underline;
+    }
+
+    :global(.mini-tag) {
+      padding: 0.3rem 0.55rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #312e81;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .result-summary-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .result-summary-badges span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 0.82rem;
+      font-weight: 700;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .result-summary-badges span:last-child {
+      background: #111827;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    :global(.event-map-marker) {
+      width: 2.7rem;
+      height: 2.7rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(17, 24, 39, 0.9);
+      color: #fff;
+      font-weight: 800;
+      border: 3px solid rgba(255, 255, 255, 0.96);
+      box-shadow: 0 12px 20px rgba(17, 24, 39, 0.22);
+    }
+
+    :global(.event-map-marker.is-selected) {
+      background: linear-gradient(135deg, #4740cb 0%, #5460f9 100%);
+    }
+
+    @media (max-width: 1024px) {
+      .map-canvas {
+        min-height: 36rem;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .map-stage,
+      .result-panel {
+        padding: 0.8rem;
+      }
+
+      .map-overlay {
+        top: 0.65rem;
+        left: 0.65rem;
+        right: 0.65rem;
+      }
+
+      .overlay-row {
+        padding: 0.5rem;
+      }
+
+      .compact-actions,
+      .overlay-row-filters {
+        width: 100%;
+      }
+
+      .compact-actions .map-btn {
+        flex: 1;
+      }
+
+      .date-range-shell,
+      .org-filter-shell {
+        max-width: none;
+        width: 100%;
+      }
+
+      .map-canvas {
+        min-height: 34rem;
+      }
+    }
+  </style>
+</Layout>

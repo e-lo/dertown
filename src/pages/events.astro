@@ -63,6 +63,19 @@ const sortedUsedTags = [...usedTags].sort((a, b) => a.name.localeCompare(b.name)
 >
   <div class="max-w-7xl mx-auto py-8">
     <div class="px-4 md:px-6 lg:px-8">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Events</p>
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Upcoming community events</h1>
+        </div>
+        <a
+          href="/events/map"
+          class="inline-flex items-center gap-2 rounded-full bg-gradient-blues-bold px-4 py-2 text-sm font-semibold text-white shadow-sm"
+        >
+          <span class="material-symbols-outlined text-[18px]">map</span>
+          Map view
+        </a>
+      </div>
       <TagFilter 
         tags={sortedUsedTags} 
         selectedTag={new URL(Astro.url).searchParams.get('tag') || 'all'}
@@ -82,5 +95,4 @@ const sortedUsedTags = [...usedTags].sort((a, b) => a.name.localeCompare(b.name)
     </div>
   </div>
 </Layout>
-
 

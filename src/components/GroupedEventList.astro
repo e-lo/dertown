@@ -1,0 +1,65 @@
+---
+interface GroupedEvent {
+  title: string;
+  date: string;
+  time: string;
+  tag: string;
+  detailUrl?: string;
+}
+
+interface GroupedLocation {
+  id: string;
+  name: string;
+  address: string;
+  distance?: string;
+  eventCount: number;
+  accent?: string;
+  events: GroupedEvent[];
+}
+
+interface Props {
+  groups: GroupedLocation[];
+  selectedId?: string;
+  className?: string;
+  idPrefix?: string;
+}
+
+const { groups, selectedId = '', className = '', idPrefix = '' } = Astro.props;
+---
+
+<div class={`grouped-event-list ${className}`}>
+  {groups.map((group) => (
+    <article
+      id={idPrefix ? `${idPrefix}${group.id}` : undefined}
+      class={`location-group-card ${group.id === selectedId ? 'is-selected' : ''}`}
+      data-location-id={group.id}
+    >
+      <div class="location-group-head">
+        <div>
+          <div class="location-heading-row">
+            <span class={`location-count-dot ${group.accent || ''}`}></span>
+            <h3>{group.name}</h3>
+          </div>
+          <p class="location-meta">
+            {group.address}{group.distance ? ` · ${group.distance}` : ''}
+          </p>
+        </div>
+        <div class="location-count-badge">{group.eventCount} events</div>
+      </div>
+
+      <div class="event-stack">
+        {group.events.map((event) => (
+          <div class="mini-event-row">
+            <div>
+              <p class="mini-event-title">
+                {event.detailUrl ? <a href={event.detailUrl}>{event.title}</a> : event.title}
+              </p>
+              <p class="mini-event-meta">{event.date} · {event.time}</p>
+            </div>
+            <span class="mini-tag">{event.tag}</span>
+          </div>
+        ))}
+      </div>
+    </article>
+  ))}
+</div>
