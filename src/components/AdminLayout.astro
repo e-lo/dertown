@@ -1,5 +1,4 @@
 ---
-import { checkAdminAccess, getSessionFromCookies } from '../lib/session';
 import AdminAuthRefresh from './AdminAuthRefresh.astro';
 import '../styles/global.css';
 import '../styles/admin.css';
@@ -7,18 +6,10 @@ import '../styles/admin.css';
 interface Props {
   title: string;
   showBack?: boolean;
+  userEmail?: string;
 }
 
-const { title, showBack = true } = Astro.props;
-
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
-if (!isAdmin) {
-  const currentUrl = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-}
-
-const { session } = await getSessionFromCookies(Astro.cookies);
-const user = session?.user;
+const { title, showBack = true, userEmail = 'Admin' } = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -41,7 +32,7 @@ const user = session?.user;
       </a>
       <div class="header-title-section">
         <h1>{title}</h1>
-        <p>Welcome, {user?.email || 'Admin'}</p>
+        <p>Welcome, {userEmail}</p>
       </div>
     </div>
     <div class="flex gap-2 items-center">

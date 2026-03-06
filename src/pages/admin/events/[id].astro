@@ -4,15 +4,23 @@ import EditEventModal from '../../../components/ui/EditEventModal.astro';
 import AddLocationModal from '../../../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../../../components/ui/AddOrganizationModal.astro';
 import LoginModal from '../../../components/ui/LoginModal.astro';
+import { getSessionFromCookies } from '../../../lib/session';
 
 const { id } = Astro.params;
 
 if (!id) {
   return Astro.redirect('/admin');
 }
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Edit Event">
+<AdminLayout title="Edit Event" userEmail={userEmail}>
   <Fragment slot="head">
     <style>
       .btn-series {

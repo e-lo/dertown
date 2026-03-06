@@ -1,6 +1,14 @@
 ---
 import AdminLayout from '../../../components/AdminLayout.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { getSessionFromCookies } from '../../../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 
 const { parentId } = Astro.params;
 
@@ -68,7 +76,7 @@ try {
 }
 ---
 
-<AdminLayout title={`Series: ${seriesData.parent.title || 'Untitled'}`} showBack={false}>
+<AdminLayout title={`Series: ${seriesData.parent.title || 'Untitled'}`} showBack={false} userEmail={userEmail}>
   <Fragment slot="actions">
     <a href="/admin/series" class="icon-btn btn-edit" aria-label="Back to Series">
       <span class="material-symbols-outlined text-2xl">arrow_back</span>

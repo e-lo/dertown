@@ -6,9 +6,17 @@ import AddLocationModal from '../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../components/ui/AddOrganizationModal.astro';
 import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro';
 import SeriesModal from '../components/ui/SeriesModal.astro';
+import { getSessionFromCookies } from '../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Admin Dashboard" showBack={false}>
+<AdminLayout title="Admin Dashboard" showBack={false} userEmail={userEmail}>
   <Fragment slot="actions">
     <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-create" aria-label="Add location" style="background: linear-gradient(to bottom right, #059669, #047857);">
       <span class="material-symbols-outlined text-2xl">location_on</span>

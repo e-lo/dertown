@@ -1,8 +1,16 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
+import { getSessionFromCookies } from '../../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Announcements">
+<AdminLayout title="Announcements" userEmail={userEmail}>
   <Fragment slot="actions">
     <a href="/admin#announcements-container" class="icon-btn btn-create" aria-label="Create / manage announcements">
       <span class="material-symbols-outlined text-2xl">campaign</span>
