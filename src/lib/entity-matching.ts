@@ -1,11 +1,11 @@
-export const DEFAULT_NAME_MATCH_THRESHOLD = 0.75;
-export const POSSIBLE_NAME_MATCH_THRESHOLD = 0.6;
+import { ENTITY_MATCHING_SETTINGS } from './entity-matching-config';
+
+export const DEFAULT_NAME_MATCH_THRESHOLD = ENTITY_MATCHING_SETTINGS.defaultNameMatchThreshold;
+export const POSSIBLE_NAME_MATCH_THRESHOLD = ENTITY_MATCHING_SETTINGS.possibleNameMatchThreshold;
 
 // Geographic/common context words should not dominate duplicate scoring.
 const WEAK_MATCH_TOKENS = new Set([
-  'leavenworth',
-  'wa',
-  'washington',
+  ...ENTITY_MATCHING_SETTINGS.weakMatchTokens,
 ]);
 
 function tokenizeForMatch(value: string): string[] {
@@ -13,7 +13,7 @@ function tokenizeForMatch(value: string): string[] {
 }
 
 function tokenWeight(token: string): number {
-  return WEAK_MATCH_TOKENS.has(token) ? 0.15 : 1;
+  return WEAK_MATCH_TOKENS.has(token) ? ENTITY_MATCHING_SETTINGS.weakTokenWeight : 1;
 }
 
 /** Normalize a string for comparison: lowercase, collapse whitespace, strip common suffixes. */
@@ -89,7 +89,7 @@ export function nameMatchScore(scraped: string, dbName: string): number {
   // while down-weighting generic place words like "Leavenworth".
   const tokensA = tokenizeForMatch(scraped);
   const tokensB = tokenizeForMatch(dbName);
-  const weakTokenFloor = 0.2;
+  const weakTokenFloor = ENTITY_MATCHING_SETTINGS.weakTokenFloor;
   if (tokensA.length > 0 && tokensB.length > 0) {
     const setA = new Set(tokensA);
     const setB = new Set(tokensB);
