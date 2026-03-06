@@ -71,6 +71,7 @@ export interface SourceConfig {
   default_location?: string | null;
   default_tag?: string | null;
   exclude?: ExcludeRules | null;
+  location_map?: Record<string, string> | null;
 }
 
 /** Top-level sources.yaml structure. */

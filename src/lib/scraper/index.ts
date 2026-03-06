@@ -12,7 +12,7 @@
  */
 
 import { loadSourcesConfig, getSourceConfig } from './config';
-import { createScraperClient, type DbMode } from './db';
+import { createWriteClient, createReadClient, type DbMode } from './db';
 import { fetchPage } from './fetch';
 import { writeScrapeLog } from './log';
 import { parseIcalFeed } from './parse-ical';
@@ -290,7 +290,7 @@ async function main() {
   }
 
   const mode = resolveDbMode(args);
-  const db = createScraperClient(mode);
+  const writeDb = createWriteClient(mode);
   const sources = loadSourcesConfig();
 
   // Determine which sources to scrape
@@ -312,15 +312,25 @@ async function main() {
     console.log(`Writing to ${label} database.\n`);
   }
 
-  // Load reference data for matching (if DB is available)
+  // Always load reference data for matching/dedup — use write client if available,
+  // otherwise create a read-only client to check against production data.
   let ref: ReferenceData | null = null;
-  if (db) {
+  const readDb = writeDb || createReadClient();
+  if (readDb) {
     if (args.verbose) console.log('Loading reference data for matching...');
-    ref = await loadReferenceData(db);
-    if (args.verbose) {
-      console.log(`  ${ref.locations.length} locations, ${ref.organizations.length} orgs, ${ref.tags.length} tags`);
-      console.log(`  ${ref.existingEvents.length} existing events, ${ref.existingStaged.length} staged events\n`);
+    try {
+      ref = await loadReferenceData(readDb);
+      if (args.verbose) {
+        console.log(`  ${ref.locations.length} locations, ${ref.organizations.length} orgs, ${ref.tags.length} tags`);
+        console.log(`  ${ref.existingEvents.length} existing events, ${ref.existingStaged.length} staged events\n`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`  WARNING: Could not load reference data: ${msg}`);
+      console.log('  Dedup and matching will be skipped.\n');
     }
+  } else {
+    console.log('  No database credentials found. Dedup and matching will be skipped.\n');
   }
 
   // Scrape each source
@@ -332,15 +342,15 @@ async function main() {
     printResultSummary(result, mode);
     if (args.verbose) printVerboseEvents(result);
 
-    // Step 6: Write to database (if not dry run)
-    if (db) {
-      const writeResult = await writeProcessedEvents(db, result.events, source, args.verbose);
+    // Step 6: Write to database (only if write client available, i.e. not dry-run)
+    if (writeDb) {
+      const writeResult = await writeProcessedEvents(writeDb, result.events, source, args.verbose);
       if (writeResult.errors.length > 0) {
         result.errors.push(...writeResult.errors);
       }
 
       // Write scrape logs
-      await writeScrapeLog(db, result);
+      await writeScrapeLog(writeDb, result);
     }
   }
 
