@@ -116,6 +116,43 @@ export async function loadReferenceData(
 
 // ── Matching functions ───────────────────────────────────────────────
 
+/** Compute a match score between a scraped name and a DB name, using multiple strategies. */
+function nameMatchScore(scraped: string, dbName: string): number {
+  const nScraped = norm(scraped);
+  const nDb = norm(dbName);
+
+  // Strategy 1: Levenshtein similarity
+  let score = similarity(scraped, dbName);
+
+  // Strategy 2: Substring containment (e.g. "Leavenworth Ski Hill" contains "Ski Hill")
+  // Require shorter string to have ≥2 words to avoid false positives from bare city names
+  const shorter = nScraped.length <= nDb.length ? nScraped : nDb;
+  if (shorter.includes(' ') && shorter.length > 5) {
+    if (nScraped.includes(nDb) || nDb.includes(nScraped)) {
+      score = Math.max(score, 0.85);
+    }
+  }
+
+  // Strategy 3: Word overlap — handles missing/extra words
+  // (e.g. "Leavenworth Library" vs "Leavenworth Public Library")
+  const wordsScraped = new Set(nScraped.split(/\s+/).filter((w) => w.length > 1));
+  const wordsDb = new Set(nDb.split(/\s+/).filter((w) => w.length > 1));
+  if (wordsScraped.size >= 2 && wordsDb.size >= 2) {
+    const smaller = wordsScraped.size <= wordsDb.size ? wordsScraped : wordsDb;
+    const larger = wordsScraped.size <= wordsDb.size ? wordsDb : wordsScraped;
+    let overlap = 0;
+    for (const w of smaller) {
+      if (larger.has(w)) overlap++;
+    }
+    const ratio = overlap / smaller.size;
+    if (ratio >= 0.8) {
+      score = Math.max(score, 0.75 + ratio * 0.1);
+    }
+  }
+
+  return score;
+}
+
 /** Find the best matching location by name. Returns the location ID or null. */
 export function matchLocation(
   name: string | null,
@@ -127,7 +164,7 @@ export function matchLocation(
   let bestScore = 0;
 
   for (const loc of locations) {
-    const score = similarity(name, loc.name);
+    const score = nameMatchScore(name, loc.name);
     if (score > bestScore) {
       bestScore = score;
       bestId = loc.id;
@@ -156,7 +193,7 @@ export function matchOrganization(
   let bestScore = 0;
 
   for (const org of organizations) {
-    const score = similarity(name, org.name);
+    const score = nameMatchScore(name, org.name);
     if (score > bestScore) {
       bestScore = score;
       bestId = org.id;
@@ -214,7 +251,53 @@ function normTitle(title: string): string {
   return title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** Check if an event already exists and decide what to do. */
+/** Significant words from a title (lowercase, stripped of noise). */
+function titleWords(title: string): Set<string> {
+  const stop = new Set(['the', 'a', 'an', 'and', 'at', 'in', 'of', 'for', 'to', 'by', '-', '&']);
+  return new Set(
+    normTitle(title).split(/\s+/).filter((w) => w.length > 1 && !stop.has(w))
+  );
+}
+
+/** Try to match a scraped event title against an existing event.
+ *  Returns true if titles are similar enough to be considered the same event.
+ */
+function titlesMatch(scrapedTitle: string, existingTitle: string): boolean {
+  const scrapedNorm = normTitle(scrapedTitle);
+  const existingNorm = normTitle(existingTitle);
+  if (scrapedNorm === existingNorm) return true;
+
+  // Fuzzy similarity (handles typos, minor differences)
+  if (similarity(scrapedTitle, existingTitle) >= 0.75) return true;
+
+  // Substring containment (handles "Ecstatic Dance: March" matching "Ecstatic Dance")
+  if (scrapedNorm.length > 8 && existingNorm.length > 8) {
+    if (scrapedNorm.includes(existingNorm) || existingNorm.includes(scrapedNorm)) return true;
+  }
+
+  // Word-overlap check (handles reordered titles like "Singer Songwriter Storyteller - May"
+  // vs "May Singer Songwriter Storyteller", and extra words like "Banff Centre Mountain Film
+  // Festival World Tour" vs "Banff Mountain Film Festival")
+  const wordsA = titleWords(scrapedTitle);
+  const wordsB = titleWords(existingTitle);
+  if (wordsA.size >= 2 && wordsB.size >= 2) {
+    const smaller = wordsA.size <= wordsB.size ? wordsA : wordsB;
+    const larger = wordsA.size <= wordsB.size ? wordsB : wordsA;
+    let overlap = 0;
+    for (const w of smaller) {
+      if (larger.has(w)) overlap++;
+    }
+    // If 80%+ of the smaller title's words appear in the larger, it's a match
+    if (overlap / smaller.size >= 0.8) return true;
+  }
+
+  return false;
+}
+
+/** Check if an event already exists and decide what to do.
+ *  First checks same-source matches (for update detection),
+ *  then checks ALL events cross-source (to avoid duplicating manually-entered events).
+ */
 export function dedup(
   event: ScrapedEvent,
   sourceId: string,
@@ -223,22 +306,14 @@ export function dedup(
 ): DedupResult {
   const allExisting = [...existingEvents, ...existingStaged];
 
-  // Find candidates: same source + same date
-  const candidates = allExisting.filter(
+  // Pass 1: Same source + same date (can detect updates)
+  const sameSourceCandidates = allExisting.filter(
     (e) => e.source_id === sourceId && e.start_date === event.start_date
   );
 
-  if (candidates.length === 0) return { action: 'new' };
-
-  // Try matching on source_title first, then title
-  const eventTitleNorm = normTitle(event.title);
-
-  for (const existing of candidates) {
-    const existingTitleNorm = normTitle(existing.source_title || existing.title);
-    const titleSim = similarity(event.title, existing.source_title || existing.title);
-
-    if (existingTitleNorm === eventTitleNorm || titleSim >= 0.85) {
-      // Found a match — check if anything changed
+  for (const existing of sameSourceCandidates) {
+    if (titlesMatch(event.title, existing.source_title || existing.title)) {
+      // Found a same-source match — check if anything changed
       const changes: string[] = [];
 
       if (event.start_time && existing.start_time && event.start_time !== existing.start_time) {
@@ -248,28 +323,27 @@ export function dedup(
         changes.push(`cost changed ${existing.cost}→${event.cost}`);
       }
 
-      // Check for major changes (flag for review)
-      if (event.start_date !== existing.start_date) {
-        return {
-          action: 'update',
-          existing_event_id: existing.id,
-          update_reason: `date changed ${existing.start_date}→${event.start_date}`,
-        };
-      }
-      if (event.location_name && existing.location_id) {
-        // Location change detection would require resolving the name — skip for now
-      }
-
       if (changes.length === 0) {
         return { action: 'skip', existing_event_id: existing.id };
       }
 
-      // Minor changes — auto-update
       return {
         action: 'update',
         existing_event_id: existing.id,
         update_reason: changes.join(', '),
       };
+    }
+  }
+
+  // Pass 2: Cross-source — check ALL events by date + title similarity.
+  // This catches events entered manually or sourced from a different source.
+  const crossSourceCandidates = allExisting.filter(
+    (e) => e.start_date === event.start_date && e.source_id !== sourceId
+  );
+
+  for (const existing of crossSourceCandidates) {
+    if (titlesMatch(event.title, existing.source_title || existing.title)) {
+      return { action: 'skip', existing_event_id: existing.id };
     }
   }
 
@@ -335,18 +409,27 @@ export function matchEvents(
     : source.id;
 
   for (const event of events) {
-    // Location matching cascade: DB fuzzy → source default → flag unknown
+    // Location matching cascade: explicit map → DB fuzzy → source default → flag unknown
     let location_id: string | null = null;
     let location_added: string | null = null;
 
+    // Apply explicit location_map from source config (e.g. "Bavarian Lodge" → "Ski Hill Lodge")
+    let locationName = event.location_name;
+    if (locationName && source.location_map) {
+      const mapped = Object.entries(source.location_map).find(
+        ([key]) => key.toLowerCase() === locationName!.toLowerCase()
+      );
+      if (mapped) locationName = mapped[1];
+    }
+
     if (ref) {
-      location_id = matchLocation(event.location_name, ref.locations);
+      location_id = matchLocation(locationName, ref.locations);
     }
     if (!location_id && source.default_location && ref) {
       location_id = matchLocation(source.default_location, ref.locations);
     }
     if (!location_id) {
-      location_added = event.location_name || source.default_location || null;
+      location_added = locationName || source.default_location || null;
     }
 
     // Organization matching cascade: DB fuzzy → source default → flag unknown
@@ -375,7 +458,20 @@ export function matchEvents(
       dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged);
     }
 
-    if (verbose && dedupResult.action !== 'new') {
+    // CANCELED events: only keep if updating an existing event
+    const isCanceled = /\bcanceled\b/i.test(event.title);
+    if (isCanceled && dedupResult.action === 'new') {
+      if (verbose) console.log(`    SKIP "${event.title}" (canceled, not already on site)`);
+      dedupResult = { action: 'skip' };
+    } else if (isCanceled && dedupResult.existing_event_id) {
+      dedupResult = {
+        action: 'update',
+        existing_event_id: dedupResult.existing_event_id,
+        update_reason: 'event canceled',
+      };
+    }
+
+    if (verbose && dedupResult.action !== 'new' && !isCanceled) {
       const reason = dedupResult.update_reason || 'no changes';
       console.log(`    DEDUP "${event.title}" → ${dedupResult.action} (${reason})`);
     }

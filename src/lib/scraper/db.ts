@@ -12,8 +12,8 @@ const LOCAL_SERVICE_KEY =
 
 export type DbMode = 'dry-run' | 'remote' | 'local-db';
 
-/** Create a supabaseAdmin client for the scraper based on the DB mode. */
-export function createScraperClient(mode: DbMode): SupabaseClient<Database> | null {
+/** Create a write client for the scraper. Returns null in dry-run mode. */
+export function createWriteClient(mode: DbMode): SupabaseClient<Database> | null {
   if (mode === 'dry-run') return null;
 
   if (mode === 'local-db') {
@@ -29,5 +29,17 @@ export function createScraperClient(mode: DbMode): SupabaseClient<Database> | nu
         'These are required for --remote mode.'
     );
   }
+  return createClient<Database>(url, key);
+}
+
+/** Create a read-only client for loading reference data (dedup, matching).
+ *  Always connects to the remote DB using the anon key so that dry-run
+ *  mode can still check for duplicates against production data.
+ *  Returns null if credentials are unavailable.
+ */
+export function createReadClient(): SupabaseClient<Database> | null {
+  const url = process.env.PUBLIC_SUPABASE_URL;
+  const key = process.env.PUBLIC_SUPABASE_KEY;
+  if (!url || !key) return null;
   return createClient<Database>(url, key);
 }

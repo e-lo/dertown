@@ -11,9 +11,15 @@ sources:
     selectors: {} # to be determined during implementation
     geo_filter: null
     default_organization: "Icicle Creek Center for the Arts"
-    default_location: null
+    default_location: "Icicle Creek Center for the Arts"
     default_tag: "arts-culture"
-    exclude: null
+    exclude:
+      title_keywords:
+        - " camp"              # "Summer Strings Camp", "Art & Mindful Movement Camp"
+        - "group lessons"      # "Beginning Guitar - Group Lessons"
+        - "intro to mixing"
+      title_patterns:
+        - "^intro to "         # "Intro to ..." multi-session classes
 
   - id: "ncw-libraries"
     name: "NCW Libraries"
@@ -37,6 +43,8 @@ sources:
     default_location: "Leavenworth Ski Hill"
     default_tag: "outdoors"
     exclude: null
+    location_map:
+      "Bavarian Lodge": "Ski Hill Lodge"
 
   - id: "leavenworth-org"
     name: "Leavenworth.org"
@@ -48,8 +56,46 @@ sources:
     default_location: null
     default_tag: null
     exclude:
-      title_keywords: ["live music:", "live music at", "open mic night", "karaoke", "trivia night", "bingo @", "game night @"]
-      location_keywords: ["visconti's", "J5 Coffee"]
+      title_keywords:
+        # Bar/restaurant recurring events
+        - "live music:"
+        - "live music at"
+        - "open mic night"
+        - "karaoke"
+        - "trivia night"
+        - "bingo @"
+        - "game night @"
+        # Winery/tasting room events (tourist-focused recurring)
+        - "@ icicle ridge winery"
+        - "@ goose ridge"
+        - "@ milbrandt"
+        - "@ evergreen family wines"
+        - "wine tasting"
+        - "winery"
+        # Tourist/promotional events
+        - "resort yoga"
+        - "glassblowing"
+        - "glass fusing"
+        - "@ boulder bend"
+      location_keywords:
+        - "visconti's"
+        - "J5 Coffee"
+        # Venues we already source directly — avoid duplicates
+        - "icicle creek center"
+        - "ICCA"
+        - "snowy owl"
+        - "wenatchee river institute"
+        - "red barn"
+        - "ski hill"
+        - "ski leavenworth"
+        # Out of area (Cascade School District scope: Plain, Leavenworth, Peshastin, Merritt, Stevens Pass)
+        - "NCW Woodshop"          # Cashmere
+        - "Boulder Bend"          # tourist attraction
+        - "Cashmere"
+        - "Wenatchee"
+        - "East Wenatchee"
+        - "Chelan"
+        - "Ellensburg"
 
   - id: "wenatchee-river-institute"
     name: "Wenatchee River Institute"
@@ -60,4 +106,7 @@ sources:
     default_organization: "Wenatchee River Institute"
     default_location: "Wenatchee River Institute"
     default_tag: "nature"
-    exclude: null
+    exclude:
+      title_keywords:
+        - " camp"
+        - "science on tap"       # held in Wenatchee, not Leavenworth
