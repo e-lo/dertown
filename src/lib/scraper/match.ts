@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
-import type { ScrapedEvent, ProcessedEvent, SourceConfig } from './types';
+import type { ScrapedEvent, ProcessedEvent, SourceConfig, VenueTagRule } from './types';
 
 // ── String similarity ────────────────────────────────────────────────
 
@@ -203,33 +203,55 @@ export function matchOrganization(
   return bestScore >= MATCH_THRESHOLD ? bestId : null;
 }
 
-/** Find a tag ID by name (exact match on tag name). */
+/** Normalize a tag name for comparison: lowercase, strip non-alphanumeric. */
+function normTag(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/** Find a tag ID by name (normalized match — "arts-culture" matches "Arts+Culture"). */
 export function matchTag(
   tagName: string | null,
   tags: TagRow[]
 ): string | null {
   if (!tagName) return null;
-  const lower = tagName.toLowerCase();
-  const tag = tags.find((t) => t.name.toLowerCase() === lower);
+  const normalized = normTag(tagName);
+  const tag = tags.find((t) => normTag(t.name) === normalized);
   return tag?.id || null;
 }
 
-/** Keyword-based tag inference from event title and description. */
-const TAG_KEYWORDS: Record<string, string[]> = {
-  'arts-culture': ['concert', 'music', 'performance', 'theater', 'theatre', 'art', 'gallery', 'film', 'movie', 'singer', 'songwriter', 'band'],
-  'outdoors': ['hike', 'trail', 'ski', 'snowshoe', 'climb', 'kayak', 'bike', 'mountain'],
-  'civic': ['meeting', 'council', 'board', 'commission', 'civic', 'town hall', 'vote'],
-  'family': ['kids', 'family', 'children', 'youth', 'camp', 'storytime'],
-  'nature': ['bird', 'wildlife', 'nature', 'garden', 'plant', 'ecology', 'river', 'tracking'],
-  'sports': ['race', 'tournament', 'league', 'game day', 'championship'],
-};
+/** Build pre-compiled word-boundary regexes from config tag keywords. */
+function buildTagRegexes(tagKeywords: Record<string, string[]>): [string, RegExp][] {
+  return Object.entries(tagKeywords).flatMap(([tagName, keywords]) =>
+    keywords.map((kw): [string, RegExp] => [tagName, new RegExp(`\\b${kw}\\b`)])
+  );
+}
 
-export function inferTag(event: ScrapedEvent, tags: TagRow[]): string | null {
+/** Build pre-compiled venue tag patterns from config. */
+function buildVenuePatterns(venueTags: VenueTagRule[]): [RegExp, string][] {
+  return venueTags.map((v) => [new RegExp(v.match, 'i'), v.tag]);
+}
+
+/** Infer a tag from event content and venue name, using config-driven keywords. */
+export function inferTag(
+  event: ScrapedEvent,
+  tags: TagRow[],
+  tagRegexes: [string, RegExp][],
+  venuePatterns: [RegExp, string][],
+  locationName?: string | null
+): string | null {
   const text = `${event.title} ${event.description || ''}`.toLowerCase();
 
-  for (const [tagName, keywords] of Object.entries(TAG_KEYWORDS)) {
-    for (const kw of keywords) {
-      if (text.includes(kw)) {
+  // Check keyword matches (word-boundary so "art" doesn't match inside "nature")
+  for (const [tagName, re] of tagRegexes) {
+    if (re.test(text)) {
+      return matchTag(tagName, tags);
+    }
+  }
+
+  // Check venue-based defaults
+  if (locationName) {
+    for (const [pattern, tagName] of venuePatterns) {
+      if (pattern.test(locationName)) {
         return matchTag(tagName, tags);
       }
     }
@@ -399,8 +421,12 @@ export function matchEvents(
   events: ScrapedEvent[],
   source: SourceConfig,
   ref: ReferenceData | null,
+  tagKeywords: Record<string, string[]>,
+  venueTags: VenueTagRule[],
   verbose: boolean
 ): ProcessedEvent[] {
+  const tagRegexes = buildTagRegexes(tagKeywords);
+  const venuePatterns = buildVenuePatterns(venueTags);
   const processed: ProcessedEvent[] = [];
 
   // Resolve source config ID to database UUID
@@ -443,10 +469,14 @@ export function matchEvents(
       organization_added = source.default_organization || null;
     }
 
-    // Tag matching: infer from content → source default → null
+    // Tag matching: infer from content → venue default → source default → null
     let primary_tag_id: string | null = null;
     if (ref) {
-      primary_tag_id = inferTag(event, ref.tags);
+      // Resolve location name for venue-based tag lookup
+      const resolvedLocName = location_id
+        ? ref.locations.find((l) => l.id === location_id)?.name || null
+        : locationName;
+      primary_tag_id = inferTag(event, ref.tags, tagRegexes, venuePatterns, resolvedLocName);
       if (!primary_tag_id && source.default_tag) {
         primary_tag_id = matchTag(source.default_tag, ref.tags);
       }

@@ -11,7 +11,7 @@
  *   make scrape --url <url>        # paste a URL for AI extraction (future)
  */
 
-import { loadSourcesConfig, getSourceConfig } from './config';
+import { loadConfig, getSourceConfig, type ScraperConfig } from './config';
 import { createWriteClient, createReadClient, type DbMode } from './db';
 import { fetchPage } from './fetch';
 import { writeScrapeLog } from './log';
@@ -22,7 +22,7 @@ import { normalizeEvent, isPastEvent } from './normalize';
 import { shouldExclude, passesGeoFilter } from './filter';
 import { matchEvents, loadReferenceData, type ReferenceData } from './match';
 import { writeProcessedEvents } from './staged';
-import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent } from './types';
+import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent, VenueTagRule } from './types';
 
 // ── CLI argument parsing ─────────────────────────────────────────────
 
@@ -101,6 +101,8 @@ function resolveDbMode(args: CliArgs): DbMode {
 async function scrapeSource(
   source: SourceConfig,
   ref: ReferenceData | null,
+  tagKeywords: Record<string, string[]>,
+  venueTags: VenueTagRule[],
   verbose: boolean
 ): Promise<ScrapeResult> {
   const result: ScrapeResult = {
@@ -167,7 +169,7 @@ async function scrapeSource(
     result.total_extracted = events.length;
 
     // Steps 4-5: Match to existing records and deduplicate
-    const processed = matchEvents(events, source, ref, verbose);
+    const processed = matchEvents(events, source, ref, tagKeywords, venueTags, verbose);
     result.events = processed;
 
     // Update source_id to the resolved DB UUID (for log writing)
@@ -216,21 +218,27 @@ function printResultSummary(result: ScrapeResult, mode: DbMode): void {
   }
 }
 
-function printVerboseEvents(result: ScrapeResult): void {
+function printVerboseEvents(result: ScrapeResult, ref: ReferenceData | null): void {
+  // Build reverse lookup maps for readable output
+  const tagNames = new Map(ref?.tags.map((t) => [t.id, t.name]) || []);
+  const locNames = new Map(ref?.locations.map((l) => [l.id, l.name]) || []);
+  const orgNames = new Map(ref?.organizations.map((o) => [o.id, o.name]) || []);
+
   for (const ev of result.events) {
-    const tag = ev.primary_tag_id || '?';
-    const loc = ev.location_id || ev.location_added || '?';
+    const tag = ev.primary_tag_id ? tagNames.get(ev.primary_tag_id) || ev.primary_tag_id : '?';
+    const loc = ev.location_id ? locNames.get(ev.location_id) || ev.location_id : ev.location_added || '?';
+    const org = ev.organization_id ? orgNames.get(ev.organization_id) || ev.organization_id : ev.organization_added || '?';
     const date = ev.scraped.start_date;
     const time = ev.scraped.start_time || '';
     switch (ev.action) {
       case 'new':
-        console.log(`  NEW  "${ev.scraped.title}" ${date} ${time} (${tag}, ${loc})`);
+        console.log(`  NEW  "${ev.scraped.title}" ${date} ${time}`);
+        console.log(`       tag=${tag}  loc=${loc}  org=${org}`);
         break;
       case 'update':
         console.log(`  UPDATE "${ev.scraped.title}" — ${ev.update_reason}`);
         break;
       case 'skip':
-        console.log(`  SKIP "${ev.scraped.title}" (already imported, no changes)`);
         break;
     }
   }
@@ -291,14 +299,14 @@ async function main() {
 
   const mode = resolveDbMode(args);
   const writeDb = createWriteClient(mode);
-  const sources = loadSourcesConfig();
+  const config = loadConfig();
 
   // Determine which sources to scrape
   let sourcesToScrape: SourceConfig[];
   if (args.all) {
-    sourcesToScrape = sources;
+    sourcesToScrape = config.sources;
   } else if (args.source) {
-    sourcesToScrape = [getSourceConfig(sources, args.source)];
+    sourcesToScrape = [getSourceConfig(config.sources, args.source)];
   } else {
     // URL/instagram/facebook paste — Phase 5
     console.log('URL paste mode is not yet implemented (Phase 5).');
@@ -336,11 +344,11 @@ async function main() {
   // Scrape each source
   const results: ScrapeResult[] = [];
   for (const source of sourcesToScrape) {
-    const result = await scrapeSource(source, ref, args.verbose);
+    const result = await scrapeSource(source, ref, config.tagKeywords, config.venueTags, args.verbose);
     results.push(result);
 
     printResultSummary(result, mode);
-    if (args.verbose) printVerboseEvents(result);
+    if (args.verbose) printVerboseEvents(result, ref);
 
     // Step 6: Write to database (only if write client available, i.e. not dry-run)
     if (writeDb) {
