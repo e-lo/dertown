@@ -176,7 +176,9 @@ const userEmail = session.user?.email || 'Admin';
         const option = document.createElement('div');
         option.className = 'autocomplete-dropdown-item';
         option.textContent = display(item);
-        option.addEventListener('click', () => {
+        option.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           input.value = display(item);
           hidden.value = item.id;
           closeDropdown();
@@ -194,7 +196,7 @@ const userEmail = session.user?.email || 'Admin';
     });
 
     document.addEventListener('click', (event) => {
-      if (!dropdown.contains(event.target) && event.target !== input) {
+      if (!(event.target instanceof Node) || (!dropdown.contains(event.target) && !input.contains(event.target))) {
         closeDropdown();
       }
     });

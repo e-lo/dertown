@@ -106,6 +106,16 @@ const userEmail = session.user?.email || 'Admin';
         <span class="material-symbols-outlined">pending_actions</span>
         Approve Events
       </div>
+      <button
+        type="button"
+        onclick="clearPendingEvents()"
+        class="icon-btn btn-reject"
+        aria-label="Clear all pending events"
+        title="Delete all pending staged events"
+      >
+        <span class="material-symbols-outlined" style="font-size: 1.25rem;">delete_sweep</span>
+        <span class="tooltip">Clear pending events</span>
+      </button>
     </div>
     <div id="loading" class="loading">Loading events...</div>
     <div id="events-container" class="dashboard-table-container"></div>
@@ -442,30 +452,34 @@ const userEmail = session.user?.email || 'Admin';
         return;
       }
 
-      dropdown.innerHTML = matches.map(loc => `
-        <div class="autocomplete-dropdown-item" 
-             onclick="selectLocation('${loc.id}', '${loc.name.replace(/'/g, "\\'")}')">
-          ${loc.name}${loc.address ? ` - ${loc.address}` : ''}
-        </div>
-      `).join('');
+      dropdown.innerHTML = matches
+        .map((loc) => {
+          const label = `${loc.name || ''}${loc.address ? ` - ${loc.address}` : ''}`;
+          const escapedLabel = label.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          return `<div class="autocomplete-dropdown-item" data-id="${loc.id}" data-label="${escapedLabel}">${escapedLabel}</div>`;
+        })
+        .join('');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach((el) => {
+        el.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          searchInput.value = el.getAttribute('data-label') || '';
+          hiddenInput.value = el.getAttribute('data-id') || '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+        });
+      });
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
       }
     });
-
-    window.selectLocation = function(id, name) {
-      searchInput.value = name;
-      hiddenInput.value = id;
-      dropdown.classList.add('hidden');
-      dropdown.classList.remove('block');
-    };
   }
 
   /**
@@ -518,30 +532,34 @@ const userEmail = session.user?.email || 'Admin';
         return;
       }
 
-      dropdown.innerHTML = matches.map(org => `
-        <div class="autocomplete-dropdown-item" 
-             onclick="selectOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
-          ${org.name}
-        </div>
-      `).join('');
+      dropdown.innerHTML = matches
+        .map((org) => {
+          const label = org.name || '';
+          const escapedLabel = label.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          return `<div class="autocomplete-dropdown-item" data-id="${org.id}" data-label="${escapedLabel}">${escapedLabel}</div>`;
+        })
+        .join('');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach((el) => {
+        el.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          searchInput.value = el.getAttribute('data-label') || '';
+          hiddenInput.value = el.getAttribute('data-id') || '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+        });
+      });
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
       }
     });
-
-    window.selectOrganization = function(id, name) {
-      searchInput.value = name;
-      hiddenInput.value = id;
-      dropdown.classList.add('hidden');
-      dropdown.classList.remove('block');
-    };
   }
 
   /**
@@ -589,12 +607,24 @@ const userEmail = session.user?.email || 'Admin';
       ).slice(0, 10);
 
       if (matches.length > 0) {
-        dropdown.innerHTML = matches.map(org => `
-          <div class="autocomplete-dropdown-item" 
-               onclick="selectAnnouncementOrganization('${org.id}', '${org.name.replace(/'/g, "\\'")}')">
-            ${org.name}
-          </div>
-        `).join('');
+        dropdown.innerHTML = matches
+          .map((org) => {
+            const label = org.name || '';
+            const escapedLabel = label.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+            return `<div class="autocomplete-dropdown-item" data-id="${org.id}" data-label="${escapedLabel}">${escapedLabel}</div>`;
+          })
+          .join('');
+        dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach((el) => {
+          el.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            searchInput.value = el.getAttribute('data-label') || '';
+            hiddenInput.value = el.getAttribute('data-id') || '';
+            dropdown.classList.add('hidden');
+            dropdown.classList.remove('block');
+            if (newOrgInput) newOrgInput.value = '';
+          });
+        });
         dropdown.classList.remove('hidden');
         dropdown.classList.add('block');
       } else {
@@ -605,19 +635,11 @@ const userEmail = session.user?.email || 'Admin';
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
       }
     });
-
-    window.selectAnnouncementOrganization = function(id, name) {
-      searchInput.value = name;
-      hiddenInput.value = id;
-      dropdown.classList.add('hidden');
-      dropdown.classList.remove('block');
-      if (newOrgInput) newOrgInput.value = ''; // Clear new organization if existing one selected
-    };
 
     // Clear selection when typing in "add new" field
     if (newOrgInput) {
@@ -689,31 +711,34 @@ const userEmail = session.user?.email || 'Admin';
         const timeStr = event.start_time ? event.start_time.substring(0, 5) : '';
         const sourceLabel = event.parent_source === 'events_staged' ? ' [staged]' : '';
         const displayStr = `${event.title}${sourceLabel}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+        const escapedDisplay = displayStr.replace(/"/g, '&quot;').replace(/</g, '&lt;');
         return `
-          <div class="autocomplete-dropdown-item" 
-               onclick="selectParentEvent('${event.id}', '${event.title.replace(/'/g, "\\'")}')">
-            ${displayStr}
+          <div class="autocomplete-dropdown-item" data-id="${event.id}" data-label="${escapedDisplay}">
+            ${escapedDisplay}
           </div>
         `;
       }).join('');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach((el) => {
+        el.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          searchInput.value = el.getAttribute('data-label') || '';
+          hiddenInput.value = el.getAttribute('data-id') || '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+        });
+      });
       dropdown.classList.remove('hidden');
       dropdown.classList.add('block');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
       }
     });
-
-    window.selectParentEvent = function(id, title) {
-      searchInput.value = title;
-      hiddenInput.value = id;
-      dropdown.classList.add('hidden');
-      dropdown.classList.remove('block');
-    };
   }
 
   // ============================================================================
@@ -1597,6 +1622,36 @@ const userEmail = session.user?.email || 'Admin';
         showMessage('Error rejecting event: ' + error.message, 'error');
       }
     }
+
+  async function clearPendingEvents() {
+    const confirmed = window.confirm(
+      'Delete all pending staged events? This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/admin/events-staged/clear', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?redirect=${currentUrl}`;
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      showMessage(`Cleared ${data.deleted || 0} pending event(s).`, 'success');
+      loadEventsToApprove();
+    } catch (error) {
+      showMessage('Error clearing pending events: ' + error.message, 'error');
+    }
+  }
 
   /**
    * Displays announcements in a table format
@@ -3178,6 +3233,7 @@ const userEmail = session.user?.email || 'Admin';
     window.archivePendingOrganization = archivePendingOrganization;
     window.markLocationAsDuplicate = markLocationAsDuplicate;
     window.markOrganizationAsDuplicate = markOrganizationAsDuplicate;
+    window.clearPendingEvents = clearPendingEvents;
     window.markDuplicateStagedEvent = markDuplicateStagedEvent;
     window.markDuplicateExistingEvent = markDuplicateExistingEvent;
     
