@@ -902,10 +902,11 @@ const userEmail = session.user?.email || 'Admin';
       rows
         .map(function (location) {
           const likelyDuplicate = location.likely_duplicate;
+          const isLikely = (likelyDuplicate?.match_level || 'likely') === 'likely';
           const duplicateUi = likelyDuplicate
             ? (
               '<div class="duplicate-match-cell">' +
-              '<div class="duplicate-pill">Likely duplicate</div>' +
+              '<div class="duplicate-pill ' + (isLikely ? 'is-likely' : 'is-possible') + '">' + (isLikely ? 'Likely duplicate' : 'Possible duplicate') + '</div>' +
               '<div class="duplicate-target">' + (likelyDuplicate.name || 'Unknown') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
               '<button onclick="markLocationAsDuplicate(\'' + location.id + '\', \'' + likelyDuplicate.id + '\')" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline" type="button">Use canonical</button>' +
               '</div>'
@@ -948,10 +949,11 @@ const userEmail = session.user?.email || 'Admin';
       rows
         .map(function (organization) {
           const likelyDuplicate = organization.likely_duplicate;
+          const isLikely = (likelyDuplicate?.match_level || 'likely') === 'likely';
           const duplicateUi = likelyDuplicate
             ? (
               '<div class="duplicate-match-cell">' +
-              '<div class="duplicate-pill">Likely duplicate</div>' +
+              '<div class="duplicate-pill ' + (isLikely ? 'is-likely' : 'is-possible') + '">' + (isLikely ? 'Likely duplicate' : 'Possible duplicate') + '</div>' +
               '<div class="duplicate-target">' + (likelyDuplicate.name || 'Unknown') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
               '<button onclick="markOrganizationAsDuplicate(\'' + organization.id + '\', \'' + likelyDuplicate.id + '\')" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline" type="button">Use canonical</button>' +
               '</div>'

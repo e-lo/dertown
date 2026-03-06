@@ -286,6 +286,11 @@
   letter-spacing: 0.02em;
 }
 
+.duplicate-pill.is-possible {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
 .duplicate-target {
   font-size: 0.9rem;
   color: #111827;
