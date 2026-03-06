@@ -51,6 +51,26 @@ export const POST = withAdminAuth(async ({ request }) => {
     .eq('id', eventId);
 
   if (updateError) {
+    const isPastDateConstraint =
+      updateError.code === '23514' &&
+      (updateError.message || '').includes('events_staged_start_date_future');
+
+    if (isPastDateConstraint) {
+      // Old staged rows can become un-updatable due to start_date >= CURRENT_DATE constraint.
+      // For reject/duplicate actions, deleting the staged row achieves the admin intent.
+      const { error: deleteError } = await supabaseAdmin
+        .from('events_staged')
+        .delete()
+        .eq('id', eventId);
+
+      if (deleteError) {
+        console.error('Error deleting staged event after constraint failure:', deleteError);
+        return jsonError(deleteError.message || 'Failed to remove staged event');
+      }
+
+      return jsonResponse({ success: true, removed: true, mode: 'deleted' });
+    }
+
     console.error('Error rejecting staged event:', updateError);
     return jsonError(updateError.message || 'Failed to reject event');
   }
