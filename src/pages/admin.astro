@@ -80,6 +80,24 @@ const userEmail = session.user?.email || 'Admin';
         <span id="pending-organizations-count">0</span> pending organization(s)
       </a>
     </div>
+    <div class="pending-approval-grid mt-6">
+      <section class="pending-approval-card">
+        <div class="pending-approval-head">
+          <h3>Approve Locations</h3>
+          <a href="/admin/locations">View all</a>
+        </div>
+        <div id="pending-locations-loading" class="loading">Loading pending locations...</div>
+        <div id="pending-locations-container" class="dashboard-table-container"></div>
+      </section>
+      <section class="pending-approval-card">
+        <div class="pending-approval-head">
+          <h3>Approve Organizations</h3>
+          <a href="/admin/organizations">View all</a>
+        </div>
+        <div id="pending-organizations-loading" class="loading">Loading pending organizations...</div>
+        <div id="pending-organizations-container" class="dashboard-table-container"></div>
+      </section>
+    </div>
   </div>
 
   <div class="section">
@@ -90,7 +108,7 @@ const userEmail = session.user?.email || 'Admin';
       </div>
     </div>
     <div id="loading" class="loading">Loading events...</div>
-    <div id="events-container"></div>
+    <div id="events-container" class="dashboard-table-container"></div>
   </div>
 
   <div class="section">
@@ -99,7 +117,7 @@ const userEmail = session.user?.email || 'Admin';
       Add Missing Location or Primary Tag to Events
   </div>
     <div id="incomplete-loading" class="loading">Loading incomplete events...</div>
-    <div id="incomplete-events-container"></div>
+    <div id="incomplete-events-container" class="dashboard-table-container"></div>
   </div>
 
   <div class="section">
@@ -110,7 +128,7 @@ const userEmail = session.user?.email || 'Admin';
       </div>
     </div>
     <div id="announcements-loading" class="loading">Loading announcements...</div>
-    <div id="announcements-container"></div>
+    <div id="announcements-container" class="dashboard-table-container"></div>
   </div>
 
   <div class="section">
@@ -121,7 +139,7 @@ const userEmail = session.user?.email || 'Admin';
       </div>
     </div>
     <div id="upcoming-announcements-loading" class="loading">Loading upcoming announcements...</div>
-    <div id="upcoming-announcements-container"></div>
+    <div id="upcoming-announcements-container" class="dashboard-table-container"></div>
   </div>
 
   <LoginModal
@@ -832,8 +850,10 @@ const userEmail = session.user?.email || 'Admin';
       ]);
       const locations = locRes.ok ? await locRes.json() : [];
       const organizations = orgRes.ok ? await orgRes.json() : [];
-      const pendingLoc = locations.filter(l => l.status === 'pending').length;
-      const pendingOrg = organizations.filter(o => o.status === 'pending').length;
+      const pendingLocationRows = locations.filter(l => l.status === 'pending');
+      const pendingOrganizationRows = organizations.filter(o => o.status === 'pending');
+      const pendingLoc = pendingLocationRows.length;
+      const pendingOrg = pendingOrganizationRows.length;
       const block = document.getElementById('pending-locations-orgs');
       const locCountEl = document.getElementById('pending-locations-count');
       const orgCountEl = document.getElementById('pending-organizations-count');
@@ -848,8 +868,117 @@ const userEmail = session.user?.email || 'Admin';
           block.classList.add('hidden');
         }
       }
+      displayPendingLocations(pendingLocationRows);
+      displayPendingOrganizations(pendingOrganizationRows);
+      const locLoading = document.getElementById('pending-locations-loading');
+      const orgLoading = document.getElementById('pending-organizations-loading');
+      if (locLoading) locLoading.classList.add('hidden');
+      if (orgLoading) orgLoading.classList.add('hidden');
     } catch (e) {
-      // Non-fatal: leave section hidden
+      const locLoading = document.getElementById('pending-locations-loading');
+      const orgLoading = document.getElementById('pending-organizations-loading');
+      const locContainer = document.getElementById('pending-locations-container');
+      const orgContainer = document.getElementById('pending-organizations-container');
+      if (locLoading) locLoading.classList.add('hidden');
+      if (orgLoading) orgLoading.classList.add('hidden');
+      if (locContainer) locContainer.innerHTML = '<p style="text-align:center;color:#888;">Error loading pending locations.</p>';
+      if (orgContainer) orgContainer.innerHTML = '<p style="text-align:center;color:#888;">Error loading pending organizations.</p>';
+      // Non-fatal: keep dashboard usable.
+    }
+  }
+
+  function displayPendingLocations(rows) {
+    const container = document.getElementById('pending-locations-container');
+    if (!container) return;
+    if (!rows || rows.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#888;">No pending locations.</p>';
+      return;
+    }
+
+    const table =
+      '<table class="data-table">' +
+      '<thead><tr><th>Name</th><th>Address</th><th>Updated</th><th>Actions</th></tr></thead>' +
+      '<tbody>' +
+      rows
+        .map(function (location) {
+          return (
+            '<tr>' +
+            '<td>' + (location.name || 'N/A') + '</td>' +
+            '<td>' + (location.address || 'N/A') + '</td>' +
+            '<td>' + (location.updated_at ? new Date(location.updated_at).toLocaleDateString() : 'N/A') + '</td>' +
+            '<td style="text-align: center; white-space: nowrap;">' +
+            '<button onclick="editPendingLocation(\'' + location.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit location">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button>' +
+            '<button onclick="approvePendingLocation(\'' + location.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve location">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span><span class="tooltip">Approve</span></button>' +
+            '<button onclick="archivePendingLocation(\'' + location.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Archive location">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">archive</span><span class="tooltip">Archive</span></button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table>';
+    container.innerHTML = table;
+  }
+
+  function displayPendingOrganizations(rows) {
+    const container = document.getElementById('pending-organizations-container');
+    if (!container) return;
+    if (!rows || rows.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#888;">No pending organizations.</p>';
+      return;
+    }
+
+    const table =
+      '<table class="data-table">' +
+      '<thead><tr><th>Name</th><th>Email</th><th>Website</th><th>Updated</th><th>Actions</th></tr></thead>' +
+      '<tbody>' +
+      rows
+        .map(function (organization) {
+          return (
+            '<tr>' +
+            '<td>' + (organization.name || 'N/A') + '</td>' +
+            '<td>' + (organization.email || 'N/A') + '</td>' +
+            '<td>' + (organization.website || 'N/A') + '</td>' +
+            '<td>' + (organization.updated_at ? new Date(organization.updated_at).toLocaleDateString() : 'N/A') + '</td>' +
+            '<td style="text-align: center; white-space: nowrap;">' +
+            '<button onclick="editPendingOrganization(\'' + organization.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit organization">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">edit</span><span class="tooltip">Edit</span></button>' +
+            '<button onclick="approvePendingOrganization(\'' + organization.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve organization">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span><span class="tooltip">Approve</span></button>' +
+            '<button onclick="archivePendingOrganization(\'' + organization.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="Archive organization">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">archive</span><span class="tooltip">Archive</span></button>' +
+            '</td>' +
+            '</tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table>';
+    container.innerHTML = table;
+  }
+
+  async function updatePendingEntityStatus(entityType, entityId, status) {
+    const endpoint = entityType === 'location'
+      ? `/api/admin/locations/${entityId}`
+      : `/api/admin/organizations/${entityId}`;
+    const noun = entityType === 'location' ? 'Location' : 'Organization';
+    const verb = status === 'approved' ? 'approved' : 'archived';
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update ${noun.toLowerCase()} status`);
+      }
+      showMessage(`${noun} ${verb} successfully!`, 'success');
+      await Promise.all([loadPendingLocationsOrgs(), loadReferenceData()]);
+    } catch (error) {
+      showMessage(`Error updating ${noun.toLowerCase()}: ` + error.message, 'error');
     }
   }
 
@@ -2887,6 +3016,38 @@ const userEmail = session.user?.email || 'Admin';
       }
     }
 
+    function editPendingLocation(locationId) {
+      if (typeof window.openAddLocationModal === 'function') {
+        window.openAddLocationModal(locationId);
+        return;
+      }
+      window.location.href = `/admin/locations?edit=${encodeURIComponent(locationId)}`;
+    }
+
+    function editPendingOrganization(organizationId) {
+      if (typeof window.openAddOrganizationModal === 'function') {
+        window.openAddOrganizationModal(organizationId);
+        return;
+      }
+      window.location.href = `/admin/organizations?edit=${encodeURIComponent(organizationId)}`;
+    }
+
+    async function approvePendingLocation(locationId) {
+      await updatePendingEntityStatus('location', locationId, 'approved');
+    }
+
+    async function approvePendingOrganization(organizationId) {
+      await updatePendingEntityStatus('organization', organizationId, 'approved');
+    }
+
+    async function archivePendingLocation(locationId) {
+      await updatePendingEntityStatus('location', locationId, 'archived');
+    }
+
+    async function archivePendingOrganization(organizationId) {
+      await updatePendingEntityStatus('organization', organizationId, 'archived');
+    }
+
     window.approveEvent = approveEvent;
     window.rejectEvent = rejectEvent;
     window.approveAnnouncement = approveAnnouncement;
@@ -2899,6 +3060,12 @@ const userEmail = session.user?.email || 'Admin';
     window.approveExistingAnnouncement = approveExistingAnnouncement;
     window.rejectExistingEvent = rejectExistingEvent;
     window.rejectExistingAnnouncement = rejectExistingAnnouncement;
+    window.editPendingLocation = editPendingLocation;
+    window.editPendingOrganization = editPendingOrganization;
+    window.approvePendingLocation = approvePendingLocation;
+    window.approvePendingOrganization = approvePendingOrganization;
+    window.archivePendingLocation = archivePendingLocation;
+    window.archivePendingOrganization = archivePendingOrganization;
     
     // Modal functions
   /**

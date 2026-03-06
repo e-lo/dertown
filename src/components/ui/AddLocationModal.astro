@@ -146,13 +146,17 @@
         locationMap = null;
         locationMarker = null;
       }
-      if (L && L.Icon && L.Icon.Default) {
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-        });
-      }
+      const selectionIcon = L.divIcon({
+        className: '',
+        iconSize: [24, 36],
+        iconAnchor: [12, 36],
+        popupAnchor: [0, -30],
+        html:
+          '<div style="position:relative;width:24px;height:36px;">' +
+          '<span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:24px;height:24px;border-radius:9999px;background:#2563eb;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>' +
+          '<span style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #2563eb;"></span>' +
+          '</div>',
+      });
       const hasCoords = lat != null && lon != null && !isNaN(lat) && !isNaN(lon);
       const center = hasCoords ? [Number(lat), Number(lon)] : LEAVENWORTH;
       locationMap = L.map('addLocationMap').setView(center, hasCoords ? 15 : 12);
@@ -161,12 +165,12 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
       }).addTo(locationMap);
       if (hasCoords) {
-        locationMarker = L.marker(center).addTo(locationMap);
+        locationMarker = L.marker(center, { icon: selectionIcon }).addTo(locationMap);
       }
       locationMap.on('click', (ev) => {
         const { lat: l, lng: lng } = ev.latlng;
         if (locationMarker) locationMarker.setLatLng(ev.latlng);
-        else locationMarker = L.marker(ev.latlng).addTo(locationMap);
+        else locationMarker = L.marker(ev.latlng, { icon: selectionIcon }).addTo(locationMap);
         if (latInput) latInput.value = Math.round(l * 1e6) / 1e6;
         if (lonInput) lonInput.value = Math.round(lng * 1e6) / 1e6;
       });
