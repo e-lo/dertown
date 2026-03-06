@@ -1,6 +1,21 @@
 export const DEFAULT_NAME_MATCH_THRESHOLD = 0.75;
 export const POSSIBLE_NAME_MATCH_THRESHOLD = 0.6;
 
+// Geographic/common context words should not dominate duplicate scoring.
+const WEAK_MATCH_TOKENS = new Set([
+  'leavenworth',
+  'wa',
+  'washington',
+]);
+
+function tokenizeForMatch(value: string): string[] {
+  return normalizeMatchText(value).split(/\s+/).filter((token) => token.length > 1);
+}
+
+function tokenWeight(token: string): number {
+  return WEAK_MATCH_TOKENS.has(token) ? 0.15 : 1;
+}
+
 /** Normalize a string for comparison: lowercase, collapse whitespace, strip common suffixes. */
 export function normalizeMatchText(value: string): string {
   return value
@@ -66,6 +81,53 @@ export function nameMatchScore(scraped: string, dbName: string): number {
     const ratio = overlap / smaller.size;
     if (ratio >= 0.8) {
       score = Math.max(score, 0.75 + ratio * 0.1);
+    }
+  }
+
+  // Strategy 4: Weighted strong-token subset match.
+  // This makes "Leavenworth Festhalle" strongly align with "Festhalle"
+  // while down-weighting generic place words like "Leavenworth".
+  const tokensA = tokenizeForMatch(scraped);
+  const tokensB = tokenizeForMatch(dbName);
+  const weakTokenFloor = 0.2;
+  if (tokensA.length > 0 && tokensB.length > 0) {
+    const setA = new Set(tokensA);
+    const setB = new Set(tokensB);
+
+    const overlapWeightA = tokensA.reduce((acc, token) => acc + (setB.has(token) ? tokenWeight(token) : 0), 0);
+    const totalWeightA = tokensA.reduce((acc, token) => acc + tokenWeight(token), 0);
+    const overlapWeightB = tokensB.reduce((acc, token) => acc + (setA.has(token) ? tokenWeight(token) : 0), 0);
+    const totalWeightB = tokensB.reduce((acc, token) => acc + tokenWeight(token), 0);
+
+    const weightedCoverageA = totalWeightA > 0 ? overlapWeightA / totalWeightA : 0;
+    const weightedCoverageB = totalWeightB > 0 ? overlapWeightB / totalWeightB : 0;
+    const minCoverage = Math.min(weightedCoverageA, weightedCoverageB);
+
+    const strongWeightA = tokensA.reduce(
+      (acc, token) => acc + (tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      0
+    );
+    const strongWeightB = tokensB.reduce(
+      (acc, token) => acc + (tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      0
+    );
+    const strongOverlapA = tokensA.reduce(
+      (acc, token) => acc + (setB.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      0
+    );
+    const strongOverlapB = tokensB.reduce(
+      (acc, token) => acc + (setA.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      0
+    );
+    const strongCoverageA = strongWeightA > 0 ? strongOverlapA / strongWeightA : 0;
+    const strongCoverageB = strongWeightB > 0 ? strongOverlapB / strongWeightB : 0;
+
+    if (strongCoverageA >= 0.99 && strongCoverageB >= 0.99) {
+      score = Math.max(score, 0.98);
+    } else if (strongCoverageA >= 0.99 || strongCoverageB >= 0.99) {
+      score = Math.max(score, 0.9 + minCoverage * 0.08);
+    } else if (minCoverage >= 0.8) {
+      score = Math.max(score, 0.78 + minCoverage * 0.08);
     }
   }
 
