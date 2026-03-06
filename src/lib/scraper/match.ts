@@ -4,10 +4,32 @@ import type { ScrapedEvent, ProcessedEvent, SourceConfig, VenueTagRule } from '.
 import {
   DEFAULT_NAME_MATCH_THRESHOLD,
   findBestNameMatch,
-  nameMatchScore,
   similarityScore as similarity,
 } from '../entity-matching';
 const MATCH_THRESHOLD = DEFAULT_NAME_MATCH_THRESHOLD;
+
+function resolveMappedName(
+  rawName: string | null,
+  mapping: Record<string, string> | null | undefined
+): string | null {
+  if (!rawName || !mapping) return rawName;
+
+  const normalizedRaw = rawName.trim().toLowerCase();
+  const entries = Object.entries(mapping);
+
+  // Exact case-insensitive key match first
+  const exact = entries.find(([key]) => key.trim().toLowerCase() === normalizedRaw);
+  if (exact) return exact[1];
+
+  // Fallback to contains matching in either direction
+  const partial = entries.find(([key]) => {
+    const normalizedKey = key.trim().toLowerCase();
+    return normalizedRaw.includes(normalizedKey) || normalizedKey.includes(normalizedRaw);
+  });
+  if (partial) return partial[1];
+
+  return rawName;
+}
 
 // ── Reference data cache ─────────────────────────────────────────────
 
@@ -29,9 +51,11 @@ interface TagRow {
 
 interface ExistingEvent {
   id: string;
+  table: 'events' | 'events_staged';
   title: string;
   source_title: string | null;
   source_id: string | null;
+  status: string | null;
   start_date: string;
   start_time: string | null;
   end_time: string | null;
@@ -57,16 +81,22 @@ export interface ReferenceData {
 }
 
 /** Load reference data from the database for matching. */
-export async function loadReferenceData(
-  db: SupabaseClient<Database>
-): Promise<ReferenceData> {
+export async function loadReferenceData(db: SupabaseClient<Database>): Promise<ReferenceData> {
   const [locRes, orgRes, tagRes, srcRes, evtRes, stagedRes] = await Promise.all([
     db.from('locations').select('id, name, address'),
     db.from('organizations').select('id, name'),
     db.from('tags').select('id, name'),
     db.from('source_sites').select('id, name, url'),
-    db.from('events').select('id, title, source_title, source_id, start_date, start_time, end_time, description, cost, registration_link, location_id'),
-    db.from('events_staged').select('id, title, source_title, source_id, start_date, start_time, end_time, description, cost, registration_link, location_id'),
+    db
+      .from('events')
+      .select(
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, registration_link, location_id'
+      ),
+    db
+      .from('events_staged')
+      .select(
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, registration_link, location_id'
+      ),
   ]);
 
   return {
@@ -74,18 +104,21 @@ export async function loadReferenceData(
     organizations: (orgRes.data || []) as OrgRow[],
     tags: (tagRes.data || []) as TagRow[],
     sourceSites: (srcRes.data || []) as SourceSiteRow[],
-    existingEvents: (evtRes.data || []) as ExistingEvent[],
-    existingStaged: (stagedRes.data || []) as ExistingEvent[],
+    existingEvents: ((evtRes.data || []) as Omit<ExistingEvent, 'table'>[]).map((e) => ({
+      ...e,
+      table: 'events',
+    })),
+    existingStaged: ((stagedRes.data || []) as Omit<ExistingEvent, 'table'>[]).map((e) => ({
+      ...e,
+      table: 'events_staged',
+    })),
   };
 }
 
 // ── Matching functions ───────────────────────────────────────────────
 
 /** Find the best matching location by name. Returns the location ID or null. */
-export function matchLocation(
-  name: string | null,
-  locations: LocationRow[]
-): string | null {
+export function matchLocation(name: string | null, locations: LocationRow[]): string | null {
   const bestMatch = findBestNameMatch(
     name,
     locations.map((loc) => ({ id: loc.id, name: loc.name, address: loc.address })),
@@ -96,10 +129,7 @@ export function matchLocation(
 }
 
 /** Find the best matching organization by name. Returns the org ID or null. */
-export function matchOrganization(
-  name: string | null,
-  organizations: OrgRow[]
-): string | null {
+export function matchOrganization(name: string | null, organizations: OrgRow[]): string | null {
   const bestMatch = findBestNameMatch(
     name,
     organizations.map((org) => ({ id: org.id, name: org.name }))
@@ -114,10 +144,7 @@ function normTag(s: string): string {
 }
 
 /** Find a tag ID by name (normalized match — "arts-culture" matches "Arts+Culture"). */
-export function matchTag(
-  tagName: string | null,
-  tags: TagRow[]
-): string | null {
+export function matchTag(tagName: string | null, tags: TagRow[]): string | null {
   if (!tagName) return null;
   const normalized = normTag(tagName);
   const tag = tags.find((t) => normTag(t.name) === normalized);
@@ -170,19 +197,39 @@ export function inferTag(
 interface DedupResult {
   action: 'new' | 'update' | 'skip';
   existing_event_id?: string;
+  existing_event_table?: 'events' | 'events_staged';
   update_reason?: string;
+}
+
+interface DedupOptions {
+  forceUpdateOnPending: boolean;
+}
+
+/** Normalize time strings to HH:MM precision for dedup/update comparisons. */
+function normalizeTimeForCompare(time: string | null | undefined): string | null {
+  if (!time) return null;
+  const trimmed = time.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return trimmed;
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
 /** Normalize a title for dedup comparison. */
 function normTitle(title: string): string {
-  return title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Significant words from a title (lowercase, stripped of noise). */
 function titleWords(title: string): Set<string> {
   const stop = new Set(['the', 'a', 'an', 'and', 'at', 'in', 'of', 'for', 'to', 'by', '-', '&']);
   return new Set(
-    normTitle(title).split(/\s+/).filter((w) => w.length > 1 && !stop.has(w))
+    normTitle(title)
+      .split(/\s+/)
+      .filter((w) => w.length > 1 && !stop.has(w))
   );
 }
 
@@ -229,7 +276,8 @@ export function dedup(
   event: ScrapedEvent,
   sourceId: string,
   existingEvents: ExistingEvent[],
-  existingStaged: ExistingEvent[]
+  existingStaged: ExistingEvent[],
+  options: DedupOptions
 ): DedupResult {
   const allExisting = [...existingEvents, ...existingStaged];
 
@@ -243,20 +291,39 @@ export function dedup(
       // Found a same-source match — check if anything changed
       const changes: string[] = [];
 
-      if (event.start_time && existing.start_time && event.start_time !== existing.start_time) {
-        changes.push(`time changed ${existing.start_time}→${event.start_time}`);
+      const scrapedStartTime = normalizeTimeForCompare(event.start_time);
+      const existingStartTime = normalizeTimeForCompare(existing.start_time);
+      if (scrapedStartTime && existingStartTime && scrapedStartTime !== existingStartTime) {
+        changes.push(`time changed ${existingStartTime}→${scrapedStartTime}`);
       }
       if (event.cost && existing.cost && event.cost !== existing.cost) {
         changes.push(`cost changed ${existing.cost}→${event.cost}`);
       }
 
       if (changes.length === 0) {
-        return { action: 'skip', existing_event_id: existing.id };
+        if (
+          options.forceUpdateOnPending &&
+          existing.table === 'events_staged' &&
+          existing.status === 'pending'
+        ) {
+          return {
+            action: 'update',
+            existing_event_id: existing.id,
+            existing_event_table: existing.table,
+            update_reason: 'forced update for pending staged event',
+          };
+        }
+        return {
+          action: 'skip',
+          existing_event_id: existing.id,
+          existing_event_table: existing.table,
+        };
       }
 
       return {
         action: 'update',
         existing_event_id: existing.id,
+        existing_event_table: existing.table,
         update_reason: changes.join(', '),
       };
     }
@@ -270,7 +337,11 @@ export function dedup(
 
   for (const existing of crossSourceCandidates) {
     if (titlesMatch(event.title, existing.source_title || existing.title)) {
-      return { action: 'skip', existing_event_id: existing.id };
+      return {
+        action: 'skip',
+        existing_event_id: existing.id,
+        existing_event_table: existing.table,
+      };
     }
   }
 
@@ -290,9 +361,7 @@ export function resolveSourceDbId(
   sourceSites: { id: string; name: string; url: string }[]
 ): string {
   // Try exact name match first
-  const byName = sourceSites.find(
-    (s) => s.name.toLowerCase() === configName.toLowerCase()
-  );
+  const byName = sourceSites.find((s) => s.name.toLowerCase() === configName.toLowerCase());
   if (byName) return byName.id;
 
   // Try URL match
@@ -328,6 +397,7 @@ export function matchEvents(
   ref: ReferenceData | null,
   tagKeywords: Record<string, string[]>,
   venueTags: VenueTagRule[],
+  dedupOptions: DedupOptions,
   verbose: boolean
 ): ProcessedEvent[] {
   const tagRegexes = buildTagRegexes(tagKeywords);
@@ -345,13 +415,7 @@ export function matchEvents(
     let location_added: string | null = null;
 
     // Apply explicit location_map from source config (e.g. "Bavarian Lodge" → "Ski Hill Lodge")
-    let locationName = event.location_name;
-    if (locationName && source.location_map) {
-      const mapped = Object.entries(source.location_map).find(
-        ([key]) => key.toLowerCase() === locationName!.toLowerCase()
-      );
-      if (mapped) locationName = mapped[1];
-    }
+    const locationName = resolveMappedName(event.location_name, source.location_map);
 
     if (ref) {
       location_id = matchLocation(locationName, ref.locations);
@@ -367,11 +431,16 @@ export function matchEvents(
     let organization_id: string | null = null;
     let organization_added: string | null = null;
 
-    if (source.default_organization && ref) {
+    const mappedOrganizationName = resolveMappedName(locationName, source.organization_map);
+
+    if (mappedOrganizationName && ref) {
+      organization_id = matchOrganization(mappedOrganizationName, ref.organizations);
+    }
+    if (!organization_id && source.default_organization && ref) {
       organization_id = matchOrganization(source.default_organization, ref.organizations);
     }
     if (!organization_id) {
-      organization_added = source.default_organization || null;
+      organization_added = mappedOrganizationName || source.default_organization || null;
     }
 
     // Tag matching: infer from content → venue default → source default → null
@@ -390,7 +459,7 @@ export function matchEvents(
     // Dedup
     let dedupResult: DedupResult = { action: 'new' };
     if (ref) {
-      dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged);
+      dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged, dedupOptions);
     }
 
     // CANCELED events: only keep if updating an existing event
@@ -402,6 +471,7 @@ export function matchEvents(
       dedupResult = {
         action: 'update',
         existing_event_id: dedupResult.existing_event_id,
+        existing_event_table: dedupResult.existing_event_table,
         update_reason: 'event canceled',
       };
     }
@@ -421,8 +491,12 @@ export function matchEvents(
       organization_added,
       primary_tag_id,
       parent_event_id: null, // series detection is a future enhancement
+      series_key: event.series_key || null,
+      series_parent_title: event.series_parent_title || null,
+      series_parent_website: event.series_parent_website || null,
       source_id: sourceDbId,
       existing_event_id: dedupResult.existing_event_id,
+      existing_event_table: dedupResult.existing_event_table,
     });
   }
 

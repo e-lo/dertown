@@ -4,6 +4,11 @@
 # Runtime state (last_scraped, last_status) lives in the DB.
 
 # ── Tag inference ────────────────────────────────────────────────────
+# Global max characters for event descriptions across all extractors.
+# Keep this large to preserve full detail while preventing runaway payloads.
+description_max_chars: 12000
+
+# ── Tag inference ────────────────────────────────────────────────────
 # Keywords matched against event title + description (word-boundary match).
 # Order matters: first match wins, so put specific tags before broad ones.
 tag_keywords:
@@ -66,58 +71,71 @@ tag_keywords:
 
 # Venue name patterns → default tag (when no keyword matches).
 venue_tags:
-  - match: "snowy owl"
-    tag: "arts-culture"
+  - match: 'snowy owl'
+    tag: 'arts-culture'
 
 # ── Sources ──────────────────────────────────────────────────────────
 sources:
-  - id: "icicle-creek"
-    name: "Icicle Creek Center"
-    url: "https://icicle.org/find-events/"
-    type: "html"
+  - id: 'icicle-creek'
+    name: 'Icicle Creek Center'
+    url: 'https://icicle.org/find-events/'
+    type: 'html'
     selectors: {} # to be determined during implementation
+    detail_description_selectors:
+      - '.tribe-events-single-event-description'
+      - '.entry-content'
+      - '.event-content'
+      - 'main article'
     geo_filter: null
-    default_organization: "Icicle Creek Center for the Arts"
-    default_location: "Icicle Creek Center for the Arts"
-    default_tag: "arts-culture"
+    default_organization: 'Icicle Creek Center for the Arts'
+    default_location: 'Icicle Creek Center for the Arts'
+    default_tag: 'arts-culture'
     exclude:
       title_keywords:
-        - " camp"              # "Summer Strings Camp", "Art & Mindful Movement Camp"
-        - "group lessons"      # "Beginning Guitar - Group Lessons"
-        - "intro to mixing"
+        - ' camp' # "Summer Strings Camp", "Art & Mindful Movement Camp"
+        - 'group lessons' # "Beginning Guitar - Group Lessons"
+        - 'intro to mixing'
       title_patterns:
-        - "^intro to "         # "Intro to ..." multi-session classes
+        - '^intro to ' # "Intro to ..." multi-session classes
 
-  - id: "ncw-libraries"
-    name: "NCW Libraries"
-    url: "https://ncwlibraries.libcal.com/calendar/leavenworth"
-    type: "json-api"
-    api_url: "https://ncwlibraries.libcal.com/ajax/calendar/list"
-    api_cal_ids: "20171,20179"  # Leavenworth (20171) + Peshastin (20179)
-    geo_filter: null  # Not needed — calendar IDs already filter to local branches
-    default_organization: "NCW Libraries"
+  - id: 'ncw-libraries'
+    name: 'NCW Libraries'
+    url: 'https://ncwlibraries.libcal.com/calendar/leavenworth'
+    type: 'json-api'
+    api_url: 'https://ncwlibraries.libcal.com/ajax/calendar/list'
+    api_cal_ids: '20171,20179' # Leavenworth (20171) + Peshastin (20179)
+    geo_filter: null # Not needed — calendar IDs already filter to local branches
+    default_organization: 'NCW Libraries'
     default_location: null
     default_tag: null
     exclude: null
+    organization_map:
+      'Leavenworth Public Library': 'Leavenworth Public Library'
+      'Peshastin Public Library': 'Peshastin Public Library'
 
-  - id: "ski-leavenworth"
-    name: "Ski Leavenworth"
-    url: "https://skileavenworth.com/events"
-    type: "html"
+  - id: 'ski-leavenworth'
+    name: 'Ski Leavenworth'
+    url: 'https://skileavenworth.com/events'
+    type: 'html'
     selectors: {}
+    detail_description_selectors:
+      - '.node-event .field--name-body'
+      - '.field--name-body'
+      - 'article .node__content'
+      - 'main article'
     geo_filter: null
-    default_organization: "Leavenworth Winter Sports Club"
-    default_location: "Leavenworth Ski Hill"
-    default_tag: "recreation"
+    default_organization: 'Leavenworth Winter Sports Club'
+    default_location: 'Leavenworth Ski Hill'
+    default_tag: 'recreation'
     exclude: null
     location_map:
-      "Bavarian Lodge": "Ski Hill Lodge"
+      'Bavarian Lodge': 'Ski Hill Lodge'
 
-  - id: "leavenworth-org"
-    name: "Leavenworth.org"
-    url: "https://leavenworth.org/calendar/"
-    type: "ical"
-    ical_url: "https://leavenworth.org/events/?ical=1"
+  - id: 'leavenworth-org'
+    name: 'Leavenworth.org'
+    url: 'https://leavenworth.org/calendar/'
+    type: 'ical'
+    ical_url: 'https://leavenworth.org/events/?ical=1'
     geo_filter: null
     default_organization: null
     default_location: null
@@ -125,55 +143,55 @@ sources:
     exclude:
       title_keywords:
         # Bar/restaurant recurring events
-        - "live music:"
-        - "live music at"
-        - "open mic night"
-        - "karaoke"
-        - "trivia night"
-        - "bingo @"
-        - "game night @"
+        - 'live music:'
+        - 'live music at'
+        - 'open mic night'
+        - 'karaoke'
+        - 'trivia night'
+        - 'bingo @'
+        - 'game night @'
         # Winery/tasting room events (tourist-focused recurring)
-        - "@ icicle ridge winery"
-        - "@ goose ridge"
-        - "@ milbrandt"
-        - "@ evergreen family wines"
-        - "wine tasting"
-        - "winery"
+        - '@ icicle ridge winery'
+        - '@ goose ridge'
+        - '@ milbrandt'
+        - '@ evergreen family wines'
+        - 'wine tasting'
+        - 'winery'
         # Tourist/promotional events
-        - "resort yoga"
-        - "glassblowing"
-        - "glass fusing"
-        - "@ boulder bend"
+        - 'resort yoga'
+        - 'glassblowing'
+        - 'glass fusing'
+        - '@ boulder bend'
       location_keywords:
         - "visconti's"
-        - "J5 Coffee"
+        - 'J5 Coffee'
         # Venues we already source directly — avoid duplicates
-        - "icicle creek center"
-        - "ICCA"
-        - "snowy owl"
-        - "wenatchee river institute"
-        - "red barn"
-        - "ski hill"
-        - "ski leavenworth"
+        - 'icicle creek center'
+        - 'ICCA'
+        - 'snowy owl'
+        - 'wenatchee river institute'
+        - 'red barn'
+        - 'ski hill'
+        - 'ski leavenworth'
         # Out of area (Cascade School District scope: Plain, Leavenworth, Peshastin, Merritt, Stevens Pass)
-        - "NCW Woodshop"          # Cashmere
-        - "Boulder Bend"          # tourist attraction
-        - "Cashmere"
-        - "Wenatchee"
-        - "East Wenatchee"
-        - "Chelan"
-        - "Ellensburg"
+        - 'NCW Woodshop' # Cashmere
+        - 'Boulder Bend' # tourist attraction
+        - 'Cashmere'
+        - 'Wenatchee'
+        - 'East Wenatchee'
+        - 'Chelan'
+        - 'Ellensburg'
 
-  - id: "wenatchee-river-institute"
-    name: "Wenatchee River Institute"
-    url: "https://wenatcheeriverinstitute.org/event-calendar.html"
-    type: "html"
+  - id: 'wenatchee-river-institute'
+    name: 'Wenatchee River Institute'
+    url: 'https://wenatcheeriverinstitute.org/event-calendar.html'
+    type: 'html'
     selectors: {}
     geo_filter: null
-    default_organization: "Wenatchee River Institute"
-    default_location: "Wenatchee River Institute"
-    default_tag: "nature"
+    default_organization: 'Wenatchee River Institute'
+    default_location: 'Wenatchee River Institute'
+    default_tag: 'nature'
     exclude:
       title_keywords:
-        - " camp"
-        - "science on tap"       # held in Wenatchee, not Leavenworth
+        - ' camp'
+        - 'science on tap' # held in Wenatchee, not Leavenworth

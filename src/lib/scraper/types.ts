@@ -12,6 +12,9 @@ export interface ScrapedEvent {
   registration_url: string | null;
   website: string | null; // event detail page URL
   image_url: string | null;
+  series_key?: string | null; // stable key to group scraped instances into a series
+  series_parent_title?: string | null; // title to use when creating a parent series event
+  series_parent_website?: string | null; // canonical series page URL
 }
 
 /** Result of processing one event through the matching/dedup pipeline. */
@@ -25,8 +28,12 @@ export interface ProcessedEvent {
   organization_added: string | null;
   primary_tag_id: string | null;
   parent_event_id: string | null;
+  series_key: string | null;
+  series_parent_title: string | null;
+  series_parent_website: string | null;
   source_id: string;
   existing_event_id?: string; // set for 'update' and 'skip' actions
+  existing_event_table?: 'events' | 'events_staged';
 }
 
 /** Per-source scrape result summary. */
@@ -64,6 +71,7 @@ export interface SourceConfig {
   selectors?: Record<string, string>;
   ical_url?: string;
   fallback_type?: string;
+  detail_description_selectors?: string[];
   api_url?: string;
   api_cal_ids?: string;
   geo_filter?: GeoFilter | null;
@@ -72,6 +80,7 @@ export interface SourceConfig {
   default_tag?: string | null;
   exclude?: ExcludeRules | null;
   location_map?: Record<string, string> | null;
+  organization_map?: Record<string, string> | null;
 }
 
 /** Venue name pattern → tag mapping from config. */
@@ -85,4 +94,5 @@ export interface SourcesConfig {
   sources: SourceConfig[];
   tag_keywords?: Record<string, string[]>;
   venue_tags?: VenueTagRule[];
+  description_max_chars?: number;
 }

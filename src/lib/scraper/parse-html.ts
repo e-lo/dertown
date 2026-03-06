@@ -35,7 +35,7 @@ const EXTRACTORS: Record<string, Extractor> = {
  *       div.event-price (e.g. "$40")
  *     div.event-desc > p (description)
  */
-function extractIcicleCreek(html: string, _source: SourceConfig): ScrapedEvent[] {
+function extractIcicleCreek(html: string, source: SourceConfig): ScrapedEvent[] {
   const $ = cheerio.load(html);
   const events: ScrapedEvent[] = [];
   const currentYear = new Date().getFullYear();
@@ -49,9 +49,6 @@ function extractIcicleCreek(html: string, _source: SourceConfig): ScrapedEvent[]
     titleInner.find('.top-date').remove();
     const title = titleInner.text().replace(/\s+/g, ' ').trim();
     if (!title) return;
-
-    // Category
-    const catSpan = el.find('.cat-names').text().trim();
 
     // Date and time from event-datetime
     const dateTimeText = el.find('.event-datetime .date-container').text().trim();
@@ -67,7 +64,9 @@ function extractIcicleCreek(html: string, _source: SourceConfig): ScrapedEvent[]
     const imageUrl = img.attr('src') || null;
 
     // Detail link
-    const detailLink = el.find('.event-info a').attr('href') || el.find('.event-purchase a').attr('href') || null;
+    const detailHref =
+      el.find('.event-info a').attr('href') || el.find('.event-purchase a').attr('href') || null;
+    const detailLink = detailHref ? resolveUrl(detailHref, source.url) : null;
 
     // Description
     const desc = el.find('.event-desc').text().replace(/\s+/g, ' ').trim() || null;
@@ -92,7 +91,10 @@ function extractIcicleCreek(html: string, _source: SourceConfig): ScrapedEvent[]
 }
 
 /** Parse Icicle Creek date/time strings like "Mar 16 6:30pm", "Mar 16-17", "Mar 16" */
-function parseIcicleDateTime(text: string, year: number): {
+function parseIcicleDateTime(
+  text: string,
+  year: number
+): {
   startDate: string | null;
   endDate: string | null;
   startTime: string | null;
@@ -100,8 +102,18 @@ function parseIcicleDateTime(text: string, year: number): {
   if (!text) return { startDate: null, endDate: null, startTime: null };
 
   const monthNames: Record<string, number> = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
   };
 
   // Match: "Mon DD HH:MMam/pm" or "Mon DD-DD" or "Mon DD"
@@ -139,7 +151,7 @@ function parseIcicleDateTime(text: string, year: number): {
  *   - div.eventdate with <time datetime="..."> elements (start/end ISO datetimes)
  *   - div.eventspecifics with strong>a (title+link), div.event-dates (location), div.views-field-view-node (description)
  */
-function extractSkiLeavenworth(html: string, _source: SourceConfig): ScrapedEvent[] {
+function extractSkiLeavenworth(html: string, source: SourceConfig): ScrapedEvent[] {
   const $ = cheerio.load(html);
   const events: ScrapedEvent[] = [];
 
@@ -171,18 +183,17 @@ function extractSkiLeavenworth(html: string, _source: SourceConfig): ScrapedEven
     if (titleLink.length === 0) continue;
     const title = titleLink.text().trim();
     const href = titleLink.attr('href') || '';
-    const website = href.startsWith('http') ? href : `https://skileavenworth.com${href}`;
+    const website = resolveUrl(href, source.url);
 
     // Location from div.event-dates (may contain a map link)
     const eventDatesDiv = specBlock.find('div.event-dates');
     const mapLink = eventDatesDiv.find('a[href*="maps"]');
-    const location_name = mapLink.length > 0
-      ? mapLink.text().trim()
-      : eventDatesDiv.text().trim() || null;
+    const location_name =
+      mapLink.length > 0 ? mapLink.text().trim() : eventDatesDiv.text().trim() || null;
 
     // Description
     const descDiv = specBlock.find('div.views-field-view-node');
-    const description = descDiv.text().trim() || null;
+    const description = descDiv.text().replace(/\s+/g, ' ').trim() || null;
 
     events.push({
       title,
@@ -219,8 +230,8 @@ function extractDateTimeFromIso(iso: string): { date: string | null; time: strin
     minute: '2-digit',
     hour12: false,
   }).formatToParts(d);
-  const hour = timeParts.find(p => p.type === 'hour')?.value || '00';
-  const minute = timeParts.find(p => p.type === 'minute')?.value || '00';
+  const hour = timeParts.find((p) => p.type === 'hour')?.value || '00';
+  const minute = timeParts.find((p) => p.type === 'minute')?.value || '00';
   const time = `${hour}:${minute}`;
 
   return {
@@ -234,7 +245,7 @@ function extractDateTimeFromIso(iso: string): { date: string | null; time: strin
  * Events are <a> tags inside <td> cells, with time prefixed in the link text.
  * Link URL pattern: /event-calendar.html/event/YYYY/MM/DD/slug/ID
  */
-function extractWRI(html: string, _source: SourceConfig): ScrapedEvent[] {
+function extractWRI(html: string, source: SourceConfig): ScrapedEvent[] {
   const $ = cheerio.load(html);
   const events: ScrapedEvent[] = [];
 
@@ -260,7 +271,9 @@ function extractWRI(html: string, _source: SourceConfig): ScrapedEvent[] {
     const rawText = $(el).text().replace(/\s+/g, ' ').trim();
 
     // Extract time from link text: "7:00 pm Event Title" or "7:00 pm - 8:00 pm Event Title"
-    const timeMatch = rawText.match(/^(\d{1,2}:\d{2}\s*(?:am|pm))(?:\s*-\s*(\d{1,2}:\d{2}\s*(?:am|pm)))?\s+(.+)$/i);
+    const timeMatch = rawText.match(
+      /^(\d{1,2}:\d{2}\s*(?:am|pm))(?:\s*-\s*(\d{1,2}:\d{2}\s*(?:am|pm)))?\s+(.+)$/i
+    );
     let title: string;
     let startTime: string | null = null;
     let endTime: string | null = null;
@@ -286,9 +299,7 @@ function extractWRI(html: string, _source: SourceConfig): ScrapedEvent[] {
 
     if (!title) return;
 
-    const website = href.startsWith('http')
-      ? href
-      : `https://wenatcheeriverinstitute.org${href}`;
+    const website = resolveUrl(href, source.url);
 
     events.push({
       title,
@@ -311,7 +322,10 @@ function extractWRI(html: string, _source: SourceConfig): ScrapedEvent[] {
 
 /** Parse "7:00 pm" → "19:00" */
 function parseTime12h(raw: string): string | null {
-  const match = raw.trim().toLowerCase().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
+  const match = raw
+    .trim()
+    .toLowerCase()
+    .match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
   if (!match) return null;
   let hour = parseInt(match[1]);
   const min = match[2];
@@ -319,4 +333,12 @@ function parseTime12h(raw: string): string | null {
   if (period === 'pm' && hour !== 12) hour += 12;
   if (period === 'am' && hour === 12) hour = 0;
   return `${String(hour).padStart(2, '0')}:${min}`;
+}
+
+function resolveUrl(href: string, base: string): string {
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return href;
+  }
 }
