@@ -74,7 +74,15 @@ export interface SourceConfig {
   location_map?: Record<string, string> | null;
 }
 
+/** Venue name pattern → tag mapping from config. */
+export interface VenueTagRule {
+  match: string;
+  tag: string;
+}
+
 /** Top-level sources.yaml structure. */
 export interface SourcesConfig {
   sources: SourceConfig[];
+  tag_keywords?: Record<string, string[]>;
+  venue_tags?: VenueTagRule[];
 }

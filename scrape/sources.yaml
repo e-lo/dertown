@@ -3,6 +3,73 @@
 # Extraction rules, selectors, and filters are kept here (version-controlled).
 # Runtime state (last_scraped, last_status) lives in the DB.
 
+# ── Tag inference ────────────────────────────────────────────────────
+# Keywords matched against event title + description (word-boundary match).
+# Order matters: first match wins, so put specific tags before broad ones.
+tag_keywords:
+  family:
+    - kids
+    - family
+    - children
+    - youth
+    - camp
+    - storytime
+    - story time
+  nature:
+    - bird
+    - wildlife
+    - nature
+    - garden
+    - plant
+    - ecology
+    - river
+    - tracking
+  arts-culture:
+    - concert
+    - music
+    - musical
+    - dance
+    - performance
+    - theater
+    - theatre
+    - art
+    - gallery
+    - film
+    - movie
+    - singer
+    - songwriter
+    - band
+    - opera
+  civic:
+    - meeting
+    - council
+    - board
+    - commission
+    - civic
+    - town hall
+    - vote
+  recreation:
+    - hike
+    - trail
+    - ski
+    - snowshoe
+    - climb
+    - kayak
+    - bike
+    - mountain
+  sports:
+    - race
+    - tournament
+    - league
+    - game day
+    - championship
+
+# Venue name patterns → default tag (when no keyword matches).
+venue_tags:
+  - match: "snowy owl"
+    tag: "arts-culture"
+
+# ── Sources ──────────────────────────────────────────────────────────
 sources:
   - id: "icicle-creek"
     name: "Icicle Creek Center"
@@ -41,7 +108,7 @@ sources:
     geo_filter: null
     default_organization: "Leavenworth Winter Sports Club"
     default_location: "Leavenworth Ski Hill"
-    default_tag: "outdoors"
+    default_tag: "recreation"
     exclude: null
     location_map:
       "Bavarian Lodge": "Ski Hill Lodge"
