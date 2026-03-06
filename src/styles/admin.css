@@ -228,6 +228,45 @@
   @apply inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-900 rounded-md text-xs font-semibold uppercase tracking-wide;
 }
 
+/* Dashboard tables: keep wide tables usable on smaller viewports */
+.dashboard-table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-table-container .data-table,
+.dashboard-table-container .sortable-table {
+  min-width: 1100px;
+}
+
+.pending-approval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.pending-approval-card {
+  @apply bg-white rounded-xl border border-gray-200 p-4;
+}
+
+.pending-approval-head {
+  @apply flex items-center justify-between mb-3;
+}
+
+.pending-approval-head h3 {
+  @apply text-base font-semibold text-gray-900 m-0;
+}
+
+.pending-approval-head a {
+  @apply text-sm text-indigo-600 hover:text-indigo-800 hover:underline;
+}
+
+.pending-approval-card .dashboard-table-container .data-table {
+  min-width: 700px;
+}
+
 /* Modal styles */
 .modal-overlay {
   @apply fixed inset-0 bg-black/50 z-[1000] hidden items-center justify-center;
@@ -374,5 +413,9 @@
 
   .section-title {
     @apply text-lg;
+  }
+
+  .pending-approval-grid {
+    grid-template-columns: 1fr;
   }
 }
