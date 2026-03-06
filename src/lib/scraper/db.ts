@@ -2,8 +2,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import dotenv from 'dotenv';
 
-// Load .env.local first, then .env as fallback
+// Load env files in priority order (first match wins per variable)
 dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env.production' });
 dotenv.config();
 
 const LOCAL_URL = 'http://127.0.0.1:54321';
