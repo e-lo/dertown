@@ -1,9 +1,17 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
 import AddLocationModal from '../../components/ui/AddLocationModal.astro';
+import { getSessionFromCookies } from '../../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Locations">
+<AdminLayout title="Locations" userEmail={userEmail}>
   <Fragment slot="actions">
     <button type="button" onclick="window.openAddLocationModal?.()" class="icon-btn btn-save" aria-label="Add location">
       <span class="material-symbols-outlined text-2xl">add</span>

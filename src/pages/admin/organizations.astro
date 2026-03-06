@@ -1,9 +1,17 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
 import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
+import { getSessionFromCookies } from '../../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Organizations">
+<AdminLayout title="Organizations" userEmail={userEmail}>
   <Fragment slot="actions">
     <button type="button" onclick="window.openAddOrganizationModal?.()" class="icon-btn btn-save" aria-label="Add organization" title="Add organization">
       <span class="material-symbols-outlined text-2xl">add</span>

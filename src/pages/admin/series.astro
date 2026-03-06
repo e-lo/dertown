@@ -1,8 +1,16 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
+import { getSessionFromCookies } from '../../lib/session';
+
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+const userEmail = session.user?.email || 'Admin';
 ---
 
-<AdminLayout title="Manage Series">
+<AdminLayout title="Manage Series" userEmail={userEmail}>
   <Fragment slot="modals">
     <!-- Edit Series Modal -->
     <div id="editSeriesModal" class="modal-overlay hidden">
