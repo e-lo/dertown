@@ -1,10 +1,15 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import {
+  DEFAULT_NAME_MATCH_THRESHOLD,
+  findBestNameMatch,
+} from '@/lib/entity-matching';
 
 export const prerender = false;
 
 export const GET = withAdminAuth(async ({ url }) => {
   const all = url.searchParams.get('all') === 'true';
+  const includeDuplicates = url.searchParams.get('includeDuplicates') === 'true';
   let query = supabaseAdmin
     .from('locations')
     .select(
@@ -23,7 +28,48 @@ export const GET = withAdminAuth(async ({ url }) => {
     return jsonError('Failed to fetch locations');
   }
 
-  return jsonResponse(locations);
+  const rows = locations || [];
+  if (!all || !includeDuplicates) {
+    return jsonResponse(rows);
+  }
+
+  const approved = rows.filter((row) => row.status === 'approved');
+  const withDuplicates = rows.map((row) => {
+    if (row.status !== 'pending' || !row.name) {
+      return row;
+    }
+
+    const bestMatch = findBestNameMatch(
+      row.name,
+      approved
+        .filter((candidate) => candidate.id !== row.id)
+        .map((candidate) => ({
+          id: candidate.id,
+          name: candidate.name || '',
+          address: candidate.address || null,
+        })),
+      { includeAddress: true }
+    );
+
+    if (!bestMatch || bestMatch.score < DEFAULT_NAME_MATCH_THRESHOLD) {
+      return { ...row, likely_duplicate: null };
+    }
+
+    const candidate = approved.find((item) => item.id === bestMatch.id);
+    if (!candidate) return { ...row, likely_duplicate: null };
+
+    return {
+      ...row,
+      likely_duplicate: {
+        id: candidate.id,
+        name: candidate.name,
+        address: candidate.address,
+        score: Math.round(bestMatch.score * 100) / 100,
+      },
+    };
+  });
+
+  return jsonResponse(withDuplicates);
 });
 
 export const POST = withAdminAuth(async ({ request }) => {
