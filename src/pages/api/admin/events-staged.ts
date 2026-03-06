@@ -10,7 +10,8 @@ export const GET = withAdminAuth(async () => {
       secondary_tag:tags!events_staged_secondary_tag_id_fkey(name),
       location:locations!events_staged_location_id_fkey(name, address),
       organization:organizations!events_staged_organization_id_fkey(name)
-    `);
+    `)
+    .eq('status', 'pending');
 
   if (error) {
     console.error('Database error:', error);
