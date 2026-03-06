@@ -1581,7 +1581,14 @@ const userEmail = session.user?.email || 'Admin';
             window.location.href = `/login?redirect=${currentUrl}`;
             return;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
+          let detail = `HTTP error! status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            if (errorData?.error) detail = errorData.error;
+          } catch {
+            // Ignore JSON parse issues and keep default message
+          }
+          throw new Error(detail);
         }
         await response.json();
         showMessage('Event rejected successfully!', 'success');
