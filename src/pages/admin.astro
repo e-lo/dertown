@@ -1134,6 +1134,7 @@ const userEmail = session.user?.email || 'Admin';
           const editFunction = eventIsStaged ? 'editStagedEvent' : 'editExistingEvent';
           const approveFunction = eventIsStaged ? 'approveEvent' : 'approveExistingEvent';
           const rejectFunction = eventIsStaged ? 'rejectEvent' : 'rejectExistingEvent';
+          const duplicateFunction = eventIsStaged ? 'markDuplicateStagedEvent' : 'markDuplicateExistingEvent';
           // For non-staged events (including pending), use "Archive" instead of "Reject"
           const rejectLabel = eventIsStaged ? 'Reject' : 'Archive';
           const rejectAriaLabel = eventIsStaged ? 'Reject event' : 'Archive event';
@@ -1165,6 +1166,10 @@ const userEmail = session.user?.email || 'Admin';
             '<button onclick="' + approveFunction + '(\'' + event.id + '\')" class="icon-btn btn-approve" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Approve event">' +
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">check</span>' +
             '<span class="tooltip">Approve</span>' +
+            '</button>' +
+            '<button onclick="' + duplicateFunction + '(\'' + event.id + '\')" class="icon-btn" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem; background-color: #fce7f3; color: #be185d;" aria-label="Mark duplicate">' +
+            '<span class="material-symbols-outlined" style="font-size: 1.25rem;">content_copy_off</span>' +
+            '<span class="tooltip">Mark Duplicate</span>' +
             '</button>' +
             '<button onclick="' + rejectFunction + '(\'' + event.id + '\')" class="icon-btn btn-reject" style="padding: 0.5rem; min-width: auto;" aria-label="' + rejectAriaLabel + '">' +
             '<span class="material-symbols-outlined" style="font-size: 1.25rem;">archive</span>' +
@@ -1533,8 +1538,8 @@ const userEmail = session.user?.email || 'Admin';
    * Rejects a staged event
    * @param {string} eventId - The ID of the staged event to reject
    */
-  async function rejectEvent(eventId) {
-    const reason = prompt('Reason for rejection (optional):');
+  async function rejectEvent(eventId, presetReason = null) {
+    const reason = presetReason !== null ? presetReason : prompt('Reason for rejection (optional):');
     try {
         const response = await fetch('/api/admin/events-staged/reject', {
           method: 'POST',
@@ -3028,8 +3033,8 @@ const userEmail = session.user?.email || 'Admin';
     }
 
     // Reject existing events/announcements
-    async function rejectExistingEvent(eventId) {
-      const reason = prompt('Reason for archiving (optional):');
+    async function rejectExistingEvent(eventId, presetReason = null) {
+      const reason = presetReason !== null ? presetReason : prompt('Reason for archiving (optional):');
       try {
         const response = await fetch('/api/admin/events/reject', {
           method: 'POST',
@@ -3100,6 +3105,18 @@ const userEmail = session.user?.email || 'Admin';
       await updatePendingEntityStatus('organization', organizationId, 'archived');
     }
 
+    async function markDuplicateStagedEvent(eventId) {
+      const confirmed = window.confirm('Mark this staged event as duplicate and remove it from pending review?');
+      if (!confirmed) return;
+      await rejectEvent(eventId, 'Marked duplicate by admin');
+    }
+
+    async function markDuplicateExistingEvent(eventId) {
+      const confirmed = window.confirm('Mark this event as duplicate and archive it?');
+      if (!confirmed) return;
+      await rejectExistingEvent(eventId, 'Marked duplicate by admin');
+    }
+
     async function markLocationAsDuplicate(duplicateId, canonicalId) {
       await resolvePendingDuplicate('location', duplicateId, canonicalId);
     }
@@ -3128,6 +3145,8 @@ const userEmail = session.user?.email || 'Admin';
     window.archivePendingOrganization = archivePendingOrganization;
     window.markLocationAsDuplicate = markLocationAsDuplicate;
     window.markOrganizationAsDuplicate = markOrganizationAsDuplicate;
+    window.markDuplicateStagedEvent = markDuplicateStagedEvent;
+    window.markDuplicateExistingEvent = markDuplicateExistingEvent;
     
     // Modal functions
   /**
