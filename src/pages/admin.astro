@@ -257,6 +257,12 @@ const userEmail = session.user?.email || 'Admin';
   let allTags = [];
   let allParentEvents = [];
 
+  function getAllowedParentSource() {
+    if (currentEditType === 'staged-event') return 'events_staged';
+    if (currentEditType === 'existing-event' || currentEditType === 'new-event') return 'events';
+    return null;
+  }
+
   // ============================================================================
   // DATA LOADING FUNCTIONS
   // ============================================================================
@@ -665,9 +671,12 @@ const userEmail = session.user?.email || 'Admin';
         return;
       }
 
-      const matches = allParentEvents.filter(event => 
-        event && event.title && event.title.toLowerCase().includes(query)
-      ).slice(0, 10);
+      const allowedSource = getAllowedParentSource();
+      const matches = allParentEvents.filter(event => {
+        if (!event || !event.title) return false;
+        if (allowedSource && event.parent_source && event.parent_source !== allowedSource) return false;
+        return event.title.toLowerCase().includes(query);
+      }).slice(0, 10);
 
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
@@ -678,7 +687,8 @@ const userEmail = session.user?.email || 'Admin';
       dropdown.innerHTML = matches.map(event => {
         const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : '';
         const timeStr = event.start_time ? event.start_time.substring(0, 5) : '';
-        const displayStr = `${event.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+        const sourceLabel = event.parent_source === 'events_staged' ? ' [staged]' : '';
+        const displayStr = `${event.title}${sourceLabel}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
         return `
           <div class="autocomplete-dropdown-item" 
                onclick="selectParentEvent('${event.id}', '${event.title.replace(/'/g, "\\'")}')">

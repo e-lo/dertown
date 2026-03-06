@@ -10,6 +10,22 @@ export const PUT = withAdminAuth(async ({ request }) => {
     return jsonError('Event ID is required', 400);
   }
 
+  if (updateData.parent_event_id) {
+    const { data: stagedParent, error: parentError } = await supabaseAdmin
+      .from('events_staged')
+      .select('id')
+      .eq('id', updateData.parent_event_id)
+      .eq('status', 'pending')
+      .single();
+
+    if (parentError || !stagedParent) {
+      return jsonError(
+        'Parent event must be selected from pending staged events when editing a staged event',
+        400
+      );
+    }
+  }
+
   // Convert empty strings to null for nullable fields (required by database constraints)
   // Email must be either NULL or a valid email format - empty string fails the constraint
   const cleanedData: any = {};
@@ -31,7 +47,7 @@ export const PUT = withAdminAuth(async ({ request }) => {
 
   if (error) {
     console.error('Error updating staged event:', error);
-    return jsonError('Failed to update event');
+    return jsonError(error.message || 'Failed to update event');
   }
 
   if (!data || data.length === 0) {

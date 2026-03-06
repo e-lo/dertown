@@ -22,6 +22,7 @@ export const GET = withAdminAuth(async () => {
   const { data: stagedEvents, error: stagedError } = await supabaseAdmin
     .from('events_staged')
     .select('id, title, start_date, start_time')
+    .eq('status', 'pending')
     .is('parent_event_id', null)
     .order('start_date', { ascending: false })
     .limit(100);
@@ -32,7 +33,9 @@ export const GET = withAdminAuth(async () => {
   }
 
   // Combine and deduplicate by ID
-  const allEvents = [...(approvedEvents || []), ...(stagedEvents || [])];
+  const approvedWithSource = (approvedEvents || []).map((event) => ({ ...event, parent_source: 'events' }));
+  const stagedWithSource = (stagedEvents || []).map((event) => ({ ...event, parent_source: 'events_staged' }));
+  const allEvents = [...approvedWithSource, ...stagedWithSource];
   const uniqueEvents = Array.from(new Map(allEvents.map((event) => [event.id, event])).values());
 
   return jsonResponse(uniqueEvents);
