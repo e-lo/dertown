@@ -98,20 +98,33 @@ sources:
       title_patterns:
         - '^intro to ' # "Intro to ..." multi-session classes
 
-  - id: 'ncw-libraries'
-    name: 'NCW Libraries'
+  - id: 'ncw-leavenworth-libraries'
+    name: 'Leavenworth Library'
     url: 'https://ncwlibraries.libcal.com/calendar/leavenworth'
     type: 'json-api'
     api_url: 'https://ncwlibraries.libcal.com/ajax/calendar/list'
-    api_cal_ids: '20171,20179' # Leavenworth (20171) + Peshastin (20179)
+    api_cal_ids: '20171' # Leavenworth (20171) 
     geo_filter: null # Not needed — calendar IDs already filter to local branches
-    default_organization: 'NCW Libraries'
-    default_location: null
+    default_organization: 'Leavenworth Public Library'
+    default_location: 'Leavenworth Public Library'
     default_tag: null
     exclude: null
     organization_map:
-      'Leavenworth Public Library': 'Leavenworth Public Library'
-      'Peshastin Public Library': 'Peshastin Public Library'
+      'Leavenworth Library': 'Leavenworth Public Library'
+      
+  - id: 'ncw-peshastin-libraries'
+    name: 'Peshastin Library'
+    url: 'https://ncwlibraries.libcal.com/calendar/peshastin'
+    type: 'json-api'
+    api_url: 'https://ncwlibraries.libcal.com/ajax/calendar/list'
+    api_cal_ids: '20179' #  Peshastin (20179)
+    geo_filter: null # Not needed — calendar IDs already filter to local branches
+    default_organization: 'Peshastin Public Library'
+    default_location: 'Peshastin Public Library'
+    default_tag: null
+    exclude: null
+    organization_map:
+      'Peshastin Library': 'Peshastin Public Library'
 
   - id: 'ski-leavenworth'
     name: 'Ski Leavenworth'
@@ -131,6 +144,21 @@ sources:
     location_map:
       'Bavarian Lodge': 'Ski Hill Lodge'
 
+  - id: 'icicle-brewing'
+    name: 'Icicle Brewing Company'
+    url: 'https://iciclebrewing.com/ibc-events/'
+    type: 'html'
+    selectors: {}
+    geo_filter: null
+    default_organization: 'Icicle Brewing Company'
+    default_location: 'Icicle Brewing Taproom'
+    default_tag: null
+    exclude:
+      title_keywords:
+        - 'bingo'
+        - 'trivia'
+        - 'live music'
+
   - id: 'leavenworth-org'
     name: 'Leavenworth.org'
     url: 'https://leavenworth.org/calendar/'
@@ -145,11 +173,8 @@ sources:
         # Bar/restaurant recurring events
         - 'live music:'
         - 'live music at'
-        - 'open mic night'
-        - 'karaoke'
         - 'trivia night'
         - 'bingo @'
-        - 'game night @'
         # Winery/tasting room events (tourist-focused recurring)
         - '@ icicle ridge winery'
         - '@ goose ridge'

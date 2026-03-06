@@ -17,6 +17,7 @@ type Extractor = (html: string, source: SourceConfig) => ScrapedEvent[];
 
 const EXTRACTORS: Record<string, Extractor> = {
   'icicle-creek': extractIcicleCreek,
+  'icicle-brewing': extractIcicleBrewing,
   'ski-leavenworth': extractSkiLeavenworth,
   'wenatchee-river-institute': extractWRI,
   // leavenworth-org: uses iCal feed instead
@@ -50,11 +51,24 @@ function extractIcicleCreek(html: string, source: SourceConfig): ScrapedEvent[] 
     const title = titleInner.text().replace(/\s+/g, ' ').trim();
     if (!title) return;
 
-    // Date and time from event-datetime
-    const dateTimeText = el.find('.event-datetime .date-container').text().trim();
-    // Format: "Mar 16 6:30pm" or "Mar 16-17" or "Mar 16"
-    const parsed = parseIcicleDateTime(dateTimeText, currentYear);
-    if (!parsed.startDate) return;
+    // Date/time can appear as multiple date-container entries.
+    const dateTimeTexts = el
+      .find('.event-datetime .date-container')
+      .map((_idx, node) => $(node).text().trim())
+      .get()
+      .filter(Boolean);
+
+    const parsedEntries = dateTimeTexts
+      .map((text) => parseIcicleDateTime(text, currentYear))
+      .filter((entry) => !!entry.startDate);
+
+    if (parsedEntries.length === 0) {
+      const fallbackDateTimeText = el.find('.event-datetime').text().replace(/\s+/g, ' ').trim();
+      const fallbackParsed = parseIcicleDateTime(fallbackDateTimeText, currentYear);
+      if (fallbackParsed.startDate) parsedEntries.push(fallbackParsed);
+    }
+
+    if (parsedEntries.length === 0) return;
 
     // Price
     const price = el.find('.event-price').text().trim() || null;
@@ -63,29 +77,163 @@ function extractIcicleCreek(html: string, source: SourceConfig): ScrapedEvent[] 
     const img = el.find('.event-img img');
     const imageUrl = img.attr('src') || null;
 
-    // Detail link
-    const detailHref =
-      el.find('.event-info a').attr('href') || el.find('.event-purchase a').attr('href') || null;
-    const detailLink = detailHref ? resolveUrl(detailHref, source.url) : null;
+    // Detail links can include one event-level link and/or multiple instance links.
+    const detailLinks = el
+      .find('.event-info a, .event-purchase a, .event-datetime a, .date-container a')
+      .map((_idx, node) => $(node).attr('href') || '')
+      .get()
+      .map((href) => resolveUrl(href, source.url))
+      .filter(Boolean);
+    const uniqueDetailLinks = [...new Set(detailLinks)];
+    const canonicalSeriesLink =
+      uniqueDetailLinks.find((href) => href.includes('#/events/')) || uniqueDetailLinks[0] || null;
+    const instanceLinksFromHtml = extractInstanceLinksFromHtml(
+      el.html() || '',
+      canonicalSeriesLink
+    );
+    const instanceLinks = [
+      ...new Set(
+        [...uniqueDetailLinks.filter((href) => href.includes('#/instances/')), ...instanceLinksFromHtml]
+      ),
+    ];
+    const childLinks = instanceLinks.length > 0 ? instanceLinks : uniqueDetailLinks;
+    const seriesKey = buildIcicleSeriesKey(canonicalSeriesLink, title);
 
     // Description
     const desc = el.find('.event-desc').text().replace(/\s+/g, ' ').trim() || null;
 
+    const maxEntries = Math.max(parsedEntries.length, childLinks.length, 1);
+    for (let i = 0; i < maxEntries; i++) {
+      const parsed = parsedEntries[i] || parsedEntries[0];
+      const detailLink = childLinks[i] || childLinks[0] || canonicalSeriesLink;
+
+      events.push({
+        title,
+        description: desc,
+        start_date: parsed.startDate!,
+        end_date: parsed.endDate,
+        start_time: parsed.startTime,
+        end_time: null,
+        location_name: null, // Icicle Creek events use source default
+        cost: price,
+        registration_required: detailLink ? true : null,
+        registration_url: detailLink || null,
+        // Child rows should track the specific instance/detail URL.
+        website: detailLink || canonicalSeriesLink || null,
+        image_url: imageUrl,
+        series_key: maxEntries > 1 ? seriesKey : null,
+        series_parent_title: maxEntries > 1 ? title : null,
+        series_parent_website: maxEntries > 1 ? canonicalSeriesLink || detailLink || null : null,
+      });
+    }
+  });
+
+  return events;
+}
+
+/**
+ * Icicle Brewing — WordPress events feed.
+ * The /events page is a calendar view; /ibc-events is a list view with the same events.
+ * We parse both by looking for event detail links and extracting date/time from each item block.
+ */
+function extractIcicleBrewing(html: string, source: SourceConfig): ScrapedEvent[] {
+  const $ = cheerio.load(html);
+  const events: ScrapedEvent[] = [];
+  const seenWebsites = new Set<string>();
+  const fallbackYear = new Date().getFullYear();
+
+  const pushEventFromContainer = (container: cheerio.Cheerio<cheerio.AnyNode>) => {
+    const detailLinks = container
+      .find('a[href*="/ibc-events/"]')
+      .map((_i, link) => ($(link).attr('href') || '').trim())
+      .get()
+      .filter((href) => href && !/\/ibc-events\/?$/.test(href) && !href.includes('?ical=1'));
+
+    if (detailLinks.length === 0) return;
+
+    const website = resolveUrl(detailLinks[0], source.url);
+    if (!website || seenWebsites.has(website)) return;
+
+    const titleAnchor = container
+      .find('a[href*="/ibc-events/"]')
+      .toArray()
+      .map((node) => $(node))
+      .find((a) => {
+        const t = a.text().replace(/\s+/g, ' ').trim();
+        return !!t && !/^(view detail|details|learn more)$/i.test(t);
+      });
+    const title = (titleAnchor?.text() || '').replace(/\s+/g, ' ').trim();
+    if (!title) return;
+
+    const blockText = container.text().replace(/\s+/g, ' ').trim();
+    const dateFromDatetime = extractDateFromDatetime(container);
+    const parsedTextDate = parseIcicleBrewingTextDate(blockText, fallbackYear);
+    const startDate = dateFromDatetime || parsedTextDate;
+    if (!startDate) return;
+
+    const timeMatch = blockText.match(
+      /(\d{1,2}:\d{2}\s*(?:am|pm))(?:\s*-\s*(\d{1,2}:\d{2}\s*(?:am|pm)))?/i
+    );
+    const startTime = timeMatch ? parseTime12h(timeMatch[1]) : null;
+    const endTime = timeMatch?.[2] ? parseTime12h(timeMatch[2]) : null;
+
+    const description =
+      container
+        .find(
+          '.mec-event-excerpt, .mec-event-content p, .mec-event-description, .event-description, p'
+        )
+        .first()
+        .text()
+        .replace(/\s+/g, ' ')
+        .trim() || null;
+
+    const locationText =
+      container
+        .find('.mec-event-location, .mec-location, [class*="location"]')
+        .first()
+        .text()
+        .replace(/\s+/g, ' ')
+        .trim() || null;
+    const locationFallback =
+      blockText.match(/(Icicle Brewing Company(?:\s+Tasting Room)?)/i)?.[1] || null;
+
     events.push({
       title,
-      description: desc,
-      start_date: parsed.startDate,
-      end_date: parsed.endDate,
-      start_time: parsed.startTime,
-      end_time: null,
-      location_name: null, // Icicle Creek events use source default
-      cost: price,
-      registration_required: detailLink ? true : null,
-      registration_url: detailLink,
-      website: detailLink,
-      image_url: imageUrl,
+      description,
+      start_date: startDate,
+      end_date: null,
+      start_time: startTime,
+      end_time: endTime,
+      location_name: source.default_location || locationText || locationFallback || null,
+      cost: null,
+      registration_required: null,
+      registration_url: null,
+      website,
+      image_url: null,
     });
-  });
+
+    seenWebsites.add(website);
+  };
+
+  const containers = $(
+    'article.mec-event-article, div.mec-event-article, li.mec-event-list-item, article[class*="event"]'
+  );
+
+  if (containers.length > 0) {
+    containers.each((_i, el) => pushEventFromContainer($(el)));
+  }
+
+  // Fallback for calendar/list markup changes: derive an event block from each detail link.
+  if (events.length === 0) {
+    $('a[href*="/ibc-events/"]').each((_i, link) => {
+      const href = ($(link).attr('href') || '').trim();
+      if (!href || /\/ibc-events\/?$/.test(href) || href.includes('?ical=1')) return;
+      const block = $(link).closest('article, li, div');
+      if (block.length > 0) {
+        pushEventFromContainer(block.first());
+      }
+    });
+  }
 
   return events;
 }
@@ -335,10 +483,120 @@ function parseTime12h(raw: string): string | null {
   return `${String(hour).padStart(2, '0')}:${min}`;
 }
 
+function extractDateFromDatetime(container: cheerio.Cheerio<cheerio.AnyNode>): string | null {
+  const datetimeEls = container.find('time[datetime], [datetime]');
+
+  for (let i = 0; i < datetimeEls.length; i++) {
+    const datetimeRaw = (datetimeEls.eq(i).attr('datetime') || '').trim();
+    if (!datetimeRaw) continue;
+
+    // Keep local calendar date from ISO-like strings before timezone conversion.
+    const isoDatePrefix = datetimeRaw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoDatePrefix) {
+      return isoDatePrefix[1];
+    }
+
+    const d = new Date(datetimeRaw);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+
+    const dateOnly = datetimeRaw.match(/^(\d{4}-\d{2}-\d{2})$/);
+    if (dateOnly) {
+      return dateOnly[1];
+    }
+  }
+
+  return null;
+}
+
+function parseIcicleBrewingTextDate(text: string, fallbackYear: number): string | null {
+  const monthNames: Record<string, number> = {
+    january: 0,
+    jan: 0,
+    february: 1,
+    feb: 1,
+    march: 2,
+    mar: 2,
+    april: 3,
+    apr: 3,
+    may: 4,
+    june: 5,
+    jun: 5,
+    july: 6,
+    jul: 6,
+    august: 7,
+    aug: 7,
+    september: 8,
+    sep: 8,
+    sept: 8,
+    october: 9,
+    oct: 9,
+    november: 10,
+    nov: 10,
+    december: 11,
+    dec: 11,
+  };
+
+  const dayMonth = text.match(/\b(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{4}))?\b/);
+  if (dayMonth) {
+    const day = parseInt(dayMonth[1], 10);
+    const month = monthNames[dayMonth[2].toLowerCase()];
+    const year = dayMonth[3] ? parseInt(dayMonth[3], 10) : fallbackYear;
+    if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+      return new Date(year, month, day).toISOString().split('T')[0];
+    }
+  }
+
+  const monthDay = text.match(/\b([A-Za-z]{3,9})\s+(\d{1,2})(?:,\s*(\d{4}))?\b/);
+  if (monthDay) {
+    const month = monthNames[monthDay[1].toLowerCase()];
+    const day = parseInt(monthDay[2], 10);
+    const year = monthDay[3] ? parseInt(monthDay[3], 10) : fallbackYear;
+    if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+      return new Date(year, month, day).toISOString().split('T')[0];
+    }
+  }
+
+  return null;
+}
+
 function resolveUrl(href: string, base: string): string {
   try {
     return new URL(href, base).toString();
   } catch {
     return href;
   }
+}
+
+function buildIcicleSeriesKey(url: string | null, title: string): string {
+  if (url) {
+    const eventMatch = url.match(/#\/events\/([A-Za-z0-9]+)/i);
+    if (eventMatch?.[1]) return `icicle-event:${eventMatch[1]}`;
+  }
+  return `icicle-title:${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')}`;
+}
+
+function extractInstanceLinksFromHtml(
+  containerHtml: string,
+  canonicalSeriesLink: string | null
+): string[] {
+  if (!containerHtml || !canonicalSeriesLink || !canonicalSeriesLink.includes('#/events/')) {
+    return [];
+  }
+
+  const ids = new Set<string>();
+  for (const match of containerHtml.matchAll(/\ba0F[A-Za-z0-9]{8,}\b/g)) {
+    ids.add(match[0]);
+  }
+
+  const urls: string[] = [];
+  for (const id of ids) {
+    const url = canonicalSeriesLink.replace(/#\/events\/[A-Za-z0-9]+/i, `#/instances/${id}`);
+    urls.push(url);
+  }
+  return urls;
 }

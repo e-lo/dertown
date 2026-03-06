@@ -31,14 +31,14 @@ export interface ProcessedEvent {
   series_key: string | null;
   series_parent_title: string | null;
   series_parent_website: string | null;
-  source_id: string;
+  source_id: string | null;
   existing_event_id?: string; // set for 'update' and 'skip' actions
   existing_event_table?: 'events' | 'events_staged';
 }
 
 /** Per-source scrape result summary. */
 export interface ScrapeResult {
-  source_id: string;
+  source_id: string | null;
   source_name: string;
   total_extracted: number;
   filtered_geo: number;
@@ -81,6 +81,7 @@ export interface SourceConfig {
   exclude?: ExcludeRules | null;
   location_map?: Record<string, string> | null;
   organization_map?: Record<string, string> | null;
+  instance_location_overrides?: Record<string, string> | null; // Salesforce event/instance ID -> location
 }
 
 /** Venue name pattern → tag mapping from config. */

@@ -71,19 +71,79 @@ async function expandIcicleSalesforceInstances(
 
     event.website = website;
 
-    if (!website.includes('salesforce-sites.com') || !website.includes('#/events/')) {
+    if (!website.includes('salesforce-sites.com')) {
       expanded.push(event);
       continue;
     }
 
     try {
-      const eventHtml = await fetchPage(website);
-      const instanceUrls = extractSalesforceInstanceUrls(eventHtml, website);
+      // If this row already points at an instance URL, parse that page directly.
+      if (website.includes('#/instances/')) {
+        const instanceHtml = await fetchPage(website);
+        const details = extractSalesforceInstanceDetails(instanceHtml);
+        details.venue =
+          details.venue ||
+          resolveSalesforceVenueOverride(source, website, event.series_parent_website || null);
+        const canonicalEventUrl = event.series_parent_website || event.registration_url || website;
+        const seriesKey = event.series_key || buildSalesforceSeriesKey(canonicalEventUrl);
+        expanded.push(
+          applyInstanceDetails(
+            event,
+            details,
+            website,
+            canonicalSalesforceEventUrl(canonicalEventUrl),
+            seriesKey
+          )
+        );
+        continue;
+      }
+
+      if (!website.includes('#/events/')) {
+        expanded.push(event);
+        continue;
+      }
+
+      const registrationUrl = toAbsoluteUrl(event.registration_url, source.url);
       const canonicalEventUrl = canonicalSalesforceEventUrl(website);
       const seriesKey = buildSalesforceSeriesKey(website);
 
+      // If the card already points to a specific instance, prefer that detail page directly.
+      if (registrationUrl && registrationUrl.includes('#/instances/')) {
+        try {
+          const instanceHtml = await fetchPage(registrationUrl);
+          const details = extractSalesforceInstanceDetails(instanceHtml);
+          details.venue =
+            details.venue ||
+            resolveSalesforceVenueOverride(source, registrationUrl, canonicalEventUrl);
+          expanded.push(
+            applyInstanceDetails(event, details, registrationUrl, canonicalEventUrl, seriesKey)
+          );
+          continue;
+        } catch (err) {
+          if (verbose) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(
+              `    WARN: failed direct Salesforce instance fetch for "${event.title}" (${registrationUrl}): ${msg}`
+            );
+          }
+        }
+      }
+
+      const eventHtml = await fetchPage(website);
+      let instanceUrls = extractSalesforceInstanceUrls(eventHtml, website);
+      if (instanceUrls.length === 0) {
+        instanceUrls = await fetchSalesforceInstanceUrlsFromApi(website, verbose, event.title);
+      }
+      if (verbose && /gothard sisters/i.test(event.title)) {
+        console.log(
+          `    DEBUG SALESFORCE "${event.title}": discovered ${instanceUrls.length} instance URL(s)`
+        );
+      }
+
       if (instanceUrls.length === 0) {
         const details = extractSalesforceInstanceDetails(eventHtml);
+        details.venue =
+          details.venue || resolveSalesforceVenueOverride(source, website, canonicalEventUrl);
         expanded.push(applyInstanceDetails(event, details, website, canonicalEventUrl, seriesKey));
         continue;
       }
@@ -93,6 +153,19 @@ async function expandIcicleSalesforceInstances(
         try {
           const instanceHtml = await fetchPage(instanceUrl);
           const instanceDetails = extractSalesforceInstanceDetails(instanceHtml);
+          instanceDetails.venue =
+            instanceDetails.venue ||
+            resolveSalesforceVenueOverride(source, instanceUrl, canonicalEventUrl);
+          if (
+            verbose &&
+            /gothard sisters/i.test(event.title) &&
+            !instanceDetails.venue
+          ) {
+            const hasSnowy = /snowy\s+owl/i.test(instanceHtml);
+            console.log(
+              `    DEBUG SALESFORCE "${event.title}": no venue parsed for ${instanceUrl}; html_has_snowy_owl=${hasSnowy}`
+            );
+          }
           if (instanceDetails.start_date || instanceDetails.start_time || instanceDetails.venue) {
             details = instanceDetails;
           }
@@ -125,6 +198,37 @@ async function expandIcicleSalesforceInstances(
   return expanded;
 }
 
+function resolveSalesforceVenueOverride(
+  source: SourceConfig,
+  url: string,
+  canonicalEventUrl: string | null
+): string | null {
+  const overrides = source.instance_location_overrides;
+  if (!overrides) return null;
+
+  const candidateIds = new Set<string>();
+
+  const instanceMatch = url.match(/#\/instances\/([A-Za-z0-9]+)/i);
+  if (instanceMatch?.[1]) candidateIds.add(instanceMatch[1]);
+
+  const eventMatch = url.match(/#\/events\/([A-Za-z0-9]+)/i);
+  if (eventMatch?.[1]) candidateIds.add(eventMatch[1]);
+
+  if (canonicalEventUrl) {
+    const canonicalMatch = canonicalEventUrl.match(/#\/events\/([A-Za-z0-9]+)/i);
+    if (canonicalMatch?.[1]) candidateIds.add(canonicalMatch[1]);
+  }
+
+  for (const id of candidateIds) {
+    const direct = overrides[id];
+    if (direct) return direct;
+    const lower = overrides[id.toLowerCase()];
+    if (lower) return lower;
+  }
+
+  return null;
+}
+
 function applyInstanceDetails(
   base: ScrapedEvent,
   details: ParsedInstanceDetails,
@@ -142,7 +246,8 @@ function applyInstanceDetails(
     cost: details.cost || base.cost,
     registration_required: true,
     registration_url: registrationUrl,
-    website: canonicalEventUrl,
+    // For child rows, source website should point to the specific instance page.
+    website: registrationUrl,
     series_key: seriesKey,
     series_parent_title: base.series_parent_title || base.title,
     series_parent_website: canonicalEventUrl,
@@ -219,12 +324,26 @@ function extractSalesforceInstanceDetails(html: string): ParsedInstanceDetails {
 
   const venueFromJson = firstMatchingJsonStringValue(html, [
     'venueName',
+    'venueTitle',
+    'venueDisplayName',
     'venue',
+    'spaceName',
+    'facilityName',
+    'roomName',
+    'hallName',
     'locationName',
+    'locationTitle',
+    'locationDisplayName',
     'location',
   ]);
+  const venueFromGenericJson = extractVenueFromGenericJson(html);
+  const venueFromHtml = extractVenueFromHtml(html);
   const venueFromText = extractVenueFromText(text);
-  const venue = cleanVenue(venueFromJson) || cleanVenue(venueFromText);
+  const venue =
+    cleanVenue(venueFromJson) ||
+    cleanVenue(venueFromGenericJson) ||
+    cleanVenue(venueFromHtml) ||
+    cleanVenue(venueFromText);
 
   const cost = extractPriceRange(html, text);
 
@@ -266,7 +385,122 @@ function extractSalesforceInstanceUrls(html: string, eventUrl: string): string[]
     if (resolved) urls.add(resolved);
   }
 
+  // Some Salesforce pages expose only instance IDs in JSON payloads.
+  const idCandidates = new Set<string>();
+  const idKeyPatterns = [
+    /"instanceId"\s*:\s*"([A-Za-z0-9]+)"/gi,
+    /"instance_id"\s*:\s*"([A-Za-z0-9]+)"/gi,
+    /"ticketInstanceId"\s*:\s*"([A-Za-z0-9]+)"/gi,
+    /"id"\s*:\s*"(a0F[A-Za-z0-9]+)"/gi,
+  ];
+  for (const re of idKeyPatterns) {
+    for (const match of html.matchAll(re)) {
+      const id = match[1];
+      if (id && /^a0F[A-Za-z0-9]{8,}$/.test(id)) idCandidates.add(id);
+    }
+  }
+
+  // Last-resort pattern: any Salesforce instance-style IDs in page text.
+  for (const match of html.matchAll(/\ba0F[A-Za-z0-9]{8,}\b/g)) {
+    idCandidates.add(match[0]);
+  }
+
+  for (const id of idCandidates) {
+    const resolved = salesforceHashUrl(eventUrl, 'instances', id);
+    if (resolved) urls.add(resolved);
+  }
+
   return [...urls];
+}
+
+async function fetchSalesforceInstanceUrlsFromApi(
+  eventUrl: string,
+  verbose: boolean,
+  title?: string
+): Promise<string[]> {
+  const eventId = extractSalesforceEventId(eventUrl);
+  if (!eventId) return [];
+
+  let origin = '';
+  let pathname = '';
+  try {
+    const u = new URL(eventUrl);
+    origin = u.origin;
+    pathname = u.pathname.replace(/\/+$/, '');
+  } catch {
+    return [];
+  }
+
+  const baseCandidates = Array.from(
+    new Set([
+      `${origin}${pathname}`,
+      `${origin}/ticket`,
+      origin,
+    ])
+  );
+
+  const endpointTemplates = [
+    '/services/apexrest/events/{eventId}/instances',
+    '/services/apexrest/event/{eventId}/instances',
+    '/services/apexrest/ticket/events/{eventId}/instances',
+    '/services/apexrest/ticketing/events/{eventId}/instances',
+    '/services/apexrest/calendar/events/{eventId}/instances',
+    '/services/apexrest/instances?eventId={eventId}',
+    '/services/apexrest/events/{eventId}',
+    '/services/apexrest/event/{eventId}',
+  ];
+
+  const attempted = new Set<string>();
+  const results = new Set<string>();
+
+  for (const base of baseCandidates) {
+    for (const template of endpointTemplates) {
+      const endpoint = `${base}${template.replace('{eventId}', eventId)}`;
+      if (attempted.has(endpoint)) continue;
+      attempted.add(endpoint);
+
+      try {
+        const text = await fetchPage(endpoint, 8000);
+        const ids = extractSalesforceInstanceIdsFromText(text);
+        for (const id of ids) {
+          const url = salesforceHashUrl(eventUrl, 'instances', id);
+          if (url) results.add(url);
+        }
+        if (results.size > 0) {
+          if (verbose && title && /gothard sisters/i.test(title)) {
+            console.log(
+              `    DEBUG SALESFORCE "${title}": API fallback matched ${results.size} instance(s) via ${endpoint}`
+            );
+          }
+          return [...results];
+        }
+      } catch {
+        // Ignore endpoint miss/errors and continue probing.
+      }
+    }
+  }
+
+  return [...results];
+}
+
+function extractSalesforceInstanceIdsFromText(text: string): string[] {
+  const ids = new Set<string>();
+  const patterns = [
+    /\ba0F[A-Za-z0-9]{8,}\b/g,
+    /"instanceId"\s*:\s*"([A-Za-z0-9]+)"/gi,
+    /"instance_id"\s*:\s*"([A-Za-z0-9]+)"/gi,
+    /"ticketInstanceId"\s*:\s*"([A-Za-z0-9]+)"/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const candidate = match[1] || match[0];
+      if (!candidate) continue;
+      if (/^a0F[A-Za-z0-9]{8,}$/.test(candidate)) ids.add(candidate);
+    }
+  }
+
+  return [...ids];
 }
 
 function salesforceHashUrl(
@@ -399,15 +633,41 @@ function extractVenueFromText(text: string): string | null {
   const explicit = text.match(/(?:Venue|Location)\s*[:\-]\s*([A-Za-z0-9 '&.,-]{3,80})/i);
   if (explicit?.[1]) return explicit[1].trim();
 
-  const snowyOwl = text.match(/\bSnowy Owl (?:Theater|Theatre)\b/i);
+  const snowyOwl = text.match(/\bSnowy Owl(?:\s+(?:Theater|Theatre))?\b/i);
   if (snowyOwl?.[0]) return snowyOwl[0];
 
   return null;
 }
 
+function extractVenueFromHtml(html: string): string | null {
+  const explicit = html.match(/(?:venue|location)\s*[:>\-]\s*([A-Za-z0-9 '&.,-]{3,100})/i);
+  if (explicit?.[1]) return explicit[1].trim();
+
+  const snowy = html.match(/\bSnowy\s+Owl(?:\s+(?:Theater|Theatre))?\b/i);
+  if (snowy?.[0]) return snowy[0];
+
+  return null;
+}
+
+function extractVenueFromGenericJson(html: string): string | null {
+  const re = /"(?:venue|location|space|facility|room|hall)[A-Za-z_]*"\s*:\s*"([^"]{3,120})"/gi;
+  for (const match of html.matchAll(re)) {
+    const candidate = unescapeJsonString(match[1]).trim();
+    if (!candidate) continue;
+    if (/^a0[A-Za-z0-9]+$/.test(candidate)) continue;
+    if (/\d{4}-\d{2}-\d{2}/.test(candidate)) continue;
+    return candidate;
+  }
+  return null;
+}
+
 function cleanVenue(raw: string | null): string | null {
   if (!raw) return null;
-  const normalized = raw.replace(/\s+/g, ' ').trim();
+  let normalized = raw.replace(/\s+/g, ' ').trim();
+  if (/snowy\s+owl/i.test(normalized)) {
+    normalized = /theat(re|er)/i.test(normalized) ? normalized : 'Snowy Owl Theater';
+  }
+  normalized = normalized.replace(/\s+at\s+icicle creek center.*$/i, '').trim();
   if (!normalized) return null;
   if (/^(venue|location)$/i.test(normalized)) return null;
   return normalized;

@@ -31,6 +31,34 @@ function resolveMappedName(
   return rawName;
 }
 
+function normalizeTextForContainment(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Infer location by exact normalized containment of known location names in title/description text. */
+function inferLocationNameFromEventText(event: ScrapedEvent, locations: LocationRow[]): string | null {
+  const haystack = normalizeTextForContainment(`${event.title} ${event.description || ''}`);
+  if (!haystack) return null;
+
+  let best: string | null = null;
+  let bestLen = 0;
+
+  for (const loc of locations) {
+    const normalizedName = normalizeTextForContainment(loc.name);
+    if (!normalizedName || normalizedName.length < 6) continue;
+    if (haystack.includes(normalizedName) && normalizedName.length > bestLen) {
+      best = loc.name;
+      bestLen = normalizedName.length;
+    }
+  }
+
+  return best;
+}
+
 // ── Reference data cache ─────────────────────────────────────────────
 
 interface LocationRow {
@@ -61,6 +89,7 @@ interface ExistingEvent {
   end_time: string | null;
   description: string | null;
   cost: string | null;
+  website: string | null;
   registration_link: string | null;
   location_id: string | null;
 }
@@ -90,12 +119,12 @@ export async function loadReferenceData(db: SupabaseClient<Database>): Promise<R
     db
       .from('events')
       .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, registration_link, location_id'
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id'
       ),
     db
       .from('events_staged')
       .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, registration_link, location_id'
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id'
       ),
   ]);
 
@@ -201,10 +230,6 @@ interface DedupResult {
   update_reason?: string;
 }
 
-interface DedupOptions {
-  forceUpdateOnPending: boolean;
-}
-
 /** Normalize time strings to HH:MM precision for dedup/update comparisons. */
 function normalizeTimeForCompare(time: string | null | undefined): string | null {
   if (!time) return null;
@@ -212,6 +237,27 @@ function normalizeTimeForCompare(time: string | null | undefined): string | null
   const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (!match) return trimmed;
   return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+/** Canonicalize URL strings for duplicate comparison. */
+function normalizeUrlForCompare(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const u = new URL(trimmed);
+    const path = u.pathname.replace(/\/+$/, '');
+    const port = u.port ? `:${u.port}` : '';
+    return `${u.protocol}//${u.hostname.toLowerCase()}${port}${path}${u.search}${u.hash}`;
+  } catch {
+    return trimmed.toLowerCase();
+  }
+}
+
+function urlsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const an = normalizeUrlForCompare(a);
+  const bn = normalizeUrlForCompare(b);
+  return !!an && !!bn && an === bn;
 }
 
 /** Normalize a title for dedup comparison. */
@@ -274,20 +320,25 @@ function titlesMatch(scrapedTitle: string, existingTitle: string): boolean {
  */
 export function dedup(
   event: ScrapedEvent,
-  sourceId: string,
+  sourceId: string | null,
   existingEvents: ExistingEvent[],
-  existingStaged: ExistingEvent[],
-  options: DedupOptions
+  existingStaged: ExistingEvent[]
 ): DedupResult {
   const allExisting = [...existingEvents, ...existingStaged];
 
   // Pass 1: Same source + same date (can detect updates)
-  const sameSourceCandidates = allExisting.filter(
-    (e) => e.source_id === sourceId && e.start_date === event.start_date
-  );
+  const sameSourceCandidates = sourceId
+    ? allExisting.filter((e) => e.source_id === sourceId && e.start_date === event.start_date)
+    : [];
 
   for (const existing of sameSourceCandidates) {
-    if (titlesMatch(event.title, existing.source_title || existing.title)) {
+    const urlMatched =
+      urlsMatch(event.website, existing.website) ||
+      urlsMatch(event.website, existing.registration_link) ||
+      urlsMatch(event.registration_url, existing.website) ||
+      urlsMatch(event.registration_url, existing.registration_link);
+
+    if (urlMatched || titlesMatch(event.title, existing.source_title || existing.title)) {
       // Found a same-source match — check if anything changed
       const changes: string[] = [];
 
@@ -301,18 +352,6 @@ export function dedup(
       }
 
       if (changes.length === 0) {
-        if (
-          options.forceUpdateOnPending &&
-          existing.table === 'events_staged' &&
-          existing.status === 'pending'
-        ) {
-          return {
-            action: 'update',
-            existing_event_id: existing.id,
-            existing_event_table: existing.table,
-            update_reason: 'forced update for pending staged event',
-          };
-        }
         return {
           action: 'skip',
           existing_event_id: existing.id,
@@ -336,7 +375,13 @@ export function dedup(
   );
 
   for (const existing of crossSourceCandidates) {
-    if (titlesMatch(event.title, existing.source_title || existing.title)) {
+    const urlMatched =
+      urlsMatch(event.website, existing.website) ||
+      urlsMatch(event.website, existing.registration_link) ||
+      urlsMatch(event.registration_url, existing.website) ||
+      urlsMatch(event.registration_url, existing.registration_link);
+
+    if (urlMatched || titlesMatch(event.title, existing.source_title || existing.title)) {
       return {
         action: 'skip',
         existing_event_id: existing.id,
@@ -359,7 +404,13 @@ export function resolveSourceDbId(
   configName: string,
   configUrl: string,
   sourceSites: { id: string; name: string; url: string }[]
-): string {
+): string | null {
+  const isUuid = (value: string): boolean =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+  // If configId is already a UUID, use it directly.
+  if (isUuid(configId)) return configId;
+
   // Try exact name match first
   const byName = sourceSites.find((s) => s.name.toLowerCase() === configName.toLowerCase());
   if (byName) return byName.id;
@@ -382,8 +433,8 @@ export function resolveSourceDbId(
   }
   if (bestScore >= MATCH_THRESHOLD && bestId) return bestId;
 
-  // No match — return config ID (will fail FK constraint if written to DB)
-  return configId;
+  // No match — return null so writes can proceed without a source FK.
+  return null;
 }
 
 // ── Main matching pipeline ───────────────────────────────────────────
@@ -397,7 +448,6 @@ export function matchEvents(
   ref: ReferenceData | null,
   tagKeywords: Record<string, string[]>,
   venueTags: VenueTagRule[],
-  dedupOptions: DedupOptions,
   verbose: boolean
 ): ProcessedEvent[] {
   const tagRegexes = buildTagRegexes(tagKeywords);
@@ -415,16 +465,23 @@ export function matchEvents(
     let location_added: string | null = null;
 
     // Apply explicit location_map from source config (e.g. "Bavarian Lodge" → "Ski Hill Lodge")
-    const locationName = resolveMappedName(event.location_name, source.location_map);
+    let locationName = resolveMappedName(event.location_name, source.location_map);
+    if (!locationName && ref) {
+      locationName = inferLocationNameFromEventText(event, ref.locations);
+    }
 
     if (ref) {
       location_id = matchLocation(locationName, ref.locations);
     }
-    if (!location_id && source.default_location && ref) {
+    const hasInstanceSpecificLink =
+      !!event.registration_url && event.registration_url.includes('#/instances/');
+
+    // Only fall back to source default when the scrape did not provide a specific venue.
+    if (!location_id && !locationName && !hasInstanceSpecificLink && source.default_location && ref) {
       location_id = matchLocation(source.default_location, ref.locations);
     }
     if (!location_id) {
-      location_added = locationName || source.default_location || null;
+      location_added = locationName || (!hasInstanceSpecificLink ? source.default_location : null) || null;
     }
 
     // Organization matching cascade: DB fuzzy → source default → flag unknown
@@ -459,7 +516,7 @@ export function matchEvents(
     // Dedup
     let dedupResult: DedupResult = { action: 'new' };
     if (ref) {
-      dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged, dedupOptions);
+      dedupResult = dedup(event, sourceDbId, ref.existingEvents, ref.existingStaged);
     }
 
     // CANCELED events: only keep if updating an existing event
