@@ -4,12 +4,14 @@ import yaml from 'js-yaml';
 import type { SourceConfig, SourcesConfig, VenueTagRule } from './types';
 
 const CONFIG_PATH = resolve(process.cwd(), 'scrape/sources.yaml');
+const DEFAULT_DESCRIPTION_MAX_CHARS = 12_000;
 
 /** Parsed scraper configuration. */
 export interface ScraperConfig {
   sources: SourceConfig[];
   tagKeywords: Record<string, string[]>;
   venueTags: VenueTagRule[];
+  descriptionMaxChars: number;
 }
 
 /** Load and parse the sources.yaml config file. */
@@ -19,10 +21,17 @@ export function loadConfig(): ScraperConfig {
   if (!parsed?.sources || !Array.isArray(parsed.sources)) {
     throw new Error(`Invalid sources.yaml: expected a "sources" array`);
   }
+
+  const descriptionMaxChars =
+    Number.isFinite(parsed.description_max_chars) && (parsed.description_max_chars as number) > 0
+      ? Math.floor(parsed.description_max_chars as number)
+      : DEFAULT_DESCRIPTION_MAX_CHARS;
+
   return {
     sources: parsed.sources,
     tagKeywords: parsed.tag_keywords || {},
     venueTags: parsed.venue_tags || [],
+    descriptionMaxChars,
   };
 }
 

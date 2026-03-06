@@ -25,8 +25,8 @@ export function parseLibCalJson(jsonText: string): ScrapedEvent[] {
     const rawLocation = item.location || null;
     const location = cleanLibCalLocation(rawLocation);
 
-    // Description: "shortdesc" is plain text, "description" is HTML
-    const description = item.shortdesc?.trim() || stripHtml(item.description) || null;
+    // Description: prefer full HTML description; shortdesc is often truncated teaser text.
+    const description = extractLibCalDescription(item.description, item.shortdesc);
 
     // Cost
     const cost = item.registration_cost?.trim() || null;
@@ -141,8 +141,23 @@ function cleanLibCalLocation(raw: string | null): string | null {
 /** Strip HTML tags and decode entities to plain text. */
 function stripHtml(html: string | null): string | null {
   if (!html) return null;
-  const $ = cheerio.load(html);
+  const htmlWithBlockSpacing = html
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/\s*(p|div|li|h[1-6]|tr)\s*>/gi, '\n');
+  const $ = cheerio.load(htmlWithBlockSpacing);
   return $.text().replace(/\s+/g, ' ').trim() || null;
+}
+
+/** Extract the best available description from LibCal fields. */
+function extractLibCalDescription(
+  htmlDescription: string | null | undefined,
+  shortDescription: string | null | undefined
+): string | null {
+  const full = stripHtml(htmlDescription || null);
+  if (full) return full;
+
+  const short = shortDescription?.trim();
+  return short || null;
 }
 
 /** Parse "9:00 AM" → "09:00" */

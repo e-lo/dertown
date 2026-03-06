@@ -11,18 +11,20 @@
  *   make scrape --url <url>        # paste a URL for AI extraction (future)
  */
 
-import { loadConfig, getSourceConfig, type ScraperConfig } from './config';
+import { loadConfig, getSourceConfig } from './config';
 import { createWriteClient, createReadClient, type DbMode } from './db';
 import { fetchPage } from './fetch';
 import { writeScrapeLog } from './log';
 import { parseIcalFeed } from './parse-ical';
 import { parseHtml } from './parse-html';
 import { fetchLibCalEvents } from './parse-json';
+import { clampDescription } from './description';
+import { enrichDescriptionsFromDetailPages } from './enrich';
 import { normalizeEvent, isPastEvent } from './normalize';
 import { shouldExclude, passesGeoFilter } from './filter';
 import { matchEvents, loadReferenceData, type ReferenceData } from './match';
 import { writeProcessedEvents } from './staged';
-import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent, VenueTagRule } from './types';
+import type { SourceConfig, ScrapeResult, ScrapedEvent, VenueTagRule } from './types';
 
 // ── CLI argument parsing ─────────────────────────────────────────────
 
@@ -35,6 +37,7 @@ interface CliArgs {
   remote: boolean;
   localDb: boolean;
   verbose: boolean;
+  forceUpdateOnPending: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -47,6 +50,7 @@ function parseArgs(argv: string[]): CliArgs {
     remote: false,
     localDb: false,
     verbose: false,
+    forceUpdateOnPending: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -74,6 +78,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--verbose':
         args.verbose = true;
+        break;
+      case '--force-update-on-pending':
+        args.forceUpdateOnPending = true;
         break;
       default:
         if (argv[i].startsWith('--')) {
@@ -103,6 +110,8 @@ async function scrapeSource(
   ref: ReferenceData | null,
   tagKeywords: Record<string, string[]>,
   venueTags: VenueTagRule[],
+  descriptionMaxChars: number,
+  forceUpdateOnPending: boolean,
   verbose: boolean
 ): Promise<ScrapeResult> {
   const result: ScrapeResult = {
@@ -141,12 +150,17 @@ async function scrapeSource(
       }
     }
 
+    if (source.type === 'html' && source.detail_description_selectors?.length) {
+      rawEvents = await enrichDescriptionsFromDetailPages(rawEvents, source, verbose);
+    }
+
     if (verbose) console.log(`  Parsed ${rawEvents.length} raw events`);
 
     // Step 3: Normalize and filter
-    let events: ScrapedEvent[] = [];
+    const events: ScrapedEvent[] = [];
     for (const raw of rawEvents) {
       const event = normalizeEvent(raw);
+      event.description = clampDescription(event.description, descriptionMaxChars);
 
       // Skip past events
       if (isPastEvent(event)) continue;
@@ -169,7 +183,15 @@ async function scrapeSource(
     result.total_extracted = events.length;
 
     // Steps 4-5: Match to existing records and deduplicate
-    const processed = matchEvents(events, source, ref, tagKeywords, venueTags, verbose);
+    const processed = matchEvents(
+      events,
+      source,
+      ref,
+      tagKeywords,
+      venueTags,
+      { forceUpdateOnPending },
+      verbose
+    );
     result.events = processed;
 
     // Update source_id to the resolved DB UUID (for log writing)
@@ -179,9 +201,15 @@ async function scrapeSource(
 
     for (const ev of processed) {
       switch (ev.action) {
-        case 'new': result.new_count++; break;
-        case 'update': result.updated_count++; break;
-        case 'skip': result.skipped_count++; break;
+        case 'new':
+          result.new_count++;
+          break;
+        case 'update':
+          result.updated_count++;
+          break;
+        case 'skip':
+          result.skipped_count++;
+          break;
       }
     }
   } catch (err) {
@@ -226,8 +254,12 @@ function printVerboseEvents(result: ScrapeResult, ref: ReferenceData | null): vo
 
   for (const ev of result.events) {
     const tag = ev.primary_tag_id ? tagNames.get(ev.primary_tag_id) || ev.primary_tag_id : '?';
-    const loc = ev.location_id ? locNames.get(ev.location_id) || ev.location_id : ev.location_added || '?';
-    const org = ev.organization_id ? orgNames.get(ev.organization_id) || ev.organization_id : ev.organization_added || '?';
+    const loc = ev.location_id
+      ? locNames.get(ev.location_id) || ev.location_id
+      : ev.location_added || '?';
+    const org = ev.organization_id
+      ? orgNames.get(ev.organization_id) || ev.organization_id
+      : ev.organization_added || '?';
     const date = ev.scraped.start_date;
     const time = ev.scraped.start_time || '';
     switch (ev.action) {
@@ -294,6 +326,7 @@ async function main() {
     console.log('  --remote      Write to production database (default is dry run)');
     console.log('  --local-db    Write to local Supabase instance');
     console.log('  --verbose     Show per-event extraction detail');
+    console.log('  --force-update-on-pending  Force-update matched pending staged events');
     process.exit(0);
   }
 
@@ -329,8 +362,12 @@ async function main() {
     try {
       ref = await loadReferenceData(readDb);
       if (args.verbose) {
-        console.log(`  ${ref.locations.length} locations, ${ref.organizations.length} orgs, ${ref.tags.length} tags`);
-        console.log(`  ${ref.existingEvents.length} existing events, ${ref.existingStaged.length} staged events\n`);
+        console.log(
+          `  ${ref.locations.length} locations, ${ref.organizations.length} orgs, ${ref.tags.length} tags`
+        );
+        console.log(
+          `  ${ref.existingEvents.length} existing events, ${ref.existingStaged.length} staged events\n`
+        );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -344,7 +381,15 @@ async function main() {
   // Scrape each source
   const results: ScrapeResult[] = [];
   for (const source of sourcesToScrape) {
-    const result = await scrapeSource(source, ref, config.tagKeywords, config.venueTags, args.verbose);
+    const result = await scrapeSource(
+      source,
+      ref,
+      config.tagKeywords,
+      config.venueTags,
+      config.descriptionMaxChars,
+      args.forceUpdateOnPending,
+      args.verbose
+    );
     results.push(result);
 
     printResultSummary(result, mode);
