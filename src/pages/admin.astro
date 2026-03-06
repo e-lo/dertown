@@ -209,6 +209,26 @@ const userEmail = session.user?.email || 'Admin';
     }, 5000);
   }
 
+  let authRedirectInProgress = false;
+
+  function redirectToLogin() {
+    if (authRedirectInProgress) return;
+    authRedirectInProgress = true;
+    const redirectTo = window.location.pathname + window.location.search;
+    window.location.href = `/login?redirect=${encodeURIComponent(redirectTo)}`;
+  }
+
+  const nativeFetch = globalThis.fetch.bind(globalThis);
+
+  async function fetch(input, init) {
+    const response = await nativeFetch(input, init);
+    if (response.status === 401) {
+      redirectToLogin();
+      throw new Error('Unauthorized');
+    }
+    return response;
+  }
+
   // ============================================================================
   // GLOBAL DATA STORES
   // ============================================================================
