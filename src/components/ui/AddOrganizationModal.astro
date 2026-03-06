@@ -120,8 +120,10 @@
         locationDropdown.classList.remove('hidden');
         locationDropdown.classList.add('block');
         locationDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
-          el.addEventListener('click', () => {
-            locationIdHidden.value = el.getAttribute('data-id');
+          el.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            locationIdHidden.value = el.getAttribute('data-id') || '';
             locationSearch.value = el.getAttribute('data-label') || '';
             locationDropdown.classList.add('hidden');
             locationDropdown.innerHTML = '';
@@ -130,7 +132,12 @@
       });
       locationSearch.addEventListener('focus', () => { if (locationSearch.value.trim()) locationSearch.dispatchEvent(new Event('input')); });
       document.addEventListener('click', (e) => {
-        if (e.target !== locationSearch && !locationDropdown.contains(e.target)) locationDropdown.classList.add('hidden');
+        if (
+          !(e.target instanceof Node) ||
+          (!locationSearch.contains(e.target) && !locationDropdown.contains(e.target))
+        ) {
+          locationDropdown.classList.add('hidden');
+        }
       });
     }
 
@@ -158,8 +165,10 @@
         parentDropdown.classList.remove('hidden');
         parentDropdown.classList.add('block');
         parentDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
-          el.addEventListener('click', () => {
-            parentIdHidden.value = el.getAttribute('data-id');
+          el.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            parentIdHidden.value = el.getAttribute('data-id') || '';
             parentSearch.value = el.getAttribute('data-label') || '';
             parentDropdown.classList.add('hidden');
             parentDropdown.innerHTML = '';
@@ -168,7 +177,12 @@
       });
       parentSearch.addEventListener('focus', () => { if (parentSearch.value.trim()) parentSearch.dispatchEvent(new Event('input')); });
       document.addEventListener('click', (e) => {
-        if (e.target !== parentSearch && !parentDropdown.contains(e.target)) parentDropdown.classList.add('hidden');
+        if (
+          !(e.target instanceof Node) ||
+          (!parentSearch.contains(e.target) && !parentDropdown.contains(e.target))
+        ) {
+          parentDropdown.classList.add('hidden');
+        }
       });
     }
 
