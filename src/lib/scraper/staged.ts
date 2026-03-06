@@ -12,6 +12,8 @@ interface WriteResult {
   errors: string[];
 }
 
+const DEBUG_EVENT_ID = 'bc1cf502-396b-46e8-99d1-6e5dce4b6682';
+
 /** Write processed events to the database: insert new staged events, auto-update existing ones. */
 export async function writeProcessedEvents(
   db: SupabaseClient<Database>,
@@ -24,13 +26,25 @@ export async function writeProcessedEvents(
 
   for (const ev of events) {
     try {
+      const seriesParentId = seriesParentIds.get(ev.series_key || '');
+      if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+        console.log(
+          `    DEBUG ${DEBUG_EVENT_ID}: action=${ev.action} table=${ev.existing_event_table || 'n/a'}`
+        );
+        console.log(
+          `    DEBUG ${DEBUG_EVENT_ID}: scraped website=${ev.scraped.website || 'null'} reg=${ev.scraped.registration_url || 'null'} location_name=${ev.scraped.location_name || 'null'} start=${ev.scraped.start_date} ${ev.scraped.start_time || ''}`
+        );
+        console.log(
+          `    DEBUG ${DEBUG_EVENT_ID}: match location_id=${ev.location_id || 'null'} location_added=${ev.location_added || 'null'} series_parent=${seriesParentId || 'null'}`
+        );
+      }
       switch (ev.action) {
         case 'new':
-          await insertStagedEvent(db, ev, source, seriesParentIds.get(ev.series_key || ''), verbose);
+          await insertStagedEvent(db, ev, source, seriesParentId, verbose);
           result.inserted++;
           break;
         case 'update':
-          await autoUpdateEvent(db, ev, verbose);
+          await autoUpdateEvent(db, ev, seriesParentId, verbose);
           result.updated++;
           break;
         case 'skip':
@@ -102,6 +116,10 @@ function minDate(values: string[]): string {
   return [...values].sort((a, b) => a.localeCompare(b))[0];
 }
 
+function maxDate(values: string[]): string {
+  return [...values].sort((a, b) => b.localeCompare(a))[0];
+}
+
 /** For multi-instance scraped events, create or reuse a staged parent row and return parent IDs by series key. */
 async function resolveSeriesParentIds(
   db: SupabaseClient<Database>,
@@ -113,7 +131,7 @@ async function resolveSeriesParentIds(
   const groups = new Map<string, ProcessedEvent[]>();
 
   for (const ev of events) {
-    if (ev.action !== 'new' || !ev.series_key) continue;
+    if (!ev.series_key || ev.action === 'skip') continue;
     if (!groups.has(ev.series_key)) groups.set(ev.series_key, []);
     groups.get(ev.series_key)!.push(ev);
   }
@@ -121,6 +139,12 @@ async function resolveSeriesParentIds(
   for (const [seriesKey, group] of groups.entries()) {
     // Only auto-create a parent when we have at least 2 instances in this scrape batch.
     if (group.length < 2) continue;
+
+    const earliestStart = minDate(group.map((e) => e.scraped.start_date));
+    const latestStart = maxDate(group.map((e) => e.scraped.start_date));
+    const first = group[0];
+    const parentTitle = first.series_parent_title || first.scraped.title;
+    const parentWebsite = first.series_parent_website || first.scraped.website || null;
 
     // Reuse an existing staged series parent if one already exists.
     const { data: existingParent } = await db
@@ -131,14 +155,25 @@ async function resolveSeriesParentIds(
       .maybeSingle();
 
     if (existingParent?.id) {
+      // Keep parent row as series summary: date span only, no time fields.
+      await db
+        .from('events_staged')
+        .update({
+          title: parentTitle,
+          source_title: parentTitle,
+          start_date: earliestStart,
+          end_date: latestStart === earliestStart ? null : latestStart,
+          start_time: null,
+          end_time: null,
+          website: parentWebsite,
+          registration_link: parentWebsite,
+          registration: !!parentWebsite,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingParent.id);
       parentIds.set(seriesKey, existingParent.id);
       continue;
     }
-
-    const first = group[0];
-    const earliestStart = minDate(group.map((e) => e.scraped.start_date));
-    const parentTitle = first.series_parent_title || first.scraped.title;
-    const parentWebsite = first.series_parent_website || first.scraped.website || null;
 
     const notes: string[] = [
       `Source: ${source.name} (${source.url})`,
@@ -152,7 +187,7 @@ async function resolveSeriesParentIds(
       source_title: parentTitle,
       description: first.scraped.description,
       start_date: earliestStart,
-      end_date: null,
+      end_date: latestStart === earliestStart ? null : latestStart,
       start_time: null,
       end_time: null,
       cost: null,
@@ -200,6 +235,7 @@ async function resolveSeriesParentIds(
 async function autoUpdateEvent(
   db: SupabaseClient<Database>,
   ev: ProcessedEvent,
+  seriesParentId: string | undefined,
   verbose: boolean
 ): Promise<void> {
   if (!ev.existing_event_id) {
@@ -210,14 +246,33 @@ async function autoUpdateEvent(
 
   // Build the update payload — only include fields that have values
   // Never overwrite `title` (admin may have customized it)
-  const update: EventUpdate = {};
+  const update: Partial<EventUpdate & StagedUpdate> = {};
 
   if (s.start_time) update.start_time = s.start_time;
   if (s.end_time) update.end_time = s.end_time;
   if (s.cost) update.cost = s.cost;
   if (s.description) update.description = s.description;
+  if (s.website) update.website = s.website;
   if (s.registration_url) update.registration_link = s.registration_url;
   if (s.image_url) update.external_image_url = s.image_url;
+  if (ev.location_id) {
+    update.location_id = ev.location_id;
+    if (ev.existing_event_table === 'events_staged') {
+      update.location_added = null;
+    }
+  } else if (ev.location_added && ev.existing_event_table === 'events_staged') {
+    update.location_id = null;
+    update.location_added = ev.location_added;
+  }
+  if (seriesParentId && ev.existing_event_table === 'events_staged') {
+    update.parent_event_id = seriesParentId;
+  }
+
+  if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+    console.log(
+      `    DEBUG ${DEBUG_EVENT_ID}: update payload=${JSON.stringify(update)} existing_table=${ev.existing_event_table || 'unknown'}`
+    );
+  }
 
   // Only write if there's something to update
   if (Object.keys(update).length === 0) return;
@@ -229,22 +284,38 @@ async function autoUpdateEvent(
       .from('events_staged')
       .update(update as StagedUpdate)
       .eq('id', ev.existing_event_id);
+    if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+      console.log(`    DEBUG ${DEBUG_EVENT_ID}: events_staged update error=${error?.message || 'none'}`);
+    }
     if (error) throw new Error(error.message);
   } else if (ev.existing_event_table === 'events') {
-    const { error } = await db.from('events').update(update).eq('id', ev.existing_event_id);
+    const { error } = await db
+      .from('events')
+      .update(update as EventUpdate)
+      .eq('id', ev.existing_event_id);
+    if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+      console.log(`    DEBUG ${DEBUG_EVENT_ID}: events update error=${error?.message || 'none'}`);
+    }
     if (error) throw new Error(error.message);
   } else {
     // Backward-compatible fallback when table info isn't available.
     const { error: evtError } = await db
       .from('events')
-      .update(update)
+      .update(update as EventUpdate)
       .eq('id', ev.existing_event_id);
     if (evtError) {
       const { error: stagedError } = await db
         .from('events_staged')
         .update(update as StagedUpdate)
         .eq('id', ev.existing_event_id);
+      if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+        console.log(
+          `    DEBUG ${DEBUG_EVENT_ID}: fallback events error=${evtError.message}; fallback staged error=${stagedError?.message || 'none'}`
+        );
+      }
       if (stagedError) throw new Error(stagedError.message);
+    } else if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
+      console.log(`    DEBUG ${DEBUG_EVENT_ID}: fallback events update success`);
     }
   }
 

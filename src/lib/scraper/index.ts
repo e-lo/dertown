@@ -25,6 +25,8 @@ import { shouldExclude, passesGeoFilter } from './filter';
 import { matchEvents, loadReferenceData, type ReferenceData } from './match';
 import { writeProcessedEvents } from './staged';
 import type { SourceConfig, ScrapeResult, ScrapedEvent, VenueTagRule } from './types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../../types/database';
 
 // ── CLI argument parsing ─────────────────────────────────────────────
 
@@ -37,7 +39,6 @@ interface CliArgs {
   remote: boolean;
   localDb: boolean;
   verbose: boolean;
-  forceUpdateOnPending: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -50,7 +51,6 @@ function parseArgs(argv: string[]): CliArgs {
     remote: false,
     localDb: false,
     verbose: false,
-    forceUpdateOnPending: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -78,9 +78,6 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--verbose':
         args.verbose = true;
-        break;
-      case '--force-update-on-pending':
-        args.forceUpdateOnPending = true;
         break;
       default:
         if (argv[i].startsWith('--')) {
@@ -111,7 +108,6 @@ async function scrapeSource(
   tagKeywords: Record<string, string[]>,
   venueTags: VenueTagRule[],
   descriptionMaxChars: number,
-  forceUpdateOnPending: boolean,
   verbose: boolean
 ): Promise<ScrapeResult> {
   const result: ScrapeResult = {
@@ -189,7 +185,6 @@ async function scrapeSource(
       ref,
       tagKeywords,
       venueTags,
-      { forceUpdateOnPending },
       verbose
     );
     result.events = processed;
@@ -306,6 +301,71 @@ function printFinalSummary(results: ScrapeResult[], mode: DbMode): void {
   }
 }
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function ensureSourceSitesExist(
+  writeDb: SupabaseClient<Database>,
+  sources: SourceConfig[],
+  ref: ReferenceData | null,
+  verbose: boolean
+): Promise<void> {
+  for (const source of sources) {
+    if (isUuid(source.id)) continue;
+
+    const existing =
+      ref?.sourceSites.find((s) => s.name.toLowerCase() === source.name.toLowerCase()) ||
+      ref?.sourceSites.find((s) => s.url === source.url);
+    if (existing) continue;
+
+    let found: { id: string; name: string; url: string } | null = null;
+
+    const byName = await writeDb
+      .from('source_sites')
+      .select('id, name, url')
+      .limit(1)
+      .eq('name', source.name)
+      .maybeSingle();
+    if (byName.data) {
+      found = byName.data;
+    } else {
+      const byUrl = await writeDb
+        .from('source_sites')
+        .select('id, name, url')
+        .limit(1)
+        .eq('url', source.url)
+        .maybeSingle();
+      if (byUrl.data) found = byUrl.data;
+    }
+
+    if (found) {
+      if (ref) ref.sourceSites.push(found);
+      continue;
+    }
+
+    const { data: created, error } = await writeDb
+      .from('source_sites')
+      .insert({ name: source.name, url: source.url })
+      .select('id, name, url')
+      .single();
+
+    if (error) {
+      if (verbose) {
+        console.log(
+          `  WARN: failed to auto-create source_sites row for "${source.name}": ${error.message}`
+        );
+      }
+      continue;
+    }
+
+    if (created && ref) ref.sourceSites.push(created);
+    if (verbose && created) {
+      console.log(`  Created source_sites row for "${source.name}" (${created.id})`);
+    }
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -326,7 +386,6 @@ async function main() {
     console.log('  --remote      Write to production database (default is dry run)');
     console.log('  --local-db    Write to local Supabase instance');
     console.log('  --verbose     Show per-event extraction detail');
-    console.log('  --force-update-on-pending  Force-update matched pending staged events');
     process.exit(0);
   }
 
@@ -378,6 +437,10 @@ async function main() {
     console.log('  No database credentials found. Dedup and matching will be skipped.\n');
   }
 
+  if (writeDb && ref) {
+    await ensureSourceSitesExist(writeDb, sourcesToScrape, ref, args.verbose);
+  }
+
   // Scrape each source
   const results: ScrapeResult[] = [];
   for (const source of sourcesToScrape) {
@@ -387,7 +450,6 @@ async function main() {
       config.tagKeywords,
       config.venueTags,
       config.descriptionMaxChars,
-      args.forceUpdateOnPending,
       args.verbose
     );
     results.push(result);
