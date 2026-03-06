@@ -1122,7 +1122,7 @@ const userEmail = session.user?.email || 'Admin';
         '<th>Time</th>' +
         '<th>Location</th>' +
         '<th>Organization</th>' +
-        '<th>Email</th>' +
+        '<th>Duplicate</th>' +
         '<th>Comments</th>' +
         '<th>Description</th>' +
       '<th>Created</th>' +
@@ -1150,6 +1150,20 @@ const userEmail = session.user?.email || 'Admin';
           // For non-staged events (including pending), use "Archive" instead of "Reject"
           const rejectLabel = eventIsStaged ? 'Reject' : 'Archive';
           const rejectAriaLabel = eventIsStaged ? 'Reject event' : 'Archive event';
+          const likelyDuplicate = event.likely_duplicate;
+          const isLikelyDuplicate = (likelyDuplicate?.match_level || 'likely') === 'likely';
+          const duplicateDate = likelyDuplicate?.start_date
+            ? new Date(likelyDuplicate.start_date + 'T00:00:00').toLocaleDateString()
+            : 'Unknown date';
+          const duplicateUi = likelyDuplicate
+            ? (
+              '<div class="duplicate-match-cell">' +
+              '<div class="duplicate-pill ' + (isLikelyDuplicate ? 'is-likely' : 'is-possible') + '">' + (isLikelyDuplicate ? 'Likely duplicate' : 'Possible duplicate') + '</div>' +
+              '<div class="duplicate-target">' + (likelyDuplicate.title || 'Unknown event') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
+              '<div class="duplicate-none">' + duplicateDate + '</div>' +
+              '</div>'
+            )
+            : '<span class="duplicate-none">No strong match</span>';
             
             return (
               '<tr>' +
@@ -1158,7 +1172,7 @@ const userEmail = session.user?.email || 'Admin';
               '<td>' + (event.start_time || 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
               '<td>' + organizationDisplay + '</td>' +
-              '<td>' + (event.email || 'N/A') + '</td>' +
+              '<td>' + duplicateUi + '</td>' +
               '<td>' + (event.comments || '').substring(0, 50) + (event.comments && event.comments.length > 50 ? '...' : '') + '</td>' +
               '<td>' + (event.description || '').substring(0, 100) + (event.description && event.description.length > 100 ? '...' : '') + '</td>' +
               '<td>' + (event[dateField] ? new Date(event[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
