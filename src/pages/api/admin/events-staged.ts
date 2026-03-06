@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { findEventDuplicateHint } from '@/lib/event-duplicate';
 
 export const prerender = false;
 
@@ -18,5 +19,20 @@ export const GET = withAdminAuth(async () => {
     return jsonError('Failed to fetch staged events');
   }
 
-  return jsonResponse({ events: data || [] });
+  const { data: approvedEvents, error: approvedError } = await supabaseAdmin
+    .from('events')
+    .select('id, title, start_date, start_time, location_id, organization_id')
+    .eq('status', 'approved');
+
+  if (approvedError) {
+    console.error('Error fetching approved events for duplicate hints:', approvedError);
+    return jsonResponse({ events: data || [] });
+  }
+
+  const eventsWithDuplicateHints = (data || []).map((event) => ({
+    ...event,
+    likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
+  }));
+
+  return jsonResponse({ events: eventsWithDuplicateHints });
 });
