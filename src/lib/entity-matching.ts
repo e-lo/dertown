@@ -1,4 +1,5 @@
 export const DEFAULT_NAME_MATCH_THRESHOLD = 0.75;
+export const POSSIBLE_NAME_MATCH_THRESHOLD = 0.6;
 
 /** Normalize a string for comparison: lowercase, collapse whitespace, strip common suffixes. */
 export function normalizeMatchText(value: string): string {

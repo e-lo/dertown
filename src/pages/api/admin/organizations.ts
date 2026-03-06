@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import {
   DEFAULT_NAME_MATCH_THRESHOLD,
+  POSSIBLE_NAME_MATCH_THRESHOLD,
   findBestNameMatch,
 } from '@/lib/entity-matching';
 
@@ -33,7 +34,7 @@ export const GET = withAdminAuth(async ({ url }) => {
     return jsonResponse(rows);
   }
 
-  const approved = rows.filter((row) => row.status === 'approved');
+  const canonicalCandidates = rows.filter((row) => row.status !== 'pending');
   const withDuplicates = rows.map((row) => {
     if (row.status !== 'pending' || !row.name) {
       return row;
@@ -41,7 +42,7 @@ export const GET = withAdminAuth(async ({ url }) => {
 
     const bestMatch = findBestNameMatch(
       row.name,
-      approved
+      canonicalCandidates
         .filter((candidate) => candidate.id !== row.id)
         .map((candidate) => ({
           id: candidate.id,
@@ -49,11 +50,11 @@ export const GET = withAdminAuth(async ({ url }) => {
         }))
     );
 
-    if (!bestMatch || bestMatch.score < DEFAULT_NAME_MATCH_THRESHOLD) {
+    if (!bestMatch || bestMatch.score < POSSIBLE_NAME_MATCH_THRESHOLD) {
       return { ...row, likely_duplicate: null };
     }
 
-    const candidate = approved.find((item) => item.id === bestMatch.id);
+    const candidate = canonicalCandidates.find((item) => item.id === bestMatch.id);
     if (!candidate) return { ...row, likely_duplicate: null };
 
     return {
@@ -62,6 +63,8 @@ export const GET = withAdminAuth(async ({ url }) => {
         id: candidate.id,
         name: candidate.name,
         score: Math.round(bestMatch.score * 100) / 100,
+        match_level:
+          bestMatch.score >= DEFAULT_NAME_MATCH_THRESHOLD ? 'likely' : 'possible',
       },
     };
   });
