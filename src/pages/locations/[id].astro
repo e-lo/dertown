@@ -154,9 +154,6 @@ const locationPageUrl = Astro.url.href;
               <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h2 class="text-lg font-semibold text-gray-900">Map</h2>
-                  {mapLinkUrl && (
-                    <a class="text-sm text-blue-600 hover:underline" href={mapLinkUrl} target="_blank" rel="noopener noreferrer">Open in map</a>
-                  )}
                 </div>
                 <div id="location-map" class="w-full h-64" data-markers={JSON.stringify(mapMarkers)} data-zoom="16"></div>
               </div>
