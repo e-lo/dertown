@@ -1,48 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import type { ScrapedEvent, ProcessedEvent, SourceConfig, VenueTagRule } from './types';
-
-// ── String similarity ────────────────────────────────────────────────
-
-/** Normalize a string for comparison: lowercase, collapse whitespace, strip common suffixes. */
-function norm(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[''`]/g, "'")
-    .replace(/[^\w\s'&-]/g, '') // keep letters, numbers, spaces, apostrophes, ampersands, hyphens
-    .replace(/\b(the|center|centre|for|of|and|at|in)\b/g, '') // strip common words
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/** Simple Levenshtein distance between two strings. */
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
-/** Similarity score 0-1 based on Levenshtein distance. */
-function similarity(a: string, b: string): number {
-  const na = norm(a);
-  const nb = norm(b);
-  if (na === nb) return 1;
-  if (!na || !nb) return 0;
-  const dist = levenshtein(na, nb);
-  return 1 - dist / Math.max(na.length, nb.length);
-}
-
-const MATCH_THRESHOLD = 0.75;
+import {
+  DEFAULT_NAME_MATCH_THRESHOLD,
+  findBestNameMatch,
+  nameMatchScore,
+  similarityScore as similarity,
+} from '../entity-matching';
+const MATCH_THRESHOLD = DEFAULT_NAME_MATCH_THRESHOLD;
 
 // ── Reference data cache ─────────────────────────────────────────────
 
@@ -116,70 +81,18 @@ export async function loadReferenceData(
 
 // ── Matching functions ───────────────────────────────────────────────
 
-/** Compute a match score between a scraped name and a DB name, using multiple strategies. */
-function nameMatchScore(scraped: string, dbName: string): number {
-  const nScraped = norm(scraped);
-  const nDb = norm(dbName);
-
-  // Strategy 1: Levenshtein similarity
-  let score = similarity(scraped, dbName);
-
-  // Strategy 2: Substring containment (e.g. "Leavenworth Ski Hill" contains "Ski Hill")
-  // Require shorter string to have ≥2 words to avoid false positives from bare city names
-  const shorter = nScraped.length <= nDb.length ? nScraped : nDb;
-  if (shorter.includes(' ') && shorter.length > 5) {
-    if (nScraped.includes(nDb) || nDb.includes(nScraped)) {
-      score = Math.max(score, 0.85);
-    }
-  }
-
-  // Strategy 3: Word overlap — handles missing/extra words
-  // (e.g. "Leavenworth Library" vs "Leavenworth Public Library")
-  const wordsScraped = new Set(nScraped.split(/\s+/).filter((w) => w.length > 1));
-  const wordsDb = new Set(nDb.split(/\s+/).filter((w) => w.length > 1));
-  if (wordsScraped.size >= 2 && wordsDb.size >= 2) {
-    const smaller = wordsScraped.size <= wordsDb.size ? wordsScraped : wordsDb;
-    const larger = wordsScraped.size <= wordsDb.size ? wordsDb : wordsScraped;
-    let overlap = 0;
-    for (const w of smaller) {
-      if (larger.has(w)) overlap++;
-    }
-    const ratio = overlap / smaller.size;
-    if (ratio >= 0.8) {
-      score = Math.max(score, 0.75 + ratio * 0.1);
-    }
-  }
-
-  return score;
-}
-
 /** Find the best matching location by name. Returns the location ID or null. */
 export function matchLocation(
   name: string | null,
   locations: LocationRow[]
 ): string | null {
-  if (!name) return null;
-
-  let bestId: string | null = null;
-  let bestScore = 0;
-
-  for (const loc of locations) {
-    const score = nameMatchScore(name, loc.name);
-    if (score > bestScore) {
-      bestScore = score;
-      bestId = loc.id;
-    }
-    // Also try matching against address if available
-    if (loc.address) {
-      const addrScore = similarity(name, loc.address) * 0.8; // weight address matches lower
-      if (addrScore > bestScore) {
-        bestScore = addrScore;
-        bestId = loc.id;
-      }
-    }
-  }
-
-  return bestScore >= MATCH_THRESHOLD ? bestId : null;
+  const bestMatch = findBestNameMatch(
+    name,
+    locations.map((loc) => ({ id: loc.id, name: loc.name, address: loc.address })),
+    { includeAddress: true }
+  );
+  if (!bestMatch) return null;
+  return bestMatch.score >= MATCH_THRESHOLD ? bestMatch.id : null;
 }
 
 /** Find the best matching organization by name. Returns the org ID or null. */
@@ -187,20 +100,12 @@ export function matchOrganization(
   name: string | null,
   organizations: OrgRow[]
 ): string | null {
-  if (!name) return null;
-
-  let bestId: string | null = null;
-  let bestScore = 0;
-
-  for (const org of organizations) {
-    const score = nameMatchScore(name, org.name);
-    if (score > bestScore) {
-      bestScore = score;
-      bestId = org.id;
-    }
-  }
-
-  return bestScore >= MATCH_THRESHOLD ? bestId : null;
+  const bestMatch = findBestNameMatch(
+    name,
+    organizations.map((org) => ({ id: org.id, name: org.name }))
+  );
+  if (!bestMatch) return null;
+  return bestMatch.score >= MATCH_THRESHOLD ? bestMatch.id : null;
 }
 
 /** Normalize a tag name for comparison: lowercase, strip non-alphanumeric. */

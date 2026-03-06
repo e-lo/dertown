@@ -845,8 +845,8 @@ const userEmail = session.user?.email || 'Admin';
   async function loadPendingLocationsOrgs() {
     try {
       const [locRes, orgRes] = await Promise.all([
-        fetch('/api/admin/locations?all=true', { credentials: 'include' }),
-        fetch('/api/admin/organizations?all=true', { credentials: 'include' }),
+        fetch('/api/admin/locations?all=true&includeDuplicates=true', { credentials: 'include' }),
+        fetch('/api/admin/organizations?all=true&includeDuplicates=true', { credentials: 'include' }),
       ]);
       const locations = locRes.ok ? await locRes.json() : [];
       const organizations = orgRes.ok ? await orgRes.json() : [];
@@ -897,14 +897,25 @@ const userEmail = session.user?.email || 'Admin';
 
     const table =
       '<table class="data-table">' +
-      '<thead><tr><th>Name</th><th>Address</th><th>Updated</th><th>Actions</th></tr></thead>' +
+      '<thead><tr><th>Name</th><th>Address</th><th>Duplicate</th><th>Updated</th><th>Actions</th></tr></thead>' +
       '<tbody>' +
       rows
         .map(function (location) {
+          const likelyDuplicate = location.likely_duplicate;
+          const duplicateUi = likelyDuplicate
+            ? (
+              '<div class="duplicate-match-cell">' +
+              '<div class="duplicate-pill">Likely duplicate</div>' +
+              '<div class="duplicate-target">' + (likelyDuplicate.name || 'Unknown') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
+              '<button onclick="markLocationAsDuplicate(\'' + location.id + '\', \'' + likelyDuplicate.id + '\')" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline" type="button">Use canonical</button>' +
+              '</div>'
+            )
+            : '<span class="duplicate-none">No strong match</span>';
           return (
             '<tr>' +
             '<td>' + (location.name || 'N/A') + '</td>' +
             '<td>' + (location.address || 'N/A') + '</td>' +
+            '<td>' + duplicateUi + '</td>' +
             '<td>' + (location.updated_at ? new Date(location.updated_at).toLocaleDateString() : 'N/A') + '</td>' +
             '<td style="text-align: center; white-space: nowrap;">' +
             '<button onclick="editPendingLocation(\'' + location.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit location">' +
@@ -932,15 +943,26 @@ const userEmail = session.user?.email || 'Admin';
 
     const table =
       '<table class="data-table">' +
-      '<thead><tr><th>Name</th><th>Email</th><th>Website</th><th>Updated</th><th>Actions</th></tr></thead>' +
+      '<thead><tr><th>Name</th><th>Email</th><th>Website</th><th>Duplicate</th><th>Updated</th><th>Actions</th></tr></thead>' +
       '<tbody>' +
       rows
         .map(function (organization) {
+          const likelyDuplicate = organization.likely_duplicate;
+          const duplicateUi = likelyDuplicate
+            ? (
+              '<div class="duplicate-match-cell">' +
+              '<div class="duplicate-pill">Likely duplicate</div>' +
+              '<div class="duplicate-target">' + (likelyDuplicate.name || 'Unknown') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
+              '<button onclick="markOrganizationAsDuplicate(\'' + organization.id + '\', \'' + likelyDuplicate.id + '\')" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline" type="button">Use canonical</button>' +
+              '</div>'
+            )
+            : '<span class="duplicate-none">No strong match</span>';
           return (
             '<tr>' +
             '<td>' + (organization.name || 'N/A') + '</td>' +
             '<td>' + (organization.email || 'N/A') + '</td>' +
             '<td>' + (organization.website || 'N/A') + '</td>' +
+            '<td>' + duplicateUi + '</td>' +
             '<td>' + (organization.updated_at ? new Date(organization.updated_at).toLocaleDateString() : 'N/A') + '</td>' +
             '<td style="text-align: center; white-space: nowrap;">' +
             '<button onclick="editPendingOrganization(\'' + organization.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit organization">' +
@@ -979,6 +1001,36 @@ const userEmail = session.user?.email || 'Admin';
       await Promise.all([loadPendingLocationsOrgs(), loadReferenceData()]);
     } catch (error) {
       showMessage(`Error updating ${noun.toLowerCase()}: ` + error.message, 'error');
+    }
+  }
+
+  async function resolvePendingDuplicate(entityType, duplicateId, canonicalId) {
+    const noun = entityType === 'location' ? 'location' : 'organization';
+    const endpoint = entityType === 'location'
+      ? '/api/admin/locations/resolve-duplicate'
+      : '/api/admin/organizations/resolve-duplicate';
+
+    const confirmed = window.confirm(
+      `Mark this pending ${noun} as duplicate, re-point references to the canonical record, and archive the duplicate?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ duplicateId, canonicalId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to resolve duplicate ${noun}`);
+      }
+
+      showMessage(`Duplicate ${noun} resolved successfully!`, 'success');
+      await Promise.all([loadPendingLocationsOrgs(), loadReferenceData()]);
+    } catch (error) {
+      showMessage(`Error resolving duplicate ${noun}: ` + error.message, 'error');
     }
   }
 
@@ -3048,6 +3100,14 @@ const userEmail = session.user?.email || 'Admin';
       await updatePendingEntityStatus('organization', organizationId, 'archived');
     }
 
+    async function markLocationAsDuplicate(duplicateId, canonicalId) {
+      await resolvePendingDuplicate('location', duplicateId, canonicalId);
+    }
+
+    async function markOrganizationAsDuplicate(duplicateId, canonicalId) {
+      await resolvePendingDuplicate('organization', duplicateId, canonicalId);
+    }
+
     window.approveEvent = approveEvent;
     window.rejectEvent = rejectEvent;
     window.approveAnnouncement = approveAnnouncement;
@@ -3066,6 +3126,8 @@ const userEmail = session.user?.email || 'Admin';
     window.approvePendingOrganization = approvePendingOrganization;
     window.archivePendingLocation = archivePendingLocation;
     window.archivePendingOrganization = archivePendingOrganization;
+    window.markLocationAsDuplicate = markLocationAsDuplicate;
+    window.markOrganizationAsDuplicate = markOrganizationAsDuplicate;
     
     // Modal functions
   /**

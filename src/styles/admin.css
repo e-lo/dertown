@@ -267,6 +267,35 @@
   min-width: 700px;
 }
 
+.duplicate-match-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.duplicate-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.duplicate-target {
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.duplicate-none {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
 /* Modal styles */
 .modal-overlay {
   @apply fixed inset-0 bg-black/50 z-[1000] hidden items-center justify-center;
