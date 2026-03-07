@@ -85,7 +85,27 @@ Source configurations live in [`scrape/sources.yaml`](sources.yaml).
   default_location: "Venue Name"    # fallback location if no match found
   default_tag: "arts-culture"       # fallback tag name (must match a tag in DB)
   exclude: null                     # exclusion rules (see below)
+  series_parent_rules: null         # optional keyword -> existing staged series parent mapping
 ```
+
+`series_parent_rules` helps route new scraped occurrences into a series you already created in `events_staged`:
+
+```yaml
+series_parent_rules:
+  - title_keywords: ["storybook theater", "storybook theatre"]
+    parent_title: "Storybook Theater"
+  - title_keywords: ["community yoga"]
+    parent_title: "Community Yoga at the Library"
+```
+
+Behavior:
+- Keywords are matched case-insensitively against the scraped title.
+- First matching rule wins.
+- `parent_title` can match either:
+  - an existing approved top-level event (preferred), or
+  - a pending top-level staged event.
+- If the match is an approved parent, the scraper stores a marker in staged comments and sets `parent_event_id` during approval.
+- If no matching parent exists, the scraper logs a warning and proceeds without linking.
 
 ### 2. Write an extractor (if type is `html`)
 
