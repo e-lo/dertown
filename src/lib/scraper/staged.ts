@@ -10,9 +10,30 @@ interface WriteResult {
   inserted: number;
   updated: number;
   errors: string[];
+  series_rules_matched: number;
+  series_rules_linked: number;
+  series_rules_unresolved: number;
+}
+
+interface SeriesParentTarget {
+  id: string;
+  table: 'events' | 'events_staged';
+  title: string;
+}
+
+interface ConfiguredSeriesParentResolution {
+  targets: Map<ProcessedEvent, SeriesParentTarget>;
+  matchedRuleCount: number;
+  resolvedTargetCount: number;
+  unresolvedRuleCount: number;
 }
 
 const DEBUG_EVENT_ID = 'bc1cf502-396b-46e8-99d1-6e5dce4b6682';
+const SCRAPER_APPROVED_PARENT_ID_PREFIX = '[SCRAPER_APPROVED_PARENT_ID:';
+
+function buildApprovedParentMarker(parentId: string): string {
+  return `${SCRAPER_APPROVED_PARENT_ID_PREFIX}${parentId}]`;
+}
 
 /** Write processed events to the database: insert new staged events, auto-update existing ones. */
 export async function writeProcessedEvents(
@@ -21,12 +42,40 @@ export async function writeProcessedEvents(
   source: SourceConfig,
   verbose: boolean
 ): Promise<WriteResult> {
-  const result: WriteResult = { inserted: 0, updated: 0, errors: [] };
-  const seriesParentIds = await resolveSeriesParentIds(db, events, source, verbose);
+  const result: WriteResult = {
+    inserted: 0,
+    updated: 0,
+    errors: [],
+    series_rules_matched: 0,
+    series_rules_linked: 0,
+    series_rules_unresolved: 0,
+  };
+  const configuredSeriesParentResolution = await resolveConfiguredSeriesParentTargets(
+    db,
+    events,
+    source,
+    verbose
+  );
+  const configuredSeriesParentTargets = configuredSeriesParentResolution.targets;
+  result.series_rules_matched = configuredSeriesParentResolution.matchedRuleCount;
+  result.series_rules_linked = configuredSeriesParentResolution.resolvedTargetCount;
+  result.series_rules_unresolved = configuredSeriesParentResolution.unresolvedRuleCount;
+  const seriesParentIds = await resolveSeriesParentIds(
+    db,
+    events,
+    source,
+    configuredSeriesParentTargets,
+    verbose
+  );
 
   for (const ev of events) {
     try {
-      const seriesParentId = seriesParentIds.get(ev.series_key || '');
+      const configuredSeriesParent = configuredSeriesParentTargets.get(ev);
+      const seriesParentId =
+        configuredSeriesParent?.table === 'events_staged'
+          ? configuredSeriesParent.id
+          : seriesParentIds.get(ev.series_key || '');
+
       if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
         console.log(
           `    DEBUG ${DEBUG_EVENT_ID}: action=${ev.action} table=${ev.existing_event_table || 'n/a'}`
@@ -38,13 +87,14 @@ export async function writeProcessedEvents(
           `    DEBUG ${DEBUG_EVENT_ID}: match location_id=${ev.location_id || 'null'} location_added=${ev.location_added || 'null'} series_parent=${seriesParentId || 'null'}`
         );
       }
+
       switch (ev.action) {
         case 'new':
-          await insertStagedEvent(db, ev, source, seriesParentId, verbose);
+          await insertStagedEvent(db, ev, source, seriesParentId, configuredSeriesParent, verbose);
           result.inserted++;
           break;
         case 'update':
-          await autoUpdateEvent(db, ev, seriesParentId, verbose);
+          await autoUpdateEvent(db, ev, seriesParentId, configuredSeriesParent, verbose);
           result.updated++;
           break;
         case 'skip':
@@ -67,6 +117,7 @@ async function insertStagedEvent(
   ev: ProcessedEvent,
   source: SourceConfig,
   seriesParentId: string | undefined,
+  configuredSeriesParent: SeriesParentTarget | undefined,
   verbose: boolean
 ): Promise<void> {
   const s = ev.scraped;
@@ -75,11 +126,18 @@ async function insertStagedEvent(
   const notes: string[] = [];
   notes.push(`Source: ${source.name} (${source.url})`);
   if (s.website) notes.push(`Event page: ${s.website}`);
-  if (!ev.location_id && ev.location_added)
+  if (!ev.location_id && ev.location_added) {
     notes.push(`Location not matched: "${ev.location_added}"`);
-  if (!ev.organization_id && ev.organization_added)
+  }
+  if (!ev.organization_id && ev.organization_added) {
     notes.push(`Organization not matched: "${ev.organization_added}"`);
+  }
   if (!ev.primary_tag_id) notes.push('No tag matched — needs manual assignment');
+
+  if (configuredSeriesParent?.table === 'events') {
+    notes.push(`Series parent (approved): ${configuredSeriesParent.title}`);
+    notes.push(buildApprovedParentMarker(configuredSeriesParent.id));
+  }
 
   const row: StagedInsert = {
     title: s.title,
@@ -99,7 +157,10 @@ async function insertStagedEvent(
     organization_id: ev.organization_id,
     organization_added: ev.organization_id ? null : ev.organization_added,
     primary_tag_id: ev.primary_tag_id,
-    parent_event_id: seriesParentId || ev.parent_event_id,
+    parent_event_id:
+      configuredSeriesParent?.table === 'events_staged'
+        ? configuredSeriesParent.id
+        : seriesParentId || ev.parent_event_id,
     source_id: ev.source_id,
     status: 'pending',
     submitted_at: new Date().toISOString(),
@@ -120,11 +181,140 @@ function maxDate(values: string[]): string {
   return [...values].sort((a, b) => b.localeCompare(a))[0];
 }
 
+function normalizeForContains(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function eventMatchesSeriesKeywords(ev: ProcessedEvent, keywords: string[]): boolean {
+  const titleHaystack = normalizeForContains(ev.scraped.title);
+  if (!titleHaystack) return false;
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeForContains(keyword);
+    return !!normalizedKeyword && titleHaystack.includes(normalizedKeyword);
+  });
+}
+
+/** Resolve YAML series_parent_rules to existing approved/staged parent targets per event. */
+async function resolveConfiguredSeriesParentTargets(
+  db: SupabaseClient<Database>,
+  events: ProcessedEvent[],
+  source: SourceConfig,
+  verbose: boolean
+): Promise<ConfiguredSeriesParentResolution> {
+  const out = new Map<ProcessedEvent, SeriesParentTarget>();
+  const rules = source.series_parent_rules || [];
+  if (rules.length === 0) {
+    return {
+      targets: out,
+      matchedRuleCount: 0,
+      resolvedTargetCount: 0,
+      unresolvedRuleCount: 0,
+    };
+  }
+
+  const matchedRulesByEvent = new Map<ProcessedEvent, string>();
+
+  for (const ev of events) {
+    if (ev.action === 'skip') continue;
+    for (const rule of rules) {
+      if (!rule?.parent_title || !Array.isArray(rule.title_keywords)) continue;
+      if (eventMatchesSeriesKeywords(ev, rule.title_keywords)) {
+        matchedRulesByEvent.set(ev, rule.parent_title);
+        break;
+      }
+    }
+  }
+
+  if (matchedRulesByEvent.size === 0) {
+    return {
+      targets: out,
+      matchedRuleCount: 0,
+      resolvedTargetCount: 0,
+      unresolvedRuleCount: 0,
+    };
+  }
+
+  const [approvedRes, stagedRes] = await Promise.all([
+    db
+      .from('events')
+      .select('id, title, start_date')
+      .eq('status', 'approved')
+      .is('parent_event_id', null)
+      .order('start_date', { ascending: false }),
+    db
+      .from('events_staged')
+      .select('id, title, start_date')
+      .eq('status', 'pending')
+      .is('parent_event_id', null)
+      .order('start_date', { ascending: false }),
+  ]);
+
+  if (approvedRes.error || stagedRes.error) {
+    const msg = approvedRes.error?.message || stagedRes.error?.message || 'unknown error';
+    if (verbose) {
+      console.log(`    WARN: failed loading parents for series matching: ${msg}`);
+    }
+    return {
+      targets: out,
+      matchedRuleCount: matchedRulesByEvent.size,
+      resolvedTargetCount: 0,
+      unresolvedRuleCount: matchedRulesByEvent.size,
+    };
+  }
+
+  // Prefer approved parents when titles collide, then fallback to staged.
+  const parentByTitle = new Map<string, SeriesParentTarget>();
+  for (const parent of approvedRes.data || []) {
+    const key = parent.title.trim().toLowerCase();
+    if (!parentByTitle.has(key)) {
+      parentByTitle.set(key, { id: parent.id, table: 'events', title: parent.title });
+    }
+  }
+  for (const parent of stagedRes.data || []) {
+    const key = parent.title.trim().toLowerCase();
+    if (!parentByTitle.has(key)) {
+      parentByTitle.set(key, { id: parent.id, table: 'events_staged', title: parent.title });
+    }
+  }
+
+  let unresolvedRuleCount = 0;
+  for (const [ev, parentTitle] of matchedRulesByEvent.entries()) {
+    const parent = parentByTitle.get(parentTitle.trim().toLowerCase());
+    if (parent) {
+      out.set(ev, parent);
+      if (verbose) {
+        console.log(
+          `    SERIES MATCH "${ev.scraped.title}" -> ${parent.table}:${parent.title} (${parent.id})`
+        );
+      }
+    } else if (verbose) {
+      console.log(
+        `    WARN: series_parent_rules matched "${ev.scraped.title}" but no parent titled "${parentTitle}" exists in approved events or pending staged parents`
+      );
+      unresolvedRuleCount++;
+    } else {
+      unresolvedRuleCount++;
+    }
+  }
+
+  return {
+    targets: out,
+    matchedRuleCount: matchedRulesByEvent.size,
+    resolvedTargetCount: out.size,
+    unresolvedRuleCount,
+  };
+}
+
 /** For multi-instance scraped events, create or reuse a staged parent row and return parent IDs by series key. */
 async function resolveSeriesParentIds(
   db: SupabaseClient<Database>,
   events: ProcessedEvent[],
   source: SourceConfig,
+  configuredSeriesParentTargets: Map<ProcessedEvent, SeriesParentTarget>,
   verbose: boolean
 ): Promise<Map<string, string>> {
   const parentIds = new Map<string, string>();
@@ -137,6 +327,18 @@ async function resolveSeriesParentIds(
   }
 
   for (const [seriesKey, group] of groups.entries()) {
+    // If config explicitly mapped this series to an existing parent, do not auto-create.
+    const configuredTarget = group
+      .map((ev) => configuredSeriesParentTargets.get(ev))
+      .find((target): target is SeriesParentTarget => !!target);
+
+    if (configuredTarget) {
+      if (configuredTarget.table === 'events_staged') {
+        parentIds.set(seriesKey, configuredTarget.id);
+      }
+      continue;
+    }
+
     // Only auto-create a parent when we have at least 2 instances in this scrape batch.
     if (group.length < 2) continue;
 
@@ -236,6 +438,7 @@ async function autoUpdateEvent(
   db: SupabaseClient<Database>,
   ev: ProcessedEvent,
   seriesParentId: string | undefined,
+  configuredSeriesParent: SeriesParentTarget | undefined,
   verbose: boolean
 ): Promise<void> {
   if (!ev.existing_event_id) {
@@ -264,7 +467,10 @@ async function autoUpdateEvent(
     update.location_id = null;
     update.location_added = ev.location_added;
   }
-  if (seriesParentId && ev.existing_event_table === 'events_staged') {
+
+  if (configuredSeriesParent?.table === 'events' && ev.existing_event_table === 'events') {
+    update.parent_event_id = configuredSeriesParent.id;
+  } else if (seriesParentId && ev.existing_event_table === 'events_staged') {
     update.parent_event_id = seriesParentId;
   }
 
@@ -285,7 +491,9 @@ async function autoUpdateEvent(
       .update(update as StagedUpdate)
       .eq('id', ev.existing_event_id);
     if (verbose && ev.existing_event_id === DEBUG_EVENT_ID) {
-      console.log(`    DEBUG ${DEBUG_EVENT_ID}: events_staged update error=${error?.message || 'none'}`);
+      console.log(
+        `    DEBUG ${DEBUG_EVENT_ID}: events_staged update error=${error?.message || 'none'}`
+      );
     }
     if (error) throw new Error(error.message);
   } else if (ev.existing_event_table === 'events') {

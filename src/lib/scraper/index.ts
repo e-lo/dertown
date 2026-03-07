@@ -8,9 +8,10 @@
  *   make scrape --all --remote     # write to production DB
  *   make scrape --all --local-db   # write to local Supabase
  *   make scrape --all --verbose    # show per-event detail
- *   make scrape --url <url>        # paste a URL for AI extraction (future)
+ *   make scrape --url <url>        # paste a URL for AI extraction
  */
 
+import * as readline from 'readline';
 import { loadConfig, getSourceConfig } from './config';
 import { createWriteClient, createReadClient, type DbMode } from './db';
 import { fetchPage } from './fetch';
@@ -21,10 +22,18 @@ import { fetchLibCalEvents } from './parse-json';
 import { clampDescription } from './description';
 import { enrichDescriptionsFromDetailPages } from './enrich';
 import { normalizeEvent, isPastEvent } from './normalize';
+import { extractEventsWithAI } from './parse-ai';
 import { shouldExclude, passesGeoFilter } from './filter';
-import { matchEvents, loadReferenceData, type ReferenceData } from './match';
+import {
+  matchEvents,
+  loadReferenceData,
+  matchLocation,
+  matchOrganization,
+  matchTag,
+  type ReferenceData,
+} from './match';
 import { writeProcessedEvents } from './staged';
-import type { SourceConfig, ScrapeResult, ScrapedEvent, VenueTagRule } from './types';
+import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent, VenueTagRule } from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 
@@ -366,6 +375,260 @@ async function ensureSourceSitesExist(
   }
 }
 
+// ── Interactive CLI prompts ───────────────────────────────────────────
+
+function createPromptInterface(): readline.Interface {
+  return readline.createInterface({ input: process.stdin, output: process.stdout });
+}
+
+function ask(rl: readline.Interface, question: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => resolve(answer.trim()));
+  });
+}
+
+/**
+ * After matching, show the auto-resolved org/location/tag and let the user
+ * confirm or override each one. Applies the choice to all new events in the batch.
+ */
+async function promptForMissingFields(
+  processed: ProcessedEvent[],
+  ref: ReferenceData | null
+): Promise<void> {
+  const newEvents = processed.filter((ev) => ev.action === 'new');
+  if (newEvents.length === 0) return;
+
+  // Resolve current values for display
+  const sample = newEvents[0];
+  const currentOrg = sample.organization_id
+    ? ref?.organizations.find((o) => o.id === sample.organization_id)?.name || null
+    : sample.organization_added || null;
+  const currentLoc = sample.location_id
+    ? ref?.locations.find((l) => l.id === sample.location_id)?.name || null
+    : sample.location_added || null;
+  const currentTag = sample.primary_tag_id
+    ? ref?.tags.find((t) => t.id === sample.primary_tag_id)?.name || null
+    : null;
+
+  console.log('\n--- Confirm fields for all events (press Enter to keep current) ---');
+
+  const rl = createPromptInterface();
+
+  try {
+    // Organization
+    const orgPrompt = currentOrg
+      ? `Organization [${currentOrg}]: `
+      : 'Organization: ';
+    const orgInput = await ask(rl, orgPrompt);
+    if (orgInput) {
+      const orgId = ref ? matchOrganization(orgInput, ref.organizations) : null;
+      for (const ev of newEvents) {
+        if (orgId) {
+          ev.organization_id = orgId;
+          ev.organization_added = null;
+        } else {
+          ev.organization_id = null;
+          ev.organization_added = orgInput;
+        }
+      }
+      if (orgId) {
+        const orgName = ref?.organizations.find((o) => o.id === orgId)?.name;
+        console.log(`  → Matched: "${orgName}"`);
+      } else {
+        console.log(`  → Will add as new: "${orgInput}"`);
+      }
+    }
+
+    // Location
+    const locPrompt = currentLoc
+      ? `Location [${currentLoc}]: `
+      : 'Location: ';
+    const locInput = await ask(rl, locPrompt);
+    if (locInput) {
+      const locId = ref ? matchLocation(locInput, ref.locations) : null;
+      for (const ev of newEvents) {
+        if (locId) {
+          ev.location_id = locId;
+          ev.location_added = null;
+        } else {
+          ev.location_id = null;
+          ev.location_added = locInput;
+        }
+      }
+      if (locId) {
+        const locName = ref?.locations.find((l) => l.id === locId)?.name;
+        console.log(`  → Matched: "${locName}"`);
+      } else {
+        console.log(`  → Will add as new: "${locInput}"`);
+      }
+    }
+
+    // Tag
+    const tagList = ref?.tags.map((t) => t.name).join(', ') || '';
+    if (tagList) console.log(`  Tags: ${tagList}`);
+    const tagPrompt = currentTag
+      ? `Tag [${currentTag}]: `
+      : 'Tag: ';
+    const tagInput = await ask(rl, tagPrompt);
+    if (tagInput) {
+      const tagId = ref ? matchTag(tagInput, ref.tags) : null;
+      if (tagId) {
+        for (const ev of newEvents) {
+          ev.primary_tag_id = tagId;
+        }
+        const tagName = ref?.tags.find((t) => t.id === tagId)?.name;
+        console.log(`  → Matched: "${tagName}"`);
+      } else {
+        console.log(`  → Tag "${tagInput}" not found in database, keeping current`);
+      }
+    }
+
+    console.log('');
+  } finally {
+    rl.close();
+  }
+}
+
+// ── URL paste handler ─────────────────────────────────────────────────
+
+async function handleUrlPaste(
+  pasteUrl: string,
+  mode: DbMode,
+  writeDb: SupabaseClient<Database> | null,
+  config: ReturnType<typeof loadConfig>,
+  verbose: boolean
+): Promise<void> {
+  if (mode === 'dry-run') {
+    console.log('[DRY RUN] No database writes will be made.\n');
+  } else {
+    const label = mode === 'remote' ? 'REMOTE (production)' : 'LOCAL';
+    console.log(`Writing to ${label} database.\n`);
+  }
+
+  console.log(`Extracting events from: ${pasteUrl}\n`);
+
+  // Load reference data for matching/dedup
+  let ref: ReferenceData | null = null;
+  const readDb = writeDb || createReadClient();
+  if (readDb) {
+    if (verbose) console.log('Loading reference data for matching...');
+    try {
+      ref = await loadReferenceData(readDb);
+      if (verbose) {
+        console.log(
+          `  ${ref.locations.length} locations, ${ref.organizations.length} orgs, ${ref.tags.length} tags`
+        );
+        console.log(
+          `  ${ref.existingEvents.length} existing events, ${ref.existingStaged.length} staged events\n`
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`  WARNING: Could not load reference data: ${msg}`);
+      console.log('  Dedup and matching will be skipped.\n');
+    }
+  } else {
+    console.log('  No database credentials found. Dedup and matching will be skipped.\n');
+  }
+
+  // Step 1: Fetch the page
+  if (verbose) console.log(`  Fetching ${pasteUrl}...`);
+  const html = await fetchPage(pasteUrl);
+  if (verbose) console.log(`  Fetched ${html.length} bytes`);
+
+  // Step 2: AI extraction
+  const rawEvents = await extractEventsWithAI(html, pasteUrl, config.descriptionMaxChars, verbose);
+
+  // Step 3: Normalize and filter past events
+  const events: ScrapedEvent[] = [];
+  for (const raw of rawEvents) {
+    const event = normalizeEvent(raw);
+    event.description = clampDescription(event.description, config.descriptionMaxChars);
+    if (isPastEvent(event)) continue;
+    events.push(event);
+  }
+
+  if (verbose) console.log(`  ${events.length} events after filtering past dates`);
+
+  if (events.length === 0) {
+    console.log('No upcoming events found on this page.');
+    return;
+  }
+
+  // Step 4: Build a synthetic source config for matching
+  const syntheticSource: SourceConfig = {
+    id: 'url-paste',
+    name: 'URL Paste',
+    url: pasteUrl,
+    type: 'html',
+    default_organization: null,
+    default_location: null,
+    default_tag: null,
+  };
+
+  // Step 5: Run matching pipeline
+  const processed = matchEvents(
+    events,
+    syntheticSource,
+    ref,
+    config.tagKeywords,
+    config.venueTags,
+    verbose
+  );
+
+  // Step 5b: Prompt user for any unresolved org/location/tag
+  await promptForMissingFields(processed, ref);
+
+  // Build result summary
+  const result: ScrapeResult = {
+    source_id: null,
+    source_name: `URL Paste (${pasteUrl})`,
+    total_extracted: events.length,
+    filtered_geo: 0,
+    filtered_excluded: 0,
+    new_count: 0,
+    updated_count: 0,
+    skipped_count: 0,
+    errors: [],
+    events: processed,
+  };
+
+  for (const ev of processed) {
+    switch (ev.action) {
+      case 'new':
+        result.new_count++;
+        break;
+      case 'update':
+        result.updated_count++;
+        break;
+      case 'skip':
+        result.skipped_count++;
+        break;
+    }
+  }
+
+  printResultSummary(result, mode);
+  if (verbose) printVerboseEvents(result, ref);
+
+  // Step 6: Write to database if not dry-run
+  if (writeDb) {
+    const writeResult = await writeProcessedEvents(writeDb, processed, syntheticSource, verbose);
+    if (writeResult.errors.length > 0) {
+      result.errors.push(...writeResult.errors);
+    }
+    if (writeResult.series_rules_matched > 0 || writeResult.series_rules_unresolved > 0) {
+      console.log(
+        `  Series rules: ${writeResult.series_rules_linked}/${writeResult.series_rules_matched} linked` +
+          (writeResult.series_rules_unresolved > 0
+            ? ` (${writeResult.series_rules_unresolved} unmatched parent title)`
+            : '')
+      );
+    }
+  }
+
+  printFinalSummary([result], mode);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -400,9 +663,10 @@ async function main() {
   } else if (args.source) {
     sourcesToScrape = [getSourceConfig(config.sources, args.source)];
   } else {
-    // URL/instagram/facebook paste — Phase 5
-    console.log('URL paste mode is not yet implemented (Phase 5).');
-    process.exit(0);
+    // URL/instagram/facebook paste — AI extraction
+    const pasteUrl = args.url || args.instagram || args.facebook || '';
+    await handleUrlPaste(pasteUrl, mode, writeDb, config, args.verbose);
+    return;
   }
 
   if (mode === 'dry-run') {
@@ -462,6 +726,14 @@ async function main() {
       const writeResult = await writeProcessedEvents(writeDb, result.events, source, args.verbose);
       if (writeResult.errors.length > 0) {
         result.errors.push(...writeResult.errors);
+      }
+      if (writeResult.series_rules_matched > 0 || writeResult.series_rules_unresolved > 0) {
+        console.log(
+          `  Series rules: ${writeResult.series_rules_linked}/${writeResult.series_rules_matched} linked` +
+            (writeResult.series_rules_unresolved > 0
+              ? ` (${writeResult.series_rules_unresolved} unmatched parent title)`
+              : '')
+        );
       }
 
       // Write scrape logs

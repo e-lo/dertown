@@ -268,9 +268,21 @@ const userEmail = session.user?.email || 'Admin';
   let allParentEvents = [];
   let currentEditId = null;
   let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
+  const APPROVED_PARENT_MARKER_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/i;
+
+  function extractApprovedParentIdFromComments(comments) {
+    if (!comments) return null;
+    const match = comments.match(APPROVED_PARENT_MARKER_REGEX);
+    return match?.[1] || null;
+  }
+
+  function findParentEventById(id) {
+    if (!id || !Array.isArray(allParentEvents)) return null;
+    return allParentEvents.find((event) => event?.id === id) || null;
+  }
 
   function getAllowedParentSource() {
-    if (currentEditType === 'staged-event') return 'events_staged';
+    if (currentEditType === 'staged-event') return 'events';
     if (currentEditType === 'existing-event' || currentEditType === 'new-event') return 'events';
     return null;
   }
@@ -1855,20 +1867,22 @@ const userEmail = session.user?.email || 'Admin';
         }
         
         // Set parent event
-        if (event.parent_event_id) {
-          // Find the parent event in our loaded list
-          const parentEvent = allParentEvents.find(e => e.id === event.parent_event_id);
+        const parentInput = document.getElementById('editEventParentEventSearch');
+        const parentIdInput = document.getElementById('editEventParentEventId');
+        const approvedParentIdFromComments = extractApprovedParentIdFromComments(event.comments);
+        const effectiveParentId = approvedParentIdFromComments || event.parent_event_id || null;
+        if (effectiveParentId) {
+          const parentEvent = findParentEventById(effectiveParentId);
           if (parentEvent) {
-            document.getElementById('editEventParentEventSearch').value = parentEvent.title || '';
-            document.getElementById('editEventParentEventId').value = event.parent_event_id;
+            parentInput.value = parentEvent.title || '';
+            parentIdInput.value = effectiveParentId;
           } else {
-            // If not found, we'll need to fetch it or just show the ID
-            document.getElementById('editEventParentEventSearch').value = '';
-            document.getElementById('editEventParentEventId').value = event.parent_event_id;
+            parentInput.value = '';
+            parentIdInput.value = effectiveParentId;
           }
         } else {
-          document.getElementById('editEventParentEventSearch').value = '';
-          document.getElementById('editEventParentEventId').value = '';
+          parentInput.value = '';
+          parentIdInput.value = '';
         }
         
         document.getElementById('editEventComments').value = event.comments || '';
