@@ -75,6 +75,11 @@ venue_tags:
     tag: 'arts-culture'
 
 # ── Sources ──────────────────────────────────────────────────────────
+# Optional per-source series linking:
+#   series_parent_rules:
+#     - title_keywords: ['keyword a', 'keyword b']
+#       parent_title: 'Existing Approved Or Pending Series Parent Title'
+# Keywords are matched against scraped event titles (case-insensitive).
 sources:
   - id: 'icicle-creek'
     name: 'Icicle Creek Center'
@@ -97,6 +102,9 @@ sources:
         - 'intro to mixing'
       title_patterns:
         - '^intro to ' # "Intro to ..." multi-session classes
+    series_parent_rules:
+      - title_keywords: ['story time']
+        parent_title: 'Storybook Theater'
 
   - id: 'ncw-leavenworth-libraries'
     name: 'Leavenworth Library'
@@ -111,7 +119,20 @@ sources:
     exclude: null
     organization_map:
       'Leavenworth Library': 'Leavenworth Public Library'
-      
+    series_parent_rules:
+      - title_keywords: ['story time']
+        parent_title: 'Story Time at the Library Series'
+      - title_keywords: ['Culture Critics Club']
+        parent_title: 'Culture Critics Club Series'
+      - title_keywords: ['Teen Library Council']
+        parent_title: 'Teen Library Council Series'
+      - title_keywords: ['ATLAS (At the Library After School) Club']
+        parent_title: 'ATLAS (At the Library After School) Club Leavenworth'
+      - title_keywords: ['Banned Book Club']
+        parent_title: 'Banned Book Club (Series)'
+      - title_keywords: ['Coordinated Entry Services']
+        parent_title: 'Coordinated Entry Services for Homeless/Housing Insecure series'
+
   - id: 'ncw-peshastin-libraries'
     name: 'Peshastin Library'
     url: 'https://ncwlibraries.libcal.com/calendar/peshastin'
@@ -125,6 +146,17 @@ sources:
     exclude: null
     organization_map:
       'Peshastin Library': 'Peshastin Public Library'
+    series_parent_rules:
+      - title_keywords: ['Clases de inglés']
+        parent_title: 'Clases de inglés / English Language Learning Classes'
+      - title_keywords: ['Teen Library Council']
+        parent_title: 'Teen Library Council Series'
+      - title_keywords: ['ATLAS (At the Library After School) Club']
+        parent_title: 'ATLAS (At the Library After School) Club Peshastin'
+      - title_keywords: ['Ukulele Circle']
+        parent_title: 'Peshastin Library Ukulele Circle (PLUC)'
+      - title_keywords: ['Book Club']
+        parent_title: 'Peshastin Friends of the Library Book Club'
 
   - id: 'ski-leavenworth'
     name: 'Ski Leavenworth'
@@ -143,6 +175,11 @@ sources:
     exclude: null
     location_map:
       'Bavarian Lodge': 'Ski Hill Lodge'
+    series_parent_rules:
+      - title_keywords: ['summer music']
+        parent_title: 'Ski Hill Summer Music Series'
+      - title_keywords: ['Board Meeting']
+        parent_title: 'Storybook Theater'
 
   - id: 'icicle-brewing'
     name: 'Icicle Brewing Company'
@@ -220,3 +257,6 @@ sources:
       title_keywords:
         - ' camp'
         - 'science on tap' # held in Wenatchee, not Leavenworth
+    series_parent_rules:
+      - title_keywords: ['red barn']
+        parent_title: 'Red Barn Events'
