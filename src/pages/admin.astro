@@ -266,6 +266,8 @@ const userEmail = session.user?.email || 'Admin';
   let allOrganizations = [];
   let allTags = [];
   let allParentEvents = [];
+  let currentEditId = null;
+  let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
 
   function getAllowedParentSource() {
     if (currentEditType === 'staged-event') return 'events_staged';
@@ -1790,8 +1792,6 @@ const userEmail = session.user?.email || 'Admin';
   // ============================================================================
   
   // Track which item is currently being edited
-  let currentEditId = null;
-  let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
 
   // ============================================================================
   // EDIT FUNCTIONS
