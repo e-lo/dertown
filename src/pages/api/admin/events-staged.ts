@@ -4,6 +4,14 @@ import { findEventDuplicateHint } from '@/lib/event-duplicate';
 
 export const prerender = false;
 
+const SCRAPER_APPROVED_PARENT_ID_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/i;
+
+function extractApprovedParentId(comments: string | null): string | null {
+  if (!comments) return null;
+  const match = comments.match(SCRAPER_APPROVED_PARENT_ID_REGEX);
+  return match?.[1] || null;
+}
+
 export const GET = withAdminAuth(async () => {
   const { data, error } = await supabaseAdmin.from('events_staged').select(`
       *,
@@ -46,15 +54,23 @@ export const GET = withAdminAuth(async () => {
       .map((e) => e.parent_event_id)
   );
 
-  const eventsWithDuplicateHints = (data || []).map((event) => ({
-    ...event,
-    likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
-    is_series_parent: referencedParentIds.has(event.id),
-    child_count: referencedParentIds.has(event.id)
-      ? (data || []).filter((e) => e.parent_event_id === event.id).length
-      : 0,
-    parent_title: event.parent_event_id ? parentTitles.get(event.parent_event_id) || null : null,
-  }));
+  const eventsWithDuplicateHints = (data || []).map((event) => {
+    // Resolve effective parent: either direct parent_event_id or from comments marker
+    const approvedParentFromComments = extractApprovedParentId(event.comments);
+    const effectiveParentId = event.parent_event_id || approvedParentFromComments || null;
+    const parentTitle = effectiveParentId ? parentTitles.get(effectiveParentId) || null : null;
+
+    return {
+      ...event,
+      likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
+      is_series_parent: referencedParentIds.has(event.id),
+      child_count: referencedParentIds.has(event.id)
+        ? (data || []).filter((e) => e.parent_event_id === event.id).length
+        : 0,
+      parent_title: parentTitle,
+      effective_parent_id: effectiveParentId,
+    };
+  });
 
   return jsonResponse({ events: eventsWithDuplicateHints });
 });
