@@ -53,7 +53,7 @@ export const GET = withAdminAuth(async () => {
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
     .from('events')
-    .select('id, title, start_date, start_time, location_id, organization_id')
+    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id')
     .eq('status', 'approved');
 
   if (approvedError) {
@@ -61,9 +61,19 @@ export const GET = withAdminAuth(async () => {
     return jsonResponse({ events: data || [] });
   }
 
+  // Build parent title lookup
+  const parentTitles = new Map<string, string>();
+  for (const e of data || []) {
+    parentTitles.set(e.id, e.title);
+  }
+  for (const e of approvedEvents || []) {
+    if (!parentTitles.has(e.id)) parentTitles.set(e.id, e.title || '');
+  }
+
   const eventsWithDuplicateHints = (data || []).map((event) => ({
     ...event,
     likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
+    parent_title: event.parent_event_id ? parentTitles.get(event.parent_event_id) || null : null,
   }));
 
   return jsonResponse({ events: eventsWithDuplicateHints });
