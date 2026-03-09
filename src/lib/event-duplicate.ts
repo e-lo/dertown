@@ -11,6 +11,7 @@ export interface EventDuplicateCandidate {
   location_id?: string | null;
   organization_id?: string | null;
   parent_event_id?: string | null;
+  source_id?: string | null;
 }
 
 export interface EventDuplicateHint {
@@ -66,15 +67,18 @@ export function findEventDuplicateHint(
   for (const candidate of approvedCandidates) {
     if (!candidate.id || candidate.id === event.id) continue;
 
-    // Skip same-series siblings/parent unless they share the same date —
-    // children of the same series are expected to have similar titles.
-    if (event.parent_event_id && candidate.parent_event_id &&
-        event.parent_event_id === candidate.parent_event_id &&
-        event.start_date !== candidate.start_date) {
+    // Events that belong to a series (have a parent) should only match as
+    // duplicates of events on the exact same date — otherwise every child
+    // instance flags as a duplicate of siblings or the parent itself.
+    if (event.parent_event_id && event.start_date !== candidate.start_date) {
       continue;
     }
-    // Also skip if the candidate IS the parent of this event
-    if (event.parent_event_id && candidate.id === event.parent_event_id) {
+
+    // Same source + different date = recurring event from same scraper, not a duplicate.
+    // The scraper's own dedup handles same-source matches.
+    if (event.source_id && candidate.source_id &&
+        event.source_id === candidate.source_id &&
+        event.start_date !== candidate.start_date) {
       continue;
     }
 
