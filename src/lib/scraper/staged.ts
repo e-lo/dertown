@@ -321,9 +321,19 @@ async function resolveSeriesParentIds(
   const groups = new Map<string, ProcessedEvent[]>();
 
   for (const ev of events) {
-    if (!ev.series_key || ev.action === 'skip') continue;
+    if (!ev.series_key) continue;
+    if (ev.action === 'skip') {
+      if (verbose) console.log(`    Series: skipping "${ev.scraped.title}" (${ev.series_key}) — action=skip`);
+      continue;
+    }
     if (!groups.has(ev.series_key)) groups.set(ev.series_key, []);
     groups.get(ev.series_key)!.push(ev);
+  }
+
+  if (verbose) {
+    for (const [key, group] of groups.entries()) {
+      console.log(`    Series group "${key}": ${group.length} events (need ≥2 for parent)`);
+    }
   }
 
   for (const [seriesKey, group] of groups.entries()) {
@@ -419,10 +429,8 @@ async function resolveSeriesParentIds(
       .single();
 
     if (parentError || !createdParent?.id) {
-      if (verbose) {
-        const msg = parentError?.message || 'unknown error';
-        console.log(`    WARN: failed to create series parent for ${seriesKey}: ${msg}`);
-      }
+      const msg = parentError?.message || 'unknown error';
+      console.log(`    WARN: failed to create series parent for ${seriesKey}: ${msg}`);
       continue;
     }
 
