@@ -53,7 +53,7 @@ export const GET = withAdminAuth(async () => {
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
     .from('events')
-    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id')
+    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id, source_id')
     .eq('status', 'approved');
 
   if (approvedError) {

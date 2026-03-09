@@ -404,6 +404,7 @@ async function resolveSeriesParentIds(
       primary_tag_id: first.primary_tag_id,
       secondary_tag_id: null,
       parent_event_id: null,
+      exclude_from_calendar: true,
       source_id: first.source_id,
       status: 'pending',
       submitted_at: new Date().toISOString(),

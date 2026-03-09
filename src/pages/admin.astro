@@ -1168,7 +1168,6 @@ const userEmail = session.user?.email || 'Admin';
         '<th>Time</th>' +
         '<th>Location</th>' +
         '<th>Organization</th>' +
-        '<th>Parent Event</th>' +
         '<th>Duplicate</th>' +
         '<th>Comments</th>' +
       '<th>Created</th>' +
@@ -1211,22 +1210,19 @@ const userEmail = session.user?.email || 'Admin';
             )
             : '<span class="duplicate-none">No strong match</span>';
             
-          const seriesBadge = event.is_series_parent
-            ? '<span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;margin-left:0.4rem;vertical-align:middle;">SERIES PARENT · ' + event.child_count + ' children</span>'
-            : '';
-
-          const parentDisplay = event.parent_event_id
-            ? '<span style="font-size:0.85rem;">' + (event.parent_title || event.parent_event_id.substring(0, 8) + '...') + '</span>'
+          const titleBadge = event.is_series_parent
+            ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">SERIES PARENT · ' + event.child_count + ' children</span></div>'
+            : event.parent_event_id
+            ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#f0fdf4;color:#166534;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">child of: ' + (event.parent_title || 'unknown') + '</span></div>'
             : '';
 
             return (
               '<tr>' +
-              '<td>' + (event.title || 'N/A') + seriesBadge + '</td>' +
+              '<td>' + (event.title || 'N/A') + titleBadge + '</td>' +
               '<td>' + (event.start_date || 'N/A') + '</td>' +
               '<td>' + (event.start_time || 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
               '<td>' + organizationDisplay + '</td>' +
-              '<td>' + parentDisplay + '</td>' +
               '<td>' + duplicateUi + '</td>' +
               '<td>' + (event.comments || '').substring(0, 50) + (event.comments && event.comments.length > 50 ? '...' : '') + '</td>' +
               '<td>' + (event[dateField] ? new Date(event[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
