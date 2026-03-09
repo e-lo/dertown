@@ -98,7 +98,14 @@ export async function writeProcessedEvents(
           result.updated++;
           break;
         case 'skip':
-          // Nothing to write
+          // Even for skipped events, ensure parent_event_id is set if a series parent exists
+          if (seriesParentId && ev.existing_event_id && ev.existing_event_table === 'events_staged') {
+            await db
+              .from('events_staged')
+              .update({ parent_event_id: seriesParentId })
+              .eq('id', ev.existing_event_id)
+              .is('parent_event_id', null);
+          }
           break;
       }
     } catch (err) {
@@ -322,10 +329,8 @@ async function resolveSeriesParentIds(
 
   for (const ev of events) {
     if (!ev.series_key) continue;
-    if (ev.action === 'skip') {
-      if (verbose) console.log(`    Series: skipping "${ev.scraped.title}" (${ev.series_key}) — action=skip`);
-      continue;
-    }
+    // Include ALL events with a series_key (even skip/update) for group counting,
+    // so the parent is created/reused even on re-imports.
     if (!groups.has(ev.series_key)) groups.set(ev.series_key, []);
     groups.get(ev.series_key)!.push(ev);
   }
