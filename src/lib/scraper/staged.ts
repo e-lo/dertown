@@ -345,7 +345,8 @@ async function resolveSeriesParentIds(
     const earliestStart = minDate(group.map((e) => e.scraped.start_date));
     const latestStart = maxDate(group.map((e) => e.scraped.start_date));
     const first = group[0];
-    const parentTitle = first.series_parent_title || first.scraped.title;
+    const baseTitle = first.series_parent_title || first.scraped.title;
+    const parentTitle = `${baseTitle} (Series)`;
     const parentWebsite = first.series_parent_website || first.scraped.website || null;
 
     // Reuse an existing staged series parent if one already exists.
