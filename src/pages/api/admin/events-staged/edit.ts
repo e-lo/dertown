@@ -35,6 +35,11 @@ export const PUT = withAdminAuth(async ({ request }) => {
     return jsonError('Event not found', 404);
   }
 
+  // Normalize empty parent_event_id to null before validation
+  if (!updateData.parent_event_id) {
+    updateData.parent_event_id = null;
+  }
+
   let approvedParentId: string | null = null;
   if (updateData.parent_event_id) {
     const { data: stagedParent } = await supabaseAdmin

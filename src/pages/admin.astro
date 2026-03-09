@@ -1210,9 +1210,10 @@ const userEmail = session.user?.email || 'Admin';
             )
             : '<span class="duplicate-none">No strong match</span>';
             
+          const hasParent = event.parent_event_id && event.parent_event_id.length > 10;
           const titleBadge = event.is_series_parent
             ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">SERIES PARENT · ' + event.child_count + ' children</span></div>'
-            : event.parent_event_id
+            : hasParent
             ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#f0fdf4;color:#166534;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">child of: ' + (event.parent_title || 'unknown') + '</span></div>'
             : '';
 
@@ -2164,7 +2165,7 @@ const userEmail = session.user?.email || 'Admin';
       secondary_tag_id: document.getElementById('editEventSecondaryTag').value,
       location_id: document.getElementById('editEventLocationId').value,
       organization_id: document.getElementById('editEventOrganizationId').value,
-      parent_event_id: document.getElementById('editEventParentEventId').value,
+      parent_event_id: document.getElementById('editEventParentEventId').value || null,
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
@@ -2332,7 +2333,7 @@ const userEmail = session.user?.email || 'Admin';
       secondary_tag_id: document.getElementById('editEventSecondaryTag').value,
       location_id: document.getElementById('editEventLocationId').value,
       organization_id: document.getElementById('editEventOrganizationId').value,
-      parent_event_id: document.getElementById('editEventParentEventId').value,
+      parent_event_id: document.getElementById('editEventParentEventId').value || null,
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
