@@ -20,6 +20,7 @@
     "setup-env": "echo 'Create .env.local with: SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_ANON_KEY=your-key'"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@astrojs/netlify": "^5.5.4",
     "@astrojs/solid-js": "^5.1.0",
     "@astrojs/tailwind": "^5.1.0",

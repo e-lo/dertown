@@ -607,6 +607,19 @@ async function handleUrlPaste(
     }
   }
 
+  // Report series detection
+  const seriesKeys = new Set(processed.filter((ev) => ev.series_key).map((ev) => ev.series_key));
+  if (seriesKeys.size > 0) {
+    for (const key of seriesKeys) {
+      const group = processed.filter((ev) => ev.series_key === key);
+      const parentTitle = group[0].series_parent_title || group[0].scraped.title;
+      console.log(`  Series detected: "${parentTitle}" (${group.length} instances)`);
+    }
+    if (mode === 'dry-run') {
+      console.log('  Series parent(s) would be auto-created with --remote');
+    }
+  }
+
   printResultSummary(result, mode);
   if (verbose) printVerboseEvents(result, ref);
 

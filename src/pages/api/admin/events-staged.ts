@@ -21,7 +21,7 @@ export const GET = withAdminAuth(async () => {
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
     .from('events')
-    .select('id, title, start_date, start_time, location_id, organization_id')
+    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id')
     .eq('status', 'approved');
 
   if (approvedError) {
@@ -29,9 +29,21 @@ export const GET = withAdminAuth(async () => {
     return jsonResponse({ events: data || [] });
   }
 
+  // Identify series parents: staged events that other staged events reference as parent_event_id
+  const stagedIds = new Set((data || []).map((e) => e.id));
+  const referencedParentIds = new Set(
+    (data || [])
+      .filter((e) => e.parent_event_id && stagedIds.has(e.parent_event_id))
+      .map((e) => e.parent_event_id)
+  );
+
   const eventsWithDuplicateHints = (data || []).map((event) => ({
     ...event,
     likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
+    is_series_parent: referencedParentIds.has(event.id),
+    child_count: referencedParentIds.has(event.id)
+      ? (data || []).filter((e) => e.parent_event_id === event.id).length
+      : 0,
   }));
 
   return jsonResponse({ events: eventsWithDuplicateHints });

@@ -3,6 +3,14 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
+const SCRAPER_APPROVED_PARENT_ID_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/i;
+
+function extractScraperApprovedParentId(comments: string | null): string | null {
+  if (!comments) return null;
+  const match = comments.match(SCRAPER_APPROVED_PARENT_ID_REGEX);
+  return match?.[1] || null;
+}
+
 export const POST = withAdminAuth(async ({ request }) => {
   const { eventId } = await request.json();
 
@@ -28,6 +36,39 @@ export const POST = withAdminAuth(async ({ request }) => {
 
   let locationId = stagedEvent.location_id;
   let organizationId = stagedEvent.organization_id;
+  let parentEventId = stagedEvent.parent_event_id;
+
+  // If scraper staged comments include an approved parent marker, apply it at approval time.
+  if (!parentEventId) {
+    const markedApprovedParentId = extractScraperApprovedParentId(stagedEvent.comments);
+    if (markedApprovedParentId) {
+      const { data: approvedParent } = await supabaseAdmin
+        .from('events')
+        .select('id')
+        .eq('id', markedApprovedParentId)
+        .eq('status', 'approved')
+        .is('parent_event_id', null)
+        .maybeSingle();
+
+      if (approvedParent?.id) {
+        parentEventId = approvedParent.id;
+      }
+    }
+  }
+
+  // If parent_event_id references a staged event (not yet approved), clear it.
+  // The events.parent_event_id FK references events.id, so a staged-only parent would fail.
+  if (parentEventId) {
+    const { data: parentInEvents } = await supabaseAdmin
+      .from('events')
+      .select('id')
+      .eq('id', parentEventId)
+      .maybeSingle();
+
+    if (!parentInEvents) {
+      parentEventId = null;
+    }
+  }
 
   // Handle new location if present
   if (stagedEvent.location_added) {
@@ -89,7 +130,7 @@ export const POST = withAdminAuth(async ({ request }) => {
     image_id: stagedEvent.image_id,
     external_image_url: stagedEvent.external_image_url,
     featured: stagedEvent.featured,
-    parent_event_id: stagedEvent.parent_event_id,
+    parent_event_id: parentEventId,
     exclude_from_calendar: stagedEvent.exclude_from_calendar,
     registration: stagedEvent.registration,
     cost: stagedEvent.cost,

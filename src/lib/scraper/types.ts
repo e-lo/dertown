@@ -62,6 +62,12 @@ export interface GeoFilter {
   location_keywords: string[];
 }
 
+/** Per-source mapping rules to attach scraped events to an existing staged series parent. */
+export interface SeriesParentRule {
+  title_keywords: string[];
+  parent_title: string;
+}
+
 /** Per-source configuration from sources.yaml. */
 export interface SourceConfig {
   id: string;
@@ -82,6 +88,7 @@ export interface SourceConfig {
   location_map?: Record<string, string> | null;
   organization_map?: Record<string, string> | null;
   instance_location_overrides?: Record<string, string> | null; // Salesforce event/instance ID -> location
+  series_parent_rules?: SeriesParentRule[] | null; // title keywords -> existing staged parent title
 }
 
 /** Venue name pattern → tag mapping from config. */
