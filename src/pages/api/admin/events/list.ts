@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, getTodayLocale } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
@@ -10,9 +10,11 @@ export const prerender = false;
  */
 export const GET = withAdminAuth(async ({ url }) => {
   const days = Math.min(90, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
-  const today = new Date().toISOString().split('T')[0];
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + days);
+  const today = getTodayLocale();
+
+  // Add days from the locale "today" value to avoid UTC date boundary drift.
+  const endDate = new Date(`${today}T12:00:00Z`);
+  endDate.setUTCDate(endDate.getUTCDate() + days);
   const endDateStr = endDate.toISOString().split('T')[0];
 
   const { data, error } = await supabaseAdmin

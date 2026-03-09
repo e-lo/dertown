@@ -10,6 +10,7 @@ export interface EventDuplicateCandidate {
   start_time?: string | null;
   location_id?: string | null;
   organization_id?: string | null;
+  parent_event_id?: string | null;
 }
 
 export interface EventDuplicateHint {
@@ -54,6 +55,19 @@ export function findEventDuplicateHint(
 
   for (const candidate of approvedCandidates) {
     if (!candidate.id || candidate.id === event.id) continue;
+
+    // Skip same-series siblings/parent unless they share the same date —
+    // children of the same series are expected to have similar titles.
+    if (event.parent_event_id && candidate.parent_event_id &&
+        event.parent_event_id === candidate.parent_event_id &&
+        event.start_date !== candidate.start_date) {
+      continue;
+    }
+    // Also skip if the candidate IS the parent of this event
+    if (event.parent_event_id && candidate.id === event.parent_event_id) {
+      continue;
+    }
+
     const score = eventDuplicateScore(event, candidate);
     if (!best || score > best.score) {
       const roundedScore = Math.round(score * 100) / 100;

@@ -791,7 +791,10 @@ const userEmail = session.user?.email || 'Admin';
       const stagedEvents = (stagedData.events || []).map(e => ({ ...e, isStaged: true }));
       const existingEvents = (existingData.events || []).map(e => ({ ...e, isStaged: false }));
       const allEvents = [...stagedEvents, ...existingEvents].sort((a, b) => {
-        // Sort by start_date, then staged events first
+        // Series parents always sort first so they can be approved before children
+        if (a.is_series_parent && !b.is_series_parent) return -1;
+        if (!a.is_series_parent && b.is_series_parent) return 1;
+        // Then by start_date, then staged events first
         if (a.start_date !== b.start_date) {
           return (a.start_date || '').localeCompare(b.start_date || '');
         }
@@ -1204,9 +1207,13 @@ const userEmail = session.user?.email || 'Admin';
             )
             : '<span class="duplicate-none">No strong match</span>';
             
+          const seriesBadge = event.is_series_parent
+            ? '<span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;margin-left:0.4rem;vertical-align:middle;">SERIES PARENT · ' + event.child_count + ' children</span>'
+            : (event.parent_event_id && event.isStaged ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;margin-left:0.4rem;vertical-align:middle;">child</span>' : '');
+
             return (
               '<tr>' +
-              '<td>' + (event.title || 'N/A') + '</td>' +
+              '<td>' + (event.title || 'N/A') + seriesBadge + '</td>' +
               '<td>' + (event.start_date || 'N/A') + '</td>' +
               '<td>' + (event.start_time || 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
