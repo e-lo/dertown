@@ -759,6 +759,9 @@ const userEmail = session.user?.email || 'Admin';
   // DATA DISPLAY FUNCTIONS
   // ============================================================================
   
+  /** Cache of loaded events so action handlers don't need to re-fetch. */
+  let _cachedEvents = [];
+
   /**
    * Loads and displays events that need approval (both staged and existing)
    */
@@ -801,6 +804,7 @@ const userEmail = session.user?.email || 'Admin';
         return a.isStaged ? -1 : 1;
       });
 
+      _cachedEvents = allEvents;
       displayEvents(allEvents);
       if (loading) loading.classList.add('hidden');
       } catch (error) {
@@ -1164,9 +1168,9 @@ const userEmail = session.user?.email || 'Admin';
         '<th>Time</th>' +
         '<th>Location</th>' +
         '<th>Organization</th>' +
+        '<th>Parent Event</th>' +
         '<th>Duplicate</th>' +
         '<th>Comments</th>' +
-        '<th>Description</th>' +
       '<th>Created</th>' +
         '<th>Actions</th>' +
         '</tr>' +
@@ -1209,7 +1213,11 @@ const userEmail = session.user?.email || 'Admin';
             
           const seriesBadge = event.is_series_parent
             ? '<span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;margin-left:0.4rem;vertical-align:middle;">SERIES PARENT · ' + event.child_count + ' children</span>'
-            : (event.parent_event_id && event.isStaged ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;margin-left:0.4rem;vertical-align:middle;">child</span>' : '');
+            : '';
+
+          const parentDisplay = event.parent_event_id
+            ? '<span style="font-size:0.85rem;">' + (event.parent_title || event.parent_event_id.substring(0, 8) + '...') + '</span>'
+            : '';
 
             return (
               '<tr>' +
@@ -1218,9 +1226,9 @@ const userEmail = session.user?.email || 'Admin';
               '<td>' + (event.start_time || 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
               '<td>' + organizationDisplay + '</td>' +
+              '<td>' + parentDisplay + '</td>' +
               '<td>' + duplicateUi + '</td>' +
               '<td>' + (event.comments || '').substring(0, 50) + (event.comments && event.comments.length > 50 ? '...' : '') + '</td>' +
-              '<td>' + (event.description || '').substring(0, 100) + (event.description && event.description.length > 100 ? '...' : '') + '</td>' +
               '<td>' + (event[dateField] ? new Date(event[dateField]).toLocaleDateString() : 'N/A') + '</td>' +
             '<td style="text-align: center; white-space: nowrap;">' +
             '<button onclick="' + editFunction + '(\'' + event.id + '\')" class="icon-btn btn-edit" style="padding: 0.5rem; min-width: auto; margin-right: 0.25rem;" aria-label="Edit event">' +
@@ -1566,21 +1574,13 @@ const userEmail = session.user?.email || 'Admin';
    */
   async function approveEvent(eventId) {
     try {
-      // First check if event has primary_tag
-        const response = await fetch('/api/admin/events-staged', { credentials: 'include' });
-        const data = await response.json();
-        const event = data.events.find(e => e.id === eventId);
-        
-        if (!event) {
-          showMessage('Event not found', 'error');
-          return;
-        }
-        
-        if (!event.primary_tag_id) {
+      // Check tag from cached data instead of re-fetching
+        const event = _cachedEvents.find(e => e.id === eventId);
+        if (event && !event.primary_tag_id) {
           showMessage('Event must have a primary tag selected before approval. Please edit the event first.', 'error');
           return;
         }
-        
+
         const approveResponse = await fetch('/api/admin/events-staged/approve', {
           method: 'POST',
           headers: {

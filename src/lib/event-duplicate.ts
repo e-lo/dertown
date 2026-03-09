@@ -37,14 +37,24 @@ function eventDuplicateScore(event: EventDuplicateCandidate, candidate: EventDup
   if (dayDelta === 0) score += 0.12;
   else if (dayDelta !== null && dayDelta <= 1) score += 0.06;
 
-  if (event.location_id && candidate.location_id && event.location_id === candidate.location_id) {
-    score += 0.06;
+  if (event.location_id && candidate.location_id) {
+    if (event.location_id === candidate.location_id) {
+      score += 0.06;
+    } else {
+      // Different known locations — likely different events with a generic title
+      score -= 0.25;
+    }
   }
-  if (event.organization_id && candidate.organization_id && event.organization_id === candidate.organization_id) {
-    score += 0.06;
+  if (event.organization_id && candidate.organization_id) {
+    if (event.organization_id === candidate.organization_id) {
+      score += 0.06;
+    } else {
+      // Different known orgs — likely different events with a generic title
+      score -= 0.25;
+    }
   }
 
-  return Math.min(score, 1);
+  return Math.max(0, Math.min(score, 1));
 }
 
 export function findEventDuplicateHint(
@@ -67,6 +77,11 @@ export function findEventDuplicateHint(
     if (event.parent_event_id && candidate.id === event.parent_event_id) {
       continue;
     }
+
+    // Only consider candidates within 30 days — same title in a different
+    // season/year is not a duplicate, it's a recurring event.
+    const dayDelta = dateDistanceDays(event.start_date, candidate.start_date);
+    if (dayDelta !== null && dayDelta > 30) continue;
 
     const score = eventDuplicateScore(event, candidate);
     if (!best || score > best.score) {

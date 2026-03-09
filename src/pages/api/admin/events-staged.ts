@@ -29,6 +29,15 @@ export const GET = withAdminAuth(async () => {
     return jsonResponse({ events: data || [] });
   }
 
+  // Build parent title lookup from both staged and approved events
+  const parentTitles = new Map<string, string>();
+  for (const e of data || []) {
+    parentTitles.set(e.id, e.title);
+  }
+  for (const e of approvedEvents || []) {
+    if (!parentTitles.has(e.id)) parentTitles.set(e.id, e.title || '');
+  }
+
   // Identify series parents: staged events that other staged events reference as parent_event_id
   const stagedIds = new Set((data || []).map((e) => e.id));
   const referencedParentIds = new Set(
@@ -44,6 +53,7 @@ export const GET = withAdminAuth(async () => {
     child_count: referencedParentIds.has(event.id)
       ? (data || []).filter((e) => e.parent_event_id === event.id).length
       : 0,
+    parent_title: event.parent_event_id ? parentTitles.get(event.parent_event_id) || null : null,
   }));
 
   return jsonResponse({ events: eventsWithDuplicateHints });
