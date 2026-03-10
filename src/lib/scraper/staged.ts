@@ -42,6 +42,32 @@ export async function writeProcessedEvents(
   source: SourceConfig,
   verbose: boolean
 ): Promise<WriteResult> {
+  // Clean up stuck approved events that failed to delete from events_staged.
+  // These ghost rows cause FK issues and confuse series parent lookups.
+  const { data: stuckApproved } = await db
+    .from('events_staged')
+    .select('id')
+    .neq('status', 'pending');
+
+  if (stuckApproved && stuckApproved.length > 0) {
+    // First clear any parent_event_id references pointing to stuck rows
+    const stuckIds = stuckApproved.map((e) => e.id);
+    await db
+      .from('events_staged')
+      .update({ parent_event_id: null })
+      .in('parent_event_id', stuckIds);
+    // Then delete the stuck rows
+    const { error: cleanupError } = await db
+      .from('events_staged')
+      .delete()
+      .neq('status', 'pending');
+    if (cleanupError) {
+      if (verbose) console.log(`    WARN: cleanup of stuck non-pending staged events failed: ${cleanupError.message}`);
+    } else {
+      console.log(`  Cleaned up ${stuckApproved.length} stuck non-pending event(s) from events_staged`);
+    }
+  }
+
   const result: WriteResult = {
     inserted: 0,
     updated: 0,
@@ -364,10 +390,11 @@ async function resolveSeriesParentIds(
     const parentTitle = `${baseTitle} (Series)`;
     const parentWebsite = first.series_parent_website || first.scraped.website || null;
 
-    // Reuse an existing staged series parent if one already exists.
+    // Reuse an existing pending staged series parent if one already exists.
     const { data: existingParent } = await db
       .from('events_staged')
       .select('id')
+      .eq('status', 'pending')
       .like('comments', `%[SCRAPER_SERIES_KEY:${seriesKey}]%`)
       .limit(1)
       .maybeSingle();
@@ -390,6 +417,9 @@ async function resolveSeriesParentIds(
         })
         .eq('id', existingParent.id);
       parentIds.set(seriesKey, existingParent.id);
+      if (verbose) {
+        console.log(`    REUSED existing series parent: "${parentTitle}" (${existingParent.id})`);
+      }
       continue;
     }
 
