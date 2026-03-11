@@ -15,6 +15,7 @@ import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-ut
 import { renderMarkdown } from '../../lib/markdown-utils';
 import EventListCard from '../../components/EventListCard.astro';
 import { checkAdminAccess } from '../../lib/session';
+import { optimizedImageUrl } from '../../lib/image';
 import '../../styles/admin.css';
 
 // Check if user is logged in
@@ -122,12 +123,20 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
   start_date: string;
   location?: { name: string };
 }>;
+
+// Optimized image URLs for the detail hero
+const detailImageUrl = event.external_image_url
+  ? optimizedImageUrl(event.external_image_url, { width: 1200 })
+  : null;
+const ogImageUrl = event.external_image_url
+  ? optimizedImageUrl(event.external_image_url, { width: 1200 })
+  : null;
 ---
 
 <Layout 
   title={`${event.title} - Der Town`}
   description={event.description || `Join us for ${event.title} in Der Town`}
-  image={event.external_image_url || '/logo.svg'}
+  image={ogImageUrl || '/logo.svg'}
   url={Astro.url.href}
   type="article"
   publishedTime={event.created_at}
@@ -140,10 +149,17 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
       <div class="bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative">
-        {event.external_image_url && (
+        {detailImageUrl && (
           <div class="overflow-hidden rounded-t-lg w-full">
             <div class="event-detail-image-wrapper">
-              <img src={event.external_image_url} alt={String(event.image_alt_text ?? 'Event image')} class="event-detail-image" />
+              <img
+                src={detailImageUrl}
+                alt={String(event.image_alt_text ?? 'Event image')}
+                class="event-detail-image"
+                loading="eager"
+                decoding="async"
+                onerror="this.parentElement.style.display='none'"
+              />
             </div>
           </div>
         )}
@@ -745,7 +761,8 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
 <style>
 .event-detail-image-wrapper {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 16 / 9;
+  max-height: 450px;
   overflow: hidden;
   position: relative;
 }
@@ -756,15 +773,5 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
   object-position: center;
   display: block;
   vertical-align: top;
-}
-@media (min-width: 640px) {
-  .event-detail-image-wrapper {
-    height: 280px;
-  }
-}
-@media (min-width: 1024px) {
-  .event-detail-image-wrapper {
-    height: 350px;
-  }
 }
 </style>

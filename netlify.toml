@@ -5,5 +5,8 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[images]
+remote_images = ["https://.*"]
+
 # The Netlify adapter handles routing automatically
-# No need for manual redirects when using SSR 
+# No need for manual redirects when using SSR

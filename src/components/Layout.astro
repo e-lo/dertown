@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Navbar from './Navbar.astro';
 import Footer from './Footer.astro';
+import { optimizedImageUrl } from '../lib/image';
 
 const {
   title = 'Der Town - Community Events',
@@ -17,9 +18,15 @@ const {
   tags = [],
 } = Astro.props;
 
-// Ensure absolute URLs for images
-const imageUrl = image.startsWith('http') ? image : new URL(image, Astro.site || Astro.url).href;
+// Ensure absolute URLs for images — optimise external event images for social cards
 const siteUrl = Astro.site || Astro.url.origin;
+const optimized = image.startsWith('http')
+  ? optimizedImageUrl(image, { width: 1200 })
+  : null;
+// OG tags need absolute URLs; optimizedImageUrl returns a relative path in production
+const imageUrl = optimized
+  ? (optimized.startsWith('http') ? optimized : new URL(optimized, siteUrl).href)
+  : new URL(image, siteUrl).href;
 ---
 
 <html lang="en">
