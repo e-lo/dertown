@@ -78,6 +78,11 @@ export interface SourceConfig {
   ical_url?: string;
   fallback_type?: string;
   detail_description_selectors?: string[];
+  detail_image_selector?: string; // CSS selector (or "og:image") to extract image_url from detail pages
+  detail_end_time_selector?: string; // CSS selector whose text content is the end time (e.g. "9:00 pm")
+  detail_location_selector?: string; // CSS selector whose text content is the venue name (address is stripped)
+  month_url_pattern?: string; // URL template with {year} and {month} placeholders for multi-month crawling
+  months_ahead?: number; // how many future months to fetch (default 3)
   api_url?: string;
   api_cal_ids?: string;
   geo_filter?: GeoFilter | null;

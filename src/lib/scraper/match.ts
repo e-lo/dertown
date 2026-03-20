@@ -92,6 +92,7 @@ interface ExistingEvent {
   website: string | null;
   registration_link: string | null;
   location_id: string | null;
+  external_image_url: string | null;
 }
 
 interface SourceSiteRow {
@@ -119,12 +120,12 @@ export async function loadReferenceData(db: SupabaseClient<Database>): Promise<R
     db
       .from('events')
       .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id'
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id, external_image_url'
       ),
     db
       .from('events_staged')
       .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id'
+        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id, external_image_url'
       ),
   ]);
 
@@ -351,6 +352,17 @@ export function dedup(
         changes.push(`cost changed ${existing.cost}→${event.cost}`);
       }
 
+      // Enrichment fields: trigger update when scraped has data the existing record lacks
+      if (event.end_time && !existing.end_time) {
+        changes.push('end time added');
+      }
+      if (event.description && !existing.description) {
+        changes.push('description added');
+      }
+      if (event.image_url && !existing.external_image_url) {
+        changes.push('image added');
+      }
+
       if (changes.length === 0) {
         return {
           action: 'skip',
@@ -368,20 +380,49 @@ export function dedup(
     }
   }
 
-  // Pass 2: Cross-source — check ALL events by date + title similarity.
-  // This catches events entered manually or sourced from a different source.
-  const crossSourceCandidates = allExisting.filter(
+  // Pass 1.5: URL match across sources (source_id mismatch or null).
+  // A matching URL on the same date is a strong signal it's the same event —
+  // allow enrichment updates even when source_id doesn't match.
+  const urlMatchCandidates = allExisting.filter(
     (e) => e.start_date === event.start_date && e.source_id !== sourceId
   );
 
-  for (const existing of crossSourceCandidates) {
+  for (const existing of urlMatchCandidates) {
     const urlMatched =
       urlsMatch(event.website, existing.website) ||
       urlsMatch(event.website, existing.registration_link) ||
       urlsMatch(event.registration_url, existing.website) ||
       urlsMatch(event.registration_url, existing.registration_link);
 
-    if (urlMatched || titlesMatch(event.title, existing.source_title || existing.title)) {
+    if (urlMatched) {
+      const changes: string[] = [];
+      if (event.end_time && !existing.end_time) changes.push('end time added');
+      if (event.description && !existing.description) changes.push('description added');
+      if (event.image_url && !existing.external_image_url) changes.push('image added');
+
+      if (changes.length > 0) {
+        return {
+          action: 'update',
+          existing_event_id: existing.id,
+          existing_event_table: existing.table,
+          update_reason: changes.join(', '),
+        };
+      }
+
+      return {
+        action: 'skip',
+        existing_event_id: existing.id,
+        existing_event_table: existing.table,
+      };
+    }
+  }
+
+  // Pass 2: Cross-source — check ALL events by date + title similarity.
+  // This catches events entered manually or sourced from a different source.
+  // Title-only matches across sources are always skipped (not updated) to avoid
+  // overwriting data from a different org's version of a similarly-named event.
+  for (const existing of urlMatchCandidates) {
+    if (titlesMatch(event.title, existing.source_title || existing.title)) {
       return {
         action: 'skip',
         existing_event_id: existing.id,

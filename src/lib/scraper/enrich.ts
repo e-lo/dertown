@@ -14,7 +14,10 @@ export async function enrichDescriptionsFromDetailPages(
   }
 
   const selectors = source.detail_description_selectors;
-  if (!selectors || selectors.length === 0) return enrichedEvents;
+  const imageSelector = source.detail_image_selector || null;
+  const endTimeSelector = source.detail_end_time_selector || null;
+  const locationSelector = source.detail_location_selector || null;
+  if (!selectors?.length && !imageSelector && !endTimeSelector && !locationSelector) return enrichedEvents;
 
   const detailHtmlCache = new Map<string, string>();
 
@@ -23,14 +26,16 @@ export async function enrichDescriptionsFromDetailPages(
     if (!website) continue;
     event.website = website;
 
-    // If current description already looks complete, skip detail-page fetch.
-    if (
-      event.description &&
-      event.description.length >= 500 &&
-      !looksTruncated(event.description)
-    ) {
-      continue;
-    }
+    const needsDescription =
+      selectors?.length &&
+      (!event.description ||
+        event.description.length < 500 ||
+        looksTruncated(event.description));
+    const needsImage = imageSelector && !event.image_url;
+    const needsEndTime = endTimeSelector && !event.end_time;
+    const needsLocation = locationSelector && !event.location_name;
+
+    if (!needsDescription && !needsImage && !needsEndTime && !needsLocation) continue;
 
     try {
       let html = detailHtmlCache.get(website);
@@ -38,16 +43,36 @@ export async function enrichDescriptionsFromDetailPages(
         html = await fetchPage(website);
         detailHtmlCache.set(website, html);
       }
-      const detailDescription = extractDescriptionFromHtml(html, selectors);
-      if (!detailDescription) continue;
 
-      if (shouldReplaceDescription(event.description, detailDescription)) {
-        event.description = detailDescription;
+      if (needsDescription && selectors?.length) {
+        const detailDescription = extractDescriptionFromHtml(html, selectors);
+        if (detailDescription && shouldReplaceDescription(event.description, detailDescription)) {
+          event.description = detailDescription;
+        }
+      }
+
+      if (needsImage && imageSelector) {
+        const imageUrl = extractImageFromHtml(html, imageSelector);
+        if (imageUrl) event.image_url = imageUrl;
+      }
+
+      if (needsEndTime && endTimeSelector) {
+        const $ = cheerio.load(html);
+        const endTimeText = $(endTimeSelector).first().text().trim();
+        const parsed = parseTime12hLocal(endTimeText);
+        if (parsed) event.end_time = parsed;
+      }
+
+      if (needsLocation && locationSelector) {
+        const $ = cheerio.load(html);
+        const rawText = $(locationSelector).first().text().replace(/\s+/g, ' ').trim();
+        const venueName = extractVenueNameFromLocationText(rawText);
+        if (venueName) event.location_name = venueName;
       }
     } catch (err) {
       if (verbose) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.log(`    WARN: detail description fetch failed for "${event.title}": ${msg}`);
+        console.log(`    WARN: detail page fetch failed for "${event.title}": ${msg}`);
       }
     }
   }
@@ -735,6 +760,47 @@ function formatCurrencyRange(a: number, b: number): string {
 
 function formatCurrency(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+/**
+ * Extract venue name from a raw location text that may include an address.
+ * e.g. "Ground Control Bottle Shop 10 N. Wenatchee Ave. Wenatchee, WA 98801 US"
+ *   → "Ground Control Bottle Shop"
+ */
+function extractVenueNameFromLocationText(text: string): string | null {
+  if (!text) return null;
+  // Strip trailing address: text before the first street number (digits followed by a word)
+  const addressMatch = text.match(/^(.*?)\s+\d+\s+[A-Z]/);
+  if (addressMatch) {
+    const name = addressMatch[1].trim();
+    return name || null;
+  }
+  // No address found — return the whole text if it's not just an address
+  return text || null;
+}
+
+/** Parse "7:00 pm" → "19:00", used for detail-page end time extraction. */
+function parseTime12hLocal(raw: string): string | null {
+  const match = raw.trim().toLowerCase().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
+  if (!match) return null;
+  let hour = parseInt(match[1], 10);
+  const min = match[2];
+  if (match[3] === 'pm' && hour !== 12) hour += 12;
+  if (match[3] === 'am' && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, '0')}:${min}`;
+}
+
+function extractImageFromHtml(html: string, selector: string): string | null {
+  const $ = cheerio.load(html);
+  // Special-case og:image — it's a meta content attribute, not element text
+  if (selector === 'og:image') {
+    return $('meta[property="og:image"]').attr('content') || null;
+  }
+  const node = $(selector).first();
+  if (node.length === 0) return null;
+  // For <img> elements, use src; for <meta>, use content; otherwise innerText
+  const src = node.attr('src') || node.attr('content') || null;
+  return src || null;
 }
 
 function extractDescriptionFromHtml(html: string, selectors: string[]): string | null {
