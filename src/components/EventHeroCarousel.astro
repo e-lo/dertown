@@ -2,41 +2,37 @@
 import EventCarouselCard from './EventCarouselCard.astro';
 const { events = [], count = 12 } = Astro.props;
 
-// Helper: Sprinkle featured events among upcoming events
-function sprinkleFeatured(upcoming: any[], featured: any[]): any[] {
-  const result = [];
-  const usedIds = new Set();
+// Featured events happening within 7 days go first; the rest are sprinkled evenly throughout.
+function sprinkleFeatured(events: any[]): any[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+
+  const featuredSoon  = events.filter((e: any) => e.featured && new Date(e.start_date) <= nextWeek);
+  const rest          = events.filter((e: any) => !e.featured);
+  const featuredLater = events.filter((e: any) => e.featured && new Date(e.start_date) >  nextWeek);
+
+  if (featuredLater.length === 0) {
+    return [...featuredSoon, ...rest].slice(0, count);
+  }
+
+  // Insert featuredLater events at evenly-spaced positions within rest
+  const interval = Math.max(2, Math.ceil(rest.length / (featuredLater.length + 1)));
+  const sprinkled: any[] = [];
   let fIdx = 0;
-  let uIdx = 0;
-  
-  // Keep adding events until we reach the count or run out of events
-  while (result.length < count && (fIdx < featured.length || uIdx < upcoming.length)) {
-    // Add featured event if available and not already used
-    if (fIdx < featured.length && !usedIds.has(featured[fIdx].id)) {
-      result.push(featured[fIdx]);
-      usedIds.add(featured[fIdx].id);
-      fIdx++;
-    }
-    // Add upcoming event if available and not already used
-    else if (uIdx < upcoming.length && !usedIds.has(upcoming[uIdx].id)) {
-      result.push(upcoming[uIdx]);
-      usedIds.add(upcoming[uIdx].id);
-      uIdx++;
-    }
-    // If we can't add either, break to avoid infinite loop
-    else {
-      break;
+  for (let i = 0; i < rest.length; i++) {
+    sprinkled.push(rest[i]);
+    if ((i + 1) % interval === 0 && fIdx < featuredLater.length) {
+      sprinkled.push(featuredLater[fIdx++]);
     }
   }
-  
-  return result.slice(0, count);
+  while (fIdx < featuredLater.length) sprinkled.push(featuredLater[fIdx++]);
+
+  return [...featuredSoon, ...sprinkled].slice(0, count);
 }
 
-// Events are already filtered by getCurrentAndFuture() in supabase.ts
-// No need to filter again - just separate featured from upcoming
-const upcoming = (events as any[]).filter((e: any) => !e.featured);
-const featured = (events as any[]).filter((e: any) => e.featured);
-const displayEvents = sprinkleFeatured(upcoming, featured);
+const displayEvents = sprinkleFeatured(events as any[]);
 const hasEvents = displayEvents.length > 0;
 ---
 
