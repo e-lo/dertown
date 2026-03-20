@@ -149,6 +149,35 @@ async function scrapeSource(
         rawEvents = parseIcalFeed(content);
       } else if (source.type === 'html') {
         rawEvents = parseHtml(content, source);
+        // If the source defines a monthly URL pattern, also fetch future months
+        if (source.month_url_pattern) {
+          const monthsAhead = source.months_ahead ?? 3;
+          const now = new Date();
+          const seenTitlesAndDates = new Set(rawEvents.map((e) => `${e.title}|${e.start_date}`));
+          for (let i = 1; i <= monthsAhead; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            const year = d.getFullYear();
+            const month = d.getMonth() + 1;
+            const monthUrl = source.month_url_pattern
+              .replace('{year}', String(year))
+              .replace('{month}', String(month));
+            if (verbose) console.log(`  Fetching month page ${monthUrl}...`);
+            try {
+              const monthContent = await fetchPage(monthUrl);
+              const monthEvents = parseHtml(monthContent, source);
+              for (const ev of monthEvents) {
+                const key = `${ev.title}|${ev.start_date}`;
+                if (!seenTitlesAndDates.has(key)) {
+                  seenTitlesAndDates.add(key);
+                  rawEvents.push(ev);
+                }
+              }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (verbose) console.log(`  WARN: failed to fetch ${monthUrl}: ${msg}`);
+            }
+          }
+        }
       } else {
         if (verbose) console.log(`  No extractor for type "${source.type}". Skipping parse.`);
         return result;

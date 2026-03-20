@@ -19,7 +19,7 @@ const EXTRACTORS: Record<string, Extractor> = {
   'icicle-creek': extractIcicleCreek,
   'icicle-brewing': extractIcicleBrewing,
   'ski-leavenworth': extractSkiLeavenworth,
-  'wenatchee-river-institute': extractWRI,
+  'wri': extractWRI,
   // leavenworth-org: uses iCal feed instead
 };
 

@@ -244,11 +244,18 @@ sources:
         - 'Chelan'
         - 'Ellensburg'
 
-  - id: 'wenatchee-river-institute'
+  - id: 'wri'
     name: 'Wenatchee River Institute'
     url: 'https://wenatcheeriverinstitute.org/event-calendar.html'
     type: 'html'
     selectors: {}
+    month_url_pattern: 'https://wenatcheeriverinstitute.org/event-calendar.html/calendar/{year}/{month}'
+    months_ahead: 3
+    detail_description_selectors:
+      - '.event-details__description'
+    detail_image_selector: 'og:image'
+    detail_end_time_selector: '.event-time__end'
+    detail_location_selector: '.event-meta__location'
     geo_filter: null
     default_organization: 'Wenatchee River Institute'
     default_location: 'Wenatchee River Institute'
@@ -260,3 +267,4 @@ sources:
     series_parent_rules:
       - title_keywords: ['red barn']
         parent_title: 'Red Barn Events'
+  
