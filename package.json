@@ -37,6 +37,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel": "^8.6.0",
     "js-yaml": "^4.1.1",
+    "mapbox-gl": "^3.20.0",
     "marked": "^17.0.1",
     "node-ical": "^0.25.4",
     "resend": "^6.5.2",

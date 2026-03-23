@@ -40,6 +40,7 @@ const payload = JSON.stringify({
   organizations: state.organizations,
   initialFilters: state.filters,
   initialSelectedLocationId,
+  mapboxToken: import.meta.env.PUBLIC_MAPBOX_TOKEN || '',
 }).replace(/</g, '\\u003c');
 ---
 
@@ -210,6 +211,9 @@ const payload = JSON.stringify({
 
   <script id="event-map-data" type="application/json" set:text={payload}></script>
   <script>
+    import mapboxgl from 'mapbox-gl';
+    import 'mapbox-gl/dist/mapbox-gl.css';
+
     document.addEventListener('DOMContentLoaded', () => {
       const dataElement = document.getElementById('event-map-data');
       if (!dataElement?.textContent) return;
@@ -251,9 +255,8 @@ const payload = JSON.stringify({
 
       let currentGroups = [];
       let currentEvents = [];
-      let leafletMap = null;
-      let markerLayer = null;
-      let hasLoadedLeaflet = false;
+      let mapboxMap = null;
+      const activeMarkers = []; // mapboxgl.Marker instances, cleared on each renderMap
 
       function escapeHtml(value) {
         return String(value)
@@ -469,110 +472,79 @@ const payload = JSON.stringify({
         state.selectedLocationId = groups[0]?.id || '';
       }
 
-      function markerIcon(group, isSelected) {
-        return globalThis.L.divIcon({
-          className: '',
-          iconSize: [48, 48],
-          iconAnchor: [24, 24],
-          html: `
-            <div class="event-map-marker ${isSelected ? 'is-selected' : ''}">
-              <span>${group.eventCount}</span>
-            </div>
-          `,
-        });
-      }
-
       function fitMapToGroups(groups) {
-        if (!leafletMap || typeof globalThis.L === 'undefined') return;
+        if (!mapboxMap) return;
 
         const targetGroups = groups.length > 0 ? groups : groupEvents(allEvents);
         if (targetGroups.length === 0) {
-          leafletMap.setView([45.523, -122.676], 12);
+          mapboxMap.setCenter([-120.6615, 47.5963]);
+          mapboxMap.setZoom(11);
           return;
         }
 
         if (targetGroups.length === 1) {
-          leafletMap.setView([targetGroups[0].latitude, targetGroups[0].longitude], 14);
+          mapboxMap.easeTo({ center: [targetGroups[0].longitude, targetGroups[0].latitude], zoom: 14 });
           return;
         }
 
-        const bounds = globalThis.L.latLngBounds(
-          targetGroups.map((group) => [group.latitude, group.longitude])
-        );
-        leafletMap.fitBounds(bounds, { padding: [64, 64] });
+        const bounds = new mapboxgl.LngLatBounds();
+        targetGroups.forEach((group) => bounds.extend([group.longitude, group.latitude]));
+        mapboxMap.fitBounds(bounds, { padding: 80, maxZoom: 15 });
       }
 
       function renderMap(groups, shouldFit = false) {
-        if (!leafletMap || typeof globalThis.L === 'undefined') return;
+        if (!mapboxMap) return;
 
-        if (markerLayer) {
-          markerLayer.remove();
-        }
-
-        markerLayer = globalThis.L.layerGroup();
+        // Remove existing markers
+        activeMarkers.forEach((m) => m.remove());
+        activeMarkers.length = 0;
 
         groups.forEach((group) => {
-          const marker = globalThis.L.marker([group.latitude, group.longitude], {
-            icon: markerIcon(group, group.id === state.selectedLocationId),
-          });
+          const el = document.createElement('div');
+          el.className = `event-map-marker ${group.id === state.selectedLocationId ? 'is-selected' : ''}`;
+          el.setAttribute('role', 'button');
+          el.setAttribute('aria-label', `${group.name} — ${group.eventCount} events`);
+          el.innerHTML = `<span>${group.eventCount}</span>`;
+          el.addEventListener('click', () => selectLocation(group.id, true));
 
-          marker.on('click', () => {
-            selectLocation(group.id, true);
-          });
+          const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([group.longitude, group.latitude])
+            .addTo(mapboxMap);
 
-          markerLayer.addLayer(marker);
+          activeMarkers.push(marker);
         });
 
-        markerLayer.addTo(leafletMap);
         if (shouldFit) fitMapToGroups(groups);
       }
 
-      async function loadLeaflet() {
-        if (hasLoadedLeaflet) return;
-        if (typeof globalThis.L !== 'undefined') {
-          hasLoadedLeaflet = true;
+      function initMap() {
+        if (!mapEl) return;
+
+        const token = payload.mapboxToken;
+        if (!token) {
+          console.warn('PUBLIC_MAPBOX_TOKEN not set — map not initialized');
           return;
         }
 
-        await new Promise((resolve, reject) => {
-          const existingLink = document.querySelector('link[data-event-map-leaflet]');
-          if (!existingLink) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            link.crossOrigin = '';
-            link.dataset.eventMapLeaflet = 'true';
-            document.head.appendChild(link);
-          }
-
-          const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.crossOrigin = '';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
+        mapboxgl.accessToken = token;
+        mapboxMap = new mapboxgl.Map({
+          container: mapEl,
+          style: 'mapbox://styles/mapbox/outdoors-v12',
+          center: [-120.6615, 47.5963],
+          zoom: 11,
+          attributionControl: true,
         });
 
-        hasLoadedLeaflet = true;
-      }
-
-      async function initMap() {
-        if (!mapEl) return;
-        await loadLeaflet();
-        if (typeof globalThis.L === 'undefined') return;
-
-        leafletMap = globalThis.L.map(mapEl, { zoomControl: false, scrollWheelZoom: true });
-        globalThis.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-          subdomains: 'abcd',
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        }).addTo(leafletMap);
-
-        zoomInButton?.addEventListener('click', () => leafletMap?.zoomIn());
-        zoomOutButton?.addEventListener('click', () => leafletMap?.zoomOut());
+        zoomInButton?.addEventListener('click', () => mapboxMap?.zoomIn());
+        zoomOutButton?.addEventListener('click', () => mapboxMap?.zoomOut());
         fitButton?.addEventListener('click', () => fitMapToGroups(currentGroups));
 
-        renderMap(currentGroups, true);
+        // Hide the placeholder backdrop once the map tiles load
+        mapboxMap.once('load', () => {
+          const backdrop = mapEl?.querySelector('.map-empty-backdrop');
+          if (backdrop instanceof HTMLElement) backdrop.style.display = 'none';
+          renderMap(currentGroups, true);
+        });
       }
 
       function applyFilters() {
@@ -584,7 +556,7 @@ const payload = JSON.stringify({
         renderList(currentGroups);
         updateCallout();
         updatePermalink();
-        if (leafletMap) renderMap(currentGroups, true);
+        if (mapboxMap) renderMap(currentGroups, true);
       }
 
       function selectLocation(locationId, panToMarker = false) {
@@ -594,12 +566,12 @@ const payload = JSON.stringify({
         updateCallout();
         updatePermalink();
 
-        if (leafletMap) {
+        if (mapboxMap) {
           renderMap(currentGroups, false);
           if (panToMarker) {
             const selectedGroup = currentGroups.find((group) => group.id === locationId);
             if (selectedGroup) {
-              leafletMap.panTo([selectedGroup.latitude, selectedGroup.longitude]);
+              mapboxMap.easeTo({ center: [selectedGroup.longitude, selectedGroup.latitude] });
             }
           }
         }
