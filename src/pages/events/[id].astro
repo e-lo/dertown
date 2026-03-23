@@ -14,6 +14,7 @@ import { db } from '../../lib/supabase';
 import { getCategoryBadgeVariant, formatEventDateTime } from '../../lib/event-utils';
 import { renderMarkdown } from '../../lib/markdown-utils';
 import EventListCard from '../../components/EventListCard.astro';
+import MapboxMap from '../../components/MapboxMap.astro';
 import { checkAdminAccess } from '../../lib/session';
 import { optimizedImageUrl } from '../../lib/image';
 import '../../styles/admin.css';
@@ -131,6 +132,12 @@ const detailImageUrl = event.external_image_url
 const ogImageUrl = event.external_image_url
   ? optimizedImageUrl(event.external_image_url, { width: 1200 })
   : null;
+
+const loc = event.location as any;
+const locationMapMarkers =
+  typeof loc?.latitude === 'number' && typeof loc?.longitude === 'number'
+    ? [{ lat: loc.latitude, lon: loc.longitude, label: loc.name || 'Location', type: 'event' as const, href: event.location_id ? `/locations/${event.location_id}` : undefined }]
+    : [];
 ---
 
 <Layout 
@@ -278,6 +285,13 @@ const ogImageUrl = event.external_image_url
         </div>
       </div>
       
+      <!-- Location Map -->
+      {locationMapMarkers.length > 0 && (
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 sm:mb-8">
+          <MapboxMap markers={locationMapMarkers} height="14rem" zoom={15} />
+        </div>
+      )}
+
       <!-- Series Events (if part of a series) -->
       {seriesEvents.length > 0 && (
         <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8 mb-6 sm:mb-8">

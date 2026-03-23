@@ -59,6 +59,7 @@ const payload = JSON.stringify({
         </div>
 
         <div class="map-canvas" id="event-map-canvas">
+          <div id="event-map-gl" style="position:absolute;inset:0;z-index:0;"></div>
           <div class="map-overlay">
             <div class="overlay-row overlay-row-top">
               <div class="map-badge">
@@ -157,7 +158,7 @@ const payload = JSON.stringify({
             </button>
           </div>
 
-          <div class="map-empty-backdrop"></div>
+
 
           <div class="map-callout" id="event-map-callout">
             {initialSelectedLocation ? (
@@ -237,7 +238,7 @@ const payload = JSON.stringify({
       const locationCount = document.getElementById('event-map-location-count');
       const listContainer = document.getElementById('event-map-list');
       const callout = document.getElementById('event-map-callout');
-      const mapEl = document.getElementById('event-map-canvas');
+      const mapEl = document.getElementById('event-map-gl');
       const zoomInButton = document.getElementById('event-map-zoom-in');
       const zoomOutButton = document.getElementById('event-map-zoom-out');
       const fitButton = document.getElementById('event-map-fit');
@@ -540,11 +541,7 @@ const payload = JSON.stringify({
         fitButton?.addEventListener('click', () => fitMapToGroups(currentGroups));
 
         // Hide the placeholder backdrop once the map tiles load
-        mapboxMap.once('load', () => {
-          const backdrop = mapEl?.querySelector('.map-empty-backdrop');
-          if (backdrop instanceof HTMLElement) backdrop.style.display = 'none';
-          renderMap(currentGroups, true);
-        });
+        mapboxMap.once('load', () => renderMap(currentGroups, true));
       }
 
       function applyFilters() {

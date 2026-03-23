@@ -1,0 +1,185 @@
+---
+/**
+ * Reusable Mapbox GL map with typed markers and hover tooltips.
+ *
+ * Marker types and their visual treatment:
+ *   current  – filled circle, brand blue  (the primary location)
+ *   parent   – diamond, purple            (parent in location hierarchy)
+ *   sibling  – filled circle, slate       (sibling locations)
+ *   child    – filled circle, green       (child locations)
+ *   event    – filled circle, brand blue  (same as current, for single-event maps)
+ */
+
+export interface MapMarker {
+  lat: number;
+  lon: number;
+  label: string;
+  type?: 'current' | 'parent' | 'sibling' | 'child' | 'event';
+  href?: string;
+}
+
+interface Props {
+  markers: MapMarker[];
+  height?: string;   // CSS height, default '16rem'
+  zoom?: number;     // used when only 1 marker; multi-marker maps fit bounds
+  containerId?: string;
+}
+
+const {
+  markers = [],
+  height = '16rem',
+  zoom = 14,
+  containerId = `mbmap-${Math.random().toString(36).slice(2, 8)}`,
+} = Astro.props;
+
+const mapboxToken = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
+---
+
+{mapboxToken && markers.length > 0 && (
+  <div
+    id={containerId}
+    class="mapbox-map-root"
+    data-markers={JSON.stringify(markers)}
+    data-zoom={zoom}
+    data-token={mapboxToken}
+    style={`height:${height}`}
+  ></div>
+)}
+
+<script>
+  import mapboxgl from 'mapbox-gl';
+  import 'mapbox-gl/dist/mapbox-gl.css';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll<HTMLElement>('.mapbox-map-root').forEach((el) => {
+      const token = el.dataset.token;
+      if (!token) return;
+
+      const markers: {
+        lat: number;
+        lon: number;
+        label: string;
+        type?: string;
+        href?: string;
+      }[] = JSON.parse(el.dataset.markers || '[]');
+
+      if (markers.length === 0) return;
+
+      mapboxgl.accessToken = token;
+
+      const map = new mapboxgl.Map({
+        container: el,
+        style: 'mapbox://styles/mapbox/outdoors-v12',
+        center: [markers[0].lon, markers[0].lat],
+        zoom: Number(el.dataset.zoom) || 14,
+        attributionControl: true,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+      const markerEls: mapboxgl.Marker[] = [];
+
+      for (const m of markers) {
+        const el = document.createElement(m.href ? 'a' : 'div');
+        el.className = `mbmap-marker mbmap-marker--${m.type || 'event'}`;
+        if (m.href && el instanceof HTMLAnchorElement) {
+          el.href = m.href;
+        }
+        el.setAttribute('aria-label', m.label);
+
+        const tooltip = document.createElement('span');
+        tooltip.className = 'mbmap-tooltip';
+        tooltip.textContent = m.label;
+        el.appendChild(tooltip);
+
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([m.lon, m.lat])
+          .addTo(map);
+        markerEls.push(marker);
+      }
+
+      // Fit bounds when multiple markers exist
+      if (markers.length > 1) {
+        map.on('load', () => {
+          const bounds = new mapboxgl.LngLatBounds();
+          markers.forEach((m) => bounds.extend([m.lon, m.lat]));
+          map.fitBounds(bounds, { padding: 48, maxZoom: 15 });
+        });
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  /* ── Marker base ─────────────────────────────────── */
+  .mbmap-marker {
+    position: relative;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .mbmap-marker--current,
+  .mbmap-marker--event {
+    width: 18px;
+    height: 18px;
+    background: #4740cb;
+  }
+
+  .mbmap-marker--parent {
+    width: 14px;
+    height: 14px;
+    background: #9333ea;
+    border-radius: 3px; /* square-ish = diamond when rotated */
+    transform: rotate(45deg);
+  }
+
+  .mbmap-marker--sibling {
+    width: 12px;
+    height: 12px;
+    background: #64748b;
+  }
+
+  .mbmap-marker--child {
+    width: 12px;
+    height: 12px;
+    background: #16a34a;
+  }
+
+  /* ── Tooltip ─────────────────────────────────────── */
+  .mbmap-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%) rotate(-45deg); /* undo parent rotate */
+    background: #fff;
+    color: #111827;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 3px 7px;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border: 1px solid #e5e7eb;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .mbmap-marker--parent .mbmap-tooltip {
+    transform: translateX(-50%) rotate(-45deg);
+  }
+
+  .mbmap-marker:hover .mbmap-tooltip,
+  .mbmap-marker:focus .mbmap-tooltip {
+    display: block;
+  }
+
+  /* Keep map controls above markers */
+  .mapboxgl-ctrl-bottom-right { z-index: 5; }
+</style>
