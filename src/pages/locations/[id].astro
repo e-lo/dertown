@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import Layout from '../../components/Layout.astro';
+import MapboxMap from '../../components/MapboxMap.astro';
 import EventListCard from '../../components/EventListCard.astro';
 import ShareButton from '../../components/ui/ShareButton.astro';
 import AddLocationModal from '../../components/ui/AddLocationModal.astro';
@@ -115,9 +116,7 @@ const locationPageUrl = Astro.url.href;
 ---
 
 <Layout title={`${locationTitle} - Location`} description={locationDescription}>
-  <style is:global>
-    .location-marker-tooltip { background: white; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  </style>
+
   <section class="max-w-6xl mx-auto px-4 py-10">
     <div class="flex flex-col gap-6">
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 relative">
@@ -152,10 +151,17 @@ const locationPageUrl = Astro.url.href;
           <div class="space-y-6 order-first lg:order-2">
             {hasMap ? (
               <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-gray-100">
                   <h2 class="text-lg font-semibold text-gray-900">Map</h2>
+                  {mapMarkers.some(m => m.type !== 'current') && (
+                    <p class="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                      {parentLocation && <span><span class="inline-block w-2 h-2 rounded-sm bg-purple-600 rotate-45 mr-1"></span>Parent</span>}
+                      {siblingLocations?.length > 0 && <span><span class="inline-block w-2 h-2 rounded-full bg-slate-500 mr-1"></span>Sibling</span>}
+                      {childLocations.length > 0 && <span><span class="inline-block w-2 h-2 rounded-full bg-green-600 mr-1"></span>Child</span>}
+                    </p>
+                  )}
                 </div>
-                <div id="location-map" class="w-full h-64" data-markers={JSON.stringify(mapMarkers)} data-zoom="16"></div>
+                <MapboxMap markers={mapMarkers} height="16rem" zoom={16} />
               </div>
             ) : mapSearchUrl ? (
               <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -257,7 +263,7 @@ const locationPageUrl = Astro.url.href;
     </script>
   )}
 
-  <script define:vars={{ hasMap }}>
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
       window.shareEvent = function(ev) {
         const button = (ev && ev.target && ev.target.closest('button')) || document.querySelector('[data-share-url]');
@@ -277,56 +283,6 @@ const locationPageUrl = Astro.url.href;
         }
       };
 
-      if (hasMap) {
-        var mapEl = document.getElementById('location-map');
-        if (!mapEl) return;
-        var markersJson = mapEl.getAttribute('data-markers');
-        var zoom = parseInt(mapEl.getAttribute('data-zoom') || '16', 10) || 16;
-        var markers = [];
-        try { markers = JSON.parse(markersJson || '[]'); } catch { /* use default [] */ }
-        if (markers.length === 0) return;
-        var current = markers.find(function(m) { return m.type === 'current'; });
-        var center = current ? [current.lat, current.lon] : [markers[0].lat, markers[0].lon];
-
-        function loadLeaflet(cb) {
-          if (typeof globalThis.L !== 'undefined') { cb(); return; }
-          var link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          link.crossOrigin = '';
-          document.head.appendChild(link);
-          var script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.crossOrigin = '';
-          script.onload = cb;
-          document.head.appendChild(script);
-        }
-        loadLeaflet(function() {
-          var L = globalThis.L;
-          if (L && L.Icon && L.Icon.Default) {
-            L.Icon.Default.mergeOptions({
-              iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-              shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-            });
-          }
-          var map = L.map('location-map').setView(center, zoom);
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          }).addTo(map);
-          var tooltipOpts = { permanent: false, direction: 'top', className: 'location-marker-tooltip' };
-          markers.forEach(function(m) {
-            if (m.type === 'current') {
-              var marker = L.marker([m.lat, m.lon]).addTo(map);
-              marker.bindTooltip(m.label || '', tooltipOpts);
-            } else {
-              var dot = L.circleMarker([m.lat, m.lon], { radius: 6, fillColor: '#2563eb', color: '#1d4ed8', weight: 1, fillOpacity: 0.9 }).addTo(map);
-              dot.bindTooltip(m.label || '', tooltipOpts);
-            }
-          });
-        });
-      }
     });
   </script>
 </Layout>

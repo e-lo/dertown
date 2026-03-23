@@ -84,7 +84,7 @@ export const db = {
       *,
       primary_tag:tags!events_primary_tag_id_fkey(name),
       secondary_tag:tags!events_secondary_tag_id_fkey(name),
-      location:locations!events_location_id_fkey(name, address),
+      location:locations!events_location_id_fkey(id, name, address, latitude, longitude),
       organization:organizations!events_organization_id_fkey(name)
     `
         )
