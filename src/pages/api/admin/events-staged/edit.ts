@@ -114,6 +114,11 @@ export const PUT = withAdminAuth(async ({ request }) => {
     }
   }
 
+  // Never persist status from the edit form. "Approved" on the modal only meant for the live
+  // `events` table; writing status = 'approved' here hid rows from the pending queue (GET filters
+  // status = 'pending') without running /events-staged/approve, so nothing was inserted into events.
+  cleanedData.status = 'pending';
+
   // Update the staged event using admin client (bypasses RLS)
   const { data, error } = await supabaseAdmin
     .from('events_staged')

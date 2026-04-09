@@ -198,5 +198,5 @@ export const POST = withAdminAuth(async ({ request }) => {
     // Don't fail the request if deletion fails, as the event was already created
   }
 
-  return jsonResponse({ success: true });
+  return jsonResponse({ success: true, approvedEventId: newApprovedId });
 });

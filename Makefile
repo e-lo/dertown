@@ -123,6 +123,11 @@ venv-install:
 scrape:
 	npx tsx src/lib/scraper/index.ts $(ARGS)
 
+scrape-all:
+	npx tsx src/lib/scraper/index.ts --all
+
+scrape-all-remote:
+	npx tsx src/lib/scraper/index.ts --all --remote
 # =====================
 # LOCAL DEVELOPMENT DATABASE COMMANDS
 # =====================

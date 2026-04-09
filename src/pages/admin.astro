@@ -1217,10 +1217,14 @@ const userEmail = session.user?.email || 'Admin';
             : hasParent
             ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#f0fdf4;color:#166534;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">child of: ' + event.parent_title + '</span></div>'
             : '';
+          const calendarHiddenBadge =
+            eventIsStaged && event.exclude_from_calendar
+              ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Hidden from public calendar — uncheck “Exclude from calendar” in Edit (series parents default on)</span></div>'
+              : '';
 
             return (
               '<tr>' +
-              '<td>' + (event.title || 'N/A') + titleBadge + '</td>' +
+              '<td>' + (event.title || 'N/A') + titleBadge + calendarHiddenBadge + '</td>' +
               '<td>' + (event.start_date || 'N/A') + '</td>' +
               '<td>' + (event.start_time || 'N/A') + '</td>' +
               '<td>' + locationDisplay + '</td>' +
@@ -1596,8 +1600,15 @@ const userEmail = session.user?.email || 'Admin';
           const errorData = await approveResponse.json();
           throw new Error(errorData.error || `HTTP error! status: ${approveResponse.status}`);
         }
-        await approveResponse.json();
-        showMessage('Event approved successfully!', 'success');
+        const approveBody = await approveResponse.json();
+        const pubPath =
+          approveBody.approvedEventId && `/events/${approveBody.approvedEventId}`;
+        showMessage(
+          pubPath
+            ? 'Event approved successfully! Public page: ' + pubPath
+            : 'Event approved successfully!',
+          'success'
+        );
         loadEventsToApprove();
       } catch (error) {
         showMessage('Error approving event: ' + error.message, 'error');
@@ -3437,10 +3448,9 @@ const userEmail = session.user?.email || 'Admin';
               loadEventsToApprove(),
               loadIncompleteEvents()
             ]);
-            // Redirect to event detail page if we have the ID
             if (data.event && data.event.id) {
               setTimeout(() => {
-                window.location.href = `/events/${data.event.id}`;
+                window.location.href = '/admin';
               }, 500);
             }
           } else {
@@ -3484,7 +3494,10 @@ const userEmail = session.user?.email || 'Admin';
       formData.registration = document.getElementById('editEventRegistration').checked;
       formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
       formData.featured = document.getElementById('editEventFeatured').checked;
-      formData.status = getEventStatusFromForm();
+      // Staged rows stay pending until "Approve" calls /events-staged/approve (do not mirror events.status).
+      if (currentEditType !== 'staged-event') {
+        formData.status = getEventStatusFromForm();
+      }
       
       formData.location_id = document.getElementById('editEventLocationId').value || null;
       formData.organization_id = document.getElementById('editEventOrganizationId').value || null;
@@ -3535,15 +3548,13 @@ const userEmail = session.user?.email || 'Admin';
           
           closeEditEventModal();
           
-          // For events, redirect to the event detail page to see the changes
-          if (editType && editType.includes('event') && editId) {
-            // Small delay to show success message, then redirect
+          // Stay on admin for batch workflows (approved rows would be valid on /events/[id]).
+          if (editType === 'existing-event' && editId) {
             setTimeout(() => {
-              window.location.href = `/events/${editId}`;
+              window.location.href = '/admin';
             }, 500);
-          } else {
-            // For announcements, just reload the list
-          if (reloadFunction) reloadFunction();
+          } else if (reloadFunction) {
+            reloadFunction();
           }
         } else {
           const errorText = await response.text();
