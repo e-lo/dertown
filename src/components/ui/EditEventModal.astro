@@ -123,10 +123,12 @@
             <input type="checkbox" id="editEventFeatured" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
             <span class="form-label">Featured Event</span>
           </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="editEventDraft" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-            <span class="form-label">Save as Draft (Pending Status)</span>
-          </label>
+          <p id="editEventStagedQueueNote" class="hidden text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded px-3 py-2 max-w-prose">
+            <strong>Staged review:</strong> “Save as draft” keeps this in the queue. “Save and publish” saves your edits and moves it to the live calendar (same as Approve on the list).
+          </p>
+          <p id="editEventLiveCalendarNote" class="hidden text-sm text-gray-600 max-w-prose">
+            “Save as draft” sets status to <strong>pending</strong> (not on the public calendar). “Save and publish” sets <strong>approved</strong> (visible per your calendar rules).
+          </p>
         </div>
       </div>
       <div class="form-field">
@@ -144,9 +146,10 @@
             Create Series
           </button>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
           <button type="button" onclick="closeEditEventModal()" class="btn-cancel">Cancel</button>
-          <button type="submit" class="btn-save">Save Changes</button>
+          <button type="button" id="editEventSaveDraftBtn" class="btn-save" style="background-color: #6b7280;">Save as draft</button>
+          <button type="button" id="editEventSavePublishBtn" class="btn-save">Save and publish</button>
         </div>
       </div>
     </form>

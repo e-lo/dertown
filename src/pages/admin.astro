@@ -195,24 +195,33 @@ const userEmail = session.user?.email || 'Admin';
     return 'https://' + trimmed;
   }
 
-  function getEventStatusFromForm() {
+  function eventStatusFromSaveIntent(intent) {
     const cancelled = document.getElementById('editEventCancelled')?.checked;
     if (cancelled) return 'cancelled';
-    const draft = document.getElementById('editEventDraft')?.checked;
-    return draft ? 'pending' : 'approved';
+    if (intent === 'draft') return 'pending';
+    if (intent === 'publish') return 'approved';
+    return 'pending';
   }
 
   function syncEventStatusControls() {
     const cancelledCheckbox = document.getElementById('editEventCancelled');
-    const draftCheckbox = document.getElementById('editEventDraft');
-    if (!cancelledCheckbox || !draftCheckbox) return;
-
-    if (cancelledCheckbox.checked) {
-      draftCheckbox.checked = false;
-      draftCheckbox.disabled = true;
-    } else {
-      draftCheckbox.disabled = false;
+    const publishBtn = document.getElementById('editEventSavePublishBtn');
+    if (publishBtn) {
+      publishBtn.disabled = !!(cancelledCheckbox && cancelledCheckbox.checked);
     }
+  }
+
+  /** Staged: show queue note. Live / new: show publish-vs-draft explainer. */
+  function setEditEventModalStagedQueueUi(isStaged) {
+    const stagedNote = document.getElementById('editEventStagedQueueNote');
+    const liveNote = document.getElementById('editEventLiveCalendarNote');
+    if (stagedNote) stagedNote.classList.toggle('hidden', !isStaged);
+    if (liveNote) liveNote.classList.toggle('hidden', !!isStaged);
+  }
+
+  function hideEditEventModalHelpNotes() {
+    document.getElementById('editEventStagedQueueNote')?.classList.add('hidden');
+    document.getElementById('editEventLiveCalendarNote')?.classList.add('hidden');
   }
 
   /**
@@ -268,6 +277,8 @@ const userEmail = session.user?.email || 'Admin';
   let allParentEvents = [];
   let currentEditId = null;
   let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
+  /** 'draft' | 'publish' — set by modal action buttons before requestSubmit */
+  let pendingEventSaveIntent = null;
   const APPROVED_PARENT_MARKER_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/i;
 
   function extractApprovedParentIdFromComments(comments) {
@@ -1221,7 +1232,6 @@ const userEmail = session.user?.email || 'Admin';
             eventIsStaged && event.exclude_from_calendar
               ? '<div style="margin-top:0.2rem;"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Hidden from public calendar — uncheck “Exclude from calendar” in Edit (series parents default on)</span></div>'
               : '';
-
             return (
               '<tr>' +
               '<td>' + (event.title || 'N/A') + titleBadge + calendarHiddenBadge + '</td>' +
@@ -1833,6 +1843,7 @@ const userEmail = session.user?.email || 'Admin';
     async function editStagedEvent(eventId) {
       currentEditId = eventId;
       currentEditType = 'staged-event';
+      setEditEventModalStagedQueueUi(true);
       
       // Find the event data from the already loaded events
       const response = await fetch('/api/admin/events-staged', { credentials: 'include' });
@@ -1861,7 +1872,6 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventFeatured').checked = event.featured || false;
         const isCancelled = event.status === 'cancelled';
         document.getElementById('editEventCancelled').checked = isCancelled;
-        document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
         syncEventStatusControls();
         
         // Set location
@@ -1920,9 +1930,10 @@ const userEmail = session.user?.email || 'Admin';
    * Opens the edit modal for an existing (approved) event
    * @param {string} eventId - The ID of the event to edit
    */
-  async function editExistingEvent(eventId) {
+    async function editExistingEvent(eventId) {
       currentEditId = eventId;
       currentEditType = 'existing-event';
+      setEditEventModalStagedQueueUi(false);
       
       // Try to find the event data from the already loaded events first
       let response = await fetch('/api/admin/events', { credentials: 'include' });
@@ -1960,7 +1971,6 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventFeatured').checked = event.featured || false;
         const isCancelled = event.status === 'cancelled';
         document.getElementById('editEventCancelled').checked = isCancelled;
-        document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
         syncEventStatusControls();
         
         // Set location
@@ -2053,6 +2063,7 @@ const userEmail = session.user?.email || 'Admin';
       // Open modal in "new event" mode with pre-filled data
       currentEditId = null;
       currentEditType = 'new-event';
+      setEditEventModalStagedQueueUi(false);
       
       const titleElement = document.getElementById('editEventModalTitle');
       titleElement.textContent = 'Duplicate Event';
@@ -2080,7 +2091,6 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventRegistration').checked = event.registration || false;
       document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
       document.getElementById('editEventFeatured').checked = event.featured || false;
-      document.getElementById('editEventDraft').checked = false; // New duplicates default to approved
       document.getElementById('editEventCancelled').checked = false;
       syncEventStatusControls();
       
@@ -2181,7 +2191,6 @@ const userEmail = session.user?.email || 'Admin';
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
-      status: getEventStatusFromForm(),
     };
     
     // Get location/organization display names for pre-filling duplicate form
@@ -2201,6 +2210,7 @@ const userEmail = session.user?.email || 'Admin';
     // Open duplicate modal with form data (dates will be cleared)
     currentEditId = null;
     currentEditType = 'new-event';
+    setEditEventModalStagedQueueUi(false);
     
     const titleElement = document.getElementById('editEventModalTitle');
     titleElement.textContent = 'Duplicate Event';
@@ -2227,7 +2237,6 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventRegistration').checked = eventData.registration || false;
     document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
     document.getElementById('editEventFeatured').checked = eventData.featured || false;
-    document.getElementById('editEventDraft').checked = false;
     document.getElementById('editEventCancelled').checked = false;
     syncEventStatusControls();
     
@@ -2349,7 +2358,6 @@ const userEmail = session.user?.email || 'Admin';
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
-      status: getEventStatusFromForm(),
     };
     
     // Get location name if available
@@ -3312,6 +3320,7 @@ const userEmail = session.user?.email || 'Admin';
   window.openCreateEventModal = function() {
       currentEditId = null;
       currentEditType = 'new-event';
+      setEditEventModalStagedQueueUi(false);
       
       // Clear all form fields
       document.getElementById('editEventModalTitle').textContent = 'Create New Event';
@@ -3340,7 +3349,6 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventRegistration').checked = false;
       document.getElementById('editEventExcludeFromCalendar').checked = false;
       document.getElementById('editEventFeatured').checked = false;
-      document.getElementById('editEventDraft').checked = false;
       document.getElementById('editEventCancelled').checked = false;
       syncEventStatusControls();
       
@@ -3368,6 +3376,8 @@ const userEmail = session.user?.email || 'Admin';
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
+      hideEditEventModalHelpNotes();
+      pendingEventSaveIntent = null;
       currentEditId = null;
       currentEditType = null;
     };
@@ -3396,6 +3406,12 @@ const userEmail = session.user?.email || 'Admin';
       
       // Handle creating new event
       if (currentEditType === 'new-event') {
+        const intent = pendingEventSaveIntent;
+        pendingEventSaveIntent = null;
+        if (!intent || (intent !== 'draft' && intent !== 'publish')) {
+          showMessage('Choose “Save as draft” or “Save and publish”.', 'error');
+          return;
+        }
       const formData = {
           title: document.getElementById('editEventTitle').value,
           description: document.getElementById('editEventDescription').value,
@@ -3417,7 +3433,7 @@ const userEmail = session.user?.email || 'Admin';
           registration: document.getElementById('editEventRegistration').checked,
           exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
           featured: document.getElementById('editEventFeatured').checked,
-          status: getEventStatusFromForm(),
+          status: eventStatusFromSaveIntent(intent),
         };
         
         // Validate required fields
@@ -3441,7 +3457,10 @@ const userEmail = session.user?.email || 'Admin';
           
           if (response.ok) {
             const data = await response.json();
-            showMessage('Event created successfully!', 'success');
+            showMessage(
+              intent === 'publish' ? 'Event created and published.' : 'Event saved as draft (pending).',
+              'success'
+            );
             closeEditEventModal();
             // Reload all event lists
             await Promise.all([
@@ -3464,6 +3483,17 @@ const userEmail = session.user?.email || 'Admin';
       }
       
       if (!currentEditId) return;
+
+      const needsEventSaveIntent =
+        currentEditType === 'staged-event' || currentEditType === 'existing-event';
+      const intent = pendingEventSaveIntent;
+      pendingEventSaveIntent = null;
+      if (needsEventSaveIntent) {
+        if (!intent || (intent !== 'draft' && intent !== 'publish')) {
+          showMessage('Choose “Save as draft” or “Save and publish”.', 'error');
+          return;
+        }
+      }
       
       let formData = {
         id: currentEditId,
@@ -3494,9 +3524,8 @@ const userEmail = session.user?.email || 'Admin';
       formData.registration = document.getElementById('editEventRegistration').checked;
       formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
       formData.featured = document.getElementById('editEventFeatured').checked;
-      // Staged rows stay pending until "Approve" calls /events-staged/approve (do not mirror events.status).
-      if (currentEditType !== 'staged-event') {
-        formData.status = getEventStatusFromForm();
+      if (currentEditType === 'existing-event') {
+        formData.status = eventStatusFromSaveIntent(intent);
       }
       
       formData.location_id = document.getElementById('editEventLocationId').value || null;
@@ -3531,6 +3560,50 @@ const userEmail = session.user?.email || 'Admin';
             };
             break;
         }
+
+        if (currentEditType === 'staged-event') {
+          const putRes = await fetch('/api/admin/events-staged/edit', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData),
+          });
+          if (!putRes.ok) {
+            const errorText = await putRes.text();
+            console.error('Staged save failed:', errorText);
+            throw new Error('Failed to save: ' + errorText);
+          }
+          if (intent === 'publish') {
+            const appr = await fetch('/api/admin/events-staged/approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ eventId: currentEditId }),
+            });
+            if (!appr.ok) {
+              let detail = 'Publish failed';
+              try {
+                const j = await appr.json();
+                if (j.error) detail = j.error;
+              } catch (_) {}
+              throw new Error(
+                detail + ' — Your edits are saved in the queue; use Approve on the list or fix the error.'
+              );
+            }
+            const approveBody = await appr.json();
+            const pubPath =
+              approveBody.approvedEventId && `/events/${approveBody.approvedEventId}`;
+            showMessage(
+              pubPath ? 'Published! Public page: ' + pubPath : 'Published to live calendar.',
+              'success'
+            );
+          } else {
+            showMessage('Saved to review queue.', 'success');
+          }
+          closeEditEventModal();
+          loadEventsToApprove();
+          return;
+        }
         
         const response = await fetch(endpoint, {
           method: 'PUT',
@@ -3542,13 +3615,11 @@ const userEmail = session.user?.email || 'Admin';
         if (response.ok) {
           showMessage('Updated successfully!', 'success');
           
-          // Store values before closing modal (which might clear them)
           const editType = currentEditType;
           const editId = currentEditId;
           
           closeEditEventModal();
           
-          // Stay on admin for batch workflows (approved rows would be valid on /events/[id]).
           if (editType === 'existing-event' && editId) {
             setTimeout(() => {
               window.location.href = '/admin';
@@ -3566,6 +3637,23 @@ const userEmail = session.user?.email || 'Admin';
         showMessage('Error updating: ' + error.message, 'error');
       }
     });
+
+      const saveDraftBtn = document.getElementById('editEventSaveDraftBtn');
+      const savePublishBtn = document.getElementById('editEventSavePublishBtn');
+      if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          pendingEventSaveIntent = 'draft';
+          editEventForm.requestSubmit();
+        });
+      }
+      if (savePublishBtn) {
+        savePublishBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          pendingEventSaveIntent = 'publish';
+          editEventForm.requestSubmit();
+        });
+      }
     }
 
     // Announcement form submission handler

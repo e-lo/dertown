@@ -20,6 +20,8 @@ function stripApprovedParentMarker(comments: string | null | undefined): string 
 
 export const PUT = withAdminAuth(async ({ request }) => {
   const { id, ...updateData } = await request.json();
+  // Never let the client set staged workflow status via this endpoint (see cleanedData.status below).
+  delete updateData.status;
 
   if (!id) {
     return jsonError('Event ID is required', 400);
@@ -96,7 +98,7 @@ export const PUT = withAdminAuth(async ({ request }) => {
 
     if (parentError || !stagedParent) {
       return jsonError(
-        'Parent event must be selected from pending staged events when editing a staged event',
+        'Parent event must be selected from pending staged top-level events when editing a staged event',
         400
       );
     }
@@ -114,9 +116,7 @@ export const PUT = withAdminAuth(async ({ request }) => {
     }
   }
 
-  // Never persist status from the edit form. "Approved" on the modal only meant for the live
-  // `events` table; writing status = 'approved' here hid rows from the pending queue (GET filters
-  // status = 'pending') without running /events-staged/approve, so nothing was inserted into events.
+  // Staged workflow status is DB-enforced (never approved). Always keep the row in the review queue on save.
   cleanedData.status = 'pending';
 
   // Update the staged event using admin client (bypasses RLS)
