@@ -603,17 +603,19 @@ const locationMapMarkers =
         if (/^https?:\/\//i.test(t)) return t;
         return 'https://' + t;
       }
-      function getEventStatusFromForm() {
+      let pendingEventSaveIntent: 'draft' | 'publish' | null = null;
+
+      function eventStatusFromSaveIntent(intent: 'draft' | 'publish') {
         const cancelled = (document.getElementById('editEventCancelled') as HTMLInputElement)?.checked;
         if (cancelled) return 'cancelled';
-        const draft = (document.getElementById('editEventDraft') as HTMLInputElement)?.checked;
-        return draft ? 'pending' : 'approved';
+        if (intent === 'draft') return 'pending';
+        if (intent === 'publish') return 'approved';
+        return 'pending';
       }
       function syncEventStatusControls() {
         const c = document.getElementById('editEventCancelled') as HTMLInputElement;
-        const d = document.getElementById('editEventDraft') as HTMLInputElement;
-        if (!c || !d) return;
-        if (c.checked) { d.checked = false; d.disabled = true; } else { d.disabled = false; }
+        const publishBtn = document.getElementById('editEventSavePublishBtn') as HTMLButtonElement | null;
+        if (publishBtn) publishBtn.disabled = !!(c && c.checked);
       }
 
       async function loadReferenceData() {
@@ -676,8 +678,10 @@ const locationMapMarkers =
         set('editEventPrimaryTag', event.primary_tag_id); set('editEventSecondaryTag', event.secondary_tag_id); set('editEventComments', event.comments);
         setCheck('editEventRegistration', event.registration); setCheck('editEventExcludeFromCalendar', event.exclude_from_calendar); setCheck('editEventFeatured', event.featured);
         const isCancelled = event.status === 'cancelled';
-        setCheck('editEventCancelled', isCancelled); setCheck('editEventDraft', !isCancelled && (event.status === 'pending' || event.status == null));
+        setCheck('editEventCancelled', isCancelled);
         syncEventStatusControls();
+        document.getElementById('editEventStagedQueueNote')?.classList.add('hidden');
+        document.getElementById('editEventLiveCalendarNote')?.classList.remove('hidden');
         if (event.location_id && event.location) { set('editEventLocationId', event.location_id); (document.getElementById('editEventLocationSearch') as HTMLInputElement).value = event.location.name || ''; }
         else { set('editEventLocationId', ''); (document.getElementById('editEventLocationSearch') as HTMLInputElement).value = ''; }
         if (event.organization_id && event.organization) { set('editEventOrganizationId', event.organization_id); (document.getElementById('editEventOrganizationSearch') as HTMLInputElement).value = event.organization.name || ''; }
@@ -719,6 +723,12 @@ const locationMapMarkers =
       if (form) {
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
+          const intent = pendingEventSaveIntent;
+          pendingEventSaveIntent = null;
+          if (!intent || (intent !== 'draft' && intent !== 'publish')) {
+            alert('Choose “Save as draft” or “Save and publish”.');
+            return;
+          }
           const eventId = window.location.pathname.split('/').pop();
           if (!eventId) return;
           const primaryTag = (document.getElementById('editEventPrimaryTag') as HTMLSelectElement)?.value;
@@ -744,7 +754,7 @@ const locationMapMarkers =
             registration: (document.getElementById('editEventRegistration') as HTMLInputElement)?.checked,
             exclude_from_calendar: (document.getElementById('editEventExcludeFromCalendar') as HTMLInputElement)?.checked,
             featured: (document.getElementById('editEventFeatured') as HTMLInputElement)?.checked,
-            status: getEventStatusFromForm(),
+            status: eventStatusFromSaveIntent(intent),
           };
           try {
             const putRes = await fetch('/api/admin/events', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(formData) });
@@ -759,6 +769,22 @@ const locationMapMarkers =
             alert('Failed to update event');
           }
         });
+        const saveDraftBtn = document.getElementById('editEventSaveDraftBtn');
+        const savePublishBtn = document.getElementById('editEventSavePublishBtn');
+        if (saveDraftBtn) {
+          saveDraftBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            pendingEventSaveIntent = 'draft';
+            (form as HTMLFormElement).requestSubmit();
+          });
+        }
+        if (savePublishBtn) {
+          savePublishBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            pendingEventSaveIntent = 'publish';
+            (form as HTMLFormElement).requestSubmit();
+          });
+        }
       }
 
       const cancelledCheckbox = document.getElementById('editEventCancelled') as HTMLInputElement;

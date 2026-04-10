@@ -42,29 +42,27 @@ export async function writeProcessedEvents(
   source: SourceConfig,
   verbose: boolean
 ): Promise<WriteResult> {
-  // Clean up stuck approved events that failed to delete from events_staged.
-  // These ghost rows cause FK issues and confuse series parent lookups.
-  const { data: stuckApproved } = await db
+  // Remove rejected staged rows (duplicate/archived) so they do not clutter FK parent lookups.
+  // DB constraint events_staged_status_staging_only prevents status = approved on this table.
+  const { data: rejectedStaged } = await db
     .from('events_staged')
     .select('id')
-    .neq('status', 'pending');
+    .in('status', ['duplicate', 'archived']);
 
-  if (stuckApproved && stuckApproved.length > 0) {
-    // First clear any parent_event_id references pointing to stuck rows
-    const stuckIds = stuckApproved.map((e) => e.id);
+  if (rejectedStaged && rejectedStaged.length > 0) {
+    const stuckIds = rejectedStaged.map((e) => e.id);
     await db
       .from('events_staged')
       .update({ parent_event_id: null })
       .in('parent_event_id', stuckIds);
-    // Then delete the stuck rows
     const { error: cleanupError } = await db
       .from('events_staged')
       .delete()
-      .neq('status', 'pending');
+      .in('status', ['duplicate', 'archived']);
     if (cleanupError) {
-      if (verbose) console.log(`    WARN: cleanup of stuck non-pending staged events failed: ${cleanupError.message}`);
+      if (verbose) console.log(`    WARN: cleanup of rejected staged events failed: ${cleanupError.message}`);
     } else {
-      console.log(`  Cleaned up ${stuckApproved.length} stuck non-pending event(s) from events_staged`);
+      console.log(`  Cleaned up ${rejectedStaged.length} rejected staged event(s) (duplicate/archived)`);
     }
   }
 

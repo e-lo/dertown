@@ -74,25 +74,23 @@ const userEmail = session.user?.email || 'Admin';
     }, 5000);
   }
 
-  function getEventStatusFromForm() {
+  function eventStatusFromSaveIntent(intent) {
     const cancelled = document.getElementById('editEventCancelled')?.checked;
     if (cancelled) return 'cancelled';
-    const draft = document.getElementById('editEventDraft')?.checked;
-    return draft ? 'pending' : 'approved';
+    if (intent === 'draft') return 'pending';
+    if (intent === 'publish') return 'approved';
+    return 'pending';
   }
 
   function syncEventStatusControls() {
     const cancelledCheckbox = document.getElementById('editEventCancelled');
-    const draftCheckbox = document.getElementById('editEventDraft');
-    if (!cancelledCheckbox || !draftCheckbox) return;
-
-    if (cancelledCheckbox.checked) {
-      draftCheckbox.checked = false;
-      draftCheckbox.disabled = true;
-    } else {
-      draftCheckbox.disabled = false;
+    const publishBtn = document.getElementById('editEventSavePublishBtn');
+    if (publishBtn) {
+      publishBtn.disabled = !!(cancelledCheckbox && cancelledCheckbox.checked);
     }
   }
+
+  let pendingEventSaveIntent = null;
 
   let allLocations = [];
   let allOrganizations = [];
@@ -272,8 +270,9 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventFeatured').checked = event.featured || false;
     const isCancelled = event.status === 'cancelled';
     document.getElementById('editEventCancelled').checked = isCancelled;
-    document.getElementById('editEventDraft').checked = !isCancelled && (event.status === 'pending' || event.status === null);
     syncEventStatusControls();
+    document.getElementById('editEventStagedQueueNote')?.classList.add('hidden');
+    document.getElementById('editEventLiveCalendarNote')?.classList.remove('hidden');
 
     if (event.location_id && event.location) {
       document.getElementById('editEventLocationSearch').value = event.location.name || '';
@@ -333,6 +332,13 @@ const userEmail = session.user?.email || 'Admin';
   async function updateEvent() {
     if (!currentEditId) return;
 
+    const intent = pendingEventSaveIntent;
+    pendingEventSaveIntent = null;
+    if (!intent || (intent !== 'draft' && intent !== 'publish')) {
+      showMessage('Choose “Save as draft” or “Save and publish”.', 'error');
+      return;
+    }
+
     let formData = {
       id: currentEditId,
       title: document.getElementById('editEventTitle').value,
@@ -361,7 +367,7 @@ const userEmail = session.user?.email || 'Admin';
     formData.registration = document.getElementById('editEventRegistration').checked;
     formData.exclude_from_calendar = document.getElementById('editEventExcludeFromCalendar').checked;
     formData.featured = document.getElementById('editEventFeatured').checked;
-    formData.status = getEventStatusFromForm();
+    formData.status = eventStatusFromSaveIntent(intent);
 
     formData.location_id = document.getElementById('editEventLocationId').value || null;
     formData.organization_id = document.getElementById('editEventOrganizationId').value || null;
@@ -392,6 +398,13 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   async function createEvent() {
+    const intent = pendingEventSaveIntent;
+    pendingEventSaveIntent = null;
+    if (!intent || (intent !== 'draft' && intent !== 'publish')) {
+      showMessage('Choose “Save as draft” or “Save and publish”.', 'error');
+      return;
+    }
+
     const formData = {
       title: document.getElementById('editEventTitle').value,
       description: document.getElementById('editEventDescription').value,
@@ -413,7 +426,7 @@ const userEmail = session.user?.email || 'Admin';
       registration: document.getElementById('editEventRegistration').checked,
       exclude_from_calendar: document.getElementById('editEventExcludeFromCalendar').checked,
       featured: document.getElementById('editEventFeatured').checked,
-      status: getEventStatusFromForm(),
+      status: eventStatusFromSaveIntent(intent),
     };
 
     if (!formData.title || !formData.start_date) {
@@ -496,7 +509,6 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventRegistration').checked = eventData.registration || false;
     document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
     document.getElementById('editEventFeatured').checked = eventData.featured || false;
-    document.getElementById('editEventDraft').checked = false;
     document.getElementById('editEventCancelled').checked = false;
     syncEventStatusControls();
 
@@ -547,6 +559,22 @@ const userEmail = session.user?.email || 'Admin';
           await updateEvent();
         }
       });
+      const saveDraftBtn = document.getElementById('editEventSaveDraftBtn');
+      const savePublishBtn = document.getElementById('editEventSavePublishBtn');
+      if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          pendingEventSaveIntent = 'draft';
+          editEventForm.requestSubmit();
+        });
+      }
+      if (savePublishBtn) {
+        savePublishBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          pendingEventSaveIntent = 'publish';
+          editEventForm.requestSubmit();
+        });
+      }
     }
   });
 

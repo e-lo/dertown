@@ -13,6 +13,7 @@ function extractApprovedParentId(comments: string | null): string | null {
 }
 
 export const GET = withAdminAuth(async () => {
+  // Review queue: only pending. Rejected rows use duplicate/archived/cancelled (DB-enforced, not shown here).
   const { data, error } = await supabaseAdmin.from('events_staged').select(`
       *,
       primary_tag:tags!events_staged_primary_tag_id_fkey(name),
