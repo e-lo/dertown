@@ -21,14 +21,6 @@ const userEmail = session.user?.email || 'Admin';
 ---
 
 <AdminLayout title="Edit Event" userEmail={userEmail}>
-  <Fragment slot="head">
-    <style>
-      .btn-series {
-        display: none;
-      }
-    </style>
-  </Fragment>
-
   <Fragment slot="modals">
     <EditEventModal />
     <AddLocationModal />
@@ -83,11 +75,7 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   function syncEventStatusControls() {
-    const cancelledCheckbox = document.getElementById('editEventCancelled');
-    const publishBtn = document.getElementById('editEventSavePublishBtn');
-    if (publishBtn) {
-      publishBtn.disabled = !!(cancelledCheckbox && cancelledCheckbox.checked);
-    }
+    // Cancelled state is handled in eventStatusFromSaveIntent; no UI controls need syncing
   }
 
   let pendingEventSaveIntent = null;
@@ -512,9 +500,51 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventCancelled').checked = false;
     syncEventStatusControls();
 
+    const locSearch = document.getElementById('editEventLocationSearch').value;
+    const orgSearch = document.getElementById('editEventOrganizationSearch').value;
+    const parentSearch = document.getElementById('editEventParentEventSearch').value;
+    if (eventData.location_id) {
+      const loc = allLocations.find((l) => l.id === eventData.location_id);
+      document.getElementById('editEventLocationSearch').value = loc ? loc.name || '' : locSearch;
+      document.getElementById('editEventLocationId').value = eventData.location_id;
+    } else {
+      document.getElementById('editEventLocationSearch').value = '';
+      document.getElementById('editEventLocationId').value = '';
+    }
+    if (eventData.organization_id) {
+      const org = allOrganizations.find((o) => o.id === eventData.organization_id);
+      document.getElementById('editEventOrganizationSearch').value = org ? org.name || '' : orgSearch;
+      document.getElementById('editEventOrganizationId').value = eventData.organization_id;
+    } else {
+      document.getElementById('editEventOrganizationSearch').value = '';
+      document.getElementById('editEventOrganizationId').value = '';
+    }
+    if (eventData.parent_event_id) {
+      const parentEvent = allParentEvents.find((e) => e.id === eventData.parent_event_id);
+      if (parentEvent) {
+        const dateStr = parentEvent.start_date ? new Date(parentEvent.start_date).toLocaleDateString() : '';
+        const timeStr = parentEvent.start_time ? parentEvent.start_time.substring(0, 5) : '';
+        document.getElementById('editEventParentEventSearch').value = `${parentEvent.title}${dateStr ? ` - ${dateStr}` : ''}${timeStr ? ` ${timeStr}` : ''}`;
+      } else {
+        document.getElementById('editEventParentEventSearch').value = parentSearch;
+      }
+      document.getElementById('editEventParentEventId').value = eventData.parent_event_id;
+    } else {
+      document.getElementById('editEventParentEventSearch').value = '';
+      document.getElementById('editEventParentEventId').value = '';
+    }
+
     currentEditId = null;
     isDuplicateMode = true;
     openEditModal();
+  }
+
+  function createSeriesFromCurrentEvent() {
+    if (!currentEditId) {
+      showMessage('Save the event first, then create a series from it.', 'error');
+      return;
+    }
+    window.location.href = `/admin?openSeriesForEvent=${encodeURIComponent(currentEditId)}`;
   }
 
   function applyCreatedLocation(location) {
@@ -580,4 +610,5 @@ const userEmail = session.user?.email || 'Admin';
 
   window.closeEditEventModal = closeEditEventModal;
   window.duplicateCurrentEvent = duplicateCurrentEvent;
+  window.createSeriesFromCurrentEvent = createSeriesFromCurrentEvent;
 </script>

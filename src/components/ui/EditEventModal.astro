@@ -137,11 +137,11 @@
       </div>
       <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
         <div style="display: flex; gap: 0.5rem;">
-          <button type="button" onclick="duplicateCurrentEvent()" class="btn-duplicate">
+          <button type="button" onclick="window.duplicateCurrentEvent?.()" class="btn-duplicate">
             <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">content_copy</span>
             Duplicate
           </button>
-          <button type="button" onclick="createSeriesFromCurrentEvent()" class="btn-series">
+          <button type="button" onclick="window.createSeriesFromCurrentEvent?.()" class="btn-series">
             <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">repeat</span>
             Create Series
           </button>

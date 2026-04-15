@@ -1411,6 +1411,16 @@ const userEmail = session.user?.email || 'Admin';
           }
         }, 500);
       }
+
+      const openSeriesForEvent = urlParams.get('openSeriesForEvent');
+      if (openSeriesForEvent) {
+        setTimeout(() => {
+          if (typeof window.createSeriesFromEvent === 'function') {
+            window.createSeriesFromEvent(openSeriesForEvent);
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }, 500);
+      }
       
       if (editEventId) {
         // Wait for functions to be defined and data to be loaded
