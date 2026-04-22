@@ -217,9 +217,13 @@ const payload = JSON.stringify({
 
     document.addEventListener('DOMContentLoaded', () => {
       const dataElement = document.getElementById('event-map-data');
-      if (!dataElement?.textContent) return;
+      if (!dataElement?.textContent) {
+        console.error('[MAP] No data element found');
+        return;
+      }
 
-      const payload = JSON.parse(dataElement.textContent);
+      try {
+        const payload = JSON.parse(dataElement.textContent);
       const allEvents = Array.isArray(payload.events) ? payload.events : [];
       const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
 
@@ -644,6 +648,14 @@ const payload = JSON.stringify({
 
       applyFilters();
       initMap();
+      } catch (error) {
+        console.error('[MAP] Error initializing map:', error);
+        console.error('[MAP] Raw data element content:', dataElement?.textContent?.substring(0, 500));
+        const container = document.getElementById('event-map-list');
+        if (container) {
+          container.innerHTML = '<div class="empty-state"><h3>Error loading map</h3><p>Check console for details.</p></div>';
+        }
+      }
     });
   </script>
 
