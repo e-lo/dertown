@@ -1255,7 +1255,9 @@ const userEmail = session.user?.email || 'Admin';
           loadSeries(); // Reload series data
         } else {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to add occurrences');
+          // Show details if available (409 conflict with specific dates)
+          const errorMsg = errorData.details || errorData.error || 'Failed to add occurrences';
+          throw new Error(errorMsg);
         }
       } catch (error) {
         showMessage('Error adding occurrences: ' + error.message, 'error');
