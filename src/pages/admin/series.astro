@@ -1228,9 +1228,14 @@ const userEmail = session.user?.email || 'Admin';
       const template = currentSeriesData.children[0];
       const parentId = currentSeriesData.parent.id;
 
+      // Strip " Series" or " (Series)" from parent title for individual occurrence titles
+      const occurrenceTitle = currentSeriesData.parent.title
+        .replace(/\s*\(Series\)$/i, '')
+        .replace(/\s+Series$/i, '');
+
       // Build events array
       const events = dates.map(date => ({
-        title: currentSeriesData.parent.title,  // Use parent event's title for consistency
+        title: occurrenceTitle,
         description: template.description,
         start_date: date,
         end_date: null,
