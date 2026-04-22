@@ -24,7 +24,7 @@ const requestedLocationId = searchParams.get('loc');
 const initialSelectedLocationId =
   (requestedLocationId && state.groups.some((group) => group.id === requestedLocationId)
     ? requestedLocationId
-    : state.groups[0]?.id) || '';
+    : '');
 const initialSelectedLocation =
   state.groups.find((group) => group.id === initialSelectedLocationId) || null;
 const initialOrgValue =
@@ -542,7 +542,7 @@ const payload = JSON.stringify({
         mapboxgl.accessToken = token;
         mapboxMap = new mapboxgl.Map({
           container: mapEl,
-          style: 'mapbox://styles/mapbox/outdoors-v12',
+          style: 'https://basemaps.cartocdn.com/gl/positron-nolabels/style.json',
           center: [-120.6615, 47.5963],
           zoom: 11,
           attributionControl: true,
