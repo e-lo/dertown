@@ -223,7 +223,15 @@ const payload = JSON.stringify({
       }
 
       try {
-        const payload = JSON.parse(dataElement.textContent);
+        // Unescape HTML entities that Astro's set:text adds (e.g., &quot; -> ")
+        const unescapedContent = dataElement.textContent
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&#39;/g, "'");
+
+        const payload = JSON.parse(unescapedContent);
       const allEvents = Array.isArray(payload.events) ? payload.events : [];
       const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
 
