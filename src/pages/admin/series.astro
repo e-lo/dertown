@@ -1230,7 +1230,7 @@ const userEmail = session.user?.email || 'Admin';
 
       // Build events array
       const events = dates.map(date => ({
-        title: template.title,
+        title: currentSeriesData.parent.title,  // Use parent event's title for consistency
         description: template.description,
         start_date: date,
         end_date: null,
