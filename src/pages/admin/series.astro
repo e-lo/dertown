@@ -90,6 +90,19 @@ const userEmail = session.user?.email || 'Admin';
 </AdminLayout>
 
 <script>
+  // Helper function to parse date strings from database (YYYY-MM-DD) without timezone conversion
+  function parseDateString(dateStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create date in local timezone by using components directly
+    const date = new Date(year, month - 1, day);
+    return date;
+  }
+
+  // Format date as local date string
+  function formatLocalDate(dateStr) {
+    return parseDateString(dateStr).toLocaleDateString();
+  }
+
   // Message display function
   function showMessage(message, type = 'info') {
     const messageDiv = document.getElementById('message');
@@ -152,7 +165,7 @@ const userEmail = session.user?.email || 'Admin';
     series.forEach(s => {
       const parent = s.parent;
       const dateRange = s.dateRange
-        ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
+        ? `${formatLocalDate(s.dateRange.earliest)} - ${formatLocalDate(s.dateRange.latest)}`
         : 'N/A';
       const location = parent.location?.name || 'N/A';
       const organization = parent.organization?.name || 'N/A';
@@ -208,7 +221,7 @@ const userEmail = session.user?.email || 'Admin';
     series.forEach(s => {
       const parent = s.parent;
       const dateRange = s.dateRange
-        ? `${new Date(s.dateRange.earliest).toLocaleDateString()} - ${new Date(s.dateRange.latest).toLocaleDateString()}`
+        ? `${formatLocalDate(s.dateRange.earliest)} - ${formatLocalDate(s.dateRange.latest)}`
         : 'N/A';
       const location = parent.location?.name || 'N/A';
       const organization = parent.organization?.name || 'N/A';
@@ -1250,6 +1263,39 @@ const userEmail = session.user?.email || 'Admin';
 
         if (response.ok) {
           const data = await response.json();
+
+          // Update parent event dates if new occurrences extend beyond current range
+          if (currentSeriesData && dates.length > 0) {
+            const newDates = dates.map(d => parseDateString(d).getTime());
+            const currentDates = currentSeriesData.children.map(c => parseDateString(c.start_date).getTime());
+            const allDates = [...newDates, ...currentDates].sort((a, b) => a - b);
+
+            const parentStartDate = new Date(allDates[0]);
+            const parentEndDate = new Date(allDates[allDates.length - 1]);
+
+            // Only update if dates have changed
+            const parentStartStr = parentStartDate.toISOString().split('T')[0];
+            const parentEndStr = parentEndDate.toISOString().split('T')[0];
+            const parentCurrentStart = currentSeriesData.parent.start_date;
+            const parentCurrentEnd = currentSeriesData.parent.end_date || currentSeriesData.parent.start_date;
+
+            if (parentStartStr !== parentCurrentStart || parentEndStr !== parentCurrentEnd) {
+              // Update parent event with new date range
+              await fetch(`/api/admin/events/${currentSeriesData.parent.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  start_date: parentStartStr,
+                  end_date: parentEndStr
+                })
+              }).catch(err => {
+                console.error('Failed to update parent event dates:', err);
+                // Don't fail the whole operation if parent update fails
+              });
+            }
+          }
+
           showMessage(`Successfully added ${data.count || events.length} occurrence(s)!`, 'success');
           closeAddOccurrencesModal();
           loadSeries(); // Reload series data
