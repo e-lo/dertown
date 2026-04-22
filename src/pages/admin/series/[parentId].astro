@@ -58,6 +58,17 @@ try {
   const futureChildren = (childEvents || []).filter((c: any) => c.start_date >= today);
   const pastChildren = (childEvents || []).filter((c: any) => c.start_date < today);
   const allDates = (childEvents || []).map((c: any) => c.start_date).filter(Boolean).sort();
+
+  // Helper to format date string (YYYY-MM-DD) as readable date without timezone conversion
+  const formatDateString = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+  };
+
   const dateRange = allDates.length > 0
     ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
     : null;
@@ -120,9 +131,7 @@ try {
           <p class="text-sm text-gray-600 mb-1">Date Range</p>
           <p class="text-sm font-semibold text-gray-900">
             {seriesData.dateRange ? (
-              <>
-                {new Date(seriesData.dateRange.earliest).toLocaleDateString()} - {new Date(seriesData.dateRange.latest).toLocaleDateString()}
-              </>
+              `${formatDateString(seriesData.dateRange.earliest)} - ${formatDateString(seriesData.dateRange.latest)}`
             ) : 'N/A'}
           </p>
         </div>
@@ -204,7 +213,7 @@ try {
 
     events.forEach(event => {
       const isFuture = event.start_date >= today;
-      const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
+      const dateStr = event.start_date ? formatDateString(event.start_date) : 'N/A';
       const timeStr = event.start_time || 'N/A';
       const location = event.location?.name || 'N/A';
       const statusBadge = isFuture
