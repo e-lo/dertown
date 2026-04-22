@@ -111,6 +111,33 @@ export const POST = withAdminAuth(async ({ request }) => {
     return cleanedData;
   });
 
+  // Check for conflicts with existing events (unique constraint on start_date + title)
+  const conflictingDates: string[] = [];
+  for (const event of eventsToInsert) {
+    const { data: existing } = await supabaseAdmin
+      .from('events')
+      .select('id, start_date, title')
+      .eq('start_date', event.start_date)
+      .eq('title', event.title)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      conflictingDates.push(event.start_date);
+    }
+  }
+
+  if (conflictingDates.length > 0) {
+    console.error('[BULK CREATE] Conflict detected for dates:', conflictingDates);
+    return jsonResponse(
+      {
+        error: 'Cannot add occurrences on these dates - events with the same title already exist',
+        conflictingDates: conflictingDates,
+        details: `The following dates already have an event titled "${eventsToInsert[0]?.title}": ${conflictingDates.join(', ')}. Please choose different dates or edit the existing events.`,
+      },
+      409
+    );
+  }
+
   // Insert all events
   const { data, error } = await supabaseAdmin.from('events').insert(eventsToInsert).select(`
       *,
