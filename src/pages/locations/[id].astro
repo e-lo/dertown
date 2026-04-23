@@ -276,7 +276,8 @@ const locationPageUrl = Astro.url.href;
           navigator.clipboard.writeText(url || window.location.href).then(function() {
             var n = document.createElement('div');
             n.textContent = 'Link copied to clipboard!';
-            n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
+            const successBg = getComputedStyle(document.documentElement).getPropertyValue('--color-success-bg').trim();
+            n.style.cssText = 'position:fixed;top:20px;right:20px;background:' + successBg + ';color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
             document.body.appendChild(n);
             setTimeout(function() { n.remove(); }, 2000);
           });

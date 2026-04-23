@@ -52,7 +52,7 @@ function isAnnouncementNew(announcement: Announcement) {
 
 {
   (marqueeAnnouncements.length > 0 || drawerAnnouncements.length > 0) && (
-    <div class="w-full py-6 px-0" style="background: #ffe600; position: relative;">
+    <div class="w-full py-6 px-0" style="background: var(--palette-canary); position: relative;">
       {/* Side-hugging Drawer Toggle Button inside marquee, flush right */}
       {
         drawerAnnouncements.length > 0 && (
@@ -78,12 +78,12 @@ function isAnnouncementNew(announcement: Announcement) {
             <div
               class="flex flex-col md:flex-row md:items-end gap-0.5 md:gap-0 relative py-0.5 w-full"
               data-index={index}
-              style="font-size: 1.1rem; color: #111; background: none; border: none; box-shadow: none;"
+              style="font-size: 1.1rem; color: var(--color-text); background: none; border: none; box-shadow: none;"
             >
               <div class="flex-1 min-w-0 text-left md:flex md:items-center md:gap-2 md:truncate">
-                <span class="font-bold text-lg md:text-xl md:whitespace-nowrap" style="color: #111;">{announcement.title}</span>
+                <span class="font-bold text-lg md:text-xl md:whitespace-nowrap" style="color: var(--color-text);">{announcement.title}</span>
                 <span class="mx-2 hidden md:inline">|</span>
-                <span class="block md:inline text-sm font-normal opacity-90 md:truncate md:whitespace-nowrap" style="color: #111;">
+                <span class="block md:inline text-sm font-normal opacity-90 md:truncate md:whitespace-nowrap" style="color: var(--color-text);">
                   {announcement.message}
                   {announcement.link && (
                     <a
@@ -91,7 +91,7 @@ function isAnnouncementNew(announcement: Announcement) {
                       target="_blank"
                       rel="noopener noreferrer"
                       class="text-black font-semibold hover:text-yellow-700 transition-all text-base md:text-lg ml-2"
-                      style="color: #111;"
+                      style="color: var(--color-text);"
                     >
                       {'>>'}
                     </a>

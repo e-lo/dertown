@@ -4,13 +4,29 @@ This guide explains how to customize the theme, colors, map configuration, and l
 
 ## Overview
 
-All customizable settings are centralized in `/src/lib/config.ts`. This single file controls:
-- **Location Settings** – Default location coordinates and map center
-- **Map Styles** – Basemap URLs and zoom levels for different views
-- **Color Palette** – Theme colors, event category colors, and UI element colors
-- **Typography** – Font families used throughout the application
+All **customizable settings** are centralized in two files:
 
-Changes to this file are automatically reflected across the entire application.
+| File | Purpose |
+|------|---------|
+| `/src/lib/config.ts` | Central configuration for colors, fonts, location, and map settings |
+| `/src/styles/theme.css` | CSS variables that mirror config values for CSS usage |
+
+### What's Customizable vs. Design System
+
+**Customizable** (in config.ts):
+- Colors: palette, category colors, notification colors
+- Fonts: font families
+- Location: default coordinates and map center
+- Map styles: basemap URLs and zoom levels
+
+**Design System** (in components, NOT in config):
+- Shadows, spacing, padding, border-radius
+- Button styles, badge styles, component layouts
+- These are defined in individual Astro components and CSS files
+
+The distinction ensures that config.ts remains focused on **what changes per deployment** (colors, location, fonts) while design patterns stay in **components where they belong**.
+
+Changes to config values are automatically reflected across the entire application.
 
 ---
 
@@ -121,93 +137,119 @@ interface Props {
 
 ## Color Customization
 
-### Theme Colors
+### Color Palette (Base Colors)
 
-The main theme colors are defined in `/src/lib/config.ts`:
+The base color palette is defined in `/src/lib/config.ts`. This contains 9 core colors that are reused throughout the application:
 
 ```typescript
 export const COLOR_PALETTE = {
   colors: {
-    palatinateBlue: '#4740cbff',
-    canary: '#ffe600ff',
-    pigmentGreen: '#4daa57ff',
-    // ... more colors
-  },
-  theme: {
-    primary: '#4740cbff',
-    secondary: '#ffe600ff',
-    // ... more theme assignments
+    palatinateBlue: '#4740cbff',    // Primary blue
+    canary: '#ffe600ff',             // Yellow
+    pigmentGreen: '#4daa57ff',       // Green
+    blueGreen: '#219ebcff',          // Teal
+    fandango: '#c0268cff',           // Magenta
+    calPolyGreen: '#14532dff',       // Dark green
+    darkSlateGray: '#2f4445ff',      // Dark gray
+    brandeisBlue: '#2472fcff',       // Bright blue
+    neonBlue: '#5460f9ff',           // Neon blue
   },
 };
 ```
 
-#### Also in CSS
-Theme colors are also defined as CSS variables in `/src/styles/theme.css`:
+These colors form the foundation. No new hex codes should be added elsewhere—instead, use colors from this palette.
+
+### Color Assignments (How Palette Colors Are Used)
+
+The `COLORS` object maps palette colors to specific uses:
+
+```typescript
+export const COLORS = {
+  primary: COLOR_PALETTE.colors.palatinateBlue,
+  secondary: COLOR_PALETTE.colors.canary,
+  eventCategories: {
+    'arts-culture': COLOR_PALETTE.colors.canary,
+    'civic': COLOR_PALETTE.colors.darkSlateGray,
+    'family': COLOR_PALETTE.colors.fandango,
+    // ... etc
+  },
+  notifications: {
+    error: { text: '#d32f2f', bg: '#ffeaea' },
+    success: { text: '#388e3c', bg: '#e8f5e9' },
+    warning: { text: '#f57c00', bg: '#fef3c7' },
+    info: { text: '#1976d2', bg: '#e3f2fd' },
+  },
+};
+```
+
+#### CSS Variables
+
+These colors are mirrored as CSS variables in `/src/styles/theme.css`:
 
 ```css
 :root {
-  --palatinate-blue: #4740cbff;
-  --canary: #ffe600ff;
-  --pigment-green: #4daa57ff;
+  /* Palette colors */
+  --palette-palatinate-blue: #4740cbff;
+  --palette-canary: #ffe600ff;
+  /* ... etc */
+  
+  /* Color assignments */
+  --color-primary: var(--palette-palatinate-blue);
+  --color-secondary: var(--palette-canary);
+  /* ... etc */
+  
+  /* Notification colors */
+  --color-error-text: #d32f2f;
+  --color-error-bg: #ffeaea;
   /* ... etc */
 }
 ```
 
-If you change colors in `config.ts`, make sure to update the corresponding CSS variables in `theme.css` to keep them in sync.
+**Key principle:** When you change a color, update BOTH `config.ts` and `theme.css` to keep them in sync. Components reference these config values and CSS variables.
 
 ### Event Category Colors
 
-Each event tag/category has its own color. Categories are:
-- arts-culture
-- civic
-- family
-- nature
-- recreation
-- outdoors
-- school
-- seniors
-- sports
-- town
+Each event category has its own color. The available categories are:
+- arts-culture, civic, family, nature, recreation, outdoors, school, seniors, sports, town
 
 **To customize category colors:**
 
-Edit `COLOR_PALETTE.eventCategories` in `/src/lib/config.ts`:
+Edit `eventCategories` in the `COLORS` object in `/src/lib/config.ts`:
 
 ```typescript
 eventCategories: {
-  'arts-culture': '#ffe600ff',  // Canary yellow
-  'civic': '#2f4445ff',         // Dark slate gray
-  'family': '#c0268cff',        // Fandango (magenta)
+  'arts-culture': COLOR_PALETTE.colors.canary,        // References palette
+  'civic': COLOR_PALETTE.colors.darkSlateGray,
+  'family': COLOR_PALETTE.colors.fandango,
   // ... more categories
 }
 ```
 
-### Text Colors for Events
+Then add corresponding CSS variables in `/src/styles/theme.css`:
 
-Events on dark backgrounds show white text, events on light backgrounds show dark text. These are controlled by:
-
-```typescript
-eventTextColors: {
-  'arts-culture': '#111111',    // Dark text (light background)
-  'featured': '#111827',
-  'sports': '#111111',
-  default: '#ffffff',           // White text (dark background)
-}
+```css
+--color-category-arts-culture: var(--palette-canary);
+--color-category-civic: var(--palette-dark-slate-gray);
+/* ... etc */
 ```
+
+**Best practice:** Always reference palette colors (not hex codes). This keeps the color palette single-sourced.
 
 ### Map Marker Colors
 
-Marker colors used in location maps are configured in:
+Marker colors for location hierarchies are configured in `/src/lib/config.ts`:
 
 ```typescript
 export const MARKER_COLORS = {
-  current: '#2472fcff',   // Brand blue - primary location
-  parent: '#c0268cff',    // Fandango - parent in hierarchy
-  sibling: '#6b7280',     // Muted - related location
-  child: '#4daa57ff',     // Pigment green - child location
-  event: '#2472fcff',     // Same as current
+  current: COLORS.primary,              // Current location
+  parent: COLORS.eventCategories.family, // Parent in hierarchy
+  sibling: '#6b7280',                   // Related location (muted gray)
+  child: COLOR_PALETTE.colors.pigmentGreen, // Child location
+  event: COLORS.primary,                // Event marker
 };
 ```
+
+Reference palette or color assignment colors (not raw hex codes) where possible.
 
 ---
 
@@ -288,46 +330,74 @@ Use `define:vars` to pass config values to client scripts:
 
 ## Common Customization Tasks
 
-### Task: Change from Light to Dark Theme
+### Task: Change Primary Color (Brand Update)
 
-1. Update primary and secondary colors in `config.ts`:
+1. **Update the palette** in `config.ts`:
    ```typescript
-   theme: {
-     primary: '#1e293b',      // dark slate
-     secondary: '#fbbf24',    // amber
-   }
+   export const COLOR_PALETTE = {
+     colors: {
+       palatinateBlue: '#your-new-brand-color',  // Change this
+       // ... other colors stay the same
+     }
+   };
    ```
 
-2. Update event category colors to have good contrast on your chosen primary color
+2. **Mirror the change in CSS** `/src/styles/theme.css`:
+   ```css
+   --palette-palatinate-blue: #your-new-brand-color;
+   ```
 
-3. Update CSS variables in `theme.css` to match
+3. All components using `--color-primary` will automatically update.
 
 ### Task: Add a New Event Category
 
-1. Add the category to the database tags table first
-2. Add color mapping in `config.ts`:
+1. **Add the category to the database** (tags table) first
+2. **Add color mapping** in `config.ts`:
    ```typescript
    eventCategories: {
      // ... existing categories
-     'new-category': '#your-hex-color',
+     'workshop': COLOR_PALETTE.colors.neonBlue,  // Use palette color
    }
    ```
-3. Add text color mapping if needed:
-   ```typescript
-   eventTextColors: {
-     // ... existing categories
-     'new-category': '#111111 or #ffffff',
-   }
+3. **Add CSS variable** in `/src/styles/theme.css`:
+   ```css
+   --color-category-workshop: var(--palette-neon-blue);
    ```
 
-### Task: Switch to a Different Map Provider
+### Task: Adjust Notification Colors
 
-**For Mapbox (built-in):** Simply change the style URL in `MAP_STYLES`
+Update error/success/warning/info colors in `COLORS.notifications`:
 
-**For other providers (advanced):**
-1. Update the style URL in `MAP_STYLES`
-2. Ensure attribution requirements are met
-3. Update any provider-specific code in components
+```typescript
+notifications: {
+  error: { text: '#your-error-text', bg: '#your-error-bg' },
+  success: { text: '#your-success-text', bg: '#your-success-bg' },
+  // ... etc
+}
+```
+
+Then add corresponding CSS variables in `theme.css`:
+
+```css
+--color-error-text: #your-error-text;
+--color-error-bg: #your-error-bg;
+/* ... etc */
+```
+
+### Task: Switch Map Provider
+
+**For Mapbox (built-in):** Change the style URL in `MAP_STYLES`:
+```typescript
+detail: {
+  name: 'Your Map Name',
+  url: 'mapbox://styles/mapbox/your-style',
+},
+```
+
+**For other providers (Leaflet, OpenStreetMap, etc.):**
+1. Update the `embedded.url` in `MAP_STYLES` for the Add Location modal
+2. Update components to use the new tile layer format if needed
+3. Ensure proper attribution in map code
 
 ---
 

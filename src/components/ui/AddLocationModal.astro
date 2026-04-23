@@ -43,7 +43,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
       </div>
       <div class="form-field">
         <label class="form-label">Set location on map (click to set coordinates)</label>
-        <div id="addLocationMap" style="height: 220px; width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem; background: #f3f4f6;"></div>
+        <div id="addLocationMap" style="height: 220px; width: 100%; border: 1px solid var(--color-border); border-radius: 0.375rem; background: var(--color-surface-light);"></div>
         <p id="mapHelpText" class="text-xs text-gray-500 mt-1"></p>
       </div>
       <div class="form-grid-2">
@@ -156,6 +156,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
         locationMap = null;
         locationMarker = null;
       }
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#4740cb';
       const selectionIcon = L.divIcon({
         className: '',
         iconSize: [24, 36],
@@ -163,8 +164,8 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
         popupAnchor: [0, -30],
         html:
           '<div style="position:relative;width:24px;height:36px;">' +
-          '<span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:24px;height:24px;border-radius:9999px;background:#2563eb;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>' +
-          '<span style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #2563eb;"></span>' +
+          '<span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:24px;height:24px;border-radius:9999px;background:' + primaryColor + ';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>' +
+          '<span style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid ' + primaryColor + ';"></span>' +
           '</div>',
       });
       const hasCoords = lat != null && lon != null && !isNaN(lat) && !isNaN(lon);

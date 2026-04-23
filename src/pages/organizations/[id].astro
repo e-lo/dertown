@@ -90,7 +90,7 @@ const organizationPageUrl = Astro.url.href;
 
 <Layout title={`${organizationTitle} - Organization`} description={organizationDescription}>
   <style is:global>
-    .location-marker-tooltip { background: white; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .location-marker-tooltip { background: white; border: 1px solid var(--color-border); padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
   </style>
   <section class="max-w-6xl mx-auto px-4 py-10">
     <div class="flex flex-col gap-6">
@@ -236,7 +236,8 @@ const organizationPageUrl = Astro.url.href;
           navigator.clipboard.writeText(url || window.location.href).then(function() {
             var n = document.createElement('div');
             n.textContent = 'Link copied to clipboard!';
-            n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
+            const successBg = getComputedStyle(document.documentElement).getPropertyValue('--color-success-bg').trim();
+            n.style.cssText = 'position:fixed;top:20px;right:20px;background:' + successBg + ';color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
             document.body.appendChild(n);
             setTimeout(function() { n.remove(); }, 2000);
           });
