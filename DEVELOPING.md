@@ -96,6 +96,44 @@ dertown/
 
 ---
 
+## 🎨 Customization & Theme
+
+All customizable settings (colors, fonts, location coordinates, map styles) are centralized in `/src/lib/config.ts`. This makes it easy to adapt the application for different cities or customize the visual theme.
+
+### Quick Customization Guide
+
+See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for comprehensive guidance on:
+- **Location Settings** – Change default location from Leavenworth to your city
+- **Map Styles** – Switch between Mapbox styles or use different map providers
+- **Colors** – Customize theme colors, event category colors, and UI elements
+- **Typography** – Change font families
+
+### Common Tasks
+
+```typescript
+// Change default location from Leavenworth, WA to your city
+export const DEFAULT_LOCATION = {
+  name: 'Your City',
+  coordinates: [47.6062, -122.3321],  // [latitude, longitude]
+  defaultZoom: 14,
+};
+
+// Switch map style from Outdoors to Light
+detail: {
+  url: 'mapbox://styles/mapbox/light-v11',  // instead of outdoors-v12
+  defaultZoom: 14,
+}
+
+// Change primary brand color
+theme: {
+  primary: '#your-hex-color',
+}
+```
+
+All changes take effect immediately in development and after rebuild in production.
+
+---
+
 ## 🚦 Initial Project Setup & First Deployment
 
 ### 1. Supabase Project Setup
@@ -283,6 +321,7 @@ dertown/
 ### Project Documentation
 - [README.md](./README.md): Project overview and quickstart
 - [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): System design, schema, implementation record, and future features
+- [CUSTOMIZATION.md](./CUSTOMIZATION.md): How to customize theme, colors, location, and map settings
 - [EMAIL_SETUP.md](./EMAIL_SETUP.md): Email configuration guide (Resend/Inbucket)
 - [ADULT_ACTIVITIES_GUIDE.md](./ADULT_ACTIVITIES_GUIDE.md): Guide for adding adult activities
 

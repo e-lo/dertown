@@ -1,4 +1,6 @@
 ---
+import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
+
 // Modal to add or edit a location. Used from event form (pop-out) and from admin locations page.
 // Dispatches 'admin:location-created' or 'admin:location-updated' with { location } on success.
 ---
@@ -42,7 +44,7 @@
       <div class="form-field">
         <label class="form-label">Set location on map (click to set coordinates)</label>
         <div id="addLocationMap" style="height: 220px; width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem; background: #f3f4f6;"></div>
-        <p class="text-xs text-gray-500 mt-1">Map is centered on Leavenworth, WA. Click to place the marker.</p>
+        <p id="mapHelpText" class="text-xs text-gray-500 mt-1"></p>
       </div>
       <div class="form-grid-2">
         <div class="form-field">
@@ -71,10 +73,10 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-<script>
+<script define:vars={{ defaultLocationCoords: DEFAULT_LOCATION.coordinates, defaultLocationName: DEFAULT_LOCATION.name, embeddedMapUrl: MAP_STYLES.embedded.url }}>
   /* global L */
   (function() {
-    const LEAVENWORTH = [47.5962, -120.6615];
+    const DEFAULT_MAP_CENTER = defaultLocationCoords;
     let locationParentList = [];
     let locationMap = null;
     let locationMarker = null;
@@ -89,6 +91,12 @@
     const latInput = document.getElementById('addLocationLat');
     const lonInput = document.getElementById('addLocationLon');
     const mapEl = document.getElementById('addLocationMap');
+    const mapHelpText = document.getElementById('mapHelpText');
+
+    // Set help text with default location name
+    if (mapHelpText) {
+      mapHelpText.textContent = `Map is centered on ${defaultLocationName}. Click to place the marker.`;
+    }
 
     async function loadLocationParentList(excludeId) {
       const res = await fetch('/api/admin/locations?all=true', { credentials: 'include' });
@@ -160,9 +168,9 @@
           '</div>',
       });
       const hasCoords = lat != null && lon != null && !isNaN(lat) && !isNaN(lon);
-      const center = hasCoords ? [Number(lat), Number(lon)] : LEAVENWORTH;
+      const center = hasCoords ? [Number(lat), Number(lon)] : DEFAULT_MAP_CENTER;
       locationMap = L.map('addLocationMap').setView(center, hasCoords ? 15 : 12);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      L.tileLayer(embeddedMapUrl, {
         subdomains: 'abcd',
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
       }).addTo(locationMap);
