@@ -5,6 +5,7 @@ import Layout from '../../components/Layout.astro';
 import GroupedEventList from '../../components/GroupedEventList.astro';
 import { buildEventMapState, normalizeMapEvents } from '../../lib/event-map';
 import { db, getTodayLocale } from '../../lib/supabase';
+import { MAP_CENTER, MAP_STYLES } from '../../lib/config';
 
 function formatDateLabel(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -211,7 +212,7 @@ const payload = JSON.stringify({
   </section>
 
   <script id="event-map-data" type="application/json" set:text={payload}></script>
-  <script>
+  <script define:vars={{ mapCenterCoords: MAP_CENTER.coordinates, mapCenterZoom: MAP_CENTER.zoom }}>
     import mapboxgl from 'mapbox-gl';
     import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -490,7 +491,7 @@ const payload = JSON.stringify({
 
         const targetGroups = groups.length > 0 ? groups : groupEvents(allEvents);
         if (targetGroups.length === 0) {
-          mapboxMap.setCenter([-120.6615, 47.5963]);
+          mapboxMap.setCenter(mapCenterCoords);
           mapboxMap.setZoom(11);
           return;
         }
@@ -542,9 +543,9 @@ const payload = JSON.stringify({
         mapboxgl.accessToken = token;
         mapboxMap = new mapboxgl.Map({
           container: mapEl,
-          style: 'https://basemaps.cartocdn.com/gl/positron-nolabels/style.json',
-          center: [-120.6615, 47.5963],
-          zoom: 11,
+          style: 'mapbox://styles/mapbox/light-v11',
+          center: mapCenterCoords,
+          zoom: mapCenterZoom,
           attributionControl: true,
         });
 

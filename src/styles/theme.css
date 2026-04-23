@@ -1,68 +1,114 @@
+/**
+ * Theme CSS Variables
+ *
+ * These variables mirror values from src/lib/config.ts for CSS usage.
+ * For all customization guidance, see CUSTOMIZATION.md
+ *
+ * Colors come from COLOR_PALETTE and COLORS in config.ts
+ * Typography comes from TYPOGRAPHY in config.ts
+ */
+
 :root {
-  /* palette */
-  --palatinate-blue: #4740cbff;
-  --canary: #ffe600ff;
-  --pigment-green: #4daa57ff;
-  --blue-green: #219ebcff;
-  --fandango: #c0268cff;
-  --cal-poly-green: #14532dff;
-  --dark-slate-gray: #2f4445ff;
+  /* ────────────────────────────────────────────────────────────────── */
+  /* COLOR PALETTE - Base colors (from config.ts COLOR_PALETTE)          */
+  /* ────────────────────────────────────────────────────────────────── */
+  --palette-palatinate-blue: #4740cbff;
+  --palette-canary: #ffe600ff;
+  --palette-pigment-green: #4daa57ff;
+  --palette-blue-green: #219ebcff;
+  --palette-fandango: #c0268cff;
+  --palette-cal-poly-green: #14532dff;
+  --palette-dark-slate-gray: #2f4445ff;
+  --palette-brandeis-blue: #2472fcff;
+  --palette-neon-blue: #5460f9ff;
 
-  /* blue gradient colors */
-  --brandeis-blue: #2472fcff;
-  --neon-blue: #5460f9ff;
+  /* ────────────────────────────────────────────────────────────────── */
+  /* COLOR ASSIGNMENTS - How palette colors are used (from config.ts)   */
+  /* ────────────────────────────────────────────────────────────────── */
 
-  /* blue gradients for backgrounds */
-  --gradient-blues-light: linear-gradient(
-    90deg,
-    var(--palatinate-blue) 0%,
-    var(--brandeis-blue) 100%
-  );
-  --gradient-blues-bold: linear-gradient(90deg, var(--palatinate-blue) 0%, var(--neon-blue) 100%);
+  /* Theme assignments */
+  --color-primary: var(--palette-palatinate-blue);
+  --color-secondary: var(--palette-canary);
+  --color-background: var(--palette-palatinate-blue);
+  --color-surface: #f9fafb;
+  --color-text: #111827;
+  --color-muted: #6b7280;
 
-  /* General Theme Colors */
-  --color-primary: var(--palatinate-blue);
-  --color-secondary: var(--canary);
-  --color-background: var(--palatinate-blue); /* Light Gray */
-  --color-surface: #f9fafb; /* Light Gray */
-  --color-text: #111827; /* Dark Gray */
-  --color-muted: #6b7280; /* Medium Gray */
+  /* Notification colors (from config.ts COLORS.notifications) */
+  --color-error-text: #d32f2f;
+  --color-error-bg: #ffeaea;
+  --color-success-text: #388e3c;
+  --color-success-bg: #e8f5e9;
+  --color-warning-text: #f57c00;
+  --color-warning-bg: #fef3c7;
+  --color-info-text: #1976d2;
+  --color-info-bg: #e3f2fd;
 
-  /* Calendar Colors */
-  --color-calendar-bg: var(--color-surface); /* White */
-  --color-calendar-border: #e5e7eb; /* Light Gray */
-  --color-calendar-today: #e3f0fa; /* Light Blue */
-  --color-calendar-header: var(--color-muted); /* Medium Gray */
-  --color-calendar-title: var(--color-text); /* Dark Gray */
+  /* ────────────────────────────────────────────────────────────────── */
+  /* EVENT CATEGORY COLORS (from config.ts COLORS.eventCategories)      */
+  /* ────────────────────────────────────────────────────────────────── */
+  --color-category-arts-culture: var(--palette-canary);
+  --color-category-civic: var(--palette-dark-slate-gray);
+  --color-category-family: var(--palette-fandango);
+  --color-category-nature: var(--palette-cal-poly-green);
+  --color-category-recreation: var(--palette-blue-green);
+  --color-category-outdoors: var(--palette-blue-green);
+  --color-category-school: var(--palette-dark-slate-gray);
+  --color-category-seniors: var(--palette-fandango);
+  --color-category-sports: var(--palette-canary);
+  --color-category-town: var(--palette-palatinate-blue);
+  --color-category-featured: var(--palette-canary);
 
-  /* Font Families */
+  /* ────────────────────────────────────────────────────────────────── */
+  /* EVENT TEXT COLORS (from config.ts COLORS.eventTextColors)          */
+  /* ────────────────────────────────────────────────────────────────── */
+  --color-event-text-dark: #111111;
+  --color-event-text-default: #ffffff;
+
+  /* ────────────────────────────────────────────────────────────────── */
+  /* MARKER COLORS (from config.ts MARKER_COLORS)                       */
+  /* ────────────────────────────────────────────────────────────────── */
+  --color-marker-current: var(--palette-brandeis-blue);
+  --color-marker-parent: var(--palette-fandango);
+  --color-marker-sibling: var(--color-muted);
+  --color-marker-child: var(--palette-pigment-green);
+  --color-marker-event: var(--palette-brandeis-blue);
+
+  /* ────────────────────────────────────────────────────────────────── */
+  /* TYPOGRAPHY - Font families (from config.ts TYPOGRAPHY.fontFamilies)*/
+  /* ────────────────────────────────────────────────────────────────── */
   --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   --font-serif: 'Georgia', serif;
   --font-mono: 'Menlo', 'Monaco', monospace;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════ */
+/* UTILITY CLASSES                                                              */
+/* These use the CSS variables defined above                                     */
+/* ══════════════════════════════════════════════════════════════════════════════ */
+
 .bg-yellow {
-  background-color: var(--canary) !important;
+  background-color: var(--palette-canary) !important;
   color: black !important;
 }
 
 .bg-blue {
-  background-color: var(--palatinate-blue) !important;
+  background-color: var(--color-primary) !important;
   color: white !important;
 }
 
 .bg-green {
-  background-color: var(--pigment-green) !important;
+  background-color: var(--palette-pigment-green) !important;
   color: white !important;
 }
 
 .bg-blue-green {
-  background-color: var(--blue-green) !important;
+  background-color: var(--palette-blue-green) !important;
   color: white !important;
 }
 
 .bg-fandango {
-  background-color: var(--fandango) !important;
+  background-color: var(--palette-fandango) !important;
   color: white !important;
 }
 
@@ -70,85 +116,102 @@
   background-color: #ecfccb !important;
 }
 
-/* Utility classes for event pills and backgrounds */
+/* Event category background classes */
 .bg-event-featured {
-  background-color: var(--canary) !important;
+  background-color: var(--color-category-featured) !important;
 }
+
 .bg-event-today {
-  background-color: var(--pigment-green) !important;
-  box-shadow:
-    0 1px 4px 0 rgba(0, 0, 0, 0.1),
-    0 0.5px 1.5px 0 rgba(0, 0, 0, 0.08);
+  background-color: var(--palette-pigment-green) !important;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.1), 0 0.5px 1.5px 0 rgba(0, 0, 0, 0.08);
 }
+
 .bg-event-arts-culture {
-  background-color: var(--canary) !important;
+  background-color: var(--color-category-arts-culture) !important;
 }
+
 .bg-event-civic {
-  background-color: var(--dark-slate-gray) !important;
+  background-color: var(--color-category-civic) !important;
 }
+
 .bg-event-family {
-  background-color: var(--fandango) !important;
+  background-color: var(--color-category-family) !important;
 }
+
 .bg-event-nature {
-  background-color: var(--cal-poly-green) !important;
+  background-color: var(--color-category-nature) !important;
 }
+
 .bg-event-recreation {
-  background-color: var(--blue-green) !important;
+  background-color: var(--color-category-recreation) !important;
 }
+
 .bg-event-outdoors {
-  background-color: var(--blue-green) !important;
+  background-color: var(--color-category-outdoors) !important;
 }
+
 .bg-event-school {
-  background-color: var(--dark-slate-gray) !important;
+  background-color: var(--color-category-school) !important;
 }
+
 .bg-event-seniors {
-  background-color: var(--fandango) !important;
+  background-color: var(--color-category-seniors) !important;
 }
+
 .bg-event-sports {
-  background-color: var(--canary) !important;
+  background-color: var(--color-category-sports) !important;
 }
+
 .bg-event-town {
-  background-color: var(--palatinate-blue) !important;
+  background-color: var(--color-category-town) !important;
 }
 
+/* Default event color */
+.bg-event-default {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%) !important;
+}
+
+/* Gradients */
 .bg-gradient-blues-light {
-  background: var(--gradient-blues-light) !important;
-}
-.bg-gradient-blues-bold {
-  background: var(--gradient-blues-bold) !important;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%) !important;
 }
 
-/* Border utilities for theme colors */
+.bg-gradient-blues-bold {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-neon-blue) 100%) !important;
+}
+
+/* Border utilities */
 .border-fandango {
-  border-color: var(--fandango) !important;
+  border-color: var(--palette-fandango) !important;
 }
 
 .border-canary {
-  border-color: var(--canary) !important;
+  border-color: var(--palette-canary) !important;
 }
 
 .border-pigment-green {
-  border-color: var(--pigment-green) !important;
+  border-color: var(--palette-pigment-green) !important;
 }
 
 .border-blue-green {
-  border-color: var(--blue-green) !important;
+  border-color: var(--palette-blue-green) !important;
 }
 
-.border-palatinat-blue {
-  border-color: var(--palatinate-blue) !important;
+.border-palatinate-blue {
+  border-color: var(--color-primary) !important;
 }
 
-/* Fallback for events with no recognized tag */
-.bg-event-default {
-  background: var(--gradient-blues-light) !important;
-}
-
+/* Font utilities */
 .font-sans {
   font-family: var(--font-sans) !important;
 }
+
 .font-serif {
   font-family: var(--font-serif) !important;
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
 }
 
 /* Tag filter pill active state */
@@ -158,26 +221,26 @@
   z-index: 2;
 }
 
-/* Override FullCalendar's default text color for our custom event classes */
+/* FullCalendar text color overrides for events */
 .bg-event-arts-culture,
 .bg-event-sports {
-  --fc-event-text-color: #111111 !important;
-  color: #111111 !important;
+  --fc-event-text-color: var(--color-event-text-dark) !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-arts-culture .fc-event-main,
 .bg-event-sports .fc-event-main {
-  color: #111111 !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-arts-culture .fc-event-title,
 .bg-event-sports .fc-event-title {
-  color: #111111 !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-arts-culture .fc-event-time,
 .bg-event-sports .fc-event-time {
-  color: #111111 !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-civic,
@@ -230,14 +293,14 @@
 }
 
 .bg-event-featured {
-  --fc-event-text-color: var(--color-text) !important;
-  color: var(--color-text) !important;
+  --fc-event-text-color: var(--color-event-text-dark) !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-featured .fc-event-main,
 .bg-event-featured .fc-event-title,
 .bg-event-featured .fc-event-time {
-  color: var(--color-text) !important;
+  color: var(--color-event-text-dark) !important;
 }
 
 .bg-event-today {
