@@ -31,8 +31,16 @@
   --color-secondary: var(--palette-canary);
   --color-background: var(--palette-palatinate-blue);
   --color-surface: #f9fafb;
+  --color-surface-light: #f3f4f6;
   --color-text: #111827;
+  --color-text-secondary: #374151;
+  --color-text-dark: #1f2937;
   --color-muted: #6b7280;
+  --color-muted-dark: #4b5563;
+  --color-border: #d1d5db;
+  --color-link: #1d4ed8;
+  --color-primary-light: #eef2ff;
+  --color-primary-dark: #312e81;
 
   /* Notification colors (from config.ts COLORS.notifications) */
   --color-error-text: #d32f2f;
@@ -73,6 +81,12 @@
   --color-marker-sibling: var(--color-muted);
   --color-marker-child: var(--palette-pigment-green);
   --color-marker-event: var(--palette-brandeis-blue);
+
+  /* ────────────────────────────────────────────────────────────────── */
+  /* GRADIENTS (from palette colors)                                     */
+  /* ────────────────────────────────────────────────────────────────── */
+  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%);
+  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-neon-blue) 100%);
 
   /* ────────────────────────────────────────────────────────────────── */
   /* TYPOGRAPHY - Font families (from config.ts TYPOGRAPHY.fontFamilies)*/
