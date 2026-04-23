@@ -51,7 +51,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 12px;
   overflow: hidden;
   margin-top: 0.5rem;
@@ -68,7 +68,7 @@
   padding: 0.75rem 1rem;
   text-align: left;
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--color-text);
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -89,7 +89,7 @@
 }
 
 .data-table tbody tr:nth-child(even) {
-  background-color: #f9fafb;
+  background-color: var(--color-surface);
 }
 
 .data-table tbody tr:nth-child(odd) {
@@ -108,7 +108,7 @@
 .data-table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  color: #374151;
+  color: var(--color-muted);
   border-right: 1px solid #f3f4f6;
   vertical-align: middle;
   line-height: 1.6;

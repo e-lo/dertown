@@ -167,6 +167,17 @@ try {
 <script define:vars={{ seriesData }}>
   // Series data from server (passed via define:vars)
 
+  // Format date string (YYYY-MM-DD) as readable date
+  function formatDateString(dateStr) {
+    if (!dateStr) return 'N/A';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+  }
+
   // Message display function
   function showMessage(message, type = 'info') {
     const messageDiv = document.getElementById('message');

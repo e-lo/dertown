@@ -710,14 +710,14 @@ const payload = JSON.stringify({
       font-weight: 700;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #6b7280;
+      color: var(--color-muted);
     }
 
     .map-stage-title,
     .panel-header h2,
     .map-callout h3 {
       margin: 0;
-      color: #111827;
+      color: var(--color-text);
       line-height: 1.05;
     }
 
@@ -732,7 +732,7 @@ const payload = JSON.stringify({
       min-height: 42rem;
       border-radius: 1.35rem;
       border: 1px solid #dbe3ea;
-      background: linear-gradient(145deg, #edf6f5 0%, #f7fafc 44%, #eef2ff 100%);
+      background: linear-gradient(145deg, #edf6f5 0%, #f7fafc 44%, var(--color-primary-light) 100%);
     }
 
     .map-empty-backdrop {
@@ -780,7 +780,7 @@ const payload = JSON.stringify({
       padding: 0.35rem 0.6rem;
       border-radius: 999px;
       background: rgba(71, 64, 203, 0.08);
-      color: #312e81;
+      color: var(--color-primary-dark);
       font-size: 0.82rem;
       font-weight: 600;
     }
@@ -805,8 +805,8 @@ const payload = JSON.stringify({
     }
 
     .map-btn-ghost {
-      background: #eef2ff;
-      color: #312e81;
+      background: var(--color-primary-light);
+      color: var(--color-primary-dark);
     }
 
     .date-range-shell {
@@ -827,14 +827,14 @@ const payload = JSON.stringify({
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #6b7280;
+      color: var(--color-muted);
     }
 
     .range-summary {
       display: inline-flex;
       gap: 0.4rem;
       align-items: center;
-      color: #111827;
+      color: var(--color-text);
       font-weight: 700;
       font-size: 0.9rem;
     }
@@ -857,7 +857,7 @@ const payload = JSON.stringify({
     .double-range-track {
       left: 0;
       right: 0;
-      background: #d1d5db;
+      background: var(--color-border);
     }
 
     .double-range-fill {
@@ -895,7 +895,7 @@ const payload = JSON.stringify({
       width: 1rem;
       height: 1rem;
       border-radius: 999px;
-      background: #111827;
+      background: var(--color-text);
       border: 2px solid #fff;
       box-shadow: 0 2px 8px rgba(17, 24, 39, 0.2);
       cursor: pointer;
@@ -906,7 +906,7 @@ const payload = JSON.stringify({
       width: 1rem;
       height: 1rem;
       border-radius: 999px;
-      background: #111827;
+      background: var(--color-text);
       border: 2px solid #fff;
       box-shadow: 0 2px 8px rgba(17, 24, 39, 0.2);
       cursor: pointer;
@@ -919,9 +919,9 @@ const payload = JSON.stringify({
     }
 
     .tag-pill {
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--color-border);
       background: #fff;
-      color: #374151;
+      color: var(--color-text-secondary);
       border-radius: 999px;
       padding: 0.4rem 0.7rem;
       font-size: 0.86rem;
@@ -943,12 +943,12 @@ const payload = JSON.stringify({
       min-width: min(100%, 17rem);
       padding: 0.25rem 0.35rem 0.25rem 0.65rem;
       border-radius: 999px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--color-border);
       background: #fff;
     }
 
     .org-filter-shell span.material-symbols-outlined {
-      color: #6b7280;
+      color: var(--color-muted);
     }
 
     .org-filter-shell input {
@@ -957,7 +957,7 @@ const payload = JSON.stringify({
       outline: 0;
       background: transparent;
       font: inherit;
-      color: #111827;
+      color: var(--color-text);
     }
 
     .org-clear {
@@ -965,8 +965,8 @@ const payload = JSON.stringify({
       width: 1.9rem;
       height: 1.9rem;
       border-radius: 999px;
-      background: #eef2ff;
-      color: #312e81;
+      background: var(--color-primary-light);
+      color: var(--color-primary-dark);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -992,7 +992,7 @@ const payload = JSON.stringify({
       height: 2.35rem;
       border-radius: 0.8rem;
       background: rgba(255, 255, 255, 0.96);
-      color: #111827;
+      color: var(--color-text);
       box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08);
       display: inline-flex;
       align-items: center;
@@ -1017,14 +1017,14 @@ const payload = JSON.stringify({
 
     .map-callout p {
       margin: 0.3rem 0 0;
-      color: #6b7280;
+      color: var(--color-muted);
       font-size: 0.9rem;
     }
 
     .map-callout a {
       display: inline-flex;
       margin-top: 0.8rem;
-      color: #1d4ed8;
+      color: var(--color-link);
       font-weight: 600;
       text-decoration: none;
     }
@@ -1044,14 +1044,14 @@ const payload = JSON.stringify({
     .empty-state {
       padding: 2rem 1rem;
       border-radius: 1.1rem;
-      border: 1px dashed #d1d5db;
+      border: 1px dashed var(--color-border);
       text-align: center;
-      color: #4b5563;
+      color: var(--color-muted-dark);
     }
 
     .empty-state h3 {
       margin: 0;
-      color: #111827;
+      color: var(--color-text);
     }
 
     .empty-state p {
@@ -1099,13 +1099,13 @@ const payload = JSON.stringify({
     :global(.location-heading-row h3) {
       margin: 0;
       font-size: 1.05rem;
-      color: #111827;
+      color: var(--color-text);
     }
 
     :global(.location-meta),
     :global(.mini-event-meta) {
       margin: 0.3rem 0 0;
-      color: #6b7280;
+      color: var(--color-muted);
       font-size: 0.92rem;
     }
 
@@ -1121,8 +1121,8 @@ const payload = JSON.stringify({
     :global(.location-count-badge) {
       padding: 0.35rem 0.6rem;
       border-radius: 999px;
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--color-surface-light);
+      color: var(--color-text-secondary);
       font-size: 0.8rem;
       font-weight: 700;
       white-space: nowrap;
@@ -1136,12 +1136,12 @@ const payload = JSON.stringify({
 
     :global(.mini-event-row) {
       padding-top: 0.7rem;
-      border-top: 1px solid #f3f4f6;
+      border-top: 1px solid var(--color-surface-light);
     }
 
     :global(.mini-event-title) {
       margin: 0;
-      color: #1f2937;
+      color: var(--color-text-dark);
       font-weight: 700;
     }
 
@@ -1157,8 +1157,8 @@ const payload = JSON.stringify({
     :global(.mini-tag) {
       padding: 0.3rem 0.55rem;
       border-radius: 999px;
-      background: #eef2ff;
-      color: #312e81;
+      background: var(--color-primary-light);
+      color: var(--color-primary-dark);
       font-size: 0.78rem;
       font-weight: 700;
       white-space: nowrap;
@@ -1177,8 +1177,8 @@ const payload = JSON.stringify({
       min-height: 2rem;
       padding: 0.35rem 0.7rem;
       border-radius: 999px;
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--color-surface-light);
+      color: var(--color-text-secondary);
       font-size: 0.82rem;
       font-weight: 700;
       max-width: 100%;
@@ -1186,7 +1186,7 @@ const payload = JSON.stringify({
     }
 
     .result-summary-badges span:last-child {
-      background: #111827;
+      background: var(--color-text);
       color: #fff;
       font-family: var(--font-mono);
       font-weight: 600;
@@ -1207,7 +1207,7 @@ const payload = JSON.stringify({
     }
 
     :global(.event-map-marker.is-selected) {
-      background: linear-gradient(135deg, #4740cb 0%, #5460f9 100%);
+      background: var(--gradient-blues-bold);
     }
 
     @media (max-width: 1024px) {

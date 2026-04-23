@@ -136,27 +136,25 @@
 }
 
 .icon-btn.btn-approve {
-  background: var(--pigment-green, #4daa57);
+  background: var(--palette-pigment-green);
   @apply text-white;
 }
 
 .icon-btn.btn-approve:hover {
   @apply brightness-95;
-  background: #3d8a47;
 }
 
 .icon-btn.btn-reject {
-  background: var(--fandango, #c0268c);
+  background: var(--palette-fandango);
   @apply text-white;
 }
 
 .icon-btn.btn-reject:hover {
   @apply brightness-95;
-  background: #a01f73;
 }
 
 .icon-btn.btn-edit {
-  background: var(--blue-green, #219ebc);
+  background: var(--palette-blue-green);
   @apply text-white;
 }
 
@@ -195,12 +193,11 @@
 }
 
 .action-btn.btn-edit {
-  background: var(--blue-green, #219ebc);
+  background: var(--palette-blue-green);
   @apply text-white;
 }
 
 .action-btn.btn-edit:hover {
-  background: #1a7a94;
   filter: brightness(0.9);
 }
 
@@ -278,8 +275,8 @@
   align-self: flex-start;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -287,8 +284,8 @@
 }
 
 .duplicate-pill.is-possible {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 
 .duplicate-target {
