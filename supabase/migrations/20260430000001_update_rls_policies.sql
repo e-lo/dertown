@@ -49,38 +49,6 @@ CREATE POLICY "events_delete_policy" ON public.events
     OR organization_id = ANY(user_organization_ids())
   );
 
--- Update series RLS
-DROP POLICY IF EXISTS "Allow all authenticated users to read series" ON public.series;
-CREATE POLICY "series_read_policy" ON public.series
-  FOR SELECT USING (
-    is_super_admin()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "Allow all authenticated users to create series" ON public.series;
-CREATE POLICY "series_create_policy" ON public.series
-  FOR INSERT WITH CHECK (
-    is_super_admin()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "Allow all authenticated users to update series" ON public.series;
-CREATE POLICY "series_update_policy" ON public.series
-  FOR UPDATE USING (
-    is_super_admin()
-    OR organization_id = ANY(user_organization_ids())
-  ) WITH CHECK (
-    is_super_admin()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "Allow all authenticated users to delete series" ON public.series;
-CREATE POLICY "series_delete_policy" ON public.series
-  FOR DELETE USING (
-    is_super_admin()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
 -- Update locations RLS
 DROP POLICY IF EXISTS "Allow all authenticated users to read locations" ON public.locations;
 CREATE POLICY "locations_read_policy" ON public.locations

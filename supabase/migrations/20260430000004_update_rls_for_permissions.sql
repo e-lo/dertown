@@ -61,38 +61,6 @@ CREATE POLICY "events_delete_policy" ON public.events
     OR organization_id = ANY(user_organization_ids())
   );
 
--- Update series RLS
-DROP POLICY IF EXISTS "series_read_policy" ON public.series;
-CREATE POLICY "series_read_policy" ON public.series
-  FOR SELECT USING (
-    has_admin_access()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "series_create_policy" ON public.series;
-CREATE POLICY "series_create_policy" ON public.series
-  FOR INSERT WITH CHECK (
-    has_admin_access()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "series_update_policy" ON public.series;
-CREATE POLICY "series_update_policy" ON public.series
-  FOR UPDATE USING (
-    has_admin_access()
-    OR organization_id = ANY(user_organization_ids())
-  ) WITH CHECK (
-    has_admin_access()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
-DROP POLICY IF EXISTS "series_delete_policy" ON public.series;
-CREATE POLICY "series_delete_policy" ON public.series
-  FOR DELETE USING (
-    has_admin_access()
-    OR organization_id = ANY(user_organization_ids())
-  );
-
 -- Update locations RLS
 DROP POLICY IF EXISTS "locations_read_policy" ON public.locations;
 CREATE POLICY "locations_read_policy" ON public.locations
