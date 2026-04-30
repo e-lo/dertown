@@ -10,7 +10,8 @@ import { checkAdminAccess } from '../../lib/session';
 import '../../styles/admin.css';
 
 const { id } = Astro.params;
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
+const { role } = await checkAdminAccess(Astro.cookies);
+const isAdmin = role === 'super_admin' || role === 'org_editor';
 
 if (!id) {
   return Astro.redirect('/events');

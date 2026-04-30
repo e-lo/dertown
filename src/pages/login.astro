@@ -3,7 +3,8 @@ import Layout from '../components/Layout.astro';
 import { checkAdminAccess } from '../lib/session';
 
 // Check if user is already logged in via cookies (works in SSR)
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
+const { role } = await checkAdminAccess(Astro.cookies);
+const isAdmin = role === 'super_admin' || role === 'org_editor';
 if (isAdmin) {
   // Get the redirect URL from query params or default to /admin
   const redirectTo = Astro.url.searchParams.get('redirect') || '/admin';

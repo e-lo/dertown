@@ -15,7 +15,8 @@ export function jsonError(message: string, status = 500): Response {
 export function withAdminAuth(handler: APIRoute): APIRoute {
   return async (context) => {
     try {
-      const { isAdmin } = await checkAdminAccess(context.cookies);
+      const { role } = await checkAdminAccess(context.cookies);
+      const isAdmin = role === 'super_admin' || role === 'org_editor';
       if (!isAdmin) {
         return jsonError('Unauthorized', 401);
       }
