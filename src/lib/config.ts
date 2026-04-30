@@ -107,7 +107,7 @@ export const COLORS = {
   // Text colors for events (dark for light backgrounds, white for dark)
   eventTextColors: {
     'arts-culture': '#111111',
-    featured': '#111827',
+    'featured': '#111827',
     sports: '#111111',
     default: '#ffffff',
   },
