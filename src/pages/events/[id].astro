@@ -20,7 +20,8 @@ import { optimizedImageUrl } from '../../lib/image';
 import '../../styles/admin.css';
 
 // Check if user is logged in
-const { isAdmin } = await checkAdminAccess(Astro.cookies);
+const { role } = await checkAdminAccess(Astro.cookies);
+const isAdmin = role === 'super_admin' || role === 'org_editor';
 
 export async function getStaticPaths() {
   // This function is not used when prerender = false, but we keep it for type safety
