@@ -56,9 +56,33 @@ export async function checkAdminAccess(cookies: any) {
   const { session, error } = await getSessionFromCookies(cookies);
 
   if (error || !session) {
-    return { isAdmin: false, error: error || 'No session found' };
+    return { role: null, organizationIds: [], error: error || 'No session found' };
   }
 
-  // All authenticated users are considered admins
-  return { isAdmin: true, error: null };
+  const userEmail = session.user?.email || '';
+  const SUPER_ADMIN_EMAILS = ['dertown@gmail.com']; // Update as needed
+
+  // Check if super admin
+  if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
+    return { role: 'super_admin', organizationIds: [], error: null };
+  }
+
+  // Check if org editor (has org_users entries)
+  const { data: orgUsers, error: orgError } = await supabase
+    .from('org_users')
+    .select('organization_id')
+    .eq('user_id', session.user.id);
+
+  if (orgError) {
+    console.error('[SESSION DEBUG] Error fetching org_users:', orgError);
+    return { role: null, organizationIds: [], error: orgError.message };
+  }
+
+  if (orgUsers && orgUsers.length > 0) {
+    const organizationIds = orgUsers.map((ou) => ou.organization_id);
+    return { role: 'org_editor', organizationIds, error: null };
+  }
+
+  // Not super admin or org editor
+  return { role: null, organizationIds: [], error: 'User does not have admin access' };
 }
