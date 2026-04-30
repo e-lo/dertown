@@ -59,30 +59,47 @@ export async function checkAdminAccess(cookies: any) {
     return { role: null, organizationIds: [], error: error || 'No session found' };
   }
 
-  const userEmail = session.user?.email || '';
-  const SUPER_ADMIN_EMAILS = ['dertown@gmail.com']; // Update as needed
+  // Query user_permissions table for admin status
+  const { data: perms, error: permError } = await supabase
+    .from('user_permissions')
+    .select('is_admin, org_access_enabled')
+    .eq('user_id', session.user.id)
+    .single();
 
-  // Check if super admin
-  if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
+  // PGRST116 = no rows found (expected for users without permissions entry)
+  if (permError && permError.code !== 'PGRST116') {
+    console.error('[SESSION DEBUG] Error fetching permissions:', permError);
+    return { role: null, organizationIds: [], error: permError.message };
+  }
+
+  // If user has no permission entry, they're not an admin
+  if (!perms) {
+    return { role: null, organizationIds: [], error: 'User does not have admin access' };
+  }
+
+  // User has admin access
+  if (perms.is_admin) {
     return { role: 'super_admin', organizationIds: [], error: null };
   }
 
-  // Check if org editor (has org_users entries)
-  const { data: orgUsers, error: orgError } = await supabase
-    .from('org_users')
-    .select('organization_id')
-    .eq('user_id', session.user.id);
+  // User has org-specific access
+  if (perms.org_access_enabled) {
+    const { data: orgUsers, error: orgError } = await supabase
+      .from('org_users')
+      .select('organization_id')
+      .eq('user_id', session.user.id);
 
-  if (orgError) {
-    console.error('[SESSION DEBUG] Error fetching org_users:', orgError);
-    return { role: null, organizationIds: [], error: orgError.message };
+    if (orgError) {
+      console.error('[SESSION DEBUG] Error fetching org_users:', orgError);
+      return { role: null, organizationIds: [], error: orgError.message };
+    }
+
+    if (orgUsers && orgUsers.length > 0) {
+      const organizationIds = orgUsers.map((ou) => ou.organization_id);
+      return { role: 'org_editor', organizationIds, error: null };
+    }
   }
 
-  if (orgUsers && orgUsers.length > 0) {
-    const organizationIds = orgUsers.map((ou) => ou.organization_id);
-    return { role: 'org_editor', organizationIds, error: null };
-  }
-
-  // Not super admin or org editor
+  // User has permission entry but no valid access
   return { role: null, organizationIds: [], error: 'User does not have admin access' };
 }
