@@ -1,0 +1,186 @@
+---
+import AdminLayout from '../../../../components/AdminLayout.astro';
+import OrgUserModal from '../../../../components/ui/OrgUserModal.astro';
+import { getSessionFromCookies } from '../../../../lib/session';
+import { supabase } from '../../../../lib/supabase';
+
+const { session, error } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+
+const userEmail = session.user?.email || 'Admin';
+const { id: orgId } = Astro.params;
+
+// Fetch organization details
+const { data: org, error: orgError } = await supabase
+  .from('organizations')
+  .select('*')
+  .eq('id', orgId)
+  .single();
+
+if (orgError || !org) {
+  return Astro.redirect('/admin/organizations');
+}
+---
+
+<AdminLayout title="Manage Organization Users" userEmail={userEmail}>
+  <Fragment slot="actions">
+    <button type="button" onclick="window.openOrgUserModal?.()" class="icon-btn btn-save" aria-label="Add email">
+      <span class="material-symbols-outlined text-2xl">add</span>
+      <span class="tooltip">Add email</span>
+    </button>
+  </Fragment>
+
+  <Fragment slot="modals">
+    <OrgUserModal />
+  </Fragment>
+
+  <div class="mb-6">
+    <h2 class="text-xl font-bold">{org.name}</h2>
+    <p class="text-gray-600">Manage email addresses that can access this organization</p>
+  </div>
+
+  <div id="users-loading" class="loading">Loading users...</div>
+  <div id="users-container"></div>
+</AdminLayout>
+
+<script>
+  interface User {
+    id: string;
+    email: string;
+    created_at: string;
+  }
+
+  const orgId = new URLSearchParams(window.location.search).get('id') || document.location.pathname.split('/')[3];
+  (window as any).currentOrgId = orgId;
+
+  let users: User[] = [];
+
+  async function loadUsers() {
+    const el = document.getElementById('users-loading');
+    const container = document.getElementById('users-container');
+    if (!el || !container) return;
+
+    try {
+      const res = await fetch(`/api/admin/org-users?organization_id=${orgId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to load users');
+      users = await res.json();
+      renderUsers();
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-600">' + (err instanceof Error ? err.message : 'Failed to load') + '</p>';
+    } finally {
+      el.classList.add('hidden');
+    }
+  }
+
+  function renderUsers() {
+    const container = document.getElementById('users-container');
+    if (!container) return;
+
+    if (users.length === 0) {
+      container.innerHTML = '<p class="text-gray-600">No emails added yet. Click "Add email" to get started.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="min-w-full">
+        <thead>
+          <tr class="border-b bg-gray-50">
+            <th class="px-4 py-2 text-left font-medium">Email</th>
+            <th class="px-4 py-2 text-left font-medium">Added</th>
+            <th class="px-4 py-2 text-left font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users
+            .map(
+              (user) => `
+            <tr class="border-b">
+              <td class="px-4 py-2">${user.email}</td>
+              <td class="px-4 py-2 text-sm text-gray-600">${new Date(user.created_at).toLocaleDateString()}</td>
+              <td class="px-4 py-2">
+                <button type="button" class="btn-danger text-sm" onclick="removeUser('${user.email}')">
+                  Remove
+                </button>
+              </td>
+            </tr>
+          `
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  (window as any).removeUser = async (email: string) => {
+    if (!confirm(`Remove ${email} from this organization?`)) return;
+
+    try {
+      const res = await fetch(
+        `/api/admin/org-users?email=${encodeURIComponent(email)}&organization_id=${orgId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+
+      if (!res.ok) throw new Error('Failed to remove user');
+
+      loadUsers();
+    } catch (err) {
+      alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  window.addEventListener('admin:org-user-added', () => loadUsers());
+  document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+
+<style>
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+  }
+
+  .loading.hidden {
+    display: none;
+  }
+
+  table {
+    width: 100%;
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  td {
+    padding: 0.5rem 1rem;
+  }
+
+  tr {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  tr:last-child {
+    border-bottom: none;
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-danger:hover {
+    background: #dc2626;
+  }
+</style>

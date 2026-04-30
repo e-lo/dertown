@@ -1,0 +1,123 @@
+<div id="org-user-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add Email to Organization</h2>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+
+    <form id="add-user-form" class="space-y-4">
+      <div>
+        <label for="user-email" class="block text-sm font-medium">Email Address</label>
+        <input
+          type="email"
+          id="user-email"
+          required
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+          placeholder="user@example.com"
+        />
+      </div>
+
+      <div class="flex gap-2 justify-end">
+        <button type="button" class="btn-cancel">Cancel</button>
+        <button type="submit" class="btn-save">Add Email</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('org-user-modal');
+  const form = document.getElementById('add-user-form');
+  const emailInput = document.getElementById('user-email') as HTMLInputElement;
+
+  if (modal && form) {
+    // Open modal
+    window.openOrgUserModal = () => {
+      modal?.classList.remove('hidden');
+      emailInput?.focus();
+    };
+
+    // Close modal
+    const closeButton = modal.querySelector('.modal-close');
+    const cancelButton = modal.querySelector('.btn-cancel');
+
+    closeButton?.addEventListener('click', () => modal?.classList.add('hidden'));
+    cancelButton?.addEventListener('click', () => modal?.classList.add('hidden'));
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value;
+      const orgId = (window as any).currentOrgId;
+
+      try {
+        const response = await fetch('/api/admin/org-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, organization_id: orgId }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert('Error: ' + error.error);
+          return;
+        }
+
+        // Reload the page or emit event
+        window.dispatchEvent(new Event('admin:org-user-added'));
+        modal?.classList.add('hidden');
+        emailInput.value = '';
+      } catch (err) {
+        alert('Error adding email: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      }
+    });
+  }
+</script>
+
+<style>
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 500px;
+    padding: 24px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+  }
+</style>
