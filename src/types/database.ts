@@ -2014,3 +2014,24 @@ export const Constants = {
     },
   },
 } as const;
+
+export interface OrgUsers {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface AllowlistedOrgEmails {
+  id: string;
+  email: string;
+  organization_id: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface UserRole {
+  role: 'super_admin' | 'org_editor';
+  organizationIds?: string[];
+}
