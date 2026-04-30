@@ -322,7 +322,7 @@ const userEmail = session.user?.email || 'Admin';
         const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
         const timeStr = event.start_time || 'N/A';
         eventListHtml += `<label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-100 rounded">`;
-        eventListHtml += `<input type="checkbox" name="eventIds" value="${event.id}" class="event-checkbox w-4 h-4" checked>`;
+        eventListHtml += `<input type="checkbox" name="eventIds" value="${event.id}" class="event-checkbox w-4 h-4" ${isFuture ? 'checked' : ''}>`;
         eventListHtml += `<span>${dateStr} ${timeStr} - ${event.title || 'Untitled'}</span>`;
         eventListHtml += `<span class="text-xs ${isFuture ? 'text-green-600' : 'text-gray-500'}">${isFuture ? 'Future' : 'Past'}</span>`;
         eventListHtml += `</label>`;
@@ -334,6 +334,7 @@ const userEmail = session.user?.email || 'Admin';
       // Build form with common values (find most common or use first event's values)
       const firstEvent = series.children[0];
       const commonValues = {
+        title: firstEvent.title || '',
         description: firstEvent.description || '',
         start_time: firstEvent.start_time || '',
         end_time: firstEvent.end_time || '',
@@ -353,6 +354,10 @@ const userEmail = session.user?.email || 'Admin';
 
       // Build form HTML (similar to EditEventModal but without dates)
       let formHtml = `
+        <div class="form-field">
+          <label class="form-label">Title:</label>
+          <input type="text" id="editSeriesTitle" class="form-input-base" value="${commonValues.title || ''}" maxlength="200">
+        </div>
         <div class="form-field">
           <label class="form-label">Description:</label>
           <textarea id="editSeriesDescription" rows="3" class="form-input-base">${commonValues.description || ''}</textarea>
@@ -474,6 +479,7 @@ const userEmail = session.user?.email || 'Admin';
 
       // Store original values to detect changes
       originalFormValues = {
+        title: commonValues.title || '',
         description: commonValues.description || '',
         start_time: commonValues.start_time || '',
         end_time: commonValues.end_time || '',
@@ -672,6 +678,7 @@ const userEmail = session.user?.email || 'Admin';
       }
 
       // Get current form values
+      const currentTitle = document.getElementById('editSeriesTitle').value;
       const currentDescription = document.getElementById('editSeriesDescription').value;
       const currentStartTime = document.getElementById('editSeriesStartTime').value;
       const currentEndTime = document.getElementById('editSeriesEndTime').value;
@@ -697,6 +704,9 @@ const userEmail = session.user?.email || 'Admin';
       }
 
       // Only include fields that have changed
+      if (hasChanged('title', currentTitle, originalFormValues.title)) {
+        updateData.title = currentTitle.trim() || null;
+      }
       if (hasChanged('description', currentDescription, originalFormValues.description)) {
         updateData.description = currentDescription.trim() || null;
       }
