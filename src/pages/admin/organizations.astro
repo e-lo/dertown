@@ -51,6 +51,11 @@ const userEmail = session.user?.email || 'Admin';
       'Has website',
       'No website'
     ),
+    actionsColumn<OrganizationRow>(
+      'users',
+      (org) => `/admin/organizations/${org.id}/users`,
+      (org) => ({ title: 'Manage users' })
+    ),
     lastEditedColumn<OrganizationRow>('lastEdited', 'Last edited'),
     actionsColumn<OrganizationRow>(
       'actions',
