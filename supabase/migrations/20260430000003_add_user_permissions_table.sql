@@ -23,14 +23,7 @@ CREATE POLICY "super_admin_manage_permissions" ON public.user_permissions
 -- Create index for performance
 CREATE INDEX idx_user_permissions_user_id ON public.user_permissions(user_id);
 
--- Seed dertown@gmail.com as super admin
--- Note: This assumes dertown@gmail.com already exists in auth.users
--- The UUID will be populated by the user after migration runs
--- For now, we'll use a placeholder that should be updated:
--- UPDATE user_permissions SET user_id = (SELECT id FROM auth.users WHERE email = 'dertown@gmail.com')
--- WHERE is_admin = true AND user_id IS NULL;
-
--- We'll insert a placeholder row that will be populated after checking the actual user ID
+-- Seed dertownleavenworth@gmail.com as super admin
 INSERT INTO public.user_permissions (user_id, is_admin, org_access_enabled)
-SELECT id, true, false FROM auth.users WHERE email = 'dertown@gmail.com'
+SELECT id, true, false FROM auth.users WHERE email = 'dertownleavenworth@gmail.com'
 ON CONFLICT (user_id) DO UPDATE SET is_admin = true, org_access_enabled = false;

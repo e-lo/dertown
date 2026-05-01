@@ -137,10 +137,10 @@ export async function DELETE({ request }: any) {
     });
   }
 
-  // Don't allow deleting dertown@gmail.com's admin access
+  // Don't allow deleting dertownleavenworth@gmail.com's admin access
   const { data: user } = await supabase.auth.admin.getUserById(user_id);
-  if (user && user.email === 'dertown@gmail.com') {
-    return new Response(JSON.stringify({ error: 'Cannot revoke admin access from dertown@gmail.com' }), {
+  if (user && user.email === 'dertownleavenworth@gmail.com') {
+    return new Response(JSON.stringify({ error: 'Cannot revoke admin access from dertownleavenworth@gmail.com' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
