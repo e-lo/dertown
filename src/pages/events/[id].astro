@@ -20,7 +20,9 @@ import { optimizedImageUrl } from '../../lib/image';
 import '../../styles/admin.css';
 
 // Check if user is logged in
-const { role } = await checkAdminAccess(Astro.cookies);
+// Use request.headers.get('cookie') instead of Astro.cookies to ensure we get the actual browser cookies
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+const { role } = await checkAdminAccess({ cookieHeader });
 const isAdmin = role === 'super_admin' || role === 'org_editor';
 
 export async function getStaticPaths() {

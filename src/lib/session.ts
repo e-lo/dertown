@@ -2,23 +2,45 @@ import { supabase } from './supabase';
 import { ACCESS_TOKEN_DEFAULT_TTL, REFRESH_TOKEN_TTL } from './constants';
 
 export async function getSessionFromCookies(cookies: any) {
-  // Try different cookie name patterns that Supabase might use
-  const accessToken =
-    cookies.get('sb-access-token')?.value ||
-    cookies.get('supabase-auth-token')?.value ||
-    cookies.get('sb-localhost-auth-token')?.value;
+  // Handle both Astro.cookies (object with .get()) and raw cookie strings
+  let accessToken: string | undefined;
+  let refreshToken: string | undefined;
 
-  const refreshToken =
-    cookies.get('sb-refresh-token')?.value ||
-    cookies.get('supabase-refresh-token')?.value ||
-    cookies.get('sb-localhost-refresh-token')?.value;
+  if (cookies.cookieHeader) {
+    // Parse raw cookie header string (from Astro.request.headers.get('cookie'))
+    const cookieString = cookies.cookieHeader;
+    const getCookieValue = (name: string) => {
+      const match = cookieString.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+      return match ? decodeURIComponent(match[1]) : undefined;
+    };
 
-  // Debug logging
+    accessToken =
+      getCookieValue('sb-access-token') ||
+      getCookieValue('supabase-auth-token') ||
+      getCookieValue('sb-localhost-auth-token');
+
+    refreshToken =
+      getCookieValue('sb-refresh-token') ||
+      getCookieValue('supabase-refresh-token') ||
+      getCookieValue('sb-localhost-refresh-token');
+  } else {
+    // Use Astro.cookies or request.cookies object interface
+    accessToken =
+      cookies.get('sb-access-token')?.value ||
+      cookies.get('supabase-auth-token')?.value ||
+      cookies.get('sb-localhost-auth-token')?.value;
+
+    refreshToken =
+      cookies.get('sb-refresh-token')?.value ||
+      cookies.get('supabase-refresh-token')?.value ||
+      cookies.get('sb-localhost-refresh-token')?.value;
+  }
+
   if (!accessToken || !refreshToken) {
     console.error('[SESSION DEBUG] Missing auth cookies:', {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
-      cookieNames: cookies.getSetCookie ? 'Has getSetCookie' : 'No getSetCookie',
+      isRawCookieHeader: !!cookies.cookieHeader,
     });
     return { session: null, error: 'No session cookies found' };
   }
