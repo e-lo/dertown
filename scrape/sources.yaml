@@ -224,6 +224,9 @@ sources:
         - 'glassblowing'
         - 'glass fusing'
         - '@ boulder bend'
+        # Already tracked as series or user-managed
+        - 'Leavenworth Village Art in the Park'
+        - 'Leavenworth Community Farmers Market'
       location_keywords:
         - "visconti's"
         - 'J5 Coffee'
@@ -243,6 +246,9 @@ sources:
         - 'East Wenatchee'
         - 'Chelan'
         - 'Ellensburg'
+        # Wineries/cellars
+        - 'Neu Flessenow Cellars'
+        - 'Patterson Cellars'
 
   - id: 'wri'
     name: 'Wenatchee River Institute'
