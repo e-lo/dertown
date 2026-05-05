@@ -13,7 +13,13 @@ export async function getSessionFromCookies(cookies: any) {
     cookies.get('supabase-refresh-token')?.value ||
     cookies.get('sb-localhost-refresh-token')?.value;
 
+  // Debug logging
   if (!accessToken || !refreshToken) {
+    console.error('[SESSION DEBUG] Missing auth cookies:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      cookieNames: cookies.getSetCookie ? 'Has getSetCookie' : 'No getSetCookie',
+    });
     return { session: null, error: 'No session cookies found' };
   }
 
