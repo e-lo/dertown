@@ -56,7 +56,8 @@ export async function getSessionFromCookies(cookies: any) {
     return { session: null, error: error.message };
   }
 
-  if (data.session) {
+  if (data.session && typeof cookies.set === 'function') {
+    // Only set cookies if we have an Astro cookies object (not a raw cookie header)
     const isProduction = import.meta.env.PROD;
     cookies.set('sb-access-token', data.session.access_token, {
       path: '/',
