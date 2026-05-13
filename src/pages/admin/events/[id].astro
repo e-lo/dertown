@@ -43,9 +43,10 @@ const userEmail = session.user?.email || 'Admin';
   function normalizeUrl(url) {
     if (!url || url.trim() === '') return null;
     const trimmed = url.trim();
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^mailto:/i.test(trimmed)) return trimmed;
+    // Looks like a bare email address — prepend mailto:
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return 'mailto:' + trimmed;
     return 'https://' + trimmed;
   }
 

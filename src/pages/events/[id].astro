@@ -442,15 +442,23 @@ const locationMapMarkers =
     // Make openEditEvent globally accessible
     (window as any).openEditEvent = async function(eventId: string) {
       if (isAdmin) {
-        // Open edit modal on top of this page; after save we'll refresh
+        // Server confirmed admin — open inline edit modal
         (window as any).openEditEventModalOnDetailPage?.(eventId);
-      } else {
-      // User is not logged in - show suggest edit form
-      const modal = document.getElementById('suggestEditEventModal');
-      const form = document.getElementById('suggestEditEventForm');
-      if (modal) modal.style.display = 'block';
-      if (form) form.setAttribute('data-event-id', eventId);
+        return;
       }
+
+      // Server-side check may have missed valid cookies — verify client-side
+      try {
+        const res = await fetch('/api/admin/organizations', { credentials: 'include' });
+        if (res.ok) {
+          // Authenticated — go straight to admin edit page
+          window.location.href = '/admin/events/' + eventId;
+          return;
+        }
+      } catch (_) {}
+
+      // Definitely not authenticated — redirect to login with return URL
+      window.location.href = '/login?redirect=' + encodeURIComponent('/admin/events/' + eventId);
     };
     
     // Share functionality
@@ -613,6 +621,9 @@ const locationMapMarkers =
         if (!url || url.trim() === '') return null;
         const t = url.trim();
         if (/^https?:\/\//i.test(t)) return t;
+        if (/^mailto:/i.test(t)) return t;
+        // Looks like a bare email address — prepend mailto:
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return 'mailto:' + t;
         return 'https://' + t;
       }
       let pendingEventSaveIntent: 'draft' | 'publish' | null = null;
