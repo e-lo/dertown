@@ -212,7 +212,7 @@ const payload = JSON.stringify({
   </section>
 
   <script id="event-map-data" type="application/json" set:text={payload}></script>
-  <script define:vars={{ mapCenterCoords: MAP_CENTER.coordinates, mapCenterZoom: MAP_CENTER.zoom }}>
+  <script type="module" define:vars={{ mapCenterCoords: MAP_CENTER.coordinates, mapCenterZoom: MAP_CENTER.zoom }}>
     import mapboxgl from 'mapbox-gl';
     import 'mapbox-gl/dist/mapbox-gl.css';
 
