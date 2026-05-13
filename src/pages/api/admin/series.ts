@@ -3,15 +3,20 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async () => {
+export const GET = withAdminAuth(async ({ auth }) => {
   const today = new Date().toISOString().split('T')[0];
 
-  // Get all parent events (events that have children)
-  // First, get all unique parent_event_id values
-  const { data: childEvents, error: childError } = await supabaseAdmin
+  // Get unique parent_event_id values, scoped by org for org editors
+  let childQuery = supabaseAdmin
     .from('events')
     .select('parent_event_id')
     .not('parent_event_id', 'is', null);
+
+  if (!auth.isSuperAdmin) {
+    childQuery = childQuery.in('organization_id', auth.organizationIds);
+  }
+
+  const { data: childEvents, error: childError } = await childQuery;
 
   if (childError) {
     console.error('Error fetching child events:', childError);
@@ -28,46 +33,29 @@ export const GET = withAdminAuth(async () => {
     return jsonResponse({ activeSeries: [], pastSeries: [] });
   }
 
-  // Fetch parent events
-  const { data: parentEvents, error: parentError } = await supabaseAdmin
-    .from('events')
-    .select(
-      `
-      *,
-      primary_tag:tags!events_primary_tag_id_fkey(name),
-      secondary_tag:tags!events_secondary_tag_id_fkey(name),
-      location:locations!events_location_id_fkey(name, address),
-      organization:organizations!events_organization_id_fkey(name)
-    `
-    )
-    .in('id', parentEventIds);
+  const eventSelect = `
+    *,
+    primary_tag:tags!events_primary_tag_id_fkey(name),
+    secondary_tag:tags!events_secondary_tag_id_fkey(name),
+    location:locations!events_location_id_fkey(name, address),
+    organization:organizations!events_organization_id_fkey(name)
+  `;
 
-  if (parentError) {
-    console.error('Error fetching parent events:', parentError);
+  const [{ data: parentEvents, error: parentError }, { data: allChildEvents, error: allChildError }] =
+    await Promise.all([
+      supabaseAdmin.from('events').select(eventSelect).in('id', parentEventIds),
+      supabaseAdmin
+        .from('events')
+        .select(eventSelect)
+        .in('parent_event_id', parentEventIds)
+        .order('start_date', { ascending: true }),
+    ]);
+
+  if (parentError || allChildError) {
+    console.error('Error fetching series data:', parentError || allChildError);
     return jsonError('Failed to fetch series data');
   }
 
-  // Fetch all child events for these parents
-  const { data: allChildEvents, error: allChildError } = await supabaseAdmin
-    .from('events')
-    .select(
-      `
-      *,
-      primary_tag:tags!events_primary_tag_id_fkey(name),
-      secondary_tag:tags!events_secondary_tag_id_fkey(name),
-      location:locations!events_location_id_fkey(name, address),
-      organization:organizations!events_organization_id_fkey(name)
-    `
-    )
-    .in('parent_event_id', parentEventIds)
-    .order('start_date', { ascending: true });
-
-  if (allChildError) {
-    console.error('Error fetching child events:', allChildError);
-    return jsonError('Failed to fetch series data');
-  }
-
-  // Group child events by parent
   const childrenByParent = new Map<string, typeof allChildEvents>();
   (allChildEvents || []).forEach((child) => {
     if (child.parent_event_id) {
@@ -78,20 +66,14 @@ export const GET = withAdminAuth(async () => {
     }
   });
 
-  // Build series data with metadata
   const activeSeries: any[] = [];
   const pastSeries: any[] = [];
 
   (parentEvents || []).forEach((parent) => {
     const children = childrenByParent.get(parent.id) || [];
-
-    // Calculate metadata
     const futureChildren = children.filter((c) => c.start_date >= today);
     const pastChildren = children.filter((c) => c.start_date < today);
-    const allDates = children
-      .map((c) => c.start_date)
-      .filter(Boolean)
-      .sort();
+    const allDates = children.map((c) => c.start_date).filter(Boolean).sort();
     const dateRange =
       allDates.length > 0
         ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
@@ -108,7 +90,6 @@ export const GET = withAdminAuth(async () => {
       pastChildren,
     };
 
-    // Categorize: active if has future events, past if only past events
     if (futureChildren.length > 0) {
       activeSeries.push(seriesData);
     } else {
@@ -116,18 +97,8 @@ export const GET = withAdminAuth(async () => {
     }
   });
 
-  // Sort active series by earliest future date, past series by latest past date
-  activeSeries.sort((a, b) => {
-    const aDate = a.futureChildren[0]?.start_date || '';
-    const bDate = b.futureChildren[0]?.start_date || '';
-    return aDate.localeCompare(bDate);
-  });
-
-  pastSeries.sort((a, b) => {
-    const aDate = a.dateRange?.latest || '';
-    const bDate = b.dateRange?.latest || '';
-    return bDate.localeCompare(aDate); // Most recent first
-  });
+  activeSeries.sort((a, b) => (a.futureChildren[0]?.start_date || '').localeCompare(b.futureChildren[0]?.start_date || ''));
+  pastSeries.sort((a, b) => (b.dateRange?.latest || '').localeCompare(a.dateRange?.latest || ''));
 
   return jsonResponse({ activeSeries, pastSeries });
 });

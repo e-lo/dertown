@@ -4,51 +4,51 @@ import { findEventDuplicateHint } from '@/lib/event-duplicate';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async () => {
-  // Get events that are pending (need approval) using admin client (bypasses RLS)
-  // Include all pending events regardless of date, and other non-approved events that are upcoming
+export const GET = withAdminAuth(async ({ url, auth }) => {
   const today = new Date().toISOString().split('T')[0];
 
-  // Get pending events (all dates)
-  const { data: pendingEvents, error: pendingError } = await supabaseAdmin
+  const eventSelect = `
+    *,
+    primary_tag:tags!events_primary_tag_id_fkey(name),
+    secondary_tag:tags!events_secondary_tag_id_fkey(name),
+    location:locations!events_location_id_fkey(name, address),
+    organization:organizations!events_organization_id_fkey(name)
+  `;
+
+  let pendingQuery = supabaseAdmin
     .from('events')
-    .select(
-      `
-      *,
-      primary_tag:tags!events_primary_tag_id_fkey(name),
-      secondary_tag:tags!events_secondary_tag_id_fkey(name),
-      location:locations!events_location_id_fkey(name, address),
-      organization:organizations!events_organization_id_fkey(name)
-    `
-    )
+    .select(eventSelect)
     .eq('status', 'pending')
     .order('start_date', { ascending: true });
 
-  // Get other non-approved upcoming events (exclude archived)
-  const { data: otherEvents, error: otherError } = await supabaseAdmin
+  let otherQuery = supabaseAdmin
     .from('events')
-    .select(
-      `
-      *,
-      primary_tag:tags!events_primary_tag_id_fkey(name),
-      secondary_tag:tags!events_secondary_tag_id_fkey(name),
-      location:locations!events_location_id_fkey(name, address),
-      organization:organizations!events_organization_id_fkey(name)
-    `
-    )
+    .select(eventSelect)
     .neq('status', 'approved')
-    .neq('status', 'pending') // Exclude pending since we already got them
-    .neq('status', 'archived') // Exclude archived events
-    .neq('status', 'cancelled') // Exclude cancelled events from dashboard
+    .neq('status', 'pending')
+    .neq('status', 'archived')
+    .neq('status', 'cancelled')
     .gte('start_date', today)
     .order('start_date', { ascending: true });
 
-  const error = pendingError || otherError;
+  if (!auth.isSuperAdmin) {
+    pendingQuery = pendingQuery.in('organization_id', auth.organizationIds);
+    otherQuery = otherQuery.in('organization_id', auth.organizationIds);
+  }
+
+  const [{ data: pendingEvents, error: pendingError }, { data: otherEvents, error: otherError }] =
+    await Promise.all([pendingQuery, otherQuery]);
+
+  if (pendingError || otherError) {
+    console.error('Error fetching events:', pendingError || otherError);
+    return jsonError('Failed to fetch events');
+  }
+
   const data = [...(pendingEvents || []), ...(otherEvents || [])];
 
-  if (error) {
-    console.error('Error fetching events:', error);
-    return jsonError('Failed to fetch events');
+  // Duplicate hints only for super admins
+  if (!auth.isSuperAdmin) {
+    return jsonResponse({ events: data });
   }
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
@@ -58,19 +58,16 @@ export const GET = withAdminAuth(async () => {
 
   if (approvedError) {
     console.error('Error fetching approved events for duplicate hints:', approvedError);
-    return jsonResponse({ events: data || [] });
+    return jsonResponse({ events: data });
   }
 
-  // Build parent title lookup
   const parentTitles = new Map<string, string>();
-  for (const e of data || []) {
-    parentTitles.set(e.id, e.title);
-  }
+  for (const e of data) parentTitles.set(e.id, e.title);
   for (const e of approvedEvents || []) {
     if (!parentTitles.has(e.id)) parentTitles.set(e.id, e.title || '');
   }
 
-  const eventsWithDuplicateHints = (data || []).map((event) => ({
+  const eventsWithDuplicateHints = data.map((event) => ({
     ...event,
     likely_duplicate: findEventDuplicateHint(event, approvedEvents || []),
     parent_title: event.parent_event_id ? parentTitles.get(event.parent_event_id) || null : null,
@@ -79,83 +76,73 @@ export const GET = withAdminAuth(async () => {
   return jsonResponse({ events: eventsWithDuplicateHints });
 });
 
-export const PUT = withAdminAuth(async ({ request }) => {
+export const PUT = withAdminAuth(async ({ request, auth }) => {
   const { id, location_added, organization_added, ...updateData } = await request.json();
 
   if (!id) {
     return jsonError('Event ID is required', 400);
   }
 
+  // Org editors can only update events belonging to their organizations
+  if (!auth.isSuperAdmin) {
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from('events')
+      .select('organization_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existing) {
+      return jsonError('Event not found', 404);
+    }
+
+    if (!existing.organization_id || !auth.organizationIds.includes(existing.organization_id)) {
+      return jsonError('Forbidden: event does not belong to your organization', 403);
+    }
+
+    // Org editors cannot approve events — force status to pending
+    if (updateData.status === 'approved') {
+      updateData.status = 'pending';
+    }
+  }
+
   let locationId = updateData.location_id;
   let organizationId = updateData.organization_id;
 
-  // Handle new location if present
   if (location_added && location_added.trim()) {
     const { data: newLocation, error: locationError } = await supabaseAdmin
       .from('locations')
-      .insert({
-        name: location_added.trim(),
-        status: 'approved',
-      })
+      .insert({ name: location_added.trim(), status: 'approved' })
       .select()
       .single();
-
     if (locationError) {
       console.error('Location creation error:', locationError);
       return jsonError('Failed to create new location');
     }
-
-    if (newLocation) {
-      locationId = newLocation.id;
-    }
+    if (newLocation) locationId = newLocation.id;
   }
 
-  // Handle new organization if present
   if (organization_added && organization_added.trim()) {
     const { data: newOrganization, error: orgError } = await supabaseAdmin
       .from('organizations')
-      .insert({
-        name: organization_added.trim(),
-        status: 'approved',
-      })
+      .insert({ name: organization_added.trim(), status: 'approved' })
       .select()
       .single();
-
     if (orgError) {
       console.error('Organization creation error:', orgError);
       return jsonError('Failed to create new organization');
     }
-
-    if (newOrganization) {
-      organizationId = newOrganization.id;
-    }
+    if (newOrganization) organizationId = newOrganization.id;
   }
 
-  // Update the updateData with the resolved IDs
-  if (locationId !== undefined) {
-    updateData.location_id = locationId;
-  }
-  if (organizationId !== undefined) {
-    updateData.organization_id = organizationId;
-  }
+  if (locationId !== undefined) updateData.location_id = locationId;
+  if (organizationId !== undefined) updateData.organization_id = organizationId;
 
-  // Convert empty strings to null for nullable fields (required by database constraints)
-  // Email must be either NULL or a valid email format - empty string fails the constraint
   const cleanedData: any = {};
   for (const [key, value] of Object.entries(updateData)) {
-    // Skip location_added and organization_added - we've already handled them
-    if (key === 'location_added' || key === 'organization_added') {
-      continue;
-    }
-    // For email, website, registration_link, and other text fields that can be null
-    if (value === '' || value === null || value === undefined) {
-      cleanedData[key] = null;
-    } else {
-      cleanedData[key] = value;
-    }
+    if (key === 'location_added' || key === 'organization_added') continue;
+    cleanedData[key] = (value === '' || value === null || value === undefined) ? null : value;
   }
 
-  // Update the event using admin client (bypasses RLS)
   const { data, error } = await supabaseAdmin
     .from('events')
     .update(cleanedData)

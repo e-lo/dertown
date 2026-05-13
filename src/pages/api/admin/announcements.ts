@@ -3,54 +3,70 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async () => {
-  // Get announcements that are pending (need approval) using admin client (bypasses RLS)
-  // Include all pending announcements regardless of date, and other non-published announcements
-  // Get pending announcements (all dates)
-  const { data: pendingAnnouncements, error: pendingError } = await supabaseAdmin
+export const GET = withAdminAuth(async ({ auth }) => {
+  let pendingQuery = supabaseAdmin
     .from('announcements')
     .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
-  // Get other non-published announcements
-  const { data: otherAnnouncements, error: otherError } = await supabaseAdmin
+  let otherQuery = supabaseAdmin
     .from('announcements')
     .select('*')
     .neq('status', 'published')
-    .neq('status', 'pending') // Exclude pending since we already got them
+    .neq('status', 'pending')
     .order('created_at', { ascending: false });
 
-  const error = pendingError || otherError;
-  const data = [...(pendingAnnouncements || []), ...(otherAnnouncements || [])];
+  if (!auth.isSuperAdmin) {
+    pendingQuery = pendingQuery.in('organization_id', auth.organizationIds);
+    otherQuery = otherQuery.in('organization_id', auth.organizationIds);
+  }
 
-  if (error) {
-    console.error('Error fetching announcements:', error);
+  const [{ data: pending, error: pendingError }, { data: other, error: otherError }] =
+    await Promise.all([pendingQuery, otherQuery]);
+
+  if (pendingError || otherError) {
+    console.error('Error fetching announcements:', pendingError || otherError);
     return jsonError('Failed to fetch announcements');
   }
 
-  return jsonResponse({ announcements: data || [] });
+  return jsonResponse({ announcements: [...(pending || []), ...(other || [])] });
 });
 
-export const PUT = withAdminAuth(async ({ request }) => {
+export const PUT = withAdminAuth(async ({ request, auth }) => {
   const { id, ...updateData } = await request.json();
 
   if (!id) {
     return jsonError('Announcement ID is required', 400);
   }
 
-  // Convert empty strings to null for nullable fields (required by database constraints)
-  const cleanedData: any = {};
-  for (const [key, value] of Object.entries(updateData)) {
-    // For nullable text fields, convert empty strings to null
-    if (value === '' || value === null || value === undefined) {
-      cleanedData[key] = null;
-    } else {
-      cleanedData[key] = value;
+  // Org editors can only update announcements belonging to their organizations
+  if (!auth.isSuperAdmin) {
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from('announcements')
+      .select('organization_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existing) {
+      return jsonError('Announcement not found', 404);
+    }
+
+    if (!existing.organization_id || !auth.organizationIds.includes(existing.organization_id)) {
+      return jsonError('Forbidden: announcement does not belong to your organization', 403);
+    }
+
+    // Org editors cannot publish announcements — requires super admin approval
+    if (updateData.status === 'published') {
+      return jsonError('Forbidden: only super admins can publish announcements', 403);
     }
   }
 
-  // Update the announcement using admin client (bypasses RLS)
+  const cleanedData: any = {};
+  for (const [key, value] of Object.entries(updateData)) {
+    cleanedData[key] = (value === '' || value === null || value === undefined) ? null : value;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('announcements')
     .update(cleanedData)

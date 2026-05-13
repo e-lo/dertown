@@ -8,9 +8,10 @@ import {
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async ({ url }) => {
+export const GET = withAdminAuth(async ({ url, auth }) => {
   const all = url.searchParams.get('all') === 'true';
   const includeDuplicates = url.searchParams.get('includeDuplicates') === 'true';
+
   let query = supabaseAdmin
     .from('organizations')
     .select(
@@ -22,6 +23,11 @@ export const GET = withAdminAuth(async ({ url }) => {
     query = query.eq('status', 'approved');
   }
 
+  // Org editors only see their own organizations
+  if (!auth.isSuperAdmin) {
+    query = query.in('id', auth.organizationIds);
+  }
+
   const { data: organizations, error } = await query;
 
   if (error) {
@@ -30,7 +36,7 @@ export const GET = withAdminAuth(async ({ url }) => {
   }
 
   const rows = organizations || [];
-  if (!all || !includeDuplicates) {
+  if (!all || !includeDuplicates || !auth.isSuperAdmin) {
     return jsonResponse(rows);
   }
 
@@ -44,10 +50,7 @@ export const GET = withAdminAuth(async ({ url }) => {
       row.name,
       canonicalCandidates
         .filter((candidate) => candidate.id !== row.id)
-        .map((candidate) => ({
-          id: candidate.id,
-          name: candidate.name || '',
-        }))
+        .map((candidate) => ({ id: candidate.id, name: candidate.name || '' }))
     );
 
     if (!bestMatch || bestMatch.score < POSSIBLE_NAME_MATCH_THRESHOLD) {
@@ -72,7 +75,12 @@ export const GET = withAdminAuth(async ({ url }) => {
   return jsonResponse(withDuplicates);
 });
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withAdminAuth(async ({ request, auth }) => {
+  // Only super admins can create new organizations
+  if (!auth.isSuperAdmin) {
+    return jsonError('Forbidden: only super admins can create organizations', 403);
+  }
+
   const body = await request.json().catch(() => ({}));
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   if (!name) {
