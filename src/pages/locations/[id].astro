@@ -11,7 +11,8 @@ import { checkAdminAccess } from '../../lib/session';
 import '../../styles/admin.css';
 
 const { id } = Astro.params;
-const { role } = await checkAdminAccess(Astro.cookies);
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+const { role } = await checkAdminAccess({ cookieHeader });
 const isAdmin = role === 'super_admin' || role === 'org_editor';
 
 if (!id) {

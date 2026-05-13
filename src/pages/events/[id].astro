@@ -813,6 +813,9 @@ const locationMapMarkers =
       const cancelledCheckbox = document.getElementById('editEventCancelled') as HTMLInputElement;
       if (cancelledCheckbox) { cancelledCheckbox.addEventListener('change', syncEventStatusControls); syncEventStatusControls(); }
 
+      // Pre-load reference data eagerly so it's ready when Edit is clicked
+      loadReferenceData();
+
       if (editEventIdFromUrl) {
         (window as any).openEditEventModalOnDetailPage(editEventIdFromUrl);
         window.history.replaceState({}, '', window.location.pathname + window.location.hash);
