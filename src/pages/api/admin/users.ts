@@ -1,163 +1,208 @@
-import { supabase } from '../../../lib/supabase';
-import { checkAdminAccess } from '../../../lib/session';
+import { supabaseAdmin } from '@/lib/supabase';
+import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
-export async function GET({ request }: any) {
-  const { role } = await checkAdminAccess(request.cookies);
+export const prerender = false;
 
-  if (role !== 'super_admin') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+// GET /api/admin/users
+// Returns all users with permissions, enriched with email and org memberships.
+// Super admin only.
+export const GET = withAdminAuth(async ({ auth }) => {
+  if (!auth.isSuperAdmin) {
+    return jsonError('Forbidden: only super admins can manage users', 403);
   }
 
-  // Fetch all users with their permissions
-  const { data, error } = await supabase
+  // 1. Fetch all user_permissions rows
+  const { data: perms, error: permsError } = await supabaseAdmin
     .from('user_permissions')
-    .select('id, user_id, is_admin, org_access_enabled, created_at, updated_at');
+    .select('id, user_id, is_admin, org_access_enabled, created_at, updated_at')
+    .order('created_at', { ascending: true });
 
-  if (error) {
-    console.error('[ADMIN USERS] Fetch error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (permsError) {
+    console.error('[ADMIN USERS] Fetch permissions error:', permsError);
+    return jsonError('Failed to fetch user permissions');
   }
 
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
+  if (!perms || perms.length === 0) {
+    return jsonResponse([]);
+  }
+
+  // 2. Fetch auth user records to get emails
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+    perPage: 1000,
   });
-}
 
-export async function POST({ request }: any) {
-  const { role } = await checkAdminAccess(request.cookies);
-
-  if (role !== 'super_admin') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (authError) {
+    console.error('[ADMIN USERS] Fetch auth users error:', authError);
+    return jsonError('Failed to fetch user emails');
   }
 
-  const { user_id, is_admin, org_access_enabled } = await request.json();
-
-  if (!user_id) {
-    return new Response(JSON.stringify({ error: 'user_id is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const emailByUserId = new Map<string, string>();
+  for (const u of authData?.users ?? []) {
+    emailByUserId.set(u.id, u.email ?? '');
   }
 
-  // Create or update user permissions
-  const { data, error } = await supabase.from('user_permissions').upsert(
-    {
-      user_id,
-      is_admin: is_admin ?? false,
-      org_access_enabled: org_access_enabled ?? false,
-    },
-    { onConflict: 'user_id' }
+  // 3. Fetch org memberships for users who have org_access_enabled
+  const orgAccessUserIds = perms
+    .filter((p) => p.org_access_enabled)
+    .map((p) => p.user_id);
+
+  let orgsByUserId = new Map<string, { id: string; name: string }[]>();
+
+  if (orgAccessUserIds.length > 0) {
+    const { data: orgUsers, error: orgUsersError } = await supabaseAdmin
+      .from('org_users')
+      .select('user_id, organization_id, organizations!org_users_organization_id_fkey(id, name)')
+      .in('user_id', orgAccessUserIds);
+
+    if (orgUsersError) {
+      console.error('[ADMIN USERS] Fetch org users error:', orgUsersError);
+      // Non-fatal — continue without org data
+    } else {
+      for (const row of orgUsers ?? []) {
+        const org = row.organizations as { id: string; name: string } | null;
+        if (!org) continue;
+        const list = orgsByUserId.get(row.user_id) ?? [];
+        list.push({ id: org.id, name: org.name });
+        orgsByUserId.set(row.user_id, list);
+      }
+    }
+  }
+
+  // 4. Join everything together
+  const users = perms.map((p) => ({
+    id: p.id,
+    user_id: p.user_id,
+    email: emailByUserId.get(p.user_id) ?? null,
+    is_admin: p.is_admin,
+    org_access_enabled: p.org_access_enabled,
+    organizations: orgsByUserId.get(p.user_id) ?? [],
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  }));
+
+  return jsonResponse(users);
+});
+
+// POST /api/admin/users
+// Grant permissions to a user by email. Creates the user_permissions row.
+// Body: { email, is_admin?, org_access_enabled? }
+export const POST = withAdminAuth(async ({ request, auth }) => {
+  if (!auth.isSuperAdmin) {
+    return jsonError('Forbidden: only super admins can manage users', 403);
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const { email, is_admin = false, org_access_enabled = false } = body;
+
+  if (!email || typeof email !== 'string') {
+    return jsonError('email is required', 400);
+  }
+
+  // Look up user by email in auth.users
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+    perPage: 1000,
+  });
+
+  if (authError) {
+    console.error('[ADMIN USERS] Lookup error:', authError);
+    return jsonError('Failed to look up user');
+  }
+
+  const authUser = authData?.users?.find(
+    (u) => u.email?.toLowerCase() === email.toLowerCase().trim()
   );
+
+  if (!authUser) {
+    return jsonError(`No registered user found with email "${email}". The user must sign up first.`, 404);
+  }
+
+  // Upsert user_permissions
+  const { data, error } = await supabaseAdmin
+    .from('user_permissions')
+    .upsert(
+      { user_id: authUser.id, is_admin, org_access_enabled },
+      { onConflict: 'user_id' }
+    )
+    .select()
+    .single();
 
   if (error) {
     console.error('[ADMIN USERS] Upsert error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to save user permissions');
   }
 
-  return new Response(JSON.stringify(data), {
-    status: 201,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+  return jsonResponse({ ...data, email: authUser.email }, 201);
+});
 
-export async function PUT({ request }: any) {
-  const { role } = await checkAdminAccess(request.cookies);
-
-  if (role !== 'super_admin') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+// PUT /api/admin/users
+// Update an existing user's permissions.
+// Body: { user_id, is_admin?, org_access_enabled? }
+export const PUT = withAdminAuth(async ({ request, auth }) => {
+  if (!auth.isSuperAdmin) {
+    return jsonError('Forbidden: only super admins can manage users', 403);
   }
 
-  const { user_id, is_admin, org_access_enabled } = await request.json();
+  const body = await request.json().catch(() => ({}));
+  const { user_id, is_admin, org_access_enabled } = body;
 
   if (!user_id) {
-    return new Response(JSON.stringify({ error: 'user_id is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('user_id is required', 400);
   }
 
-  // Update user permissions
-  const updates: Record<string, any> = {};
+  // Guard: never strip admin from the primary super admin account
+  if (is_admin === false) {
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user_id);
+    if (authUser?.user?.email === 'dertownleavenworth@gmail.com') {
+      return jsonError('Cannot revoke admin access from the primary admin account', 403);
+    }
+  }
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (is_admin !== undefined) updates.is_admin = is_admin;
   if (org_access_enabled !== undefined) updates.org_access_enabled = org_access_enabled;
-  updates.updated_at = new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_permissions')
     .update(updates)
-    .eq('user_id', user_id);
+    .eq('user_id', user_id)
+    .select()
+    .single();
 
   if (error) {
     console.error('[ADMIN USERS] Update error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to update user permissions');
   }
 
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+  return jsonResponse(data);
+});
 
-export async function DELETE({ request }: any) {
-  const { role } = await checkAdminAccess(request.cookies);
-
-  if (role !== 'super_admin') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+// DELETE /api/admin/users?user_id=xxx
+// Remove a user's permissions entirely.
+export const DELETE = withAdminAuth(async ({ url, auth }) => {
+  if (!auth.isSuperAdmin) {
+    return jsonError('Forbidden: only super admins can manage users', 403);
   }
 
-  const url = new URL(request.url);
   const user_id = url.searchParams.get('user_id');
-
   if (!user_id) {
-    return new Response(JSON.stringify({ error: 'user_id query parameter required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('user_id query parameter is required', 400);
   }
 
-  // Don't allow deleting dertownleavenworth@gmail.com's admin access
-  const { data: user } = await supabase.auth.admin.getUserById(user_id);
-  if (user && user.email === 'dertownleavenworth@gmail.com') {
-    return new Response(JSON.stringify({ error: 'Cannot revoke admin access from dertownleavenworth@gmail.com' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // Guard: never remove the primary super admin
+  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user_id);
+  if (authUser?.user?.email === 'dertownleavenworth@gmail.com') {
+    return jsonError('Cannot remove the primary admin account', 403);
   }
 
-  const { error } = await supabase.from('user_permissions').delete().eq('user_id', user_id);
+  const { error } = await supabaseAdmin
+    .from('user_permissions')
+    .delete()
+    .eq('user_id', user_id);
 
   if (error) {
     console.error('[ADMIN USERS] Delete error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to remove user permissions');
   }
 
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+  return jsonResponse({ success: true });
+});

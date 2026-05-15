@@ -1,0 +1,620 @@
+---
+import AdminLayout from '../../components/AdminLayout.astro';
+import { getSessionFromCookies } from '../../lib/session';
+import { checkAdminAccess } from '../../lib/session';
+
+const cookieHeader = Astro.request.headers.get('cookie') ?? '';
+const { session } = await getSessionFromCookies({ cookieHeader });
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+
+const { role } = await checkAdminAccess({ cookieHeader });
+if (role !== 'super_admin') {
+  return Astro.redirect('/admin');
+}
+
+const userEmail = session.user?.email || 'Admin';
+---
+
+<AdminLayout title="User Permissions" userEmail={userEmail}>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="openAddUserModal()"
+      class="icon-btn btn-save"
+      aria-label="Add user"
+    >
+      <span class="material-symbols-outlined text-2xl">person_add</span>
+      <span class="tooltip">Add user</span>
+    </button>
+  </Fragment>
+
+  <div class="mb-4">
+    <p class="text-gray-600 text-sm">
+      Manage who can access the admin panel and which organizations they can edit.
+      Super admins have full access; org editors can only view and edit events,
+      announcements, and details for their assigned organizations.
+    </p>
+  </div>
+
+  <div id="users-loading" class="loading">Loading users…</div>
+  <div id="users-container"></div>
+</AdminLayout>
+
+<!-- Add / Edit User Modal -->
+<dialog id="user-modal" class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modal-title" class="text-lg font-bold">Add user</h2>
+      <button type="button" onclick="closeUserModal()" class="modal-close" aria-label="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form id="user-form" onsubmit="handleUserFormSubmit(event)">
+      <input type="hidden" id="form-user-id" value="" />
+
+      <div class="form-group" id="email-group">
+        <label for="form-email" class="form-label">Email address</label>
+        <input
+          type="email"
+          id="form-email"
+          name="email"
+          class="form-input"
+          placeholder="user@example.com"
+          required
+        />
+        <p class="form-hint">The user must already have an account.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <div class="role-options">
+          <label class="role-option">
+            <input type="radio" name="role" value="org_editor" checked />
+            <span class="role-label">
+              <strong>Org editor</strong>
+              <span class="role-desc">Can view and edit their assigned organizations' events and announcements</span>
+            </span>
+          </label>
+          <label class="role-option">
+            <input type="radio" name="role" value="super_admin" />
+            <span class="role-label">
+              <strong>Super admin</strong>
+              <span class="role-desc">Full access — approve events, manage all organizations, manage users</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div id="form-error" class="form-error hidden"></div>
+
+      <div class="modal-footer">
+        <button type="button" onclick="closeUserModal()" class="btn-cancel">Cancel</button>
+        <button type="submit" id="form-submit" class="btn-save-text">Save</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+  interface OrgSummary {
+    id: string;
+    name: string;
+  }
+
+  interface UserRecord {
+    id: string;
+    user_id: string;
+    email: string | null;
+    is_admin: boolean;
+    org_access_enabled: boolean;
+    organizations: OrgSummary[];
+    created_at: string;
+    updated_at: string;
+  }
+
+  let users: UserRecord[] = [];
+  let editingUserId: string | null = null;
+
+  // ── Load ──────────────────────────────────────────────────────────────────
+
+  async function loadUsers() {
+    const loading = document.getElementById('users-loading');
+    const container = document.getElementById('users-container');
+    if (!loading || !container) return;
+
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load users');
+      users = await res.json();
+      renderUsers();
+    } catch (err) {
+      container.innerHTML =
+        '<p class="text-red-600">' +
+        (err instanceof Error ? err.message : 'Failed to load') +
+        '</p>';
+    } finally {
+      loading.classList.add('hidden');
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function roleLabel(u: UserRecord): string {
+    if (u.is_admin) return '<span class="badge badge-admin">Super admin</span>';
+    if (u.org_access_enabled) return '<span class="badge badge-editor">Org editor</span>';
+    return '<span class="badge badge-none">No access</span>';
+  }
+
+  function orgsCell(u: UserRecord): string {
+    if (u.is_admin) return '<span class="text-gray-400 text-sm">All</span>';
+    if (!u.org_access_enabled || u.organizations.length === 0)
+      return '<span class="text-gray-400 text-sm">—</span>';
+    return u.organizations
+      .map(
+        (o) =>
+          `<a href="/admin/organizations/${o.id}" class="org-chip">${o.name}</a>`
+      )
+      .join('');
+  }
+
+  function renderUsers() {
+    const container = document.getElementById('users-container');
+    if (!container) return;
+
+    if (users.length === 0) {
+      container.innerHTML =
+        '<p class="text-gray-600">No users yet. Click "Add user" to grant access.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Organizations</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users
+            .map(
+              (u) => `
+            <tr data-user-id="${u.user_id}">
+              <td class="email-cell">${u.email ?? '<em class="text-gray-400">unknown</em>'}</td>
+              <td>${roleLabel(u)}</td>
+              <td class="orgs-cell">${orgsCell(u)}</td>
+              <td class="actions-cell">
+                <button
+                  type="button"
+                  class="action-btn"
+                  onclick="openEditUserModal('${u.user_id}')"
+                  title="Edit role"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+                ${
+                  u.org_access_enabled && !u.is_admin
+                    ? `<a
+                        href="/admin/organizations/${u.organizations[0]?.id ?? ''}/users"
+                        class="action-btn"
+                        title="Manage org assignments"
+                      >
+                        <span class="material-symbols-outlined">business</span>
+                      </a>`
+                    : ''
+                }
+                <button
+                  type="button"
+                  class="action-btn action-btn-danger"
+                  onclick="confirmRemoveUser('${u.user_id}', '${(u.email ?? '').replace(/'/g, "\\'")}')"
+                  title="Remove access"
+                >
+                  <span class="material-symbols-outlined">person_remove</span>
+                </button>
+              </td>
+            </tr>
+          `
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+
+  (window as any).openAddUserModal = function () {
+    editingUserId = null;
+    const modal = document.getElementById('user-modal') as HTMLDialogElement;
+    const title = document.getElementById('modal-title')!;
+    const emailGroup = document.getElementById('email-group')!;
+    const emailInput = document.getElementById('form-email') as HTMLInputElement;
+    const userIdInput = document.getElementById('form-user-id') as HTMLInputElement;
+    const errEl = document.getElementById('form-error')!;
+    const form = document.getElementById('user-form') as HTMLFormElement;
+
+    title.textContent = 'Add user';
+    emailGroup.classList.remove('hidden');
+    emailInput.value = '';
+    emailInput.required = true;
+    userIdInput.value = '';
+    errEl.classList.add('hidden');
+    errEl.textContent = '';
+    form.querySelector<HTMLInputElement>('input[name="role"][value="org_editor"]')!.checked = true;
+
+    modal.showModal();
+  };
+
+  (window as any).openEditUserModal = function (userId: string) {
+    const u = users.find((u) => u.user_id === userId);
+    if (!u) return;
+
+    editingUserId = userId;
+    const modal = document.getElementById('user-modal') as HTMLDialogElement;
+    const title = document.getElementById('modal-title')!;
+    const emailGroup = document.getElementById('email-group')!;
+    const userIdInput = document.getElementById('form-user-id') as HTMLInputElement;
+    const errEl = document.getElementById('form-error')!;
+    const form = document.getElementById('user-form') as HTMLFormElement;
+
+    title.textContent = `Edit: ${u.email ?? userId}`;
+    emailGroup.classList.add('hidden');
+    userIdInput.value = userId;
+    errEl.classList.add('hidden');
+    errEl.textContent = '';
+
+    const role = u.is_admin ? 'super_admin' : 'org_editor';
+    form.querySelector<HTMLInputElement>(`input[name="role"][value="${role}"]`)!.checked = true;
+
+    modal.showModal();
+  };
+
+  (window as any).closeUserModal = function () {
+    (document.getElementById('user-modal') as HTMLDialogElement).close();
+  };
+
+  // ── Form submit ───────────────────────────────────────────────────────────
+
+  (window as any).handleUserFormSubmit = async function (e: SubmitEvent) {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const errEl = document.getElementById('form-error')!;
+    const submitBtn = document.getElementById('form-submit') as HTMLButtonElement;
+
+    errEl.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    const roleValue = (form.querySelector('input[name="role"]:checked') as HTMLInputElement)?.value;
+    const is_admin = roleValue === 'super_admin';
+    const org_access_enabled = roleValue === 'org_editor';
+
+    try {
+      let res: Response;
+
+      if (editingUserId) {
+        // Update existing
+        res = await fetch('/api/admin/users', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: editingUserId, is_admin, org_access_enabled }),
+        });
+      } else {
+        // Add new
+        const email = (document.getElementById('form-email') as HTMLInputElement).value.trim();
+        res = await fetch('/api/admin/users', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, is_admin, org_access_enabled }),
+        });
+      }
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Server error ${res.status}`);
+      }
+
+      (document.getElementById('user-modal') as HTMLDialogElement).close();
+      await loadUsers();
+    } catch (err) {
+      errEl.textContent = err instanceof Error ? err.message : 'An error occurred';
+      errEl.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save';
+    }
+  };
+
+  // ── Remove ────────────────────────────────────────────────────────────────
+
+  (window as any).confirmRemoveUser = async function (userId: string, email: string) {
+    if (!confirm(`Remove all admin access for ${email || userId}?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/users?user_id=${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Server error ${res.status}`);
+      }
+      await loadUsers();
+    } catch (err) {
+      alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+
+<style>
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+  }
+  .loading.hidden {
+    display: none;
+  }
+
+  /* Table */
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .users-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+  }
+  .users-table td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+  .users-table tr:last-child td {
+    border-bottom: none;
+  }
+  .users-table tr:hover td {
+    background: #fafafa;
+  }
+
+  .email-cell {
+    font-weight: 500;
+  }
+
+  .orgs-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .org-chip {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.8rem;
+    text-decoration: none;
+  }
+  .org-chip:hover {
+    background: #bae6fd;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .badge-admin {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .badge-editor {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .badge-none {
+    background: #f3f4f6;
+    color: #9ca3af;
+  }
+
+  /* Action buttons */
+  .actions-cell {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+    border: none;
+    background: #f3f4f6;
+    color: #374151;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1rem;
+  }
+  .action-btn:hover {
+    background: #e5e7eb;
+  }
+  .action-btn-danger {
+    color: #dc2626;
+  }
+  .action-btn-danger:hover {
+    background: #fee2e2;
+  }
+  .action-btn .material-symbols-outlined {
+    font-size: 1.15rem;
+  }
+
+  /* Modal */
+  .modal-dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    width: min(480px, 95vw);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+  .modal-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .modal-content {
+    padding: 1.5rem;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+  }
+  .modal-close:hover {
+    color: #111;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 1.1rem;
+  }
+  .form-group.hidden {
+    display: none;
+  }
+  .form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.35rem;
+  }
+  .form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
+  .form-hint {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+  }
+  .form-error {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+  .form-error.hidden {
+    display: none;
+  }
+
+  /* Role options */
+  .role-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .role-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .role-option:has(input:checked) {
+    border-color: #6366f1;
+    background: #f5f3ff;
+  }
+  .role-option input[type='radio'] {
+    margin-top: 0.15rem;
+    accent-color: #6366f1;
+    flex-shrink: 0;
+  }
+  .role-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.875rem;
+  }
+  .role-desc {
+    color: #6b7280;
+    font-size: 0.8rem;
+  }
+
+  /* Buttons */
+  .btn-cancel {
+    padding: 0.45rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    font-size: 0.875rem;
+  }
+  .btn-cancel:hover {
+    background: #f9fafb;
+  }
+  .btn-save-text {
+    padding: 0.45rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    background: #6366f1;
+    color: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .btn-save-text:hover {
+    background: #4f46e5;
+  }
+  .btn-save-text:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>
