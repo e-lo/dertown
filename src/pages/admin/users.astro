@@ -45,20 +45,20 @@ const siteOrigin = Astro.url.origin;
   <div id="users-container"></div>
 
   <!-- Email allowlist section -->
-  <div class="section-divider"></div>
+  <hr class="my-10 border-t border-gray-200" />
 
-  <div class="section-header">
+  <div class="flex justify-between items-start mb-4">
     <div>
-      <h2 class="section-title">Signup allowlist</h2>
-      <p class="section-desc">Only these email addresses can create accounts via the registration page. Adding a user above automatically adds them here too.</p>
+      <h2 class="text-base font-bold text-gray-900 m-0">Signup allowlist</h2>
+      <p class="text-sm text-gray-500 mt-1 mb-0">Only these email addresses can create accounts via the registration page. Adding a user above automatically adds them here too.</p>
     </div>
   </div>
 
-  <div class="allowlist-add-row">
+  <div class="flex gap-2 mb-4 max-w-md">
     <input
       type="email"
       id="allowlist-email-input"
-      class="field-input allowlist-input"
+      class="field-input flex-1"
       placeholder="email@example.com"
     />
     <button type="button" onclick="addToAllowlist()" class="btn-add-org">Add email</button>
@@ -223,23 +223,21 @@ const siteOrigin = Astro.url.origin;
   // ── Render table ──────────────────────────────────────────────────────────
 
   function roleChip(u) {
-    if (u.is_admin) return '<span class="chip chip-admin">Super admin</span>';
-    if (u.org_access_enabled) return '<span class="chip chip-editor">Org editor</span>';
-    return '<span class="chip chip-none">No access</span>';
+    if (u.is_admin) return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 whitespace-nowrap">Super admin</span>';
+    if (u.org_access_enabled) return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 whitespace-nowrap">Org editor</span>';
+    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 whitespace-nowrap">No access</span>';
   }
 
   function statusChip(status) {
-    if (status === 'active')  return '<span class="chip chip-active">Active</span>';
-    if (status === 'invited') return '<span class="chip chip-invited">Invite sent</span>';
-    return '<span class="chip chip-pending">Pending invite</span>';
+    if (status === 'active')  return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 whitespace-nowrap">Active</span>';
+    if (status === 'invited') return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 whitespace-nowrap">Invite sent</span>';
+    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 whitespace-nowrap">Pending invite</span>';
   }
 
   function orgsCell(u) {
-    if (u.is_admin) return '<span class="muted">All</span>';
-    if (!u.org_access_enabled || !u.organizations?.length) return '<span class="muted">None assigned</span>';
-    return u.organizations
-      .map((o) => `<div class="org-line">${o.name}</div>`)
-      .join('');
+    if (u.is_admin) return '<span class="text-sm text-gray-400">All</span>';
+    if (!u.org_access_enabled || !u.organizations?.length) return '<span class="text-sm text-gray-400">None assigned</span>';
+    return u.organizations.map((o) => `<div class="text-sm text-gray-700 leading-snug">${o.name}</div>`).join('');
   }
 
   function renderUsers() {
@@ -250,58 +248,61 @@ const siteOrigin = Astro.url.origin;
     }
 
     container.innerHTML = `
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Organizations</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${users.map((u) => {
-            const isPrimary = u.email === PRIMARY_ADMIN_EMAIL;
-            const canInvite = u.account_status !== 'active';
-            return `
-              <tr>
-                <td class="td-email">${u.email ?? '<em class="muted">unknown</em>'}</td>
-                <td class="td-role">${roleChip(u)}</td>
-                <td class="td-orgs">${orgsCell(u)}</td>
-                <td>${statusChip(u.account_status)}</td>
-                <td class="td-actions">
-                  <button
-                    type="button"
-                    class="action-btn"
-                    onclick="openEditModal('${u.user_id}')"
-                    title="Edit permissions &amp; org access"
-                  ><span class="material-symbols-outlined">edit</span></button>
-                  ${canInvite ? `
-                  <button
-                    type="button"
-                    class="action-btn"
-                    onclick="openInviteModal('${u.user_id}')"
-                    title="${u.account_status === 'invited' ? 'Resend invite email' : 'Send invite email'}"
-                  ><span class="material-symbols-outlined">send</span></button>` : `
-                  <span
-                    class="action-btn action-btn-muted"
-                    title="Already active — can log in at /login"
-                    style="cursor:default"
-                  ><span class="material-symbols-outlined">check_circle</span></span>`}
-                  <button
-                    type="button"
-                    class="action-btn action-btn-danger"
-                    onclick="confirmRemove('${u.user_id}', '${(u.email ?? '').replace(/'/g, "\\'")}')"
-                    title="${isPrimary ? 'Primary admin cannot be removed' : 'Remove access'}"
-                    ${isPrimary ? 'disabled' : ''}
-                  ><span class="material-symbols-outlined">person_remove</span></button>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
+      <div class="dashboard-table-container">
+        <table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+              <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+              <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Organizations</th>
+              <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="p-3" data-sort-method="none"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${users.map((u) => {
+              const isPrimary = u.email === PRIMARY_ADMIN_EMAIL;
+              const canInvite = u.account_status !== 'active';
+              return `
+                <tr class="border-t border-gray-200 hover:bg-gray-50">
+                  <td class="p-3 align-top font-medium text-sm">${u.email ?? '<em class="text-gray-400">unknown</em>'}</td>
+                  <td class="p-3 align-top">${roleChip(u)}</td>
+                  <td class="p-3 align-top">${orgsCell(u)}</td>
+                  <td class="p-3 align-top">${statusChip(u.account_status)}</td>
+                  <td class="p-3 align-top">
+                    <span style="display:inline-flex;gap:0.3rem;align-items:center;">
+                      <button type="button" class="icon-btn btn-edit" onclick="openEditModal('${u.user_id}')" aria-label="Edit permissions" style="padding:0.5rem;min-width:auto;height:auto;">
+                        <span class="material-symbols-outlined" style="font-size:1.2rem;">edit</span>
+                        <span class="tooltip">Edit permissions</span>
+                      </button>
+                      ${canInvite ? `
+                      <button type="button" class="icon-btn btn-approve" onclick="openInviteModal('${u.user_id}')" aria-label="${u.account_status === 'invited' ? 'Resend invite' : 'Send invite'}" style="padding:0.5rem;min-width:auto;height:auto;">
+                        <span class="material-symbols-outlined" style="font-size:1.2rem;">send</span>
+                        <span class="tooltip">${u.account_status === 'invited' ? 'Resend invite' : 'Send invite'}</span>
+                      </button>` : `
+                      <span class="inline-flex items-center justify-center text-green-500 opacity-40" style="width:2.1rem;height:2.1rem;" title="Already active — can log in at /login">
+                        <span class="material-symbols-outlined" style="font-size:1.2rem;">check_circle</span>
+                      </span>`}
+                      <button
+                        type="button"
+                        class="icon-btn btn-reject"
+                        onclick="confirmRemove('${u.user_id}', '${(u.email ?? '').replace(/'/g, "\\'")}')"
+                        title="${isPrimary ? 'Primary admin cannot be removed' : 'Remove access'}"
+                        aria-label="${isPrimary ? 'Cannot remove primary admin' : 'Remove access'}"
+                        ${isPrimary ? 'disabled' : ''}
+                        style="padding:0.5rem;min-width:auto;height:auto;"
+                      >
+                        <span class="material-symbols-outlined" style="font-size:1.2rem;">person_remove</span>
+                        <span class="tooltip">${isPrimary ? 'Cannot remove' : 'Remove access'}</span>
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   }
 
@@ -632,26 +633,24 @@ const siteOrigin = Astro.url.origin;
       return;
     }
     container.innerHTML = `
-      <table class="users-table">
-        <thead>
+      <table class="w-full border border-gray-200 rounded-lg overflow-hidden sortable-table">
+        <thead class="bg-gray-100">
           <tr>
-            <th>Email</th>
-            <th>Added</th>
-            <th>Actions</th>
+            <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+            <th class="p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Added</th>
+            <th class="p-3" data-sort-method="none"></th>
           </tr>
         </thead>
         <tbody>
           ${allowlist.map((entry) => `
-            <tr>
-              <td class="td-email">${entry.email}</td>
-              <td class="muted" style="font-size:0.85rem">${new Date(entry.created_at).toLocaleDateString()}</td>
-              <td class="td-actions">
-                <button
-                  type="button"
-                  class="action-btn action-btn-danger"
-                  onclick="removeFromAllowlist('${entry.email.replace(/'/g, "\\'")}')"
-                  title="Remove from allowlist"
-                ><span class="material-symbols-outlined">close</span></button>
+            <tr class="border-t border-gray-200 hover:bg-gray-50">
+              <td class="p-3 text-sm font-medium">${entry.email}</td>
+              <td class="p-3 text-sm text-gray-500">${new Date(entry.created_at).toLocaleDateString()}</td>
+              <td class="p-3">
+                <button type="button" class="icon-btn btn-reject" onclick="removeFromAllowlist('${entry.email.replace(/'/g, "\\'")}')" aria-label="Remove from allowlist" style="padding:0.5rem;min-width:auto;height:auto;">
+                  <span class="material-symbols-outlined" style="font-size:1.2rem;">close</span>
+                  <span class="tooltip">Remove</span>
+                </button>
               </td>
             </tr>
           `).join('')}
@@ -707,215 +706,41 @@ const siteOrigin = Astro.url.origin;
 </script>
 
 <style>
-  .loading { text-align: center; padding: 2rem; color: #999; }
-  .loading.hidden { display: none; }
-  .hidden { display: none !important; }
-  .muted { color: #9ca3af; font-size: 0.875rem; }
-  .error-text { color: #dc2626; }
-
-  /* Page banner (success messages) */
+  /* Page banner */
   .page-banner {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
+    background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;
+    border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem;
   }
 
   /* Page intro */
   .page-intro {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 0.875rem 1.1rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-    color: #475569;
-    line-height: 1.5;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 0.875rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.9rem;
+    color: #475569; line-height: 1.5;
   }
 
-  /* Table */
-  .users-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-    font-size: 0.9rem;
-  }
-  .users-table th {
-    padding: 0.75rem 1.25rem;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-    font-weight: 600;
-    color: #374151;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .users-table td {
-    padding: 0.75rem 1.1rem;
-    border-bottom: 1px solid #f3f4f6;
-    vertical-align: top;
-  }
-  .users-table tr:last-child td { border-bottom: none; }
-  .users-table tbody tr:hover td { background: #fafafa; }
-
-  .td-email { font-weight: 500; word-break: break-all; }
-  .td-role  { white-space: nowrap; }
-  .td-orgs  { display: flex; flex-direction: column; gap: 0.3rem; }
-  .td-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; padding-top: 0.1rem; }
-
-  /* Chips */
-  .chip {
-    display: inline-block;
-    padding: 0.25rem 0.65rem;
-    border-radius: 9999px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .chip-admin   { background: #fef3c7; color: #92400e; }
-  .chip-editor  { background: #d1fae5; color: #065f46; }
-  .chip-none    { background: #f3f4f6; color: #9ca3af; }
-  .chip-active  { background: #dcfce7; color: #166534; }
-  .chip-invited { background: #dbeafe; color: #1e40af; }
-  .chip-pending { background: #fef9c3; color: #713f12; }
-
-  .org-line {
-    font-size: 0.85rem;
-    color: #374151;
-    line-height: 1.4;
-  }
-
-  /* Action buttons */
-  .action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.1rem;
-    height: 2.1rem;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #374151;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .action-btn:hover { background: #f3f4f6; }
-  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .action-btn-danger { color: #dc2626; }
-  .action-btn-danger:hover:not(:disabled) { background: #fee2e2; border-color: #fecaca; }
-  .action-btn-muted { color: #9ca3af; }
-  .action-btn .material-symbols-outlined { font-size: 1.1rem; }
-
-  /* Invite modal content */
-  .invite-preview { margin-bottom: 1rem; }
-  .invite-user-info {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 1rem;
-  }
-  .invite-email { font-weight: 600; font-size: 1rem; color: #111; }
-  .invite-role { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
-  .invite-desc { font-size: 0.875rem; color: #374151; margin: 0 0 0.85rem; line-height: 1.5; }
-  .invite-what {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-  }
-  .invite-what-title { font-weight: 600; font-size: 0.85rem; margin: 0 0 0.4rem; }
-  .invite-what ul { margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #374151; line-height: 1.7; }
-
-  /* ── Modal ── */
-  .modal-dialog {
-    border: none;
-    border-radius: 12px;
-    padding: 0;
-    width: min(520px, 95vw);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-  }
+  /* Modal */
+  .modal-dialog { border: none; border-radius: 12px; padding: 0; width: min(520px, 95vw); box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
   .modal-dialog::backdrop { background: rgba(0,0,0,0.35); }
   .modal-content { padding: 1.75rem; }
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
   .modal-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
-  .modal-close {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    padding: 0.25rem;
-    border-radius: 4px;
-  }
+  .modal-close { background: none; border: none; cursor: pointer; color: #6b7280; display: flex; align-items: center; padding: 0.25rem; border-radius: 4px; }
   .modal-close:hover { color: #111; background: #f3f4f6; }
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1.75rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f3f4f6;
-  }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; }
 
   /* Form fields */
   .field { margin-bottom: 1.25rem; }
-  .field-label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #374151;
-    margin-bottom: 0.4rem;
-  }
-  .field-input {
-    width: 100%;
-    padding: 0.55rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    outline: none;
-    box-sizing: border-box;
-  }
+  .field-label { display: block; font-weight: 600; font-size: 0.85rem; color: #374151; margin-bottom: 0.4rem; }
+  .field-input { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; }
   .field-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
   .field-select { cursor: pointer; }
   .field-hint { font-size: 0.78rem; color: #9ca3af; margin-top: 0.3rem; }
-  .field-hint a { color: #6366f1; }
-
-  .form-error {
-    background: #fee2e2;
-    color: #b91c1c;
-    padding: 0.6rem 0.85rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    margin-top: 0.75rem;
-    line-height: 1.45;
-  }
+  .form-error { background: #fee2e2; color: #b91c1c; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-top: 0.75rem; line-height: 1.45; }
 
   /* Role options */
   .role-options { display: flex; flex-direction: column; gap: 0.5rem; }
-  .role-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.7rem 0.85rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: border-color 0.1s, background 0.1s;
-  }
+  .role-option { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.7rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: border-color 0.1s, background 0.1s; }
   .role-option:has(input:checked) { border-color: #6366f1; background: #f5f3ff; }
   .role-option input[type="radio"] { margin-top: 0.2rem; accent-color: #6366f1; flex-shrink: 0; }
   .role-label { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.875rem; }
@@ -923,99 +748,29 @@ const siteOrigin = Astro.url.origin;
 
   /* Org assignment in modal */
   .orgs-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem; }
-  .assigned-org {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.45rem 0.75rem;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 6px;
-    font-size: 0.875rem;
-  }
-  .remove-org-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    padding: 0.1rem;
-    border-radius: 3px;
-  }
+  .assigned-org { display: flex; align-items: center; justify-content: space-between; padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 0.875rem; }
+  .remove-org-btn { background: none; border: none; cursor: pointer; color: #6b7280; display: flex; align-items: center; padding: 0.1rem; border-radius: 3px; }
   .remove-org-btn:hover { color: #dc2626; background: #fee2e2; }
   .remove-org-btn .material-symbols-outlined { font-size: 1rem; }
-
-  .add-org-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
+  .add-org-row { display: flex; gap: 0.5rem; align-items: center; }
   .add-org-row .field-select { flex: 1; }
-  .btn-add-org {
-    padding: 0.5rem 0.85rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: white;
-    color: #374151;
-    cursor: pointer;
-    font-size: 0.875rem;
-    white-space: nowrap;
-  }
+  .btn-add-org { padding: 0.5rem 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; font-size: 0.875rem; white-space: nowrap; }
   .btn-add-org:hover { background: #f3f4f6; }
 
-  /* Allowlist section */
-  .section-divider {
-    border: none;
-    border-top: 1px solid #e5e7eb;
-    margin: 2.5rem 0 1.75rem;
-  }
-  .section-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-  .section-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.2rem;
-  }
-  .section-desc {
-    font-size: 0.85rem;
-    color: #6b7280;
-    margin: 0;
-  }
-  .allowlist-add-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    max-width: 440px;
-  }
-  .allowlist-input { flex: 1; }
+  /* Invite preview */
+  .invite-preview { margin-bottom: 1rem; }
+  .invite-user-info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem; }
+  .invite-email { font-weight: 600; font-size: 1rem; color: #111; }
+  .invite-role { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
+  .invite-desc { font-size: 0.875rem; color: #374151; margin: 0 0 0.85rem; line-height: 1.5; }
+  .invite-what { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1rem; }
+  .invite-what-title { font-weight: 600; font-size: 0.85rem; margin: 0 0 0.4rem; }
+  .invite-what ul { margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #374151; line-height: 1.7; }
 
   /* Buttons */
-  .btn-cancel {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: white;
-    color: #374151;
-    cursor: pointer;
-    font-size: 0.875rem;
-  }
+  .btn-cancel { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer; font-size: 0.875rem; }
   .btn-cancel:hover { background: #f9fafb; }
-  .btn-primary {
-    padding: 0.5rem 1.25rem;
-    border: none;
-    border-radius: 6px;
-    background: #6366f1;
-    color: white;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
+  .btn-primary { padding: 0.5rem 1.25rem; border: none; border-radius: 6px; background: #6366f1; color: white; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
   .btn-primary:hover { background: #4f46e5; }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
