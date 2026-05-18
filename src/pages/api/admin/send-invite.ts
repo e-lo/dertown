@@ -26,9 +26,18 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   const email = authUser.user.email;
 
+  // Use the request's origin so the link works in both dev and production.
+  // Without this, Supabase falls back to its configured Site URL which may
+  // still be localhost if it hasn't been updated in the dashboard.
+  const origin = request.headers.get('origin') ?? request.headers.get('host') ?? '';
+  const redirectTo = origin ? `${origin}/admin` : undefined;
+
   // inviteUserByEmail sends the invite email. When called for an existing user
   // it resends / generates a fresh invite link.
-  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    email,
+    redirectTo ? { redirectTo } : undefined
+  );
   if (inviteError) {
     console.error('[SEND-INVITE] Invite error:', inviteError);
     return jsonError(`Failed to send invite: ${inviteError.message}`);
