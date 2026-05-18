@@ -24,7 +24,17 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     return jsonError('User not found', 404);
   }
 
-  const email = authUser.user.email;
+  const user = authUser.user;
+  const email = user.email!;
+
+  // If the account is already confirmed the user can log in normally —
+  // inviteUserByEmail would error. Return a helpful message instead.
+  if (user.email_confirmed_at) {
+    return jsonError(
+      'This user already has an active account and can log in at /login. No invite needed.',
+      409
+    );
+  }
 
   // Use the request's origin so the link works in both dev and production.
   // Without this, Supabase falls back to its configured Site URL which may

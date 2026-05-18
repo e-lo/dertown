@@ -277,12 +277,18 @@ const siteOrigin = Astro.url.origin;
                     onclick="openEditModal('${u.user_id}')"
                     title="Edit permissions &amp; org access"
                   ><span class="material-symbols-outlined">edit</span></button>
+                  ${canInvite ? `
                   <button
                     type="button"
-                    class="action-btn ${canInvite ? '' : 'action-btn-muted'}"
+                    class="action-btn"
                     onclick="openInviteModal('${u.user_id}')"
-                    title="${canInvite ? 'Send invite email' : 'Already active — resend invite'}"
-                  ><span class="material-symbols-outlined">send</span></button>
+                    title="${u.account_status === 'invited' ? 'Resend invite email' : 'Send invite email'}"
+                  ><span class="material-symbols-outlined">send</span></button>` : `
+                  <span
+                    class="action-btn action-btn-muted"
+                    title="Already active — can log in at /login"
+                    style="cursor:default"
+                  ><span class="material-symbols-outlined">check_circle</span></span>`}
                   <button
                     type="button"
                     class="action-btn action-btn-danger"
