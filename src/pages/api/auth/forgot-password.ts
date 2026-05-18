@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 
+export const prerender = false;
+
 export async function POST({ request }: any) {
   const { email } = await request.json();
 
@@ -10,29 +12,45 @@ export async function POST({ request }: any) {
     });
   }
 
+  // Build a reliable redirectTo — origin header can be null in SSR contexts
+  const origin =
+    request.headers.get('origin') ||
+    (() => {
+      try { return new URL(request.url).origin; } catch { return ''; }
+    })();
+  const redirectTo = origin ? `${origin}/update-password` : undefined;
+
+  console.log('[FORGOT-PASSWORD] Sending reset to:', email, '| redirectTo:', redirectTo);
+
   const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
-    redirectTo: `${request.headers.get('origin')}/update-password`,
+    ...(redirectTo ? { redirectTo } : {}),
   });
 
   if (error) {
-    console.error('[FORGOT-PASSWORD] Error:', error);
-    // Return success even on error to prevent email enumeration
+    // Log the real error server-side so it shows in Netlify/server logs
+    console.error('[FORGOT-PASSWORD] Supabase error:', error.message, error);
+
+    // Expose the error in dev so it's easier to debug; hide in production
+    const isDev = import.meta.env.DEV;
     return new Response(
       JSON.stringify({
-        success: true,
-        message: 'If an account exists with this email, you will receive a password reset link.',
+        success: false,
+        error: isDev
+          ? `Failed to send reset email: ${error.message}`
+          : 'Failed to send reset email. Please try again or contact dertownleavenworth@gmail.com.',
       }),
       {
-        status: 200,
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   }
 
+  console.log('[FORGOT-PASSWORD] Reset email sent successfully to:', email);
   return new Response(
     JSON.stringify({
       success: true,
-      message: 'If an account exists with this email, you will receive a password reset link.',
+      message: 'Check your email for a password reset link.',
     }),
     {
       status: 200,
