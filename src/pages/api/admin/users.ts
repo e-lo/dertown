@@ -142,6 +142,12 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     return jsonError('Failed to save user permissions');
   }
 
+  // Always add to email_allowlist so they can use the self-service register page
+  // if needed (e.g. invite link expires). Ignore conflicts — idempotent.
+  await supabaseAdmin
+    .from('email_allowlist')
+    .upsert({ email: authUser.email!.toLowerCase() }, { onConflict: 'email' });
+
   return jsonResponse({ ...data, email: authUser.email, invited }, 201);
 });
 

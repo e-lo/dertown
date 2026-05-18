@@ -43,6 +43,29 @@ const siteOrigin = Astro.url.origin;
   <div id="page-banner" class="page-banner" style="display:none"></div>
   <div id="users-loading" class="loading">Loading users…</div>
   <div id="users-container"></div>
+
+  <!-- Email allowlist section -->
+  <div class="section-divider"></div>
+
+  <div class="section-header">
+    <div>
+      <h2 class="section-title">Signup allowlist</h2>
+      <p class="section-desc">Only these email addresses can create accounts via the registration page. Adding a user above automatically adds them here too.</p>
+    </div>
+  </div>
+
+  <div class="allowlist-add-row">
+    <input
+      type="email"
+      id="allowlist-email-input"
+      class="field-input allowlist-input"
+      placeholder="email@example.com"
+    />
+    <button type="button" onclick="addToAllowlist()" class="btn-add-org">Add email</button>
+  </div>
+
+  <div id="allowlist-loading" class="loading">Loading allowlist…</div>
+  <div id="allowlist-container"></div>
 </AdminLayout>
 
 <!-- ── Add / Edit User Modal ──────────────────────────────────────────────── -->
@@ -459,6 +482,106 @@ const siteOrigin = Astro.url.origin;
   document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     loadOrgs();
+    loadAllowlist();
+  });
+
+  // ── Allowlist ─────────────────────────────────────────────────────────────
+
+  let allowlist = [];
+
+  async function loadAllowlist() {
+    const loading = document.getElementById('allowlist-loading');
+    const container = document.getElementById('allowlist-container');
+    try {
+      const res = await fetch('/api/admin/email-allowlist', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load allowlist');
+      allowlist = await res.json();
+      renderAllowlist();
+    } catch (err) {
+      container.innerHTML = `<p class="error-text">${err.message}</p>`;
+    } finally {
+      loading.classList.add('hidden');
+    }
+  }
+
+  function renderAllowlist() {
+    const container = document.getElementById('allowlist-container');
+    if (!allowlist.length) {
+      container.innerHTML = '<p class="muted">No emails on the allowlist yet.</p>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Added</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allowlist.map((entry) => `
+            <tr>
+              <td class="td-email">${entry.email}</td>
+              <td class="muted" style="font-size:0.85rem">${new Date(entry.created_at).toLocaleDateString()}</td>
+              <td class="td-actions">
+                <button
+                  type="button"
+                  class="action-btn action-btn-danger"
+                  onclick="removeFromAllowlist('${entry.email.replace(/'/g, "\\'")}')"
+                  title="Remove from allowlist"
+                ><span class="material-symbols-outlined">close</span></button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  window.addToAllowlist = async function () {
+    const input = document.getElementById('allowlist-email-input');
+    const email = input.value.trim().toLowerCase();
+    if (!email) return;
+
+    try {
+      const res = await fetch('/api/admin/email-allowlist', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        throw new Error(b.error ?? 'Failed to add email');
+      }
+      input.value = '';
+      await loadAllowlist();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  window.removeFromAllowlist = async function (email) {
+    if (!confirm(`Remove ${email} from the signup allowlist?`)) return;
+    try {
+      const res = await fetch(
+        `/api/admin/email-allowlist?email=${encodeURIComponent(email)}`,
+        { method: 'DELETE', credentials: 'include' }
+      );
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        throw new Error(b.error ?? 'Failed to remove');
+      }
+      await loadAllowlist();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  // Allow pressing Enter in the allowlist input
+  document.getElementById('allowlist-email-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); window.addToAllowlist(); }
   });
 </script>
 
@@ -697,6 +820,37 @@ const siteOrigin = Astro.url.origin;
     white-space: nowrap;
   }
   .btn-add-org:hover { background: #f3f4f6; }
+
+  /* Allowlist section */
+  .section-divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 2.5rem 0 1.75rem;
+  }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.2rem;
+  }
+  .section-desc {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 0;
+  }
+  .allowlist-add-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    max-width: 440px;
+  }
+  .allowlist-input { flex: 1; }
 
   /* Buttons */
   .btn-cancel {
