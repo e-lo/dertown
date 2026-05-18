@@ -40,6 +40,7 @@ const siteOrigin = Astro.url.origin;
     </p>
   </div>
 
+  <div id="page-banner" class="page-banner" style="display:none"></div>
   <div id="users-loading" class="loading">Loading users…</div>
   <div id="users-container"></div>
 </AdminLayout>
@@ -68,8 +69,7 @@ const siteOrigin = Astro.url.origin;
           placeholder="user@example.com"
         />
         <p class="field-hint">
-          The user must have already signed up at
-          <a id="signup-link" href="/register" target="_blank">/register</a>.
+          If they don't have an account yet, an invite email will be sent automatically.
         </p>
       </div>
 
@@ -125,8 +125,6 @@ const siteOrigin = Astro.url.origin;
   let editingUserOrgs = []; // orgs currently assigned to the user being edited
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
-
-  document.getElementById('signup-link').href = siteOrigin + '/register';
 
   // Wire role radio buttons to show/hide org section
   document.querySelectorAll('input[name="role"]').forEach((el) => {
@@ -400,8 +398,14 @@ const siteOrigin = Astro.url.origin;
         throw new Error(b.error ?? `Server error ${res.status}`);
       }
 
+      const result = await res.json().catch(() => ({}));
       document.getElementById('user-modal').close();
       await loadUsers();
+
+      // Let the admin know if an invite email was sent
+      if (result.invited) {
+        showPageBanner(`Invite sent to ${result.email}. They'll receive an email to set up their account.`);
+      }
     } catch (err) {
       showFormError(err.message);
     } finally {
@@ -431,6 +435,13 @@ const siteOrigin = Astro.url.origin;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
+  function showPageBanner(msg) {
+    const el = document.getElementById('page-banner');
+    el.textContent = msg;
+    el.style.display = '';
+    setTimeout(() => { el.style.display = 'none'; }, 6000);
+  }
+
   function showFormError(msg) {
     const el = document.getElementById('form-error');
     el.textContent = msg;
@@ -457,6 +468,17 @@ const siteOrigin = Astro.url.origin;
   .hidden { display: none !important; }
   .muted { color: #9ca3af; font-size: 0.875rem; }
   .error-text { color: #dc2626; }
+
+  /* Page banner (success messages) */
+  .page-banner {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
 
   /* Page intro */
   .page-intro {

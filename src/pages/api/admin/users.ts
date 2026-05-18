@@ -108,15 +108,23 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     return jsonError('Failed to look up user');
   }
 
-  const authUser = authData?.users?.find(
+  let authUser = authData?.users?.find(
     (u) => u.email?.toLowerCase() === email.toLowerCase().trim()
   );
 
+  let invited = false;
   if (!authUser) {
-    return jsonError(
-      `No account found for "${email}". They need to sign up at /register first, then you can grant them access here.`,
-      404
+    // User hasn't signed up yet — send an invite so they can set up their account.
+    // This creates the auth user immediately and emails them a magic link.
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email.toLowerCase().trim()
     );
+    if (inviteError) {
+      console.error('[ADMIN USERS] Invite error:', inviteError);
+      return jsonError(`Could not invite "${email}": ${inviteError.message}`);
+    }
+    authUser = inviteData.user;
+    invited = true;
   }
 
   // Upsert user_permissions
@@ -134,7 +142,7 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     return jsonError('Failed to save user permissions');
   }
 
-  return jsonResponse({ ...data, email: authUser.email }, 201);
+  return jsonResponse({ ...data, email: authUser.email, invited }, 201);
 });
 
 // PUT /api/admin/users
