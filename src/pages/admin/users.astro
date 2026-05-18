@@ -92,7 +92,7 @@ const siteOrigin = Astro.url.origin;
           placeholder="user@example.com"
         />
         <p class="field-hint">
-          If they don't have an account yet, an invite email will be sent automatically.
+          No email is sent yet. Use the "Send invite" button after saving to notify them.
         </p>
       </div>
 
@@ -136,6 +136,30 @@ const siteOrigin = Astro.url.origin;
         <button type="submit" id="form-submit" class="btn-primary">Save</button>
       </div>
     </form>
+  </div>
+</dialog>
+
+<!-- ── Send Invite Modal ───────────────────────────────────────────────────── -->
+<dialog id="invite-modal" class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Send invite</h2>
+      <button type="button" onclick="document.getElementById('invite-modal').close()" class="modal-close" aria-label="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div id="invite-preview" class="invite-preview"></div>
+
+    <div id="invite-error" class="form-error" style="display:none"></div>
+
+    <div class="modal-footer">
+      <button type="button" onclick="document.getElementById('invite-modal').close()" class="btn-cancel">Cancel</button>
+      <button type="button" id="invite-send-btn" onclick="sendInviteConfirmed()" class="btn-primary">
+        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">send</span>
+        Send invite email
+      </button>
+    </div>
   </div>
 </dialog>
 
@@ -204,6 +228,12 @@ const siteOrigin = Astro.url.origin;
     return '<span class="chip chip-none">No access</span>';
   }
 
+  function statusChip(status) {
+    if (status === 'active')  return '<span class="chip chip-active">Active</span>';
+    if (status === 'invited') return '<span class="chip chip-invited">Invite sent</span>';
+    return '<span class="chip chip-pending">Pending invite</span>';
+  }
+
   function orgsCell(u) {
     if (u.is_admin) return '<span class="muted">All</span>';
     if (!u.org_access_enabled || !u.organizations?.length) return '<span class="muted">None assigned</span>';
@@ -226,24 +256,33 @@ const siteOrigin = Astro.url.origin;
             <th>Email</th>
             <th>Role</th>
             <th>Organizations</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           ${users.map((u) => {
             const isPrimary = u.email === PRIMARY_ADMIN_EMAIL;
+            const canInvite = u.account_status !== 'active';
             return `
               <tr>
                 <td class="td-email">${u.email ?? '<em class="muted">unknown</em>'}</td>
                 <td class="td-role">${roleChip(u)}</td>
                 <td class="td-orgs">${orgsCell(u)}</td>
+                <td>${statusChip(u.account_status)}</td>
                 <td class="td-actions">
                   <button
                     type="button"
                     class="action-btn"
                     onclick="openEditModal('${u.user_id}')"
-                    title="Edit"
+                    title="Edit permissions &amp; org access"
                   ><span class="material-symbols-outlined">edit</span></button>
+                  <button
+                    type="button"
+                    class="action-btn ${canInvite ? '' : 'action-btn-muted'}"
+                    onclick="openInviteModal('${u.user_id}')"
+                    title="${canInvite ? 'Send invite email' : 'Already active — resend invite'}"
+                  ><span class="material-symbols-outlined">send</span></button>
                   <button
                     type="button"
                     class="action-btn action-btn-danger"
@@ -425,15 +464,91 @@ const siteOrigin = Astro.url.origin;
       document.getElementById('user-modal').close();
       await loadUsers();
 
-      // Let the admin know if an invite email was sent
-      if (result.invited) {
-        showPageBanner(`Invite sent to ${result.email}. They'll receive an email to set up their account.`);
+      if (!editingUserId) {
+        showPageBanner(`User ${result.email} created. Set their permissions and org access, then click the send (✈) button to invite them.`);
       }
     } catch (err) {
       showFormError(err.message);
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Save';
+    }
+  };
+
+  // ── Send invite ───────────────────────────────────────────────────────────
+
+  let invitingUserId = null;
+
+  window.openInviteModal = function (userId) {
+    const u = users.find((u) => u.user_id === userId);
+    if (!u) return;
+    invitingUserId = userId;
+
+    const roleLabel = u.is_admin
+      ? 'Super admin — full access to the admin panel'
+      : u.org_access_enabled
+        ? `Org editor — can edit events &amp; announcements for: ${
+            u.organizations.length
+              ? u.organizations.map((o) => o.name).join(', ')
+              : '<em>no organizations assigned yet</em>'
+          }`
+        : 'No access assigned yet';
+
+    const instructions = u.is_admin
+      ? `<li>View and manage all events, announcements, locations, and organizations</li>
+         <li>Approve pending events and publish announcements</li>
+         <li>Manage user permissions</li>`
+      : `<li>View and edit events &amp; announcements for your assigned organization(s)</li>
+         <li>Submit events for approval (you cannot approve your own)</li>
+         <li>Create new locations for your events</li>
+         <li>You will <strong>not</strong> be able to approve/publish content — that requires a super admin</li>`;
+
+    document.getElementById('invite-preview').innerHTML = `
+      <div class="invite-user-info">
+        <div class="invite-email">${u.email}</div>
+        <div class="invite-role">${roleLabel}</div>
+      </div>
+      <p class="invite-desc">Clicking <strong>Send invite email</strong> will email ${u.email} a link to set their password and access the admin panel at <code>${siteOrigin}/admin</code>.</p>
+      <div class="invite-what">
+        <p class="invite-what-title">They will be able to:</p>
+        <ul>${instructions}</ul>
+      </div>
+    `;
+
+    document.getElementById('invite-error').style.display = 'none';
+    document.getElementById('invite-send-btn').disabled = false;
+    document.getElementById('invite-send-btn').textContent = 'Send invite email';
+
+    document.getElementById('invite-modal').showModal();
+  };
+
+  window.sendInviteConfirmed = async function () {
+    const btn = document.getElementById('invite-send-btn');
+    const errEl = document.getElementById('invite-error');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/admin/send-invite', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: invitingUserId }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        throw new Error(b.error ?? 'Failed to send invite');
+      }
+      document.getElementById('invite-modal').close();
+      await loadUsers();
+      const u = users.find((u) => u.user_id === invitingUserId);
+      showPageBanner(`Invite sent to ${u?.email ?? invitingUserId}.`);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Send invite email';
     }
   };
 
@@ -657,9 +772,12 @@ const siteOrigin = Astro.url.origin;
     font-weight: 600;
     white-space: nowrap;
   }
-  .chip-admin  { background: #fef3c7; color: #92400e; }
-  .chip-editor { background: #d1fae5; color: #065f46; }
-  .chip-none   { background: #f3f4f6; color: #9ca3af; }
+  .chip-admin   { background: #fef3c7; color: #92400e; }
+  .chip-editor  { background: #d1fae5; color: #065f46; }
+  .chip-none    { background: #f3f4f6; color: #9ca3af; }
+  .chip-active  { background: #dcfce7; color: #166534; }
+  .chip-invited { background: #dbeafe; color: #1e40af; }
+  .chip-pending { background: #fef9c3; color: #713f12; }
 
   .org-chip {
     display: inline-block;
@@ -689,7 +807,29 @@ const siteOrigin = Astro.url.origin;
   .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .action-btn-danger { color: #dc2626; }
   .action-btn-danger:hover:not(:disabled) { background: #fee2e2; border-color: #fecaca; }
+  .action-btn-muted { color: #9ca3af; }
   .action-btn .material-symbols-outlined { font-size: 1.1rem; }
+
+  /* Invite modal content */
+  .invite-preview { margin-bottom: 1rem; }
+  .invite-user-info {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .invite-email { font-weight: 600; font-size: 1rem; color: #111; }
+  .invite-role { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
+  .invite-desc { font-size: 0.875rem; color: #374151; margin: 0 0 0.85rem; line-height: 1.5; }
+  .invite-what {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+  }
+  .invite-what-title { font-weight: 600; font-size: 0.85rem; margin: 0 0 0.4rem; }
+  .invite-what ul { margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #374151; line-height: 1.7; }
 
   /* ── Modal ── */
   .modal-dialog {

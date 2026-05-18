@@ -26,7 +26,7 @@ export const GET = withAdminAuth(async ({ auth }) => {
     return jsonResponse([]);
   }
 
-  // 2. Fetch auth user records to get emails
+  // 2. Fetch auth user records to get emails and account status
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
     perPage: 1000,
   });
@@ -36,9 +36,15 @@ export const GET = withAdminAuth(async ({ auth }) => {
     return jsonError('Failed to fetch user emails');
   }
 
-  const emailByUserId = new Map<string, string>();
+  const authByUserId = new Map<string, { email: string; status: 'active' | 'invited' | 'pending' }>();
   for (const u of authData?.users ?? []) {
-    emailByUserId.set(u.id, u.email ?? '');
+    // active = has confirmed email; invited = invite sent but not confirmed; pending = created but no invite sent
+    const status = u.email_confirmed_at
+      ? 'active'
+      : u.invited_at
+        ? 'invited'
+        : 'pending';
+    authByUserId.set(u.id, { email: u.email ?? '', status });
   }
 
   // 3. Fetch org memberships for users who have org_access_enabled
@@ -69,16 +75,20 @@ export const GET = withAdminAuth(async ({ auth }) => {
   }
 
   // 4. Join everything together
-  const users = perms.map((p) => ({
-    id: p.id,
-    user_id: p.user_id,
-    email: emailByUserId.get(p.user_id) ?? null,
-    is_admin: p.is_admin,
-    org_access_enabled: p.org_access_enabled,
-    organizations: orgsByUserId.get(p.user_id) ?? [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-  }));
+  const users = perms.map((p) => {
+    const auth = authByUserId.get(p.user_id);
+    return {
+      id: p.id,
+      user_id: p.user_id,
+      email: auth?.email ?? null,
+      account_status: auth?.status ?? 'pending',
+      is_admin: p.is_admin,
+      org_access_enabled: p.org_access_enabled,
+      organizations: orgsByUserId.get(p.user_id) ?? [],
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+    };
+  });
 
   return jsonResponse(users);
 });
@@ -112,19 +122,18 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     (u) => u.email?.toLowerCase() === email.toLowerCase().trim()
   );
 
-  let invited = false;
   if (!authUser) {
-    // User hasn't signed up yet — send an invite so they can set up their account.
-    // This creates the auth user immediately and emails them a magic link.
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email.toLowerCase().trim()
-    );
-    if (inviteError) {
-      console.error('[ADMIN USERS] Invite error:', inviteError);
-      return jsonError(`Could not invite "${email}": ${inviteError.message}`);
+    // Create the account silently — no email sent. Admin will send the invite
+    // manually via the "Send invite" button when they're ready.
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      email_confirm: false,
+    });
+    if (createError) {
+      console.error('[ADMIN USERS] Create user error:', createError);
+      return jsonError(`Could not create account for "${email}": ${createError.message}`);
     }
-    authUser = inviteData.user;
-    invited = true;
+    authUser = created.user;
   }
 
   // Upsert user_permissions
@@ -142,13 +151,13 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     return jsonError('Failed to save user permissions');
   }
 
-  // Always add to email_allowlist so they can use the self-service register page
-  // if needed (e.g. invite link expires). Ignore conflicts — idempotent.
+  // Add to email_allowlist so the self-service register page works as a fallback
+  // (e.g. if an invite link expires and they need to set a password another way).
   await supabaseAdmin
     .from('email_allowlist')
     .upsert({ email: authUser.email!.toLowerCase() }, { onConflict: 'email' });
 
-  return jsonResponse({ ...data, email: authUser.email, invited }, 201);
+  return jsonResponse({ ...data, email: authUser.email }, 201);
 });
 
 // PUT /api/admin/users

@@ -16,13 +16,17 @@ const successMessage = Astro.url.searchParams.get('success') || '';
 <Layout title="Register">
   <div class="container mx-auto max-w-md py-20 px-4">
     <div class="rounded-lg border border-gray-300 p-8">
-      <h1 class="mb-2 text-2xl font-bold">Register</h1>
-      <p class="mb-6 text-gray-600">Create your organization account</p>
+      <h1 class="mb-2 text-2xl font-bold">Set up your account</h1>
+      <p class="mb-6 text-gray-600">Access is by invitation only. If you received an invite email, use the link in that email to set your password — you don't need this form.</p>
+
+      <div class="mb-5 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+        <strong>Did you receive an invite email?</strong>
+        <p class="mt-1">Click the link in that email to set your password directly. You only need this form if your invite link expired.</p>
+      </div>
 
       {successMessage && (
         <div class="mb-4 rounded-md bg-green-50 p-3 text-green-700">
           {successMessage}
-          <p class="mt-2 text-sm">Check your email to verify your account. You can login after verification.</p>
         </div>
       )}
 
@@ -32,43 +36,46 @@ const successMessage = Astro.url.searchParams.get('success') || '';
         </div>
       )}
 
-      <form id="register-form" class="space-y-4">
-        <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            placeholder="your@organization.com"
-          />
-        </div>
+      <details class="mb-4">
+        <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700">Invite link expired? Set password here</summary>
+        <form id="register-form" class="space-y-4 mt-4">
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              placeholder="your@email.com"
+            />
+          </div>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            minlength="8"
-            class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            placeholder="At least 8 characters"
-          />
-        </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              minlength="8"
+              class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              placeholder="At least 8 characters"
+            />
+          </div>
 
-        <button type="submit" class="w-full rounded-md bg-blue-600 py-2 text-white font-medium hover:bg-blue-700">
-          Register
-        </button>
-      </form>
+          <button type="submit" class="w-full rounded-md bg-blue-600 py-2 text-white font-medium hover:bg-blue-700">
+            Set password
+          </button>
+        </form>
+      </details>
 
       <p class="mt-6 text-center text-sm text-gray-600">
-        Already have an account? <a href="/login" class="text-blue-600 hover:underline">Login here</a>
+        Already have an account? <a href="/login" class="text-blue-600 hover:underline">Log in here</a>
       </p>
 
       <p class="mt-4 text-center text-xs text-gray-500">
-        Don't see your organization's email? Email <a href="mailto:dertown@gmail.com" class="text-blue-600 hover:underline">dertown@gmail.com</a>
+        Need access? Contact <a href="mailto:dertownleavenworth@gmail.com" class="text-blue-600 hover:underline">dertownleavenworth@gmail.com</a>
       </p>
     </div>
   </div>
