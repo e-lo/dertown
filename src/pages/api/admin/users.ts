@@ -113,7 +113,10 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   );
 
   if (!authUser) {
-    return jsonError(`No registered user found with email "${email}". The user must sign up first.`, 404);
+    return jsonError(
+      `No account found for "${email}". They need to sign up at /register first, then you can grant them access here.`,
+      404
+    );
   }
 
   // Upsert user_permissions
