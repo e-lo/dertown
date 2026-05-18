@@ -238,7 +238,7 @@ const siteOrigin = Astro.url.origin;
     if (u.is_admin) return '<span class="muted">All</span>';
     if (!u.org_access_enabled || !u.organizations?.length) return '<span class="muted">None assigned</span>';
     return u.organizations
-      .map((o) => `<span class="org-chip">${o.name}</span>`)
+      .map((o) => `<div class="org-line">${o.name}</div>`)
       .join('');
   }
 
@@ -758,16 +758,17 @@ const siteOrigin = Astro.url.origin;
     letter-spacing: 0.04em;
   }
   .users-table td {
-    padding: 0.9rem 1.25rem;
+    padding: 0.75rem 1.1rem;
     border-bottom: 1px solid #f3f4f6;
-    vertical-align: middle;
+    vertical-align: top;
   }
   .users-table tr:last-child td { border-bottom: none; }
   .users-table tbody tr:hover td { background: #fafafa; }
 
-  .td-email { font-weight: 500; }
-  .td-orgs { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
-  .td-actions { display: flex; gap: 0.4rem; align-items: center; }
+  .td-email { font-weight: 500; word-break: break-all; }
+  .td-role  { white-space: nowrap; }
+  .td-orgs  { display: flex; flex-direction: column; gap: 0.3rem; }
+  .td-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; padding-top: 0.1rem; }
 
   /* Chips */
   .chip {
@@ -785,14 +786,10 @@ const siteOrigin = Astro.url.origin;
   .chip-invited { background: #dbeafe; color: #1e40af; }
   .chip-pending { background: #fef9c3; color: #713f12; }
 
-  .org-chip {
-    display: inline-block;
-    padding: 0.2rem 0.55rem;
-    border-radius: 9999px;
-    background: #e0f2fe;
-    color: #0369a1;
-    font-size: 0.8rem;
-    white-space: nowrap;
+  .org-line {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.4;
   }
 
   /* Action buttons */
