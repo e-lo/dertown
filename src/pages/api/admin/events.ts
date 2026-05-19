@@ -98,11 +98,7 @@ export const PUT = withAdminAuth(async ({ request, auth }) => {
     if (!existing.organization_id || !auth.organizationIds.includes(existing.organization_id)) {
       return jsonError('Forbidden: event does not belong to your organization', 403);
     }
-
-    // Org editors cannot approve events — force status to pending
-    if (updateData.status === 'approved') {
-      updateData.status = 'pending';
-    }
+    // Org editors can publish (approve) events for their own organizations directly.
   }
 
   let locationId = updateData.location_id;
