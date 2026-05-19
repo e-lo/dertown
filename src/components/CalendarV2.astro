@@ -29,20 +29,26 @@ const calendarEvents = (allEvents || [])
   .filter(Boolean);
 ---
 
-<div
-  id="calendar-v2"
-  data-events={JSON.stringify(calendarEvents)}
-  data-title={title}
-  data-default-view={defaultView}
-  data-initial-tag={initialTag}
-  data-initial-org={initialOrg}
-  data-show-search={String(showSearch)}
-  data-show-category-filter={String(showCategoryFilter)}
-  style="display:flex;flex-direction:column;min-height:0"
->
-  <div id="cal-toolbar" class="cal-toolbar"></div>
-  <div id="cal-subbar" class="cal-subbar"></div>
-  <div id="cal-grid" class="cal-grid-container"></div>
-</div>
+{eventsError ? (
+  <div class="py-12 text-center text-gray-500">
+    <p>Unable to load events. Please try again later.</p>
+  </div>
+) : (
+  <div
+    id="calendar-v2"
+    data-events={JSON.stringify(calendarEvents)}
+    data-title={title}
+    data-default-view={defaultView}
+    data-initial-tag={initialTag}
+    data-initial-org={initialOrg}
+    data-show-search={String(showSearch)}
+    data-show-category-filter={String(showCategoryFilter)}
+    style="display:flex;flex-direction:column;min-height:0"
+  >
+    <div id="cal-toolbar" class="cal-toolbar"></div>
+    <div id="cal-subbar" class="cal-subbar"></div>
+    <div id="cal-grid" class="cal-grid-container"></div>
+  </div>
+)}
 
 <script src="/calendar-v2.js" is:inline></script>
