@@ -839,24 +839,29 @@ const userEmail = session.user?.email || 'Admin';
         fetch('/api/admin/announcements', { credentials: 'include' })
       ]);
 
-      if (!stagedResponse.ok || !existingResponse.ok) {
-        if (stagedResponse.status === 401 || existingResponse.status === 401) {
-          if (typeof window.openLoginModal === 'function') {
-            window.openLoginModal();
-          } else {
-            const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
-            window.location.href = `/login?redirect=${currentUrl}`;
-          }
-            return;
-          }
-        throw new Error(`HTTP error! status: ${stagedResponse.status || existingResponse.status}`);
+      // 401 on either → session expired
+      if (stagedResponse.status === 401 || existingResponse.status === 401) {
+        if (typeof window.openLoginModal === 'function') {
+          window.openLoginModal();
+        } else {
+          const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?redirect=${currentUrl}`;
+        }
+        return;
       }
 
-      const stagedData = await stagedResponse.json();
+      if (!existingResponse.ok) {
+        throw new Error(`HTTP error! status: ${existingResponse.status}`);
+      }
+
+      // Org editors (403 on staged) simply see no staged announcements — they can submit but not review
+      const stagedAnnouncements = stagedResponse.status === 403
+        ? []
+        : (await stagedResponse.json()).announcements?.map(a => ({ ...a, isStaged: true })) ?? [];
+
       const existingData = await existingResponse.json();
-      
-      // Combine both arrays, marking staged announcements
-      const stagedAnnouncements = (stagedData.announcements || []).map(a => ({ ...a, isStaged: true }));
+
+      // Combine staged + existing, sort most-recent-first (staged first on same date)
       const existingAnnouncements = (existingData.announcements || []).map(a => ({ ...a, isStaged: false }));
       const allAnnouncements = [...stagedAnnouncements, ...existingAnnouncements].sort((a, b) => {
         // Sort by created_at, then staged announcements first
