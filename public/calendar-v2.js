@@ -491,6 +491,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!e.target.closest('.cal-filter-wrap')) closeFilterPanel();
     if (!e.target.closest('.cal-search-wrap')) collapseSearch();
   });
+
+  // ─── Touch / swipe navigation ────────────────────────────
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  const gridEl = document.getElementById('cal-grid');
+  if (gridEl) {
+    gridEl.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    gridEl.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      // Only trigger on horizontal swipe (dx > 50px, dy < 30px)
+      if (Math.abs(dx) > 50 && Math.abs(dy) < 30) {
+        navigate(dx < 0 ? +1 : -1);
+      }
+    }, { passive: true });
+  }
 });
 
 // ─── Toolbar ─────────────────────────────────────────────────
