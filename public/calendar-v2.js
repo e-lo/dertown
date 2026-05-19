@@ -357,7 +357,107 @@ function updateURL() {
   const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
   window.history.replaceState({}, '', newUrl);
 }
-function collapseSearch() {}
+// ─── Search ──────────────────────────────────────────────────
+
+let _searchDebounce = null;
+
+function expandSearch() {
+  document.getElementById('cal-search-collapsed')?.style.setProperty('display', 'none');
+  const expanded = document.getElementById('cal-search-expanded');
+  expanded?.classList.add('visible');
+  document.getElementById('cal-search-input')?.focus();
+}
+
+function collapseSearch() {
+  document.getElementById('cal-search-collapsed')?.style.removeProperty('display');
+  document.getElementById('cal-search-expanded')?.classList.remove('visible');
+  const input = document.getElementById('cal-search-input');
+  if (input) input.value = '';
+  hideAutocomplete();
+}
+
+function hideAutocomplete() {
+  document.getElementById('cal-autocomplete')?.classList.remove('visible');
+}
+
+function handleSearchInput(query) {
+  clearTimeout(_searchDebounce);
+  if (query.trim().length < 2) {
+    hideAutocomplete();
+    return;
+  }
+  _searchDebounce = setTimeout(() => fetchAutocomplete(query.trim()), 200);
+}
+
+function handleSearchEnter(query) {
+  if (!query.trim()) return;
+  // Jump to first result's week
+  fetchAutocomplete(query.trim(), true);
+}
+
+async function fetchAutocomplete(query, jumpToFirst = false) {
+  try {
+    const res = await fetch(`/api/calendar/search?q=${encodeURIComponent(query)}`);
+    const { results } = await res.json();
+
+    if (jumpToFirst && results.length > 0) {
+      goToDate(results[0].start_date);
+      collapseSearch();
+      return;
+    }
+
+    renderAutocomplete(results, query);
+  } catch {
+    hideAutocomplete();
+  }
+}
+
+function renderAutocomplete(results, query) {
+  const container = document.getElementById('cal-autocomplete');
+  if (!container) return;
+
+  if (results.length === 0) {
+    container.classList.remove('visible');
+    return;
+  }
+
+  const re = new RegExp(`(${escapeRegex(query)})`, 'gi');
+
+  container.innerHTML = results.map(r => {
+    const color = getCategoryColor(r.primaryTag);
+    const highlightedTitle = escapeHtml(r.title).replace(re, '<mark>$1</mark>');
+    const dateLabel = r.start_date
+      ? new Date(r.start_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      : '';
+    const meta = [dateLabel, r.start_time ? formatTime(r.start_time.length <= 8 ? `2000-01-01T${r.start_time}` : r.start_time) : null, r.primaryTag]
+      .filter(Boolean).join(' · ');
+
+    return `
+      <div class="cal-ac-item" data-date="${r.start_date}" data-url="${escapeHtml(r.url)}">
+        <div class="cal-ac-bar" style="background:${color}"></div>
+        <div>
+          <div class="cal-ac-title">${highlightedTitle}</div>
+          <div class="cal-ac-meta">${escapeHtml(meta)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.classList.add('visible');
+
+  // Clicking a result navigates to the event
+  container.querySelectorAll('.cal-ac-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (item.dataset.url?.startsWith('/')) {
+        window.location.href = item.dataset.url;
+      }
+    });
+  });
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // ─── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
