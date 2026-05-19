@@ -470,11 +470,11 @@ input[type='date'] {
   font-size: 13px; color: #9ca3af; cursor: pointer;
   transition: border-color 0.12s;
 }
-.cal-search-collapsed:hover { border-color: #4740cb; color: #6b7280; }
+.cal-search-collapsed:hover { border-color: var(--palette-palatinate-blue); color: #6b7280; }
 .cal-search-expanded {
   display: none;
   align-items: center; gap: 6px;
-  border: 1px solid #4740cb; border-radius: 8px;
+  border: 1px solid var(--palette-palatinate-blue); border-radius: 8px;
   background: white; padding: 0 10px;
   box-shadow: 0 0 0 3px rgba(71,64,203,0.1);
   min-width: 280px;
@@ -523,8 +523,8 @@ input[type='date'] {
   transition: border-color 0.12s;
   white-space: nowrap;
 }
-.cal-filter-btn:hover { border-color: #4740cb; color: #4740cb; }
-.cal-filter-btn.active { border-color: #4740cb; color: #4740cb; background: #f0f0fe; }
+.cal-filter-btn:hover { border-color: var(--palette-palatinate-blue); color: var(--palette-palatinate-blue); }
+.cal-filter-btn.active { border-color: var(--palette-palatinate-blue); color: var(--palette-palatinate-blue); background: #f0f0fe; }
 .cal-filter-count {
   background: var(--palette-palatinate-blue); color: white;
   font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px;
