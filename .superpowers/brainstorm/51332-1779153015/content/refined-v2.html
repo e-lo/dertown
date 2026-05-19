@@ -1,0 +1,496 @@
+<style>
+  * { font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+  body { padding: 16px; background: #f9fafb; }
+
+  /* ——— Toolbar ——— */
+  .cal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .cal-toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .cal-toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+  .nav-btn {
+    width: 30px; height: 30px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover { background: #f3f4f6; }
+
+  .period-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+  }
+  .period-month {
+    font-size: 16px;
+    font-weight: 700;
+    color: #4740cb;
+  }
+
+  .today-btn {
+    font-size: 12px; font-weight: 600;
+    color: #4740cb; background: #eef2ff;
+    border: none; border-radius: 6px;
+    padding: 5px 10px; cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Date picker button */
+  .datepicker-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500;
+    color: #374151; background: white;
+    border: 1px solid #d1d5db; border-radius: 6px;
+    padding: 5px 10px; cursor: pointer;
+  }
+  .datepicker-btn:hover { background: #f9fafb; }
+  .datepicker-icon { font-size: 14px; }
+
+  /* View toggle */
+  .view-toggle {
+    display: flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+  }
+  .view-btn {
+    padding: 5px 12px;
+    font-size: 12px; font-weight: 500;
+    color: #6b7280; background: white;
+    border: none; cursor: pointer;
+    border-right: 1px solid #e5e7eb;
+    transition: background 0.15s;
+  }
+  .view-btn:last-child { border-right: none; }
+  .view-btn.active {
+    background: #4740cb; color: white; font-weight: 600;
+  }
+  .view-btn:hover:not(.active) { background: #f3f4f6; }
+
+  /* Filter chips */
+  .filter-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 0 0 14px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 14px;
+  }
+  .filter-chip {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: #4740cb; color: #4740cb; }
+  .filter-chip.active { background: #4740cb; color: white; border-color: #4740cb; }
+  .filter-chip.arts.active   { background: #ffe600; color: #7a5c00; border-color: #ffe600; }
+  .filter-chip.family.active { background: #c0268c; color: white; border-color: #c0268c; }
+  .filter-chip.nature.active { background: #4daa57; color: white; border-color: #4daa57; }
+  .filter-chip.sports.active { background: #219ebc; color: white; border-color: #219ebc; }
+
+  /* ——— Week grid ——— */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+  }
+
+  /* ——— Day column ——— */
+  .day-col {
+    min-width: 0;
+  }
+  .day-header {
+    margin-bottom: 8px;
+  }
+  .day-name {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #9ca3af; margin-bottom: 3px;
+  }
+  .day-num {
+    font-size: 26px; font-weight: 700;
+    line-height: 1; color: #111827;
+  }
+  .day-num.today {
+    background: #4740cb; color: white;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  /* No month below day number — it's in the header */
+
+  /* ——— Scrollable event list ——— */
+  .day-events {
+    max-height: 320px;
+    overflow-y: auto;
+    /* subtle scroll hint */
+    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    padding-right: 2px;
+  }
+  .day-events:hover {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  /* Thin scrollbar */
+  .day-events::-webkit-scrollbar { width: 3px; }
+  .day-events::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  /* ——— Event cards — square-left, rounded-right ——— */
+  .event-card {
+    background: white;
+    border-radius: 0 8px 8px 0;   /* square left, rounded right */
+    padding: 9px 11px;
+    margin-bottom: 7px;
+    border-left: 3px solid #4740cb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+    position: relative;
+  }
+  .event-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+  .event-card.arts   { border-left-color: #ffe600; }
+  .event-card.family { border-left-color: #c0268c; }
+  .event-card.nature { border-left-color: #4daa57; }
+  .event-card.sports { border-left-color: #219ebc; }
+  .event-card.allday {
+    border-left: none; border-radius: 6px;
+    background: #f0f0fe;
+    border: 1px dashed #c7c4f5;
+  }
+
+  .event-time  { font-size: 10px; font-weight: 500; color: #9ca3af; margin-bottom: 2px; }
+  .event-title { font-size: 12px; font-weight: 600; color: #111827; line-height: 1.35; }
+  .event-loc   { font-size: 11px; color: #b0b7c3; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-tag   {
+    display: inline-block; margin-top: 4px;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px;
+    background: #eef2ff; color: #4740cb;
+  }
+  .event-tag.arts   { background: #fffbcc; color: #7a5c00; }
+  .event-tag.family { background: #fce7f3; color: #831843; }
+  .event-tag.nature { background: #dcfce7; color: #14532d; }
+
+  /* Concurrent events */
+  .more-btn {
+    font-size: 10px; font-weight: 600;
+    color: #6b7280; background: #f3f4f6;
+    border: none; border-radius: 5px;
+    padding: 3px 8px; cursor: pointer;
+    margin-bottom: 7px; display: block;
+  }
+  .more-btn:hover { background: #e5e7eb; }
+
+  /* Empty day */
+  .empty-day { padding: 8px 0; font-size: 11px; color: #d1d5db; font-style: italic; }
+
+  /* ——— TOOLTIP DEMO ——— */
+  .tooltip-section {
+    margin-top: 28px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .tooltip-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9ca3af; margin-bottom: 12px; }
+  .tooltip-demo-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+
+  .tooltip-anchor { position: relative; display: inline-block; }
+  .tooltip-card-mini {
+    background: white; border-radius: 0 8px 8px 0; padding: 9px 11px;
+    border-left: 3px solid #4740cb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    cursor: pointer; width: 160px;
+    font-size: 12px; font-weight: 600; color: #111827;
+  }
+  .tooltip-card-mini .event-time { font-size: 10px; font-weight: 500; color: #9ca3af; margin-bottom: 2px; }
+
+  /* Tooltip floats — smart positioning */
+  .tooltip-popup {
+    position: absolute;
+    z-index: 100;
+    width: 220px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    padding: 12px 14px;
+    pointer-events: none;
+  }
+  .tooltip-popup.below { top: calc(100% + 8px); left: 0; }
+  .tooltip-popup.above { bottom: calc(100% + 8px); left: 0; }
+  .tooltip-popup.right { top: 0; left: calc(100% + 8px); }
+  /* For rightmost column — open to the left */
+  .tooltip-popup.left  { top: 0; right: calc(100% + 8px); }
+
+  .tt-title { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+  .tt-row   { display: flex; gap: 6px; font-size: 11px; color: #6b7280; margin-bottom: 3px; align-items: flex-start; }
+  .tt-icon  { font-size: 12px; flex-shrink: 0; margin-top: 0.5px; }
+  .tt-tag   { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #eef2ff; color: #4740cb; margin-top: 6px; }
+
+  .tooltip-note {
+    font-size: 11px; color: #9ca3af; font-style: italic; margin-top: 8px;
+    padding: 6px 10px; background: #f9fafb; border-radius: 6px;
+  }
+</style>
+
+<h2>Refined calendar — v2</h2>
+<p class="subtitle">Month in toolbar header · Square-left cards · Column-scrolling · Smart tooltips · View toggle · Date picker</p>
+
+<!-- Toolbar -->
+<div class="cal-toolbar">
+  <div class="cal-toolbar-left">
+    <button class="nav-btn">‹</button>
+    <div>
+      <span class="period-month">May </span><span class="period-label">19 – 25, 2025</span>
+    </div>
+    <button class="nav-btn">›</button>
+    <button class="today-btn">Today</button>
+    <!-- Date picker -->
+    <button class="datepicker-btn">
+      <span class="datepicker-icon">📅</span>
+      Jump to date…
+    </button>
+  </div>
+  <div class="cal-toolbar-right">
+    <div class="view-toggle">
+      <button class="view-btn">Day</button>
+      <button class="view-btn active">Week</button>
+      <button class="view-btn">Month</button>
+    </div>
+  </div>
+</div>
+
+<!-- Filter chips -->
+<div class="filter-row">
+  <span class="filter-chip active">All</span>
+  <span class="filter-chip arts active">Arts &amp; Culture</span>
+  <span class="filter-chip">Civic</span>
+  <span class="filter-chip family">Family</span>
+  <span class="filter-chip nature">Nature</span>
+  <span class="filter-chip sports">Sports</span>
+  <span class="filter-chip">Town</span>
+</div>
+
+<!-- 7-col week grid -->
+<div class="week-grid">
+
+  <!-- MON 19 TODAY -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Mon</div>
+      <div class="day-num today">19</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card allday"><div class="event-time">All day</div><div class="event-title">Memorial Day Wknd</div></div>
+      <div class="event-card">
+        <div class="event-time">10:00 AM</div>
+        <div class="event-title">Farmers Market</div>
+        <div class="event-loc">Town Square</div>
+      </div>
+      <div class="event-card arts">
+        <div class="event-time">2:00 PM · 3 hrs</div>
+        <div class="event-title">Summer Concert Series</div>
+        <div class="event-loc">Icicle Creek Center</div>
+      </div>
+      <div class="event-card family">
+        <div class="event-time">4:30 PM</div>
+        <div class="event-title">Kids Craft Workshop</div>
+        <div class="event-loc">Public Library</div>
+      </div>
+      <div class="event-card nature">
+        <div class="event-time">6:00 PM</div>
+        <div class="event-title">Evening Bird Walk</div>
+        <div class="event-loc">Waterfront Trail</div>
+      </div>
+      <div class="event-card">
+        <div class="event-time">7:30 PM</div>
+        <div class="event-title">Book Club Meetup</div>
+        <div class="event-loc">Cabin Coffee</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TUE 20 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Tue</div>
+      <div class="day-num">20</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card family">
+        <div class="event-time">9:00 AM</div>
+        <div class="event-title">Kids Craft Workshop</div>
+        <div class="event-loc">Public Library</div>
+      </div>
+      <div class="event-card">
+        <div class="event-time">7:00 PM</div>
+        <div class="event-title">City Council Meeting</div>
+        <div class="event-loc">City Hall</div>
+      </div>
+      <div class="event-card sports">
+        <div class="event-time">7:00 PM</div>
+        <div class="event-title">Trivia Night</div>
+        <div class="event-loc">Doghaus Brewery</div>
+      </div>
+      <button class="more-btn">+ 1 more at 7:00 PM ›</button>
+    </div>
+  </div>
+
+  <!-- WED 21 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Wed</div>
+      <div class="day-num">21</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card nature">
+        <div class="event-time">8:00 AM</div>
+        <div class="event-title">Sunrise Trail Run 5K</div>
+        <div class="event-loc">Enchantment Trail</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THU 22 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Thu</div>
+      <div class="day-num">22</div>
+    </div>
+    <div class="day-events">
+      <div class="empty-day">No events</div>
+    </div>
+  </div>
+
+  <!-- FRI 23 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Fri</div>
+      <div class="day-num">23</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card arts">
+        <div class="event-time">6:00 PM</div>
+        <div class="event-title">Gallery Opening Night</div>
+        <div class="event-loc">Art House Leavenworth</div>
+      </div>
+      <div class="event-card family">
+        <div class="event-time">7:30 PM</div>
+        <div class="event-title">Movie in the Park</div>
+        <div class="event-loc">Waterfront Park</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAT 24 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Sat</div>
+      <div class="day-num">24</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card">
+        <div class="event-time">9:00 AM</div>
+        <div class="event-title">Bavarian Village Tour</div>
+        <div class="event-loc">Front St</div>
+      </div>
+      <div class="event-card arts">
+        <div class="event-time">11:00 AM</div>
+        <div class="event-title">Maifest Beer Garden</div>
+        <div class="event-loc">City Park</div>
+      </div>
+      <div class="event-card nature">
+        <div class="event-time">2:00 PM</div>
+        <div class="event-title">Kayak Rentals Open</div>
+        <div class="event-loc">Wenatchee River</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUN 25 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Sun</div>
+      <div class="day-num">25</div>
+    </div>
+    <div class="day-events">
+      <div class="event-card">
+        <div class="event-time">10:00 AM</div>
+        <div class="event-title">Farmers Market</div>
+        <div class="event-loc">Town Square</div>
+      </div>
+      <div class="event-card family">
+        <div class="event-time">4:00 PM</div>
+        <div class="event-title">Summer Reading Kickoff</div>
+        <div class="event-loc">Public Library</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ——— Tooltip demo ——— -->
+<div class="tooltip-section">
+  <div class="tooltip-label">Tooltip behavior — smart positioning</div>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Tooltips detect their position and open toward the center of the screen. Left columns open right; right columns open left; top rows open down; bottom rows open up.</p>
+
+  <div class="tooltip-demo-row">
+
+    <div>
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">Left column → opens right</div>
+      <div class="tooltip-anchor">
+        <div class="tooltip-card-mini">
+          <div class="event-time">2:00 PM</div>
+          Summer Concert Series
+        </div>
+        <div class="tooltip-popup right">
+          <div class="tt-title">Summer Concert Series</div>
+          <div class="tt-row"><span class="tt-icon">🕑</span> Mon May 19 · 2:00–5:00 PM</div>
+          <div class="tt-row"><span class="tt-icon">📍</span> Icicle Creek Center for the Arts</div>
+          <div class="tt-row"><span class="tt-icon">ℹ</span> Free outdoor concert featuring local musicians. Bring a blanket.</div>
+          <span class="tt-tag arts">Arts &amp; Culture</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">Right column → opens left</div>
+      <div class="tooltip-anchor">
+        <div class="tooltip-card-mini">
+          <div class="event-time">4:00 PM</div>
+          Summer Reading Kickoff
+        </div>
+        <div class="tooltip-popup left">
+          <div class="tt-title">Summer Reading Kickoff</div>
+          <div class="tt-row"><span class="tt-icon">🕓</span> Sun May 25 · 4:00–6:00 PM</div>
+          <div class="tt-row"><span class="tt-icon">📍</span> Leavenworth Public Library</div>
+          <div class="tt-row"><span class="tt-icon">ℹ</span> Kick off summer reading with games, prizes, and author visits.</div>
+          <span class="tt-tag family">Family</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="tooltip-note">In code: tooltip position will be calculated from the event card's <code>getBoundingClientRect()</code> relative to the viewport — no manual placement needed.</div>
+</div>

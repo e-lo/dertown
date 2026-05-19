@@ -2,30 +2,16 @@
 export const prerender = false;
 
 import Layout from '../components/Layout.astro';
-import { db } from '../lib/supabase';
-import CalendarComponent from '../components/Calendar.astro';
-import { transformEventForCalendar } from '../lib/event-utils';
+import CalendarV2 from '../components/CalendarV2.astro';
 
-// Fetch events for the calendar
-// Calendar shows all events (including past events)
-const { data: events, error } = await db.events.getAll();
-
-if (error) {
-  console.error('Error fetching events:', error);
-}
-
-// Transform events for FullCalendar
-const calendarEvents = (events || [])
-  .map(transformEventForCalendar)
-  .filter(Boolean);
+const initialTag = Astro.url.searchParams.get('tag') || undefined;
 ---
 
-<Layout 
+<Layout
   title="Event Calendar - Der Town"
   description="View upcoming community events in Der Town. Find local activities, festivals, meetings, and community gatherings all in one place."
 >
   <div class="container mx-auto px-4 py-8">
-    <!-- Use the new Calendar component -->
-    <CalendarComponent events={JSON.stringify(calendarEvents)} />
+    <CalendarV2 defaultView="week" showSearch={true} showCategoryFilter={true} initialTag={initialTag} />
   </div>
 </Layout>
