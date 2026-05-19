@@ -133,6 +133,93 @@ function groupByDate(events) {
   }, {});
 }
 
+// ─── Event card HTML ─────────────────────────────────────────
+
+function eventCardHTML(event, showTag) {
+  const color = getCategoryColor(event.category);
+  const timeStr = event.allDay
+    ? 'All day'
+    : formatTime(event.start) + ' ' + formatDuration(event.start, event.end);
+  const tagHTML = showTag && event.category
+    ? `<span class="cal-event-tag" style="background:${color}22;color:${color}">${event.category}</span>`
+    : '';
+  const locHTML = event.location
+    ? `<div class="cal-event-loc">${escapeHtml(event.location)}</div>`
+    : '';
+
+  return `
+    <a class="cal-event${event.allDay ? ' allday' : ''}"
+       href="${event.url || '#'}"
+       style="${event.allDay ? '' : `border-left-color:${color}`}"
+       data-event-id="${event.id}"
+    >
+      <div class="cal-event-time">${timeStr}</div>
+      <div class="cal-event-title">${escapeHtml(event.title)}</div>
+      ${locHTML}
+      ${tagHTML}
+    </a>
+  `;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Day column HTML ─────────────────────────────────────────
+
+function dayColumnHTML(date, eventsForDay, opts = {}) {
+  const dateStr = toDateStr(date);
+  const todayClass = isToday(dateStr) ? ' today' : '';
+  const dayNum = date.getDate();
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Sort: all-day first, then by time
+  const sorted = [...eventsForDay].sort((a, b) => {
+    if (a.allDay && !b.allDay) return -1;
+    if (!a.allDay && b.allDay) return 1;
+    return a.start.localeCompare(b.start);
+  });
+
+  // Tag visibility: hide if only one category active
+  const showTag = state.activeCategories.length !== 1;
+
+  const cardsHTML = sorted.length
+    ? sorted.map(e => eventCardHTML(e, showTag)).join('')
+    : '<div class="cal-day-empty">No events</div>';
+
+  const headerHTML = opts.mobileInline
+    ? `<div class="cal-day-header-inline">
+         <div class="cal-day-num${todayClass}">${dayNum}</div>
+         <div class="cal-day-meta">
+           <div class="cal-day-name-full">${date.toLocaleDateString('en-US', { weekday: 'long' })}</div>
+           <div class="cal-day-month">${monthName}</div>
+         </div>
+       </div>`
+    : `<div class="cal-day-header">
+         <div class="cal-day-name">${dayName}</div>
+         <div class="cal-day-num${todayClass}">${dayNum}</div>
+       </div>`;
+
+  return `
+    <div class="cal-day-col" data-date="${dateStr}">
+      ${headerHTML}
+      <div class="cal-day-events">${cardsHTML}</div>
+    </div>
+  `;
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────
+// Full implementation in Task 9. Stub here so render() can call it.
+function attachTooltips() {}
+function closeFilterPanel() {}
+function collapseSearch() {}
+
 // ─── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('calendar-v2');
