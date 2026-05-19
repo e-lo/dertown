@@ -86,6 +86,20 @@ const userEmail = session.user?.email || 'Admin';
 </AdminLayout>
 
 <script type="module">
+  // Return to the page we came from if it's an admin page, otherwise fall back to /admin.
+  const returnTo = (() => {
+    try {
+      const ref = document.referrer;
+      if (ref) {
+        const refUrl = new URL(ref);
+        if (refUrl.origin === window.location.origin && refUrl.pathname.startsWith('/admin')) {
+          return refUrl.pathname + refUrl.search;
+        }
+      }
+    } catch (_) {}
+    return '/admin';
+  })();
+
   function normalizeUrl(url) {
     if (!url || url.trim() === '') return null;
     const trimmed = url.trim();
@@ -275,7 +289,7 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   function closeEditEventModal() {
-    window.location.href = '/admin';
+    window.location.href = returnTo;
   }
 
   function populateEventForm(event) {
@@ -421,7 +435,7 @@ const userEmail = session.user?.email || 'Admin';
       if (response.ok) {
         showMessage('Updated successfully!', 'success');
         setTimeout(() => {
-          window.location.href = `/events/${currentEditId}`;
+          window.location.href = returnTo;
         }, 500);
       } else {
         const errorText = await response.text();
@@ -487,7 +501,7 @@ const userEmail = session.user?.email || 'Admin';
         showMessage('Event created successfully!', 'success');
         if (data.event && data.event.id) {
           setTimeout(() => {
-            window.location.href = `/events/${data.event.id}`;
+            window.location.href = returnTo;
           }, 500);
         } else {
           closeEditEventModal();
