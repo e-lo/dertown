@@ -474,3 +474,109 @@ function render() {
   renderGrid();
   attachTooltips();
 }
+
+// ─── Grid rendering ──────────────────────────────────────────
+
+function renderGrid() {
+  const grid = document.getElementById('cal-grid');
+  if (!grid) return;
+
+  if (state.view === 'week') renderWeekGrid(grid);
+  else if (state.view === 'day') renderDayGrid(grid);
+  else if (state.view === 'month') renderMonthGrid(grid);
+}
+
+function renderWeekGrid(container) {
+  const cols = getColumnCount();
+  const weekStart = getWeekStart(state.currentDate);
+  const allDates = getWeekDates(weekStart); // always 7 dates Mon-Sun
+  const filtered = getFilteredEvents();
+  const byDate = groupByDate(filtered);
+  const isMobile = cols === 1;
+
+  // On < 7 cols, show `cols` dates starting from the one containing currentDate
+  let dates;
+  if (cols >= 7) {
+    dates = allDates;
+  } else {
+    // Find the index of current date in the week, center the window
+    const curStr = toDateStr(state.currentDate);
+    let idx = allDates.findIndex(d => toDateStr(d) === curStr);
+    if (idx < 0) idx = 0;
+    const start = Math.max(0, Math.min(idx, 7 - cols));
+    dates = allDates.slice(start, start + cols);
+  }
+
+  container.innerHTML = `
+    <div class="cal-week-grid" style="grid-template-columns:repeat(${cols},1fr)">
+      ${dates.map(d => dayColumnHTML(d, byDate[toDateStr(d)] || [], { mobileInline: isMobile })).join('')}
+    </div>
+  `;
+}
+
+function renderDayGrid(container) {
+  const filtered = getFilteredEvents();
+  const byDate = groupByDate(filtered);
+  const dateStr = toDateStr(state.currentDate);
+  container.innerHTML = `
+    <div class="cal-week-grid" style="grid-template-columns:1fr;max-width:480px">
+      ${dayColumnHTML(state.currentDate, byDate[dateStr] || [], { mobileInline: true })}
+    </div>
+  `;
+}
+
+function renderMonthGrid(container) {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const filtered = getFilteredEvents();
+  const byDate = groupByDate(filtered);
+
+  // Start from Monday before the 1st
+  const gridStart = getWeekStart(firstDay);
+
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const headerHTML = dayNames.map(d => `<div class="cal-month-header">${d}</div>`).join('');
+
+  const cells = [];
+  const cur = new Date(gridStart);
+  while (cur <= lastDay || cells.length % 7 !== 0 || cells.length < 35) {
+    const ds = toDateStr(cur);
+    const evs = byDate[ds] || [];
+    const isCurrentMonth = cur.getMonth() === month;
+    const todayCls = isToday(ds) ? ' today' : '';
+    const otherCls = !isCurrentMonth ? ' other-month' : '';
+
+    const pills = evs.slice(0, 3).map(e => {
+      const color = getCategoryColor(e.category);
+      return `<span class="cal-month-pill" style="background:${color}">${escapeHtml(e.title)}</span>`;
+    }).join('');
+    const more = evs.length > 3 ? `<div class="cal-month-more">+${evs.length - 3} more</div>` : '';
+
+    cells.push(`
+      <div class="cal-month-cell${todayCls}${otherCls}" data-date="${ds}" role="button" tabindex="0">
+        <div class="cal-month-day-num">${cur.getDate()}</div>
+        ${pills}${more}
+      </div>
+    `);
+
+    cur.setDate(cur.getDate() + 1);
+    if (cells.length > 42) break; // max 6 rows
+  }
+
+  container.innerHTML = `
+    <div class="cal-month-grid">
+      ${headerHTML}
+      ${cells.join('')}
+    </div>
+  `;
+
+  // Clicking a day in month view switches to day view
+  container.querySelectorAll('.cal-month-cell[data-date]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      goToDate(cell.dataset.date);
+      setView('day');
+    });
+  });
+}
