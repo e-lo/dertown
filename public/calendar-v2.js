@@ -81,7 +81,7 @@ function formatDuration(startIso, endIso) {
   if (!endIso) return '';
   const diff = (new Date(endIso) - new Date(startIso)) / 60000; // minutes
   if (diff <= 0) return '';
-  if (diff < 60) return `· ${diff} min`;
+  if (diff < 60) return `· ${Math.round(diff)} min`;
   const hrs = diff / 60;
   return `· ${hrs === Math.floor(hrs) ? hrs : hrs.toFixed(1)} hr${hrs !== 1 ? 's' : ''}`;
 }
@@ -125,6 +125,7 @@ function getFilteredEvents() {
 /** Group events array by date string. */
 function groupByDate(events) {
   return events.reduce((acc, event) => {
+    if (!event.start) return acc;
     const key = eventDateStr(event.start);
     if (!acc[key]) acc[key] = [];
     acc[key].push(event);
