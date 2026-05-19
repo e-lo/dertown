@@ -1,0 +1,44 @@
+---
+import { db } from '../lib/supabase';
+import { transformEventForCalendar } from '../lib/event-utils';
+
+export interface Props {
+  title?: string;
+  defaultView?: 'week' | 'day' | 'month';
+  showSearch?: boolean;
+  showCategoryFilter?: boolean;
+  initialTag?: string;
+  initialOrg?: string;
+}
+
+const {
+  title = 'Calendar',
+  defaultView = 'week',
+  showSearch = true,
+  showCategoryFilter = true,
+  initialTag = '',
+  initialOrg = '',
+} = Astro.props;
+
+const allEvents = await db.events.getAll();
+const calendarEvents = allEvents
+  .map(transformEventForCalendar)
+  .filter(Boolean);
+---
+
+<div
+  id="calendar-v2"
+  data-events={JSON.stringify(calendarEvents)}
+  data-default-view={defaultView}
+  data-initial-tag={initialTag}
+  data-initial-org={initialOrg}
+  data-show-search={String(showSearch)}
+  data-show-category-filter={String(showCategoryFilter)}
+  style="display:flex;flex-direction:column;min-height:0"
+>
+  <div id="cal-toolbar" class="cal-toolbar"></div>
+  <div id="cal-subbar" class="cal-subbar"></div>
+  <div id="cal-grid" class="cal-grid-container"></div>
+</div>
+
+<script src="/calendar-v2.js" is:inline></script>
