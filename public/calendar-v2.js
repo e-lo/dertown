@@ -149,7 +149,7 @@ function eventCardHTML(event, showTag) {
 
   return `
     <a class="cal-event${event.allDay ? ' allday' : ''}"
-       href="${event.url || '#'}"
+       href="${event.url?.startsWith('/') ? event.url : '#'}"
        style="${event.allDay ? '' : `border-left-color:${color}`}"
        data-event-id="${event.id}"
     >
