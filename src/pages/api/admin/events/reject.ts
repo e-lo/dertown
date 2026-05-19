@@ -4,11 +4,27 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 export const prerender = false;
 
 export const POST = withAdminAuth(async ({ request, auth }) => {
-  if (!auth.isSuperAdmin) return jsonError('Forbidden — only super admins can reject events', 403);
   const { eventId, reason } = await request.json();
 
   if (!eventId) {
     return jsonError('Event ID is required', 400);
+  }
+
+  // Org editors can only reject events belonging to their organizations
+  if (!auth.isSuperAdmin) {
+    const { data: event, error: fetchError } = await supabaseAdmin
+      .from('events')
+      .select('organization_id')
+      .eq('id', eventId)
+      .single();
+
+    if (fetchError || !event) {
+      return jsonError('Event not found', 404);
+    }
+
+    if (!event.organization_id || !auth.organizationIds.includes(event.organization_id)) {
+      return jsonError('Forbidden: event does not belong to your organization', 403);
+    }
   }
 
   // Update event status to archived using admin client
