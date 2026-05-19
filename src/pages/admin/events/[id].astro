@@ -4,7 +4,8 @@ import EditEventModal from '../../../components/ui/EditEventModal.astro';
 import AddLocationModal from '../../../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../../../components/ui/AddOrganizationModal.astro';
 import LoginModal from '../../../components/ui/LoginModal.astro';
-import { getSessionFromCookies } from '../../../lib/session';
+import { getSessionFromCookies, checkAdminAccess } from '../../../lib/session';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 const { id } = Astro.params;
 
@@ -17,26 +18,71 @@ if (!session) {
   const redirectTo = Astro.url.pathname + Astro.url.search;
   return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
 }
+
+// Check role — org editors can only edit events for their organizations.
+const { role, organizationIds } = await checkAdminAccess(Astro.cookies);
+let accessDenied = false;
+let eventOrgName: string | null = null;
+
+if (role === 'org_editor') {
+  const { data: eventRow } = await supabaseAdmin
+    .from('events')
+    .select('organization_id, organization:organizations!events_organization_id_fkey(name)')
+    .eq('id', id)
+    .single();
+
+  if (!eventRow || !organizationIds.includes(eventRow.organization_id)) {
+    accessDenied = true;
+    const org = eventRow?.organization as { name?: string } | null;
+    eventOrgName = org?.name ?? null;
+  }
+}
+
 const userEmail = session.user?.email || 'Admin';
 ---
 
 <AdminLayout title="Edit Event" userEmail={userEmail}>
   <Fragment slot="modals">
-    <EditEventModal />
-    <AddLocationModal />
-    <AddOrganizationModal />
+    {!accessDenied && <EditEventModal />}
+    {!accessDenied && <AddLocationModal />}
+    {!accessDenied && <AddOrganizationModal />}
   </Fragment>
 
-  <div data-mode="edit" data-event-id={id}>
-    <div id="message"></div>
-  </div>
+  {accessDenied ? (
+    <div class="max-w-lg mx-auto mt-16 rounded-xl border border-amber-200 bg-amber-50 p-8 text-center">
+      <span class="material-symbols-outlined text-5xl text-amber-400 mb-4 block">lock</span>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">You don't have edit access to this event</h2>
+      {eventOrgName && (
+        <p class="text-sm text-gray-600 mb-4">
+          This event belongs to <strong>{eventOrgName}</strong>, which is not in your list of organizations.
+        </p>
+      )}
+      <p class="text-sm text-gray-600 mb-6">
+        If you think you should have access, or if this event should be re-assigned to an organization
+        you manage, please contact{' '}
+        <a href="mailto:dertownleavenworth@gmail.com" class="font-medium text-indigo-600 hover:underline">
+          dertownleavenworth@gmail.com
+        </a>.
+      </p>
+      <a href="/admin/events" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline">
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        Back to events
+      </a>
+    </div>
+  ) : (
+    <>
+      <div data-mode="edit" data-event-id={id}>
+        <div id="message"></div>
+      </div>
 
-  <LoginModal
-    title="Session Expired"
-    description="Your session has expired. Please log in again to continue."
-    redirectUrl={Astro.url.pathname + Astro.url.search}
-    reloadOnSuccess={true}
-  />
+      <LoginModal
+        title="Session Expired"
+        description="Your session has expired. Please log in again to continue."
+        redirectUrl={Astro.url.pathname + Astro.url.search}
+        reloadOnSuccess={true}
+      />
+    </>
+  )}
 </AdminLayout>
 
 <script type="module">
