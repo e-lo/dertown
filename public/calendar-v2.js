@@ -525,11 +525,11 @@ function renderToolbar() {
 
   if (state.view === 'week') {
     const { month, rest } = formatWeekRange(weekStart);
-    periodHTML = `<span class="cal-period-month">${month}</span><span style="color:white">${rest}</span>`;
+    periodHTML = `<span class="cal-period-month">${month}</span><span style="color:rgba(255,255,255,0.75)">${rest}</span>`;
   } else if (state.view === 'day') {
     const d = state.currentDate;
     const month = d.toLocaleDateString('en-US', { month: 'long' });
-    periodHTML = `<span class="cal-period-month">${month} </span><span style="color:white">${d.getDate()}, ${d.getFullYear()}</span>`;
+    periodHTML = `<span class="cal-period-month">${month} </span><span style="color:rgba(255,255,255,0.75)">${d.getDate()}, ${d.getFullYear()}</span>`;
   } else {
     const month = state.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     periodHTML = `<span style="color:white">${month}</span>`;

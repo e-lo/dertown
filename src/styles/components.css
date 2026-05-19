@@ -389,7 +389,7 @@ input[type='date'] {
   padding: 0 12px;
   white-space: nowrap;
 }
-.cal-period-month { color: rgba(255,255,255,0.75); }
+.cal-period-month { color: white; }
 
 /* Toolbar icon buttons */
 .cal-tb-btn {
@@ -713,6 +713,7 @@ input[type='date'] {
   .cal-day-events { max-height: none; -webkit-mask-image: none; mask-image: none; }
   .cal-search-expanded { min-width: 0; flex: 1; }
   .cal-filter-panel { left: auto; right: 0; }
-  /* Hide Today btn and date picker on mobile — merged into calendar_month icon */
+  /* Hide Today btn and view toggle on mobile */
   .cal-today-btn { display: none; }
+  .cal-view-group { display: none; }
 }

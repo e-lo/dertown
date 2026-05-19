@@ -24,7 +24,8 @@ export const GET: APIRoute = async ({ url }) => {
     const results = events
       .filter(e =>
         e.title?.toLowerCase().includes(query) ||
-        e.location?.name?.toLowerCase().includes(query)
+        e.location?.name?.toLowerCase().includes(query) ||
+        e.organization?.name?.toLowerCase().includes(query)
       )
       .slice(0, 8)
       .map(e => ({
