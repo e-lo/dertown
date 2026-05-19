@@ -253,3 +253,131 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!e.target.closest('.cal-search-wrap')) collapseSearch();
   });
 });
+
+// ─── Toolbar ─────────────────────────────────────────────────
+
+function renderToolbar() {
+  const toolbar = document.getElementById('cal-toolbar');
+  if (!toolbar) return;
+
+  const weekStart = getWeekStart(state.currentDate);
+  let periodHTML;
+
+  if (state.view === 'week') {
+    const { month, rest } = formatWeekRange(weekStart);
+    periodHTML = `<span class="cal-period-month">${month}</span><span style="color:white">${rest}</span>`;
+  } else if (state.view === 'day') {
+    const d = state.currentDate;
+    const month = d.toLocaleDateString('en-US', { month: 'long' });
+    periodHTML = `<span class="cal-period-month">${month} </span><span style="color:white">${d.getDate()}, ${d.getFullYear()}</span>`;
+  } else {
+    const month = state.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    periodHTML = `<span style="color:white">${month}</span>`;
+  }
+
+  toolbar.innerHTML = `
+    <div class="cal-toolbar-left">
+      <button class="cal-tb-btn" id="cal-prev" aria-label="Previous">
+        <span class="material-symbols-outlined">chevron_left</span>
+        <span class="cal-tb-tip">Previous ${state.view}</span>
+      </button>
+      <button class="cal-tb-btn" id="cal-next" aria-label="Next">
+        <span class="material-symbols-outlined">chevron_right</span>
+        <span class="cal-tb-tip">Next ${state.view}</span>
+      </button>
+      <div class="cal-tb-btn" style="position:relative;cursor:pointer" id="cal-datepicker-wrap">
+        <span class="material-symbols-outlined">calendar_month</span>
+        <input type="date" id="cal-datepicker"
+          style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"
+          aria-label="Jump to date"
+        >
+        <span class="cal-tb-tip">Jump to date</span>
+      </div>
+      <button class="cal-today-btn" id="cal-today">Today</button>
+    </div>
+
+    <div class="cal-toolbar-spacer"></div>
+    <div class="cal-period">${periodHTML}</div>
+    <div class="cal-toolbar-spacer"></div>
+
+    <div class="cal-view-group">
+      <button class="cal-view-btn${state.view === 'month' ? ' active' : ''}" data-view="month" aria-label="Month view">
+        <span class="material-symbols-outlined" style="font-size:18px">calendar_view_month</span>
+        <span class="cal-tb-tip">Month</span>
+      </button>
+      <button class="cal-view-btn${state.view === 'week' ? ' active' : ''}" data-view="week" aria-label="Week view">
+        <span class="material-symbols-outlined" style="font-size:18px">calendar_view_week</span>
+        <span class="cal-tb-tip">Week</span>
+      </button>
+      <button class="cal-view-btn${state.view === 'day' ? ' active' : ''}" data-view="day" aria-label="Day view">
+        <span class="material-symbols-outlined" style="font-size:18px">calendar_view_day</span>
+        <span class="cal-tb-tip">Day</span>
+      </button>
+    </div>
+  `;
+
+  attachToolbarListeners();
+}
+
+function renderSubbar() {
+  const subbar = document.getElementById('cal-subbar');
+  if (!subbar) return;
+
+  const activeCount = state.activeCategories.length;
+  const categories = getUniqueCategories();
+
+  const searchHTML = state.showSearch ? `
+    <div class="cal-search-wrap" id="cal-search-wrap">
+      <button class="cal-search-collapsed" id="cal-search-collapsed">
+        <span class="material-symbols-outlined" style="font-size:18px">search</span>
+        Search…
+      </button>
+      <div class="cal-search-expanded" id="cal-search-expanded">
+        <span class="material-symbols-outlined" style="font-size:18px;color:#9ca3af">search</span>
+        <input type="text" id="cal-search-input" placeholder="Search events…" autocomplete="off">
+        <span class="material-symbols-outlined cal-search-clear" id="cal-search-clear">close</span>
+      </div>
+      <div class="cal-autocomplete" id="cal-autocomplete"></div>
+    </div>
+  ` : '';
+
+  const filterHTML = state.showCategoryFilter ? `
+    <div class="cal-filter-wrap" id="cal-filter-wrap">
+      <button class="cal-filter-btn${activeCount > 0 ? ' active' : ''}" id="cal-filter-btn">
+        <span class="material-symbols-outlined" style="font-size:18px">tune</span>
+        Categories
+        ${activeCount > 0 ? `<span class="cal-filter-count">${activeCount}</span>` : ''}
+        <span class="material-symbols-outlined" style="font-size:16px;color:rgba(55,65,81,0.5)">expand_more</span>
+      </button>
+      <div class="cal-filter-panel" id="cal-filter-panel">
+        <div class="cal-filter-header">
+          <span class="cal-filter-label">Filter by category</span>
+          <button class="cal-filter-clear" id="cal-filter-clear">Clear all</button>
+        </div>
+        ${categories.map(cat => `
+          <div class="cal-filter-item${state.activeCategories.includes(cat) ? ' checked' : ''}" data-category="${escapeHtml(cat)}">
+            <div class="cal-filter-dot" style="background:${getCategoryColor(cat)}"></div>
+            <span class="cal-filter-name">${escapeHtml(cat)}</span>
+            <div class="cal-filter-cb"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  subbar.innerHTML = searchHTML + filterHTML;
+  attachSubbarListeners();
+}
+
+function getUniqueCategories() {
+  const seen = new Set();
+  const order = ['Arts & Culture', 'Civic', 'Family', 'Nature', 'Recreation & Outdoors', 'School', 'Sports', 'Town'];
+  const fromEvents = state.events
+    .map(e => e.category)
+    .filter(c => c && !seen.has(c) && seen.add(c));
+  // Return in preferred order, then any extras
+  return [
+    ...order.filter(o => fromEvents.some(c => c.toLowerCase() === o.toLowerCase())),
+    ...fromEvents.filter(c => !order.some(o => o.toLowerCase() === c.toLowerCase())),
+  ];
+}
