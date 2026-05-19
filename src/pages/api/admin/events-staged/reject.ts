@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const POST = withSuperAdminAuth(async ({ request }) => {
+export const POST = withAdminAuth(async ({ request, auth }) => {
   let body: unknown = {};
   try {
     body = await request.json();
@@ -25,7 +25,7 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   // Verify the staged event exists before attempting update.
   const { data: stagedEvent, error: stagedFetchError } = await supabaseAdmin
     .from('events_staged')
-    .select('id, status')
+    .select('id, status, organization_id')
     .eq('id', eventId)
     .maybeSingle();
 
@@ -35,6 +35,13 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   }
   if (!stagedEvent) {
     return jsonError('Staged event not found', 404);
+  }
+
+  // Org editors can only reject staged events belonging to their organizations
+  if (!auth.isSuperAdmin) {
+    if (!stagedEvent.organization_id || !auth.organizationIds.includes(stagedEvent.organization_id)) {
+      return jsonError('Forbidden: staged event does not belong to your organization', 403);
+    }
   }
 
   const normalizedReason = typeof reason === 'string' ? reason.toLowerCase() : '';

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -22,7 +22,7 @@ function applyApprovedParentMarker(
   return cleaned ? `${cleaned}\n${marker}` : marker;
 }
 
-export const POST = withSuperAdminAuth(async ({ request }) => {
+export const POST = withAdminAuth(async ({ request, auth }) => {
   const { eventId } = await request.json();
 
   if (!eventId) {
@@ -38,6 +38,13 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
 
   if (fetchError || !stagedEvent) {
     return jsonError('Staged event not found', 404);
+  }
+
+  // Org editors can only approve staged events belonging to their organizations
+  if (!auth.isSuperAdmin) {
+    if (!stagedEvent.organization_id || !auth.organizationIds.includes(stagedEvent.organization_id)) {
+      return jsonError('Forbidden: staged event does not belong to your organization', 403);
+    }
   }
 
   // Validate that primary_tag_id is set
