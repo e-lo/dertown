@@ -8,7 +8,7 @@ export const prerender = false;
  * Returns approved, pending, and cancelled events within the next N days (default 14).
  * Used by the admin events list page to avoid loading too many events.
  */
-export const GET = withAdminAuth(async ({ url }) => {
+export const GET = withAdminAuth(async ({ url, auth }) => {
   const days = Math.min(90, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
   const today = getTodayLocale();
 
@@ -17,7 +17,12 @@ export const GET = withAdminAuth(async ({ url }) => {
   endDate.setUTCDate(endDate.getUTCDate() + days);
   const endDateStr = endDate.toISOString().split('T')[0];
 
-  const { data, error } = await supabaseAdmin
+  // Org editors only see events for their assigned organizations.
+  if (!auth.isSuperAdmin && auth.organizationIds.length === 0) {
+    return jsonResponse({ events: [] });
+  }
+
+  let query = supabaseAdmin
     .from('events')
     .select(
       `
@@ -33,6 +38,12 @@ export const GET = withAdminAuth(async ({ url }) => {
     .lte('start_date', endDateStr)
     .order('start_date', { ascending: true })
     .order('start_time', { ascending: true, nullsFirst: false });
+
+  if (!auth.isSuperAdmin) {
+    query = query.in('organization_id', auth.organizationIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching events list:', error);

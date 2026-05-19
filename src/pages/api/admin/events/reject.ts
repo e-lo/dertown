@@ -3,7 +3,8 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withAdminAuth(async ({ request, auth }) => {
+  if (!auth.isSuperAdmin) return jsonError('Forbidden — only super admins can reject events', 403);
   const { eventId, reason } = await request.json();
 
   if (!eventId) {

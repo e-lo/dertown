@@ -12,9 +12,14 @@ function extractApprovedParentId(comments: string | null): string | null {
   return match?.[1] || null;
 }
 
-export const GET = withAdminAuth(async () => {
+export const GET = withAdminAuth(async ({ auth }) => {
   // Review queue: only pending. Rejected rows use duplicate/archived/cancelled (DB-enforced, not shown here).
-  const { data, error } = await supabaseAdmin.from('events_staged').select(`
+  // Org editors only see staged events for their assigned organizations.
+  if (!auth.isSuperAdmin && auth.organizationIds.length === 0) {
+    return jsonResponse({ events: [] });
+  }
+
+  let stagedQuery = supabaseAdmin.from('events_staged').select(`
       *,
       primary_tag:tags!events_staged_primary_tag_id_fkey(name),
       secondary_tag:tags!events_staged_secondary_tag_id_fkey(name),
@@ -22,6 +27,12 @@ export const GET = withAdminAuth(async () => {
       organization:organizations!events_staged_organization_id_fkey(name)
     `)
     .eq('status', 'pending');
+
+  if (!auth.isSuperAdmin) {
+    stagedQuery = stagedQuery.in('organization_id', auth.organizationIds);
+  }
+
+  const { data, error } = await stagedQuery;
 
   if (error) {
     console.error('Database error:', error);
