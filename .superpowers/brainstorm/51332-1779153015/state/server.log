@@ -1,0 +1,10 @@
+{"type":"server-started","port":54715,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:54715","screen_dir":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content","state_dir":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/state"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/default-view.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/visual-style.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/refined-style.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/refined-v2.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/toolbar-v3.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/toolbar-v4.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/waiting.html"}
+{"type":"screen-added","file":"/Users/elizabethsall/Documents/GitHub/dertown/.claude/worktrees/lucid-snyder-bf890b/.superpowers/brainstorm/51332-1779153015/content/event-cards.html"}
+{"type":"server-stopped","reason":"idle timeout"}

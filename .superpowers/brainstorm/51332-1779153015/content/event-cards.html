@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<style>
+  * { font-family:'Inter','Helvetica Neue',Arial,sans-serif; box-sizing:border-box; margin:0; padding:0; }
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20; font-size:18px; line-height:1; vertical-align:middle; }
+  body { background:#f3f4f6; padding:24px; }
+
+  h3 { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#9ca3af; margin:20px 0 10px; }
+  h3:first-child { margin-top:0; }
+
+  .col { max-width:220px; }
+
+  /* Card base */
+  .ev {
+    background:white;
+    border-radius:0 8px 8px 0;
+    padding:9px 11px;
+    margin-bottom:7px;
+    border-left:3px solid #4740cb;
+    box-shadow:0 1px 3px rgba(0,0,0,0.07);
+    cursor:pointer;
+    transition:box-shadow 0.15s, transform 0.1s;
+  }
+  .ev:hover { box-shadow:0 4px 12px rgba(0,0,0,0.13); transform:translateY(-1px); }
+
+  /* Category colors */
+  .ev.arts     { border-left-color:#ffe600; }
+  .ev.family   { border-left-color:#c0268c; }
+  .ev.nature   { border-left-color:#4daa57; }
+  .ev.rec      { border-left-color:#219ebc; }
+  .ev.civic    { border-left-color:#2f4445; }
+
+  /* All-day */
+  .ev.allday {
+    border-left:none;
+    border-radius:6px;
+    background:#eef2ff;
+    border:1px dashed #c7c4f5;
+  }
+
+  .ev-time  { font-size:10px; font-weight:500; color:#9ca3af; margin-bottom:3px; }
+  .ev-title { font-size:13px; font-weight:600; color:#111827; line-height:1.35; }
+  .ev-loc   { font-size:11px; color:#b0b7c3; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ev-tag   {
+    display:inline-block; margin-top:5px;
+    font-size:10px; font-weight:600;
+    padding:2px 6px; border-radius:4px;
+    background:#eef2ff; color:#4740cb;
+  }
+  .ev-tag.arts   { background:#fffbcc; color:#7a5c00; }
+  .ev-tag.family { background:#fce7f3; color:#831843; }
+  .ev-tag.nature { background:#dcfce7; color:#14532d; }
+  .ev-tag.rec    { background:#e0f7fa; color:#0e7490; }
+
+  /* Concurrent stack demo */
+  .day-col { width:220px; }
+  .day-header { margin-bottom:10px; }
+  .day-name { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#9ca3af; margin-bottom:3px; }
+  .day-num  { font-size:28px; font-weight:700; color:#111827; line-height:1; }
+  .day-num.today {
+    background:#4740cb; color:white;
+    width:42px; height:42px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+  }
+
+  /* Day events: max-height + fade */
+  .day-events {
+    max-height:280px;
+    overflow-y:auto;
+    -webkit-mask-image:linear-gradient(to bottom, black 80%, transparent 100%);
+    mask-image:linear-gradient(to bottom, black 80%, transparent 100%);
+    padding-bottom:4px;
+  }
+  .day-events:hover {
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
+  .day-events::-webkit-scrollbar { width:3px; }
+  .day-events::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:3px; }
+
+  .scroll-hint { font-size:11px; color:#9ca3af; text-align:center; padding:6px 0 0; font-style:italic; }
+
+  .grid { display:flex; gap:24px; flex-wrap:wrap; }
+</style>
+
+<h3>Standard event cards — category variants</h3>
+<div class="grid">
+  <div class="col">
+    <div class="ev">
+      <div class="ev-time">10:00 AM · 2 hrs</div>
+      <div class="ev-title">Farmers Market</div>
+      <div class="ev-loc">Town Square</div>
+      <span class="ev-tag">Town</span>
+    </div>
+    <div class="ev arts">
+      <div class="ev-time">2:00 PM · 3 hrs</div>
+      <div class="ev-title">Summer Concert Series</div>
+      <div class="ev-loc">Icicle Creek Center</div>
+      <span class="ev-tag arts">Arts &amp; Culture</span>
+    </div>
+    <div class="ev family">
+      <div class="ev-time">4:30 PM</div>
+      <div class="ev-title">Kids Craft Workshop</div>
+      <div class="ev-loc">Public Library</div>
+      <span class="ev-tag family">Family</span>
+    </div>
+    <div class="ev nature">
+      <div class="ev-time">8:00 AM</div>
+      <div class="ev-title">Sunrise Trail Run 5K</div>
+      <div class="ev-loc">Enchantment Trail</div>
+      <span class="ev-tag nature">Nature</span>
+    </div>
+    <div class="ev rec">
+      <div class="ev-time">7:00 PM</div>
+      <div class="ev-title">Trivia Night</div>
+      <div class="ev-loc">Doghaus Brewery</div>
+      <span class="ev-tag rec">Recreation</span>
+    </div>
+    <div class="ev civic">
+      <div class="ev-time">7:00 PM</div>
+      <div class="ev-title">City Council Meeting</div>
+      <div class="ev-loc">City Hall</div>
+      <span class="ev-tag">Civic</span>
+    </div>
+    <div class="ev allday">
+      <div class="ev-time">All day</div>
+      <div class="ev-title">Memorial Day Weekend</div>
+    </div>
+  </div>
+
+  <!-- Concurrent events + scroll demo -->
+  <div>
+    <h3 style="margin-top:0">Concurrent events — vertical stack + column scroll</h3>
+    <div class="day-col">
+      <div class="day-header">
+        <div class="day-name">Sat</div>
+        <div class="day-num">24</div>
+      </div>
+      <div class="day-events">
+        <div class="ev allday">
+          <div class="ev-time">All day</div>
+          <div class="ev-title">Maifest Festival</div>
+        </div>
+        <div class="ev arts">
+          <div class="ev-time">9:00 AM</div>
+          <div class="ev-title">Maifest Parade</div>
+          <div class="ev-loc">Front Street</div>
+        </div>
+        <div class="ev">
+          <div class="ev-time">10:00 AM</div>
+          <div class="ev-title">Farmers Market</div>
+          <div class="ev-loc">Town Square</div>
+        </div>
+        <div class="ev arts">
+          <div class="ev-time">11:00 AM · 3 hrs</div>
+          <div class="ev-title">Maifest Beer Garden</div>
+          <div class="ev-loc">City Park</div>
+        </div>
+        <!-- Two events at same time — stacked -->
+        <div class="ev family">
+          <div class="ev-time">2:00 PM</div>
+          <div class="ev-title">Kids Games &amp; Activities</div>
+          <div class="ev-loc">Waterfront Park</div>
+        </div>
+        <div class="ev nature">
+          <div class="ev-time">2:00 PM</div>
+          <div class="ev-title">Kayak Rentals Open</div>
+          <div class="ev-loc">Wenatchee River</div>
+        </div>
+        <div class="ev rec">
+          <div class="ev-time">2:00 PM</div>
+          <div class="ev-title">Mountain Bike Demo</div>
+          <div class="ev-loc">Ski Hill Rd</div>
+        </div>
+        <div class="ev arts">
+          <div class="ev-time">6:00 PM</div>
+          <div class="ev-title">Evening Concert</div>
+          <div class="ev-loc">Icicle Creek Center</div>
+        </div>
+      </div>
+      <div class="scroll-hint">↑ hover &amp; scroll to see more</div>
+    </div>
+  </div>
+
+  <!-- Today column -->
+  <div>
+    <h3 style="margin-top:0">Today column</h3>
+    <div class="day-col" style="width:200px">
+      <div class="day-header">
+        <div class="day-name">Mon</div>
+        <div class="day-num today">19</div>
+      </div>
+      <div class="ev">
+        <div class="ev-time">10:00 AM</div>
+        <div class="ev-title">Farmers Market</div>
+        <div class="ev-loc">Town Square</div>
+      </div>
+      <div class="ev arts">
+        <div class="ev-time">2:00 PM · 3 hrs</div>
+        <div class="ev-title">Summer Concert Series</div>
+        <div class="ev-loc">Icicle Creek Center</div>
+      </div>
+    </div>
+  </div>
+</div>
+</html>
