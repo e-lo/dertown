@@ -8,7 +8,8 @@ import ActivityScheduleForm from '../../components/ActivityScheduleForm.astro';
 import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
 
 // Server-side authentication check using cookies
-const { isAdmin, error: authError } = await checkAdminAccess(Astro.cookies);
+const { role, error: authError } = await checkAdminAccess(Astro.cookies);
+const isAdmin = role === 'super_admin' || role === 'org_editor';
 
 if (!isAdmin) {
   const redirectTo = Astro.url.pathname + Astro.url.search;

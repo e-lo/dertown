@@ -18,7 +18,7 @@ function stripApprovedParentMarker(comments: string | null | undefined): string 
   return cleaned || null;
 }
 
-export const PUT = withAdminAuth(async ({ request }) => {
+export const PUT = withAdminAuth(async ({ request, auth }) => {
   const { id, ...updateData } = await request.json();
   // Never let the client set staged workflow status via this endpoint (see cleanedData.status below).
   delete updateData.status;
@@ -29,12 +29,19 @@ export const PUT = withAdminAuth(async ({ request }) => {
 
   const { data: currentEvent, error: currentEventError } = await supabaseAdmin
     .from('events_staged')
-    .select('id, comments')
+    .select('id, comments, organization_id')
     .eq('id', id)
     .single();
 
   if (currentEventError || !currentEvent) {
     return jsonError('Event not found', 404);
+  }
+
+  // Org editors can only edit staged events for their assigned organizations.
+  if (!auth.isSuperAdmin && currentEvent.organization_id) {
+    if (!auth.organizationIds.includes(currentEvent.organization_id)) {
+      return jsonError('Forbidden', 403);
+    }
   }
 
   // Normalize empty parent_event_id to null before validation

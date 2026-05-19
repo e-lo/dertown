@@ -3,7 +3,7 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async ({ params }) => {
+export const GET = withAdminAuth(async ({ params, auth }) => {
   const { id } = params;
 
   if (!id) {
@@ -32,6 +32,13 @@ export const GET = withAdminAuth(async ({ params }) => {
 
   if (!data) {
     return jsonError('Event not found', 404);
+  }
+
+  // Org editors can only access events for their assigned organizations.
+  if (!auth.isSuperAdmin && data.organization_id) {
+    if (!auth.organizationIds.includes(data.organization_id)) {
+      return jsonError('Forbidden', 403);
+    }
   }
 
   return jsonResponse({ event: data });

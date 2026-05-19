@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const POST = withAdminAuth(async () => {
+export const POST = withSuperAdminAuth(async () => {
   // Fast path: delete all pending rows directly (avoids large IN(...) payloads).
   const firstDelete = await supabaseAdmin
     .from('events_staged')

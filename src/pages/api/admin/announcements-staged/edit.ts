@@ -3,12 +3,16 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const PUT = withAdminAuth(async ({ request }) => {
+export const PUT = withAdminAuth(async ({ request, auth }) => {
   const { id, ...updateData } = await request.json();
 
   if (!id) {
     return jsonError('Announcement ID is required', 400);
   }
+
+  // Ownership check for org editors: announcements_staged uses 'organization' (text) not organization_id.
+  // Since there is no UUID to check against org membership, org editors may edit any staged announcement
+  // (the approve/reject actions are already super-admin-only). No further restriction needed here.
 
   // Convert empty strings to null for nullable fields (required by database constraints)
   // Also filter out organization_id since announcements_staged doesn't have that column

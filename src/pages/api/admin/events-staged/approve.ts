@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -22,7 +22,7 @@ function applyApprovedParentMarker(
   return cleaned ? `${cleaned}\n${marker}` : marker;
 }
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withSuperAdminAuth(async ({ request }) => {
   const { eventId } = await request.json();
 
   if (!eventId) {

@@ -8,7 +8,7 @@ export const prerender = false;
  * Returns pending announcements plus published announcements within the date window
  * (show_at from today - days to today + days). Default 14 days each direction.
  */
-export const GET = withAdminAuth(async ({ url }) => {
+export const GET = withAdminAuth(async ({ url, auth }) => {
   const days = Math.min(60, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
   const today = new Date().toISOString().split('T')[0];
   const start = new Date();
@@ -18,20 +18,31 @@ export const GET = withAdminAuth(async ({ url }) => {
   const startStr = start.toISOString().split('T')[0];
   const endStr = end.toISOString().split('T')[0];
 
+  // Org editors only see announcements for their assigned organizations.
+  // Super admins see all.
+  const applyOrgFilter = <T extends { in: (col: string, vals: string[]) => T }>(query: T): T => {
+    if (auth.isSuperAdmin || auth.organizationIds.length === 0) return query;
+    return query.in('organization_id', auth.organizationIds);
+  };
+
   const [pendingRes, publishedRes] = await Promise.all([
-    supabaseAdmin
-      .from('announcements')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false }),
-    supabaseAdmin
-      .from('announcements')
-      .select('*')
-      .eq('status', 'published')
-      .gte('show_at', startStr)
-      .lte('show_at', endStr)
-      .order('show_at', { ascending: false })
-      .limit(100),
+    applyOrgFilter(
+      supabaseAdmin
+        .from('announcements')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+    ),
+    applyOrgFilter(
+      supabaseAdmin
+        .from('announcements')
+        .select('*')
+        .eq('status', 'published')
+        .gte('show_at', startStr)
+        .lte('show_at', endStr)
+        .order('show_at', { ascending: false })
+        .limit(100)
+    ),
   ]);
 
   if (pendingRes.error || publishedRes.error) {

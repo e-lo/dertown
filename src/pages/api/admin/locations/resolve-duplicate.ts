@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
 
 export const prerender = false;
 
@@ -24,7 +24,7 @@ async function repointLocationReferences(fromId: string, toId: string): Promise<
   }
 }
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withSuperAdminAuth(async ({ request }) => {
   const body = await request.json().catch(() => ({}));
   const duplicateId = typeof body.duplicateId === 'string' ? body.duplicateId : '';
   const canonicalId = typeof body.canonicalId === 'string' ? body.canonicalId : '';

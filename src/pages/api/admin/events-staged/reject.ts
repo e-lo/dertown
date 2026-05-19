@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withSuperAdminAuth(async ({ request }) => {
   let body: unknown = {};
   try {
     body = await request.json();

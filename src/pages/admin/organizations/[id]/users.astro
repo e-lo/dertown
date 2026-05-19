@@ -1,13 +1,18 @@
 ---
 import AdminLayout from '../../../../components/AdminLayout.astro';
 import OrgUserModal from '../../../../components/ui/OrgUserModal.astro';
-import { getSessionFromCookies } from '../../../../lib/session';
+import { getSessionFromCookies, checkAdminAccess } from '../../../../lib/session';
 import { supabase } from '../../../../lib/supabase';
 
 const { session, error } = await getSessionFromCookies(Astro.cookies);
 if (!session) {
   const redirectTo = Astro.url.pathname + Astro.url.search;
   return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+
+const { role } = await checkAdminAccess(Astro.cookies);
+if (role !== 'super_admin') {
+  return Astro.redirect('/admin');
 }
 
 const userEmail = session.user?.email || 'Admin';

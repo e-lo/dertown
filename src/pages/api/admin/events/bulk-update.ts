@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const PUT = withAdminAuth(async ({ request }) => {
+export const PUT = withSuperAdminAuth(async ({ request }) => {
   const requestData = await request.json();
   const { event_ids, location_added, organization_added, ...updateData } = requestData;
 

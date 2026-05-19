@@ -3,11 +3,11 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async () => {
+export const GET = withAdminAuth(async ({ auth }) => {
   // Get approved events that are missing location_id or primary_tag_id
   // Query the base events table to ensure we get NULL values
   // The public_events view might filter out some NULL cases due to joins
-  const { data: allApproved, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('events')
     .select(
       `
@@ -21,6 +21,13 @@ export const GET = withAdminAuth(async () => {
     .eq('status', 'approved')
     .gte('start_date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 14 days or future
     .order('start_date', { ascending: true });
+
+  // Org editors only see events for their assigned organizations.
+  if (!auth.isSuperAdmin && auth.organizationIds.length > 0) {
+    query = query.in('organization_id', auth.organizationIds);
+  }
+
+  const { data: allApproved, error } = await query;
 
   if (error) {
     console.error('Error fetching approved events:', error);

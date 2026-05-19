@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { withSuperAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withSuperAdminAuth(async ({ request }) => {
   const { announcementId } = await request.json();
   if (!announcementId) {
     return jsonError('Announcement ID is required', 400);

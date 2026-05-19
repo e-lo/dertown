@@ -42,3 +42,13 @@ export function withAdminAuth(
     }
   };
 }
+
+/** Wraps withAdminAuth and additionally requires super_admin role. */
+export function withSuperAdminAuth(
+  handler: (context: AuthContext) => Promise<Response>
+): APIRoute {
+  return withAdminAuth(async (context) => {
+    if (!context.auth.isSuperAdmin) return jsonError('Forbidden', 403);
+    return handler(context);
+  });
+}

@@ -3,7 +3,7 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const POST = withAdminAuth(async ({ request }) => {
+export const POST = withAdminAuth(async ({ request, auth }) => {
   let requestData;
   try {
     requestData = await request.json();
@@ -17,6 +17,13 @@ export const POST = withAdminAuth(async ({ request }) => {
   // Validate required fields
   if (!eventData.title || !eventData.start_date) {
     return jsonError('Title and start date are required', 400);
+  }
+
+  // Org editors can only create events for their assigned organizations.
+  if (!auth.isSuperAdmin && eventData.organization_id) {
+    if (!auth.organizationIds.includes(eventData.organization_id)) {
+      return jsonError('Forbidden: cannot create event for this organization', 403);
+    }
   }
 
   let locationId = eventData.location_id;

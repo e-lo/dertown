@@ -3,14 +3,14 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async () => {
+export const GET = withAdminAuth(async ({ auth }) => {
   // Get approved events that can be used as parent events
   // Also include staged events that don't have a parent (so they can be parents)
   // Exclude events that are already children (have a parent_event_id)
   // Order by start_date descending to show most recent first
 
-  // Get approved events
-  const { data: approvedEvents, error: approvedError } = await supabaseAdmin
+  // Build base queries and apply org filter for org editors.
+  let approvedQuery = supabaseAdmin
     .from('events')
     .select('id, title, start_date, start_time')
     .eq('status', 'approved')
@@ -18,14 +18,24 @@ export const GET = withAdminAuth(async () => {
     .order('start_date', { ascending: false })
     .limit(400);
 
-  // Get staged events that don't have a parent
-  const { data: stagedEvents, error: stagedError } = await supabaseAdmin
+  let stagedQuery = supabaseAdmin
     .from('events_staged')
     .select('id, title, start_date, start_time')
     .eq('status', 'pending')
     .is('parent_event_id', null)
     .order('start_date', { ascending: false })
     .limit(100);
+
+  if (!auth.isSuperAdmin && auth.organizationIds.length > 0) {
+    approvedQuery = approvedQuery.in('organization_id', auth.organizationIds);
+    stagedQuery = stagedQuery.in('organization_id', auth.organizationIds);
+  }
+
+  // Get approved events
+  const { data: approvedEvents, error: approvedError } = await approvedQuery;
+
+  // Get staged events that don't have a parent
+  const { data: stagedEvents, error: stagedError } = await stagedQuery;
 
   if (approvedError || stagedError) {
     console.error('Error fetching parent events:', approvedError || stagedError);

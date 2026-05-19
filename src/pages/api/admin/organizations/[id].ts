@@ -3,10 +3,15 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
 
-export const GET = withAdminAuth(async ({ params }) => {
+export const GET = withAdminAuth(async ({ params, auth }) => {
   const id = params.id;
   if (!id) {
     return jsonError('Missing id', 400);
+  }
+
+  // Org editors can only access their assigned organizations.
+  if (!auth.isSuperAdmin && !auth.organizationIds.includes(id)) {
+    return jsonError('Forbidden', 403);
   }
 
   const { data, error } = await supabaseAdmin
@@ -22,10 +27,15 @@ export const GET = withAdminAuth(async ({ params }) => {
   return jsonResponse(data);
 });
 
-export const PATCH = withAdminAuth(async ({ params, request }) => {
+export const PATCH = withAdminAuth(async ({ params, request, auth }) => {
   const id = params.id;
   if (!id) {
     return jsonError('Missing id', 400);
+  }
+
+  // Org editors can only update their assigned organizations.
+  if (!auth.isSuperAdmin && !auth.organizationIds.includes(id)) {
+    return jsonError('Forbidden', 403);
   }
 
   const body = await request.json().catch(() => ({}));
