@@ -15,6 +15,7 @@ export function jsonError(message: string, status = 500): Response {
 export type AuthContext = APIContext & {
   auth: {
     role: 'super_admin' | 'org_editor';
+    userId: string;
     organizationIds: string[]; // empty for super_admin (means all orgs)
     isSuperAdmin: boolean;
   };
@@ -25,13 +26,14 @@ export function withAdminAuth(
 ): APIRoute {
   return async (context) => {
     try {
-      const { role, organizationIds } = await checkAdminAccess(context.cookies);
+      const { role, userId, organizationIds } = await checkAdminAccess(context.cookies);
       const isAdmin = role === 'super_admin' || role === 'org_editor';
-      if (!isAdmin) {
+      if (!isAdmin || !userId) {
         return jsonError('Unauthorized', 401);
       }
       const auth = {
         role: role as 'super_admin' | 'org_editor',
+        userId,
         organizationIds: organizationIds ?? [],
         isSuperAdmin: role === 'super_admin',
       };

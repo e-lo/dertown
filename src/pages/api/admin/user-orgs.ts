@@ -70,23 +70,13 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   // Also upsert allowlisted_org_emails so access persists if they re-register
   if (email) {
-    // Need a created_by uuid — use the org_users created_by as text; allowlisted uses uuid FK.
-    // Get the admin's own user id from user_permissions (we only have role, not id here).
-    // Use a simple approach: look up the primary admin's id.
-    const { data: adminPerm } = await supabaseAdmin
-      .from('user_permissions')
-      .select('user_id')
-      .eq('is_admin', true)
-      .limit(1)
-      .single();
-
     await supabaseAdmin
       .from('allowlisted_org_emails')
       .upsert(
         {
           email: email.toLowerCase(),
           organization_id,
-          created_by: adminPerm?.user_id ?? user_id,
+          created_by: auth.userId,
         },
         { onConflict: 'email,organization_id' }
       );

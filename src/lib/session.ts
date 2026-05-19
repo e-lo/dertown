@@ -106,9 +106,11 @@ export async function checkAdminAccess(cookies: any) {
     return { role: null, organizationIds: [], error: 'User does not have admin access' };
   }
 
+  const userId = session.user.id;
+
   // User has admin access
   if (perms.is_admin) {
-    return { role: 'super_admin', organizationIds: [], error: null };
+    return { role: 'super_admin', userId, organizationIds: [], error: null };
   }
 
   // User has org-specific access
@@ -116,19 +118,19 @@ export async function checkAdminAccess(cookies: any) {
     const { data: orgUsers, error: orgError } = await supabase
       .from('org_users')
       .select('organization_id')
-      .eq('user_id', session.user.id);
+      .eq('user_id', userId);
 
     if (orgError) {
       console.error('[SESSION DEBUG] Error fetching org_users:', orgError);
-      return { role: null, organizationIds: [], error: orgError.message };
+      return { role: null, userId, organizationIds: [], error: orgError.message };
     }
 
     if (orgUsers && orgUsers.length > 0) {
       const organizationIds = orgUsers.map((ou) => ou.organization_id);
-      return { role: 'org_editor', organizationIds, error: null };
+      return { role: 'org_editor', userId, organizationIds, error: null };
     }
   }
 
   // User has permission entry but no valid access
-  return { role: null, organizationIds: [], error: 'User does not have admin access' };
+  return { role: null, userId, organizationIds: [], error: 'User does not have admin access' };
 }
