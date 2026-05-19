@@ -214,9 +214,103 @@ function dayColumnHTML(date, eventsForDay, opts = {}) {
   `;
 }
 
-// ─── Tooltip ─────────────────────────────────────────────────
-// Full implementation in Task 9. Stub here so render() can call it.
-function attachTooltips() {}
+// ─── Tooltips ────────────────────────────────────────────────
+
+let _tooltip = null;
+let _tooltipTimeout = null;
+
+function getTooltipEl() {
+  if (!_tooltip) {
+    _tooltip = document.createElement('div');
+    _tooltip.className = 'cal-tooltip';
+    _tooltip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(_tooltip);
+  }
+  return _tooltip;
+}
+
+function showTooltip(event, anchorEl) {
+  // Don't show on touch devices
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  clearTimeout(_tooltipTimeout);
+  _tooltipTimeout = setTimeout(() => {
+    const el = getTooltipEl();
+    el.innerHTML = buildTooltipHTML(event);
+    el.style.display = 'block';
+    positionTooltip(el, anchorEl);
+  }, 300);
+}
+
+function hideTooltip() {
+  clearTimeout(_tooltipTimeout);
+  if (_tooltip) _tooltip.style.display = 'none';
+}
+
+function buildTooltipHTML(event) {
+  const color = getCategoryColor(event.category);
+  const timeStr = event.allDay
+    ? 'All day'
+    : formatTime(event.start) + (event.end ? ` – ${formatTime(event.end)}` : '');
+  const dateLabel = new Date(event.start + (event.start.length === 10 ? 'T00:00:00' : ''))
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const desc = event.description
+    ? escapeHtml(event.description.substring(0, 120)) + (event.description.length > 120 ? '…' : '')
+    : '';
+  const locRow = event.location
+    ? `<div class="cal-tooltip-row">${escapeHtml(event.location)}</div>`
+    : '';
+  const descRow = desc ? `<div class="cal-tooltip-desc">${desc}</div>` : '';
+  const tagRow = event.category
+    ? `<span class="cal-tooltip-tag" style="background:${color}22;color:${color}">${escapeHtml(event.category)}</span>`
+    : '';
+
+  return `
+    <div class="cal-tooltip-title">${escapeHtml(event.title)}</div>
+    <div class="cal-tooltip-row">${dateLabel} · ${timeStr}</div>
+    ${locRow}
+    ${descRow}
+    ${tagRow}
+  `;
+}
+
+function positionTooltip(el, anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const TW = 240;
+
+  el.style.width = TW + 'px';
+  el.style.position = 'fixed';
+
+  // Horizontal: prefer right, fallback left
+  if (rect.right + TW + 10 <= vw) {
+    el.style.left = (rect.right + 8) + 'px';
+    el.style.right = 'auto';
+  } else {
+    el.style.left = Math.max(8, rect.left - TW - 8) + 'px';
+    el.style.right = 'auto';
+  }
+
+  // Vertical: align with top of card, clamp to viewport
+  const th = el.offsetHeight || 160;
+  let top = rect.top;
+  if (top + th > vh - 8) top = vh - th - 8;
+  el.style.top = Math.max(8, top) + 'px';
+}
+
+function attachTooltips() {
+  document.querySelectorAll('.cal-event').forEach(card => {
+    const eventId = card.dataset.eventId;
+    const event = state.events.find(e => String(e.id) === eventId);
+    if (!event) return;
+
+    card.addEventListener('mouseenter', () => showTooltip(event, card));
+    card.addEventListener('mouseleave', hideTooltip);
+    card.addEventListener('focus', () => showTooltip(event, card));
+    card.addEventListener('blur', hideTooltip);
+  });
+}
 function closeFilterPanel() {}
 function collapseSearch() {}
 
