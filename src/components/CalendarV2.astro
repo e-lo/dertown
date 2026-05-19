@@ -20,8 +20,11 @@ const {
   initialOrg = '',
 } = Astro.props;
 
-const allEvents = await db.events.getAll();
-const calendarEvents = allEvents
+const { data: allEvents, error: eventsError } = await db.events.getAll();
+if (eventsError) {
+  console.error('Error fetching events:', eventsError);
+}
+const calendarEvents = (allEvents || [])
   .map(transformEventForCalendar)
   .filter(Boolean);
 ---
