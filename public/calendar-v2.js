@@ -311,7 +311,52 @@ function attachTooltips() {
     card.addEventListener('blur', hideTooltip);
   });
 }
-function closeFilterPanel() {}
+// ─── Category filter ─────────────────────────────────────────
+
+function toggleFilterPanel() {
+  const panel = document.getElementById('cal-filter-panel');
+  if (!panel) return;
+  panel.classList.toggle('visible');
+}
+
+function closeFilterPanel() {
+  document.getElementById('cal-filter-panel')?.classList.remove('visible');
+}
+
+function toggleCategory(category) {
+  const idx = state.activeCategories.indexOf(category);
+  if (idx === -1) {
+    state.activeCategories.push(category);
+  } else {
+    state.activeCategories.splice(idx, 1);
+  }
+  updateURL();
+  // Re-render subbar and grid only (preserve toolbar period)
+  renderSubbar();
+  renderGrid();
+  attachTooltips();
+  // Re-open panel (renderSubbar closes it)
+  document.getElementById('cal-filter-panel')?.classList.add('visible');
+}
+
+function clearCategories() {
+  state.activeCategories = [];
+  updateURL();
+  renderSubbar();
+  renderGrid();
+  attachTooltips();
+}
+
+function updateURL() {
+  const params = new URLSearchParams(window.location.search);
+  if (state.activeCategories.length > 0) {
+    params.set('tag', state.activeCategories.join(','));
+  } else {
+    params.delete('tag');
+  }
+  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  window.history.replaceState({}, '', newUrl);
+}
 function collapseSearch() {}
 
 // ─── Init ───────────────────────────────────────────────────
