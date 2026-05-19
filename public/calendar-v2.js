@@ -381,3 +381,96 @@ function getUniqueCategories() {
     ...fromEvents.filter(c => !order.some(o => o.toLowerCase() === c.toLowerCase())),
   ];
 }
+
+// ─── Navigation ──────────────────────────────────────────────
+
+function navigate(direction) {
+  // direction: +1 or -1
+  const d = new Date(state.currentDate);
+  if (state.view === 'week') {
+    d.setDate(d.getDate() + direction * 7);
+  } else if (state.view === 'day') {
+    d.setDate(d.getDate() + direction);
+  } else if (state.view === 'month') {
+    d.setMonth(d.getMonth() + direction);
+  }
+  state.currentDate = d;
+  render();
+}
+
+function goToToday() {
+  state.currentDate = new Date();
+  render();
+}
+
+function goToDate(dateStr) {
+  // dateStr: 'YYYY-MM-DD'
+  const [y, m, d] = dateStr.split('-').map(Number);
+  state.currentDate = new Date(y, m - 1, d);
+  render();
+}
+
+function setView(view) {
+  state.view = view;
+  render();
+}
+
+// ─── Listener attachment ─────────────────────────────────────
+
+function attachToolbarListeners() {
+  document.getElementById('cal-prev')?.addEventListener('click', () => navigate(-1));
+  document.getElementById('cal-next')?.addEventListener('click', () => navigate(+1));
+  document.getElementById('cal-today')?.addEventListener('click', goToToday);
+
+  document.getElementById('cal-datepicker')?.addEventListener('change', (e) => {
+    if (e.target.value) goToDate(e.target.value);
+  });
+
+  document.querySelectorAll('.cal-view-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => setView(btn.dataset.view));
+  });
+}
+
+function attachSubbarListeners() {
+  // Search expand/collapse
+  document.getElementById('cal-search-collapsed')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    expandSearch();
+  });
+  document.getElementById('cal-search-clear')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    collapseSearch();
+  });
+  document.getElementById('cal-search-input')?.addEventListener('input', (e) => {
+    handleSearchInput(e.target.value);
+  });
+  document.getElementById('cal-search-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') collapseSearch();
+    if (e.key === 'Enter') handleSearchEnter(e.target.value);
+  });
+
+  // Category filter
+  document.getElementById('cal-filter-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFilterPanel();
+  });
+  document.getElementById('cal-filter-clear')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearCategories();
+  });
+  document.querySelectorAll('.cal-filter-item[data-category]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCategory(item.dataset.category);
+    });
+  });
+}
+
+// ─── Main render ─────────────────────────────────────────────
+
+function render() {
+  renderToolbar();
+  renderSubbar();
+  renderGrid();
+  attachTooltips();
+}
