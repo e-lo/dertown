@@ -35,7 +35,7 @@ const calendarEvents = (allEvents || [])
   </div>
 ) : (
   <div
-    id="calendar-v2"
+    id="calendar"
     data-events={JSON.stringify(calendarEvents)}
     data-title={title}
     data-default-view={defaultView}
@@ -51,4 +51,4 @@ const calendarEvents = (allEvents || [])
   </div>
 )}
 
-<script src="/calendar-v2.js" is:inline></script>
+<script src="/calendar.js" is:inline></script>

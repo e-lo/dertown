@@ -2,7 +2,7 @@
 export const prerender = false;
 
 import Layout from '../components/Layout.astro';
-import CalendarV2 from '../components/CalendarV2.astro';
+import Calendar from '../components/Calendar.astro';
 
 const initialTag = Astro.url.searchParams.get('tag') || undefined;
 ---
@@ -11,7 +11,5 @@ const initialTag = Astro.url.searchParams.get('tag') || undefined;
   title="Event Calendar - Der Town"
   description="View upcoming community events in Der Town. Find local activities, festivals, meetings, and community gatherings all in one place."
 >
-  <div class="container mx-auto px-4 py-8">
-    <CalendarV2 defaultView="week" showSearch={true} showCategoryFilter={true} initialTag={initialTag} />
-  </div>
+  <Calendar defaultView="week" showSearch={true} showCategoryFilter={true} initialTag={initialTag} />
 </Layout>

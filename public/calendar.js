@@ -1,4 +1,4 @@
-// public/calendar-v2.js
+// public/calendar.js
 'use strict';
 
 // ─── State ──────────────────────────────────────────────────
@@ -461,7 +461,7 @@ function escapeRegex(str) {
 
 // ─── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('calendar-v2');
+  const container = document.getElementById('calendar');
   if (!container) return;
 
   // Load events + config from data attributes
@@ -524,8 +524,29 @@ function renderToolbar() {
   let periodHTML;
 
   if (state.view === 'week') {
-    const { month, rest } = formatWeekRange(weekStart);
-    periodHTML = `<span class="cal-period-month">${month}</span><span style="color:rgba(255,255,255,0.75)">${rest}</span>`;
+    const cols = getColumnCount();
+    if (cols >= 7) {
+      // Full week — show Mon–Sun range
+      const { month, rest } = formatWeekRange(weekStart);
+      periodHTML = `<span class="cal-period-month">${month}</span><span style="color:rgba(255,255,255,0.75)">${rest}</span>`;
+    } else {
+      // Partial week — show the actual visible date range
+      const allDates = getWeekDates(weekStart);
+      const curStr = toDateStr(state.currentDate);
+      let idx = allDates.findIndex(d => toDateStr(d) === curStr);
+      if (idx < 0) idx = 0;
+      const start = Math.max(0, Math.min(idx, 7 - cols));
+      const visStart = allDates[start];
+      const visEnd = allDates[Math.min(start + cols - 1, 6)];
+      const startMonth = visStart.toLocaleDateString('en-US', { month: 'long' });
+      const endMonth = visEnd.toLocaleDateString('en-US', { month: 'long' });
+      const year = visEnd.getFullYear();
+      if (startMonth === endMonth) {
+        periodHTML = `<span class="cal-period-month">${startMonth}</span><span style="color:rgba(255,255,255,0.75)"> ${visStart.getDate()} – ${visEnd.getDate()}, ${year}</span>`;
+      } else {
+        periodHTML = `<span class="cal-period-month">${startMonth} ${visStart.getDate()}</span><span style="color:rgba(255,255,255,0.75)"> – ${endMonth} ${visEnd.getDate()}, ${year}</span>`;
+      }
+    }
   } else if (state.view === 'day') {
     const d = state.currentDate;
     const month = d.toLocaleDateString('en-US', { month: 'long' });
@@ -648,7 +669,37 @@ function navigate(direction) {
   // direction: +1 or -1
   const d = new Date(state.currentDate);
   if (state.view === 'week') {
-    d.setDate(d.getDate() + direction * 7);
+    const cols = getColumnCount();
+    if (cols >= 7) {
+      // Full week visible — jump a full week
+      d.setDate(d.getDate() + direction * 7);
+    } else {
+      // Partial week — slide by the number of visible columns,
+      // but clamp so we never skip past the week boundary.
+      const weekStart = getWeekStart(state.currentDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+
+      const curIdx = Math.round((state.currentDate - weekStart) / 86400000);
+      const newIdx = curIdx + direction * cols;
+
+      if (newIdx < 0) {
+        // Move to previous week, position at the equivalent column from the end
+        const prevWeekStart = new Date(weekStart);
+        prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+        d.setTime(prevWeekStart.getTime());
+        d.setDate(d.getDate() + Math.max(0, 7 - cols));
+      } else if (newIdx > 6) {
+        // Move to next week, land on Monday
+        d.setTime(weekEnd.getTime());
+        d.setDate(d.getDate() + 1);
+      } else {
+        // Use weekStart as base to avoid cross-month day-number confusion
+        const target = new Date(weekStart);
+        target.setDate(target.getDate() + newIdx);
+        d.setTime(target.getTime());
+      }
+    }
   } else if (state.view === 'day') {
     d.setDate(d.getDate() + direction);
   } else if (state.view === 'month') {

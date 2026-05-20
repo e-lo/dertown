@@ -603,22 +603,11 @@ input[type='date'] {
 .cal-day-name-full { font-size: 12px; font-weight: 600; color: #374151; }
 .cal-day-month { font-size: 11px; color: #9ca3af; }
 
-/* Day events scroller */
+/* Day events — no per-column scroll; page scrolls naturally */
 .cal-day-events {
-  max-height: 340px;
-  overflow-y: auto;
-  -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
   padding-bottom: 4px;
   padding-right: 2px;
 }
-.cal-day-events:hover,
-.cal-day-events:focus-within {
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-.cal-day-events::-webkit-scrollbar { width: 3px; }
-.cal-day-events::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 .cal-day-empty {
   font-size: 11px; color: #e5e7eb;
   font-style: italic; padding: 8px 0;
@@ -710,8 +699,7 @@ input[type='date'] {
   .cal-period { font-size: 14px; padding: 0 8px; }
   .cal-subbar { padding: 8px 12px; gap: 6px; }
   .cal-grid-container { padding: 0 12px 16px; }
-  .cal-day-events { max-height: none; -webkit-mask-image: none; mask-image: none; }
-  .cal-search-expanded { min-width: 0; flex: 1; }
+.cal-search-expanded { min-width: 0; flex: 1; }
   .cal-filter-panel { left: auto; right: 0; }
   /* Hide Today btn and view toggle on mobile */
   .cal-today-btn { display: none; }
