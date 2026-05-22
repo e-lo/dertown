@@ -42,6 +42,8 @@ const payload = JSON.stringify({
   initialFilters: state.filters,
   initialSelectedLocationId,
   mapboxToken: import.meta.env.PUBLIC_MAPBOX_TOKEN || '',
+  mapCenterCoords: MAP_CENTER.coordinates,
+  mapCenterZoom: MAP_CENTER.zoom,
 }).replace(/</g, '\\u003c');
 ---
 
@@ -212,7 +214,7 @@ const payload = JSON.stringify({
   </section>
 
   <script id="event-map-data" type="application/json" set:text={payload}></script>
-  <script define:vars={{ mapCenterCoords: MAP_CENTER.coordinates, mapCenterZoom: MAP_CENTER.zoom }}>
+  <script>
     import mapboxgl from 'mapbox-gl';
     import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -235,6 +237,8 @@ const payload = JSON.stringify({
         const payload = JSON.parse(unescapedContent);
       const allEvents = Array.isArray(payload.events) ? payload.events : [];
       const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
+      const mapCenterCoords = payload.mapCenterCoords;
+      const mapCenterZoom = payload.mapCenterZoom;
 
       const startInput = document.getElementById('event-map-start-offset');
       const endInput = document.getElementById('event-map-end-offset');
