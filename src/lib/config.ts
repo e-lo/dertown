@@ -26,6 +26,19 @@ export const MAP_CENTER = {
   zoom: 11,
 };
 
+/**
+ * Initial bounding box for the events map.
+ * Scoped to the Leavenworth area — excludes Cashmere (~15km west)
+ * and Wenatchee (~40km west) so the default view focuses on town.
+ * Format: [west, south, east, north] (LngLatBoundsLike)
+ */
+export const MAP_INITIAL_BOUNDS: [number, number, number, number] = [
+  -120.76, // west
+  47.53,   // south
+  -120.57, // east
+  47.66,   // north
+];
+
 // ============================================================================
 // MAP STYLES AND CONFIGURATION
 // ============================================================================

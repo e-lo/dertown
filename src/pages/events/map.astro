@@ -5,7 +5,7 @@ import Layout from '../../components/Layout.astro';
 import GroupedEventList from '../../components/GroupedEventList.astro';
 import { buildEventMapState, normalizeMapEvents } from '../../lib/event-map';
 import { db, getTodayLocale } from '../../lib/supabase';
-import { MAP_CENTER, MAP_STYLES } from '../../lib/config';
+import { MAP_CENTER, MAP_INITIAL_BOUNDS, MAP_STYLES } from '../../lib/config';
 
 function formatDateLabel(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -44,6 +44,7 @@ const payload = JSON.stringify({
   mapboxToken: import.meta.env.PUBLIC_MAPBOX_TOKEN || '',
   mapCenterCoords: MAP_CENTER.coordinates,
   mapCenterZoom: MAP_CENTER.zoom,
+  mapInitialBounds: MAP_INITIAL_BOUNDS,
 }).replace(/</g, '\\u003c');
 ---
 
@@ -239,6 +240,7 @@ const payload = JSON.stringify({
       const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
       const mapCenterCoords = payload.mapCenterCoords;
       const mapCenterZoom = payload.mapCenterZoom;
+      const mapInitialBounds = payload.mapInitialBounds;
 
       const startInput = document.getElementById('event-map-start-offset');
       const endInput = document.getElementById('event-map-end-offset');
@@ -557,8 +559,14 @@ const payload = JSON.stringify({
         zoomOutButton?.addEventListener('click', () => mapboxMap?.zoomOut());
         fitButton?.addEventListener('click', () => fitMapToGroups(currentGroups));
 
-        // Hide the placeholder backdrop once the map tiles load
-        mapboxMap.once('load', () => renderMap(currentGroups, true));
+        // On first load, fit to the Leavenworth bounding box rather than
+        // fitting all events (which would zoom out to include Wenatchee, Cashmere, etc.)
+        mapboxMap.once('load', () => {
+          renderMap(currentGroups, false);
+          if (mapInitialBounds) {
+            mapboxMap.fitBounds(mapInitialBounds, { padding: 40, animate: false });
+          }
+        });
       }
 
       function applyFilters() {
