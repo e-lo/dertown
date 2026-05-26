@@ -11,6 +11,28 @@ let state = {
   showCategoryFilter: true,
 };
 
+// ─── US Federal Holidays ────────────────────────────────────
+const US_HOLIDAYS = {
+  '2025-01-01': "New Year's Day",  '2025-01-20': 'MLK Day',
+  '2025-02-17': "Presidents' Day", '2025-05-26': 'Memorial Day',
+  '2025-06-19': 'Juneteenth',      '2025-07-04': 'July 4th',
+  '2025-09-01': 'Labor Day',       '2025-10-13': 'Columbus Day',
+  '2025-11-11': 'Veterans Day',    '2025-11-27': 'Thanksgiving',
+  '2025-12-25': 'Christmas',
+  '2026-01-01': "New Year's Day",  '2026-01-19': 'MLK Day',
+  '2026-02-16': "Presidents' Day", '2026-05-25': 'Memorial Day',
+  '2026-06-19': 'Juneteenth',      '2026-07-04': 'July 4th',
+  '2026-09-07': 'Labor Day',       '2026-10-12': 'Columbus Day',
+  '2026-11-11': 'Veterans Day',    '2026-11-26': 'Thanksgiving',
+  '2026-12-25': 'Christmas',
+  '2027-01-01': "New Year's Day",  '2027-01-18': 'MLK Day',
+  '2027-02-15': "Presidents' Day", '2027-05-31': 'Memorial Day',
+  '2027-06-19': 'Juneteenth',      '2027-07-04': 'July 4th',
+  '2027-09-06': 'Labor Day',       '2027-10-11': 'Columbus Day',
+  '2027-11-11': 'Veterans Day',    '2027-11-25': 'Thanksgiving',
+  '2027-12-25': 'Christmas',
+};
+
 // ─── Category colours ───────────────────────────────────────
 const CATEGORY_COLORS = {
   'arts & culture':        '#ffe600',
@@ -28,18 +50,26 @@ function getCategoryColor(category) {
   return CATEGORY_COLORS[(category || '').toLowerCase()] || '#4740cb';
 }
 
+/** Returns true if hex color is light enough to need dark text. */
+function isLightColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 140;
+}
+
 // ─── Date utilities ─────────────────────────────────────────
 
-/** Returns the Monday of the week containing `date`. */
+/** Returns the Sunday of the week containing `date`. */
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay(); // 0=Sun, 1=Mon...6=Sat
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setDate(d.getDate() - day); // back to Sunday
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-/** Returns array of 7 Date objects starting from Monday. */
+/** Returns array of 7 Date objects starting from Sunday. */
 function getWeekDates(weekStart) {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -137,24 +167,30 @@ function groupByDate(events) {
 
 function eventCardHTML(event, showTag) {
   const color = getCategoryColor(event.category);
+  const light = isLightColor(color);
+  const textColor  = light ? '#111827' : '#ffffff';
+  const timeColor  = light ? 'rgba(0,0,0,0.58)' : 'rgba(255,255,255,0.82)';
+  const locColor   = light ? 'rgba(0,0,0,0.48)' : 'rgba(255,255,255,0.65)';
+  const tagBg      = light ? 'rgba(0,0,0,0.12)'  : 'rgba(255,255,255,0.22)';
+
   const timeStr = event.allDay
     ? 'All day'
     : formatTime(event.start) + ' ' + formatDuration(event.start, event.end);
   const tagHTML = showTag && event.category
-    ? `<span class="cal-event-tag" style="background:${color}22;color:${color}">${event.category}</span>`
+    ? `<span class="cal-event-tag" style="background:${tagBg};color:${textColor}">${event.category}</span>`
     : '';
   const locHTML = event.location
-    ? `<div class="cal-event-loc">${escapeHtml(event.location)}</div>`
+    ? `<div class="cal-event-loc" style="color:${locColor}">${escapeHtml(event.location)}</div>`
     : '';
 
   return `
     <a class="cal-event${event.allDay ? ' allday' : ''}"
        href="${event.url?.startsWith('/') ? event.url : '#'}"
-       style="${event.allDay ? '' : `border-left-color:${color}`}"
+       style="background:${color}"
        data-event-id="${event.id}"
     >
-      <div class="cal-event-time">${timeStr}</div>
-      <div class="cal-event-title">${escapeHtml(event.title)}</div>
+      <div class="cal-event-time" style="color:${timeColor}">${timeStr}</div>
+      <div class="cal-event-title" style="color:${textColor}">${escapeHtml(event.title)}</div>
       ${locHTML}
       ${tagHTML}
     </a>
@@ -179,6 +215,16 @@ function dayColumnHTML(date, eventsForDay, opts = {}) {
   const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+  // Weekend / holiday column styling
+  const dow = date.getDay(); // 0=Sun, 6=Sat
+  const isWeekend = dow === 0 || dow === 6;
+  const holidayName = US_HOLIDAYS[dateStr] || null;
+  const colClass = holidayName ? ' holiday' : (isWeekend ? ' weekend' : '');
+
+  const holidayLabelHTML = holidayName
+    ? `<div class="cal-holiday-label">${escapeHtml(holidayName)}</div>`
+    : '';
+
   // Sort: all-day first, then by time
   const sorted = [...eventsForDay].sort((a, b) => {
     if (a.allDay && !b.allDay) return -1;
@@ -200,14 +246,16 @@ function dayColumnHTML(date, eventsForDay, opts = {}) {
            <div class="cal-day-name-full">${date.toLocaleDateString('en-US', { weekday: 'long' })}</div>
            <div class="cal-day-month">${monthName}</div>
          </div>
-       </div>`
+       </div>
+       ${holidayLabelHTML}`
     : `<div class="cal-day-header">
          <div class="cal-day-name">${dayName}</div>
          <div class="cal-day-num${todayClass}">${dayNum}</div>
+         ${holidayLabelHTML}
        </div>`;
 
   return `
-    <div class="cal-day-col" data-date="${dateStr}">
+    <div class="cal-day-col${colClass}" data-date="${dateStr}">
       ${headerHTML}
       <div class="cal-day-events">${cardsHTML}</div>
     </div>
@@ -847,7 +895,7 @@ function renderMonthGrid(container) {
   // Start from Monday before the 1st
   const gridStart = getWeekStart(firstDay);
 
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const headerHTML = dayNames.map(d => `<div class="cal-month-header">${d}</div>`).join('');
 
   const cells = [];
