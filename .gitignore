@@ -54,3 +54,4 @@ db.sqlite3.*
 
 # Claude Code local overrides
 .claude/settings.local.json
+.worktrees/
