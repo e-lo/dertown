@@ -18,6 +18,26 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
       <p class="text-gray-400 text-center">A more complete and searchable list of activities can be found at <a href="activities" class="hover:text-grey-800">http://dertown.org/family/activities</a>.</p>
     </div>
 
+    <!-- Upcoming Signup Callout -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+        <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined">calendar_month</span>
+          Upcoming &amp; Open Signups
+        </h3>
+        <ul class="space-y-2 text-sm text-amber-800">
+          <li class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-base mt-0.5">downhill_skiing</span>
+            <span><strong>PVNT Summer/Fall Roller Ski</strong> — Signups open now for the summer/fall session (Tuesdays &amp; Thursdays 3:30–5:30pm). <a href="https://www.skiplain.com/pvnt-summer" target="_blank" class="underline">Register at skiplain.com</a></span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-base mt-0.5">groups</span>
+            <span><strong>Cub Scouts</strong> — Fall is the best time to join, but new scouts are welcome year-round.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Quick Navigation -->
     <div class="border-b border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex flex-wrap justify-center gap-2">
@@ -53,26 +73,26 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               <LinkBox
                 title="Cub Scouts"
                 text="All-gender scouting program building character, citizenship, and fitness through fun activities and outdoor adventures."
-                subtext="Every other Thursday after school with monthly weekend activities."
+                subtext="Every other Thursday after school with monthly weekend activities. Fall is the best time to sign up, but new scouts are welcome anytime."
                 link="https://drive.google.com/file/d/1dciVqWZcTV1rLMoHLIIzBQfY09T7K664/view?usp=drive_link"
                 icon="groups"
                 external={false}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Fall (best) / Anytime</span>
               </div>
             </div>
             <div class="relative">
               <LinkBox
                 title="Plain Valley Nordic Devo Team"
-                text="Cross-country skiing program focused on developing a passion for playing outdoors through both dry land and winter activities. Skills are acquired through play and reinforced with small drills."
-                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30-5:30. Winter: Information forthcoming."
+                text="Cross-country skiing program for students from Peshastin-Dryden, Alpine Lakes, and Icicle River Middle School. Develops a passion for playing outdoors through dry land and winter activities — skills acquired through play and reinforced with small drills."
+                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30–5:30."
                 link="https://www.skiplain.com/pvnt-summer"
                 icon="downhill_skiing"
                 external={true}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">WINTER</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Summer/Fall</span>
               </div>
             </div>
           </div>
@@ -86,7 +106,7 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
         <SectionHeader
           title="Alpine Lakes Elementary"
           icon="school"
-    />
+        />
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="relative">
@@ -145,33 +165,33 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               <LinkBox
                 title="Cub Scouts"
                 text="All-gender scouting program building character, citizenship, and fitness through fun activities and outdoor adventures."
-                subtext="Every other Thursday after school with monthly weekend activities."
+                subtext="Every other Thursday after school with monthly weekend activities. Fall is the best time to sign up, but new scouts are welcome anytime."
                 link="https://drive.google.com/file/d/1dciVqWZcTV1rLMoHLIIzBQfY09T7K664/view?usp=drive_link"
                 icon="groups"
                 external={false}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Fall (best) / Anytime</span>
               </div>
             </div>
             <div class="relative">
               <LinkBox
                 title="Plain Valley Nordic Devo Team"
-                text="Cross-country skiing program focused on developing a passion for playing outdoors through both dry land and winter activities. Skills are acquired through play and reinforced with small drills."
-                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30-5:30. Winter: Information forthcoming."
+                text="Cross-country skiing program for students from Peshastin-Dryden, Alpine Lakes, and Icicle River Middle School. Develops a passion for playing outdoors through dry land and winter activities — skills acquired through play and reinforced with small drills."
+                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30–5:30."
                 link="https://www.skiplain.com/pvnt-summer"
                 icon="downhill_skiing"
                 external={true}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Summer/Fall</span>
               </div>
             </div>
             <div class="relative">
               <LinkBox
                 title="Ski Club"
-                text="Weekly skiing program for students to develop skills and enjoy winter sports in the beautiful Ski Hill."
-                subtext="Wednesdays after school in January/February. Equipment, transportation to ski hill, and LWSC passes provided. Details to be announced in December."
+                text="Weekly skiing program for students to develop skills and enjoy winter sports at Ski Hill."
+                subtext="Wednesdays after school in January/February. Equipment, transportation to ski hill, and LWSC passes provided. Details announced in December."
                 link="https://sites.google.com/view/pd-alpinelakespto/activities"
                 icon="ac_unit"
                 external={true}
@@ -243,20 +263,20 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
                 external={true}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Fall</span>
               </div>
             </div>
             <div class="relative">
               <LinkBox
                 title="Sustainability Club"
                 text="Environmental awareness and sustainability program where students learn about conservation, recycling, and environmental stewardship."
-                subtext="Mondays after school:3-4PM"
+                subtext="Mondays after school 3–4PM"
                 link="https://www.cascadesd.org/o/irms/page/sustainability-club"
                 icon="eco"
                 external={true}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--blue status-badge--md">Ongoing</span>
               </div>
             </div>
             <div class="relative">
@@ -275,14 +295,14 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
             <div class="relative">
               <LinkBox
                 title="Plain Valley Nordic Devo Team"
-                text="Cross-country skiing program focused on developing a passion for playing outdoors through both dry land and winter activities. Skills are acquired through play and reinforced with small drills."
-                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30-5:30. Winter: Information forthcoming."
+                text="Cross-country skiing program for students from Peshastin-Dryden, Alpine Lakes, and Icicle River Middle School. Develops a passion for playing outdoors through dry land and winter activities — skills acquired through play and reinforced with small drills."
+                subtext="Summer/Fall: roller skiing, agility courses, hill bounding, trail runs and a fun camp. $120 with scholarship available. Tuesdays & Thursdays 3:30–5:30."
                 link="https://www.skiplain.com/pvnt-summer"
                 icon="downhill_skiing"
                 external={true}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--yellow status-badge--md">Summer/Fall</span>
               </div>
             </div>
             <div class="relative">
@@ -295,27 +315,27 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
                 external={false}
               />
               <div class="absolute top-2 right-2">
-                <span class="status-badge status-badge--green status-badge--md">OPEN</span>
+                <span class="status-badge status-badge--blue status-badge--md">Year-round</span>
               </div>
             </div>
             <div class="relative">
-                <LinkBox
-                  title="Leavenworth Library"
-                  text="Spend your afternoons at the library reading, doing homework, and playing games."
-                  subtext="For responsible children who can work independently. Tuesday thru Friday."
-                  link="https://www.ncwlibraries.org/locations/leavenworth-public-library/"
-                  icon="book"
-                  external={false}
-                />
-                <div class="absolute top-2 right-2">
-                  <span class="status-badge status-badge--blue status-badge--md">Ongoing</span>
-                </div>
+              <LinkBox
+                title="Leavenworth Library"
+                text="Spend your afternoons at the library reading, doing homework, and playing games."
+                subtext="For responsible children who can work independently. Tuesday thru Friday."
+                link="https://www.ncwlibraries.org/locations/leavenworth-public-library/"
+                icon="book"
+                external={false}
+              />
+              <div class="absolute top-2 right-2">
+                <span class="status-badge status-badge--blue status-badge--md">Ongoing</span>
               </div>
+            </div>
             <div class="relative">
               <LinkBox
                 title="Ski Club"
                 text="Weekly skiing program for students to develop skills and enjoy winter sports in the beautiful Cascade Mountains."
-                subtext="Coming Wednesdays January/February 2026. Equipment, transportation to ski hill, and LWSC passes provided. Details to be announced in December."
+                subtext="Wednesdays January/February. Equipment, transportation to ski hill, and LWSC passes provided. Details announced in December."
                 link="#"
                 icon="ac_unit"
                 external={false}
@@ -328,7 +348,7 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
               <LinkBox
                 title="School Play"
                 text="Theater program where students can explore acting, singing, and stagecraft in a collaborative production."
-                subtext="Coming Spring 2026. Auditions and rehearsals to be announced."
+                subtext="Auditions and rehearsals to be announced in late winter."
                 link="#"
                 icon="theater_comedy"
                 external={false}
