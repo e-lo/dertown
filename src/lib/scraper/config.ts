@@ -12,6 +12,7 @@ export interface ScraperConfig {
   tagKeywords: Record<string, string[]>;
   venueTags: VenueTagRule[];
   descriptionMaxChars: number;
+  globalExclude: import('./types').ExcludeRules | null;
 }
 
 /** Load and parse the sources.yaml config file. */
@@ -32,6 +33,7 @@ export function loadConfig(): ScraperConfig {
     tagKeywords: parsed.tag_keywords || {},
     venueTags: parsed.venue_tags || [],
     descriptionMaxChars,
+    globalExclude: parsed.global_exclude ?? null,
   };
 }
 

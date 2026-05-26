@@ -1,5 +1,7 @@
 import { parseIntent } from '../email-ingest/command-parser';
 import { extractBody } from '../email-ingest/content-extractor';
+import { screenEvent } from '../email-ingest/screener';
+import type { ExcludeRules } from '../scraper/types';
 
 function runTests() {
   console.log('🧪 Testing email-ingest modules\n');
@@ -144,6 +146,49 @@ Unsubscribe from this list | View in browser`;
       console.log('✅ PASS: extractBody passes clean text through unchanged\n');
     } else {
       console.log(`❌ FAIL: extractBody clean text. Got: "${result}"\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  // --- screener ---
+
+  try {
+    const rules: ExcludeRules = { title_keywords: [' camp', 'group lessons'] };
+    const result = screenEvent({ title: 'Summer Strings Camp', location_name: null }, rules);
+    if (!result.pass) {
+      console.log('✅ PASS: screenEvent blocks event matching title_keywords\n');
+    } else {
+      console.log(`❌ FAIL: screenEvent should have blocked "Summer Strings Camp"\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  try {
+    const rules: ExcludeRules = { title_keywords: [' camp'] };
+    const result = screenEvent({ title: 'Community BBQ', location_name: null }, rules);
+    if (result.pass) {
+      console.log('✅ PASS: screenEvent passes event not matching any rule\n');
+    } else {
+      console.log(`❌ FAIL: screenEvent blocked "Community BBQ" incorrectly\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  try {
+    const result = screenEvent({ title: 'Any Event', location_name: null }, null);
+    if (result.pass) {
+      console.log('✅ PASS: screenEvent passes when rules are null\n');
+    } else {
+      console.log(`❌ FAIL: screenEvent should pass with null rules\n`);
       allTestsPassed = false;
     }
   } catch (error) {

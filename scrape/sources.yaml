@@ -1,3 +1,7 @@
+# Global exclusion rules applied to all email-ingest events.
+# Add title_keywords, location_keywords, or title_patterns here.
+global_exclude: null
+
 # Der Town Event Scraper — Source Configuration
 # Each source maps to a row in the source_sites DB table.
 # Extraction rules, selectors, and filters are kept here (version-controlled).

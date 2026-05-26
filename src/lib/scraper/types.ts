@@ -108,4 +108,5 @@ export interface SourcesConfig {
   tag_keywords?: Record<string, string[]>;
   venue_tags?: VenueTagRule[];
   description_max_chars?: number;
+  global_exclude?: ExcludeRules | null;
 }
