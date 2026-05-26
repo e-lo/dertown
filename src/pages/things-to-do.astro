@@ -30,6 +30,7 @@ import Accordian from '../components/ui/Accordian.astro';
         <QuickNavItem title="Community" link="#community" icon="groups" />
         <QuickNavItem title="Volunteering" link="#volunteering" icon="volunteer_activism" />
         <QuickNavItem title="Environmental" link="#environmental" icon="nature" />
+        <QuickNavItem title="Winter Sports" link="#winter-sports" icon="downhill_skiing" />
       </div>
     </div>
 
@@ -39,23 +40,43 @@ import Accordian from '../components/ui/Accordian.astro';
         <SectionHeader
           title="Seasonal Activities"
           icon="calendar_month"
-          text="Current seasonal programs and activities happening this winter."
+          text="Current seasonal programs and activities happening this summer."
         />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <LinkBox
-            title="Plain Valley Adventure Women (PVAW)"
-            text="Join local women for cross-country skiing programs at Plain Valley Ski Trails. Programs include Classic and Skate ski technique sessions, wax clinics, snowshoe community groups, and social events."
-            subtext="Classic Ski (Jan 6-22), Skate Ski (Jan 27-Feb 12). Includes wax clinics, snowshoe group, and community ski days."
-            link="https://www.skiplain.com/pvaw-winter"
-            icon="downhill_skiing"
+            title="Leavenworth Pool"
+            text="Cool off at the Leavenworth community pool. Check the calendar for open swim, lap swim, and other aquatic programs."
+            link="https://leavenworthwa.recdesk.com/Community/Calendar?facilityId=1"
+            icon="pool"
+            external={true}
+          />
+          <div class="flex items-start p-4 bg-white rounded-lg shadow-sm">
+            <span class="material-symbols-outlined text-2xl mr-3 text-gray-600">kayaking</span>
+            <div class="flex-1">
+              <h4 class="font-medium text-gray-900">Raft the Wenatchee</h4>
+              <p class="text-sm text-gray-600">Guided whitewater rafting on the Wenatchee River. Choose from two local outfitters:</p>
+              <div class="mt-2 flex gap-4">
+                <a href="https://www.orionexp.com/?srsltid=AfmBOopZDCZzIxg-Ov7covf-I6emm1OZDVEfURXMMfAWbMM25gSMYuf4" target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                  Orion Expeditions <span class="material-symbols-outlined text-xs">open_in_new</span>
+                </a>
+                <a href="https://www.riverrider.com/" target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                  River Rider <span class="material-symbols-outlined text-xs">open_in_new</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          <LinkBox
+            title="Flatwater SUP, Kayak & Tubing"
+            text="Paddle or float the Icicle and Wenatchee Rivers. Rentals and reservations available through Leavenworth Outdoor Center."
+            link="https://leavenworthoutdoorcenter.com/reservations"
+            icon="rowing"
             external={true}
           />
           <LinkBox
-            title="Leavenworth Nordic Clinics"
-            text="Enhance your cross-country skiing skills with clinics offered by the Leavenworth Winter Sports Club at Icicle River Trails. Multi-week and single-day options available for all skill levels."
-            subtext="Multi-week clinics (Jan 6-29) and single-day sessions. Classic and Skate skiing techniques available."
-            link="https://skileavenworth.com/nordic-clinics"
-            icon="snowshoeing"
+            title="Mountain Biking"
+            text="Explore trails in the Leavenworth area. Central Washington Evergreen MTB maintains and maps local singletrack."
+            link="https://cwevergreenmtb.org/trails"
+            icon="pedal_bike"
             external={true}
           />
         </div>
@@ -165,22 +186,6 @@ import Accordian from '../components/ui/Accordian.astro';
               subtext="Facebook community group for local hikers"
               link="https://www.facebook.com/groups/hikeleavenworth/"
               icon="hiking"
-              external={true}
-            />
-            <LinkBox
-              title="Leavenworth Winter Sports Club"
-              text="Cross-country skiing and winter sports club with groomed trails and youth programs"
-              subtext="Cross-country skiing, youth programs, trail passes, winter recreation"
-              link="https://skileavenworth.com/"
-              icon="downhill_skiing"
-              external={true}
-            />
-            <LinkBox
-              title="Plain Valley Ski Trails"
-              text="Cross-country skiing trails with 25km of groomed terrain and youth education programs"
-              subtext="25km groomed trails, youth programs, Valley Pass, Adventure Women programs"
-              link="https://www.skiplain.com/"
-              icon="downhill_skiing"
               external={true}
             />
           </div>
@@ -525,6 +530,51 @@ import Accordian from '../components/ui/Accordian.astro';
               external={true}
             />
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Winter Sports Section -->
+    <div id="winter-sports" class="bg-blue py-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Winter Sports"
+          icon="downhill_skiing"
+          text="Cross-country skiing, snowshoeing, and winter recreation in the Leavenworth area."
+        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <LinkBox
+            title="Leavenworth Winter Sports Club"
+            text="Cross-country skiing and winter sports club with groomed trails and youth programs"
+            subtext="Cross-country skiing, youth programs, trail passes, winter recreation"
+            link="https://skileavenworth.com/"
+            icon="downhill_skiing"
+            external={true}
+          />
+          <LinkBox
+            title="Plain Valley Ski Trails"
+            text="Cross-country skiing trails with 25km of groomed terrain and youth education programs"
+            subtext="25km groomed trails, youth programs, Valley Pass, Adventure Women programs"
+            link="https://www.skiplain.com/"
+            icon="downhill_skiing"
+            external={true}
+          />
+          <LinkBox
+            title="Plain Valley Adventure Women (PVAW)"
+            text="Join local women for cross-country skiing programs at Plain Valley Ski Trails. Programs include Classic and Skate ski technique sessions, wax clinics, snowshoe community groups, and social events."
+            subtext="Classic Ski and Skate Ski sessions. Includes wax clinics, snowshoe group, and community ski days."
+            link="https://www.skiplain.com/pvaw-winter"
+            icon="downhill_skiing"
+            external={true}
+          />
+          <LinkBox
+            title="Leavenworth Nordic Clinics"
+            text="Enhance your cross-country skiing skills with clinics offered by the Leavenworth Winter Sports Club at Icicle River Trails. Multi-week and single-day options available for all skill levels."
+            subtext="Multi-week clinics and single-day sessions. Classic and Skate skiing techniques available."
+            link="https://skileavenworth.com/nordic-clinics"
+            icon="snowshoeing"
+            external={true}
+          />
         </div>
       </div>
     </div>
