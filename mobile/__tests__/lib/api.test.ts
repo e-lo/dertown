@@ -1,4 +1,4 @@
-import { fetchEvents } from '../../lib/api';
+import { fetchEvents, fetchEventById } from '../../lib/api';
 
 const MOCK_EVENT = {
   id: '1',
@@ -84,5 +84,52 @@ describe('fetchEvents', () => {
     });
 
     await expect(fetchEvents({})).rejects.toThrow('Failed to fetch events: 500');
+  });
+});
+
+describe('fetchEventById', () => {
+  it('returns the event for a valid id', async () => {
+    const mockEvent = {
+      id: 'abc-123',
+      title: 'Detail Event',
+      start_date: '2026-06-01',
+      end_date: null,
+      start_time: '10:00:00',
+      end_time: null,
+      description: 'A full description',
+      website: 'https://example.com',
+      registration: false,
+      cost: null,
+      featured: null,
+      external_image_url: null,
+      parent_event_id: null,
+      location_id: 'loc-1',
+      organization_id: 'org-1',
+      primary_tag: { name: 'arts-culture' },
+      secondary_tag: null,
+      location: { id: 'loc-1', name: 'Icicle Creek Center', address: '7238 Icicle Rd', latitude: 47.591, longitude: -120.68 },
+      organization: { name: 'Arts Alliance' },
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ event: mockEvent }),
+    });
+
+    const result = await fetchEventById('abc-123');
+
+    expect(result).toEqual(mockEvent);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:4321/api/events/abc-123'
+    );
+  });
+
+  it('throws on HTTP error', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    await expect(fetchEventById('bad-id')).rejects.toThrow('Failed to fetch event: 404');
   });
 });
