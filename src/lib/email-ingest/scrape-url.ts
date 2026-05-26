@@ -9,7 +9,13 @@ import { loadConfig } from '../scraper/config';
 import type { SourceConfig, ScrapedEvent } from '../scraper/types';
 
 export async function scrapeUrlForEmail(url: string): Promise<number> {
-  const config = loadConfig();
+  let config;
+  try {
+    config = loadConfig();
+  } catch {
+    // scrape/sources.yaml unavailable in this Lambda environment
+    config = { descriptionMaxChars: 2000, tagKeywords: {}, venueTags: [], sources: [], globalExclude: null } as ReturnType<typeof loadConfig>;
+  }
 
   // Fetch and AI-extract events from the URL
   const html = await fetchPage(url);

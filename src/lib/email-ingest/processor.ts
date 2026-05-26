@@ -8,6 +8,8 @@ import { checkDuplicate } from './dedup';
 import { scrapeUrlForEmail } from './scrape-url';
 import { matchEvents, loadReferenceData } from '../scraper/match';
 import { loadConfig } from '../scraper/config';
+import { normalizeEvent, isPastEvent } from '../scraper/normalize';
+import { clampDescription } from '../scraper/description';
 import type { CloudMailinPayload, ProcessResult } from './types';
 import type { SourceConfig, VenueTagRule } from '../scraper/types';
 
@@ -15,7 +17,12 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
   const senderEmail = payload.envelope.from;
 
   // Step 1: Validate sender is a super_admin
-  const isAuthorized = await isSuperAdminEmail(senderEmail);
+  let isAuthorized = false;
+  try {
+    isAuthorized = await isSuperAdminEmail(senderEmail);
+  } catch {
+    return { status: 'rejected_sender' };
+  }
   if (!isAuthorized) return { status: 'rejected_sender' };
 
   // Step 2: Detect intent
@@ -56,6 +63,11 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
 
   // Use the first (most prominent) extracted event
   const event = events[0];
+  const normalized = normalizeEvent(event);
+  normalized.description = clampDescription(normalized.description, 2000);
+  if (isPastEvent(normalized)) {
+    throw new Error('Event date is in the past and cannot be staged');
+  }
 
   if (events.length > 1) {
     console.warn(`[email-ingest] Extracted ${events.length} events from email; using only the first`);
@@ -75,11 +87,11 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
   }
 
   // Step 5: Screen against global exclusion rules
-  const screen = screenEvent(event, globalExclude);
+  const screen = screenEvent(normalized, globalExclude);
   if (!screen.pass) return { status: 'screened_out', reason: screen.reason };
 
   // Step 6: Check for duplicates
-  const duplicateHint = await checkDuplicate(event);
+  const duplicateHint = await checkDuplicate(normalized);
 
   // Step 7: Match event against locations/orgs/tags and write to events_staged
   const ref = await loadReferenceData(supabaseAdmin).catch(() => null);
@@ -94,7 +106,7 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
     default_tag: null,
   };
 
-  const processed = matchEvents([event], syntheticSource, ref, tagKeywords, venueTags, false);
+  const processed = matchEvents([normalized], syntheticSource, ref, tagKeywords, venueTags, false);
   if (processed.length === 0) throw new Error('Event matching returned no results');
 
   const ev = processed[0];
