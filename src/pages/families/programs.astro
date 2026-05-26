@@ -5,12 +5,15 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 
 // --- URL params ---
-const seasonParam = Astro.url.searchParams.get('season') ?? ''; // fall|winter|spring|summer|ongoing
-const typeParam   = Astro.url.searchParams.get('type')   ?? ''; // sports|arts|dance|music|outdoor|academic|other
-const ageParam    = Astro.url.searchParams.get('age')    ?? ''; // little-kids|elementary|middle|teen
+const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|lesson|class|session
+const seasonParam = Astro.url.searchParams.get('season')  ?? ''; // fall|winter|spring|summer|ongoing
+const typeParam   = Astro.url.searchParams.get('type')    ?? ''; // sports|arts|dance|music|outdoor|academic|other
+const ageParam    = Astro.url.searchParams.get('age')     ?? ''; // little-kids|elementary|middle|teen
 
-// --- Supabase query (same pattern as /api/activities.ts) ---
-// public_activities view already filters active=true; joins to parent for activity_type fallback
+// --- Supabase query ---
+// Shows league, lesson, class, session programs (not camps).
+// NULL program_format entries are included as uncategorized — they'll show up here
+// until an admin assigns them a format.
 const { data: allPrograms, error } = await (supabase as any)
   .from('public_activities')
   .select(`
@@ -25,7 +28,7 @@ const { data: allPrograms, error } = await (supabase as any)
   `)
   .eq('activity_hierarchy_type', 'PROGRAM')
   .eq('status', 'approved')
-  .eq('program_format', 'camp')
+  .neq('program_format', 'camp')  // exclude camps; NULL (uncategorized) included by default
   .order('name');
 
 type Program = {
@@ -58,6 +61,9 @@ type Program = {
 // --- In-memory filtering ---
 let filtered: Program[] = allPrograms ?? [];
 
+if (formatParam) {
+  filtered = filtered.filter(p => (p.program_format ?? '') === formatParam);
+}
 if (seasonParam === 'fall')    filtered = filtered.filter(p => p.is_fall);
 if (seasonParam === 'winter')  filtered = filtered.filter(p => p.is_winter);
 if (seasonParam === 'spring')  filtered = filtered.filter(p => p.is_spring);
@@ -70,7 +76,7 @@ if (typeParam) {
   );
 }
 
-// Age: overlapping ranges — a 5-12 program appears under both elementary AND middle
+// Age: overlapping ranges
 if (ageParam === 'little-kids')  filtered = filtered.filter(p => (p.min_age ?? 0) <= 6);
 if (ageParam === 'elementary')   filtered = filtered.filter(p => (p.max_age ?? 99) >= 5  && (p.min_age ?? 0) <= 11);
 if (ageParam === 'middle')       filtered = filtered.filter(p => (p.max_age ?? 99) >= 11 && (p.min_age ?? 0) <= 14);
@@ -112,19 +118,20 @@ function getCategoryIcon(type: string | null | undefined): string {
   return map[(type ?? '').toLowerCase()] ?? 'category';
 }
 
-// Build a URL preserving current filters with overrides
 function buildUrl(overrides: Record<string, string>): string {
   const p = new URLSearchParams();
-  const s = overrides.season ?? seasonParam;
-  const t = overrides.type   ?? typeParam;
-  const a = overrides.age    ?? ageParam;
+  const f = overrides.hasOwnProperty('format') ? overrides.format : formatParam;
+  const s = overrides.hasOwnProperty('season') ? overrides.season : seasonParam;
+  const t = overrides.hasOwnProperty('type')   ? overrides.type   : typeParam;
+  const a = overrides.hasOwnProperty('age')    ? overrides.age    : ageParam;
+  if (f) p.set('format', f);
   if (s) p.set('season', s);
   if (t) p.set('type',   t);
   if (a) p.set('age',    a);
-  return '/families/camps' + (p.toString() ? '?' + p.toString() : '');
+  return '/families/programs' + (p.toString() ? '?' + p.toString() : '');
 }
 
-const hasFilters = !!(seasonParam || typeParam || ageParam);
+const hasFilters = !!(formatParam || seasonParam || typeParam || ageParam);
 
 // Programs opening for registration within the next 60 days
 const now = new Date();
@@ -138,17 +145,32 @@ const upcomingSignups: Program[] = (allPrograms ?? []).filter((p: Program) => {
 // Featured programs (only shown when no filters are active)
 const featuredPrograms: Program[] = (allPrograms ?? []).filter((p: Program) => p.featured);
 
-// Season pills config
+// Format pill config
+const formats = [
+  { value: '', label: 'All types' },
+  { value: 'league',  label: 'League'  },
+  { value: 'lesson',  label: 'Lessons' },
+  { value: 'class',   label: 'Class'   },
+  { value: 'session', label: 'Session' },
+];
+
+// Format label helpers for cards
+const formatLabels: Record<string, { label: string; color: string }> = {
+  league:  { label: 'League',  color: 'blue'   },
+  lesson:  { label: 'Lessons', color: 'green'  },
+  class:   { label: 'Class',   color: 'purple' },
+  session: { label: 'Session', color: 'orange' },
+};
+
 const seasons = [
   { value: '', label: 'All seasons' },
-  { value: 'summer',  label: 'Summer'     },
   { value: 'fall',    label: 'Fall'       },
   { value: 'winter',  label: 'Winter'     },
   { value: 'spring',  label: 'Spring'     },
+  { value: 'summer',  label: 'Summer'     },
   { value: 'ongoing', label: 'Year-round' },
 ];
 
-// Type pills config
 const types = [
   { value: '', label: 'All types' },
   { value: 'sports',    label: 'Sports'    },
@@ -161,7 +183,6 @@ const types = [
   { value: 'other',     label: 'Other'     },
 ];
 
-// Age pills config
 const ages = [
   { value: '', label: 'All ages' },
   { value: 'little-kids', label: 'Little Kids (0–5)' },
@@ -170,28 +191,28 @@ const ages = [
   { value: 'teen',        label: 'Teen'              },
 ];
 
-// Season badge config (for cards)
 const seasonBadges = [
-  { key: 'is_summer', label: 'Summer', color: 'orange' },
-  { key: 'is_fall',   label: 'Fall',   color: 'yellow' },
-  { key: 'is_winter', label: 'Winter', color: 'blue'   },
-  { key: 'is_spring', label: 'Spring', color: 'green'  },
-  { key: 'is_ongoing',label: 'Year-round', color: 'gray' },
+  { key: 'is_fall',    label: 'Fall',       color: 'yellow' },
+  { key: 'is_winter',  label: 'Winter',     color: 'blue'   },
+  { key: 'is_spring',  label: 'Spring',     color: 'green'  },
+  { key: 'is_summer',  label: 'Summer',     color: 'orange' },
+  { key: 'is_ongoing', label: 'Year-round', color: 'gray'   },
 ] as const;
 ---
 
-<Layout title="Camps & Classes - Families | Der Town" description="Find camps, classes, and programs for kids of all ages in the Leavenworth area.">
+<Layout title="Programs - Families | Der Town" description="Find leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area.">
   <div class="bg-white min-h-screen">
 
     <!-- Hero -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
       <SectionHeader
-        title="Camps &amp; Classes"
-        icon="backpack"
-        text="Find programs, camps, and classes for kids of all ages in the Leavenworth area. Filter by season, type, or age group."
+        title="Programs"
+        icon="emoji_events"
+        text="Leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area. Filter by format, season, type, or age group."
       />
       <p class="text-gray-400 text-center text-sm mt-1">
-        Data is maintained by community volunteers — <a href="mailto:dertownleavenworth@gmail.com" class="underline">let us know</a> if something is missing or out of date.
+        Looking for camps? Visit <a href="/families/camps" class="underline">Camps &amp; Classes</a>.
+        Data is maintained by community volunteers — <a href="mailto:dertownleavenworth@gmail.com" class="underline">let us know</a> if something is missing.
       </p>
     </div>
 
@@ -227,12 +248,27 @@ const seasonBadges = [
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
       <div class="bg-gray-50 rounded-lg p-4 space-y-3">
 
+        <!-- Format row -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Format</span>
+          {formats.map(f => (
+            <a
+              href={buildUrl({ format: f.value })}
+              class={formatParam === f.value
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {f.label}
+            </a>
+          ))}
+        </div>
+
         <!-- Season row -->
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Season</span>
           {seasons.map(s => (
             <a
-              href={buildUrl({ season: s.value, type: typeParam, age: ageParam })}
+              href={buildUrl({ season: s.value })}
               class={seasonParam === s.value
                 ? 'status-badge status-badge--blue status-badge--md'
                 : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
@@ -247,7 +283,7 @@ const seasonBadges = [
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Type</span>
           {types.map(t => (
             <a
-              href={buildUrl({ season: seasonParam, type: t.value, age: ageParam })}
+              href={buildUrl({ type: t.value })}
               class={typeParam === t.value
                 ? 'status-badge status-badge--blue status-badge--md'
                 : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
@@ -262,7 +298,7 @@ const seasonBadges = [
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Age</span>
           {ages.map(a => (
             <a
-              href={buildUrl({ season: seasonParam, type: typeParam, age: a.value })}
+              href={buildUrl({ age: a.value })}
               class={ageParam === a.value
                 ? 'status-badge status-badge--blue status-badge--md'
                 : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
@@ -280,7 +316,7 @@ const seasonBadges = [
           {filtered.length} program{filtered.length !== 1 ? 's' : ''} found
         </p>
         {hasFilters && (
-          <a href="/families/camps" class="text-sm text-blue-600 hover:underline">Clear filters</a>
+          <a href="/families/programs" class="text-sm text-blue-600 hover:underline">Clear filters</a>
         )}
       </div>
     </div>
@@ -337,6 +373,7 @@ const seasonBadges = [
             const ageLabel  = formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade);
             const icon      = getCategoryIcon(p.activity_type);
             const orgName   = p.sponsoring_organization?.name;
+            const fmt       = p.program_format ? formatLabels[p.program_format] : null;
 
             return (
               <div class={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow flex flex-col ${p.featured ? 'border-amber-300' : 'border-gray-200'}`}>
@@ -352,8 +389,11 @@ const seasonBadges = [
                         </p>
                       </div>
                     </div>
-                    <!-- Season badges -->
+                    <!-- Format + season badges -->
                     <div class="flex flex-wrap gap-1 shrink-0">
+                      {fmt && (
+                        <span class={`status-badge status-badge--${fmt.color} status-badge--sm`}>{fmt.label}</span>
+                      )}
                       {seasonBadges.map(sb => (
                         p[sb.key as keyof Program] && (
                           <span class={`status-badge status-badge--${sb.color} status-badge--sm`}>{sb.label}</span>
@@ -421,7 +461,7 @@ const seasonBadges = [
         <div class="text-center py-16 text-gray-400">
           <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
           <p class="text-lg font-medium text-gray-600 mb-1">No programs found</p>
-          <p class="text-sm">Try adjusting your filters or <a href="/families/camps" class="text-blue-600 underline">view all programs</a>.</p>
+          <p class="text-sm">Try adjusting your filters or <a href="/families/programs" class="text-blue-600 underline">view all programs</a>.</p>
         </div>
       )}
     </div>
@@ -431,7 +471,7 @@ const seasonBadges = [
     <!-- CTA -->
     <div class="mt-4 text-center">
       <div class="bg-blue-green p-8">
-        <h2 class="text-2xl font-semibold mb-2">Know of a camp or class we're missing?</h2>
+        <h2 class="text-2xl font-semibold mb-2">Know of a program we're missing?</h2>
         <p class="text-gray-600 mb-4 text-sm">Help us keep this list complete for Leavenworth families.</p>
         <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
           Let Us Know
