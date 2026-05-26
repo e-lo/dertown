@@ -5,7 +5,7 @@ import { THEME } from '../lib/theme';
 export default function MapScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Map — coming in Plan 5</Text>
+      <Text style={styles.text}>Map coming in Plan 5</Text>
     </View>
   );
 }
