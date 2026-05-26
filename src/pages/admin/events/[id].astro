@@ -597,6 +597,14 @@ const userEmail = session.user?.email || 'Admin';
 
     currentEditId = null;
     isDuplicateMode = true;
+
+    const mergePanel = document.getElementById('mergeSearchPanel');
+    if (mergePanel) { mergePanel.style.display = 'none'; }
+    const mergeInput = document.getElementById('mergeSearchInput');
+    if (mergeInput) { mergeInput.value = ''; }
+    const mergeDropdown = document.getElementById('mergeSearchDropdown');
+    if (mergeDropdown) { mergeDropdown.innerHTML = ''; }
+
     openEditModal();
   }
 
@@ -611,6 +619,10 @@ const userEmail = session.user?.email || 'Admin';
   let mergeSearchTimeout = null;
 
   function toggleMergeSearchPanel() {
+    if (!currentEditId) {
+      showMessage('Save the event first before merging.', 'error');
+      return;
+    }
     const panel = document.getElementById('mergeSearchPanel');
     if (!panel) return;
     const isHidden = panel.style.display === 'none' || panel.style.display === '';
@@ -632,6 +644,8 @@ const userEmail = session.user?.email || 'Admin';
       const q = input.value.trim();
       if (q.length < 2) {
         dropdown.innerHTML = '';
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
         return;
       }
       if (mergeSearchTimeout !== null) {
@@ -655,6 +669,8 @@ const userEmail = session.user?.email || 'Admin';
                 return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + (sub ? ' <span class="text-gray-500">' + sub + '</span>' : '') + '</div>';
               }).join('');
           }
+          dropdown.classList.remove('hidden');
+          dropdown.classList.add('block');
           dropdown.querySelectorAll('.autocomplete-dropdown-item[data-id]').forEach(item => {
             item.addEventListener('click', () => {
               const secondaryId = item.getAttribute('data-id');
@@ -665,8 +681,17 @@ const userEmail = session.user?.email || 'Admin';
           });
         } catch {
           dropdown.innerHTML = '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
         }
       }, 200);
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value.trim().length >= 2 && dropdown.innerHTML) {
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('block');
+      }
     });
 
     document.addEventListener('click', (e) => {
