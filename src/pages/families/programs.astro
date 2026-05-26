@@ -1,0 +1,503 @@
+---
+import Layout from '../../components/Layout.astro';
+import SectionHeader from '../../components/ui/SectionHeader.astro';
+import Disclaimer from '../../components/ui/Disclaimer.astro';
+import { supabase } from '../../lib/supabase';
+
+// --- URL params ---
+const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|lesson|class|session
+const seasonParam = Astro.url.searchParams.get('season')  ?? ''; // fall|winter|spring|summer|ongoing
+const typeParam   = Astro.url.searchParams.get('type')    ?? ''; // sports|arts|dance|music|outdoor|academic|other
+const ageParam    = Astro.url.searchParams.get('age')     ?? ''; // little-kids|elementary|middle|teen
+
+// --- Supabase query ---
+// Shows league, lesson, class, session programs (not camps).
+// NULL program_format entries are included as uncategorized catch-all.
+// Try with program_format (requires migration 20260526120000 to be applied).
+// Falls back gracefully if the column doesn't exist yet (error 42703).
+const baseSelect = `
+  id, name, description, activity_type,
+  is_fall, is_winter, is_spring, is_summer, is_ongoing,
+  min_age, max_age, min_grade, max_grade,
+  cost, cost_assistance_available,
+  registration_link, registration_required,
+  registration_opens, registration_closes,
+  waitlist_status, featured, website,
+  sponsoring_organization:organizations!sponsoring_organization_id(name, website)
+`;
+
+let result = await (supabase as any)
+  .from('public_activities')
+  .select(`program_format, ${baseSelect}`)
+  .eq('activity_hierarchy_type', 'PROGRAM')
+  .eq('status', 'approved')
+  // Exclude camps; include NULL (uncategorized) — PostgREST neq drops NULLs, so use OR
+  .or('program_format.neq.camp,program_format.is.null')
+  .order('name');
+
+let hasFormatColumn = true;
+
+// Fallback: column doesn't exist yet — show all approved programs (migration pending)
+if (result.error?.code === '42703') {
+  hasFormatColumn = false;
+  result = await (supabase as any)
+    .from('public_activities')
+    .select(baseSelect)
+    .eq('activity_hierarchy_type', 'PROGRAM')
+    .eq('status', 'approved')
+    .order('name');
+}
+
+const { data: allPrograms, error } = result;
+
+type Program = {
+  id: string;
+  name: string;
+  description?: string | null;
+  activity_type?: string | null;
+  program_format?: string | null;
+  is_fall?: boolean | null;
+  is_winter?: boolean | null;
+  is_spring?: boolean | null;
+  is_summer?: boolean | null;
+  is_ongoing?: boolean | null;
+  min_age?: number | null;
+  max_age?: number | null;
+  min_grade?: string | null;
+  max_grade?: string | null;
+  cost?: string | null;
+  cost_assistance_available?: boolean | null;
+  registration_link?: string | null;
+  registration_required?: boolean | null;
+  registration_opens?: string | null;
+  registration_closes?: string | null;
+  waitlist_status?: string | null;
+  featured?: boolean | null;
+  website?: string | null;
+  sponsoring_organization?: { name?: string | null; website?: string | null } | null;
+};
+
+// --- In-memory filtering ---
+let filtered: Program[] = allPrograms ?? [];
+
+// Format filter only applies when the column exists (post-migration)
+if (formatParam && hasFormatColumn) {
+  filtered = filtered.filter(p => (p.program_format ?? '') === formatParam);
+}
+if (seasonParam === 'fall')    filtered = filtered.filter(p => p.is_fall);
+if (seasonParam === 'winter')  filtered = filtered.filter(p => p.is_winter);
+if (seasonParam === 'spring')  filtered = filtered.filter(p => p.is_spring);
+if (seasonParam === 'summer')  filtered = filtered.filter(p => p.is_summer);
+if (seasonParam === 'ongoing') filtered = filtered.filter(p => p.is_ongoing);
+
+if (typeParam) {
+  filtered = filtered.filter(p =>
+    (p.activity_type ?? '').toLowerCase() === typeParam.toLowerCase()
+  );
+}
+
+// Age: overlapping ranges
+if (ageParam === 'little-kids')  filtered = filtered.filter(p => (p.min_age ?? 0) <= 6);
+if (ageParam === 'elementary')   filtered = filtered.filter(p => (p.max_age ?? 99) >= 5  && (p.min_age ?? 0) <= 11);
+if (ageParam === 'middle')       filtered = filtered.filter(p => (p.max_age ?? 99) >= 11 && (p.min_age ?? 0) <= 14);
+if (ageParam === 'teen')         filtered = filtered.filter(p => (p.max_age ?? 99) >= 13);
+
+// --- Helper functions ---
+function formatAge(min: number | null | undefined, max: number | null | undefined,
+                   minGrade?: string | null, maxGrade?: string | null): string {
+  if (min != null && max != null) return `Ages ${min}–${max}`;
+  if (min != null) return `Ages ${min}+`;
+  if (max != null) return `Up to age ${max}`;
+  if (minGrade || maxGrade) {
+    return `${minGrade ?? ''}${minGrade && maxGrade ? '–' : ''}${maxGrade ?? ''}`;
+  }
+  return 'All ages';
+}
+
+function getRegStatus(p: Program): { label: string; color: string } | null {
+  const now = new Date();
+  const opens  = p.registration_opens  ? new Date(p.registration_opens)  : null;
+  const closes = p.registration_closes ? new Date(p.registration_closes) : null;
+  if (opens && now < opens) {
+    const d = opens.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label: `Registration opens ${d}`, color: 'yellow' };
+  }
+  if (closes && now > closes) return { label: 'Registration closed', color: 'gray' };
+  if (p.waitlist_status)      return { label: 'Waitlist open', color: 'orange' };
+  return null;
+}
+
+function getCategoryIcon(type: string | null | undefined): string {
+  const map: Record<string, string> = {
+    gymnastics: 'fitness_center', sports: 'sports_soccer',
+    'martial arts': 'sports_martial_arts', arts: 'palette',
+    music: 'music_note', dance: 'music_note', theater: 'theater_comedy',
+    stem: 'science', outdoor: 'hiking', academic: 'school',
+    social: 'groups', scouting: 'camping', recreation: 'park', other: 'category',
+  };
+  return map[(type ?? '').toLowerCase()] ?? 'category';
+}
+
+function buildUrl(overrides: Record<string, string>): string {
+  const p = new URLSearchParams();
+  const f = overrides.hasOwnProperty('format') ? overrides.format : formatParam;
+  const s = overrides.hasOwnProperty('season') ? overrides.season : seasonParam;
+  const t = overrides.hasOwnProperty('type')   ? overrides.type   : typeParam;
+  const a = overrides.hasOwnProperty('age')    ? overrides.age    : ageParam;
+  if (f) p.set('format', f);
+  if (s) p.set('season', s);
+  if (t) p.set('type',   t);
+  if (a) p.set('age',    a);
+  return '/families/programs' + (p.toString() ? '?' + p.toString() : '');
+}
+
+const hasFilters = !!(formatParam || seasonParam || typeParam || ageParam);
+
+// Programs opening for registration within the next 60 days
+const now = new Date();
+const soon = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+const upcomingSignups: Program[] = (allPrograms ?? []).filter((p: Program) => {
+  if (!p.registration_opens) return false;
+  const d = new Date(p.registration_opens);
+  return d >= now && d <= soon;
+});
+
+// Featured programs (only shown when no filters are active)
+const featuredPrograms: Program[] = (allPrograms ?? []).filter((p: Program) => p.featured);
+
+// Format pill config
+const formats = [
+  { value: '', label: 'All types' },
+  { value: 'league',  label: 'League'  },
+  { value: 'lesson',  label: 'Lessons' },
+  { value: 'class',   label: 'Class'   },
+  { value: 'session', label: 'Session' },
+];
+
+// Format label helpers for cards
+const formatLabels: Record<string, { label: string; color: string }> = {
+  league:  { label: 'League',  color: 'blue'   },
+  lesson:  { label: 'Lessons', color: 'green'  },
+  class:   { label: 'Class',   color: 'purple' },
+  session: { label: 'Session', color: 'orange' },
+};
+
+const seasons = [
+  { value: '', label: 'All seasons' },
+  { value: 'fall',    label: 'Fall'       },
+  { value: 'winter',  label: 'Winter'     },
+  { value: 'spring',  label: 'Spring'     },
+  { value: 'summer',  label: 'Summer'     },
+  { value: 'ongoing', label: 'Year-round' },
+];
+
+const types = [
+  { value: '', label: 'All types' },
+  { value: 'sports',    label: 'Sports'    },
+  { value: 'arts',      label: 'Arts'      },
+  { value: 'dance',     label: 'Dance'     },
+  { value: 'music',     label: 'Music'     },
+  { value: 'outdoor',   label: 'Outdoor'   },
+  { value: 'stem',      label: 'STEM'      },
+  { value: 'academic',  label: 'Academic'  },
+  { value: 'other',     label: 'Other'     },
+];
+
+const ages = [
+  { value: '', label: 'All ages' },
+  { value: 'little-kids', label: 'Little Kids (0–5)' },
+  { value: 'elementary',  label: 'Elementary'        },
+  { value: 'middle',      label: 'Middle School'      },
+  { value: 'teen',        label: 'Teen'              },
+];
+
+const seasonBadges = [
+  { key: 'is_fall',    label: 'Fall',       color: 'yellow' },
+  { key: 'is_winter',  label: 'Winter',     color: 'blue'   },
+  { key: 'is_spring',  label: 'Spring',     color: 'green'  },
+  { key: 'is_summer',  label: 'Summer',     color: 'orange' },
+  { key: 'is_ongoing', label: 'Year-round', color: 'gray'   },
+] as const;
+---
+
+<Layout title="Programs - Families | Der Town" description="Find leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area.">
+  <div class="bg-white min-h-screen">
+
+    <!-- Hero -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+      <SectionHeader
+        title="Programs"
+        icon="emoji_events"
+        text="Leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area. Filter by format, season, type, or age group."
+      />
+      <p class="text-gray-400 text-center text-sm mt-1">
+        Looking for camps? Visit <a href="/families/camps" class="underline">Camps &amp; Classes</a>.
+        Data is maintained by community volunteers — <a href="mailto:dertownleavenworth@gmail.com" class="underline">let us know</a> if something is missing.
+      </p>
+    </div>
+
+    <!-- Upcoming signups callout -->
+    {upcomingSignups.length > 0 && (
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+          <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-3">
+            <span class="material-symbols-outlined">calendar_month</span>
+            Registration Opening Soon
+          </h3>
+          <ul class="space-y-1.5 text-sm text-amber-800">
+            {upcomingSignups.map((p: Program) => (
+              <li class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(p.activity_type)}</span>
+                <span>
+                  <strong>{p.name}</strong>
+                  {p.registration_opens && (
+                    <> — opens {new Date(p.registration_opens).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</>
+                  )}
+                  {p.registration_link && (
+                    <> · <a href={p.registration_link} target="_blank" class="underline">Register</a></>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )}
+
+    <!-- Filters -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+
+        <!-- Format row -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Format</span>
+          {formats.map(f => (
+            <a
+              href={buildUrl({ format: f.value })}
+              class={formatParam === f.value
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {f.label}
+            </a>
+          ))}
+        </div>
+
+        <!-- Season row -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Season</span>
+          {seasons.map(s => (
+            <a
+              href={buildUrl({ season: s.value })}
+              class={seasonParam === s.value
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {s.label}
+            </a>
+          ))}
+        </div>
+
+        <!-- Type row -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Type</span>
+          {types.map(t => (
+            <a
+              href={buildUrl({ type: t.value })}
+              class={typeParam === t.value
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {t.label}
+            </a>
+          ))}
+        </div>
+
+        <!-- Age row -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Age</span>
+          {ages.map(a => (
+            <a
+              href={buildUrl({ age: a.value })}
+              class={ageParam === a.value
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {a.label}
+            </a>
+          ))}
+        </div>
+
+      </div>
+
+      <!-- Result count + clear -->
+      <div class="flex items-center justify-between mt-3 mb-4">
+        <p class="text-sm text-gray-500">
+          {filtered.length} program{filtered.length !== 1 ? 's' : ''} found
+        </p>
+        {hasFilters && (
+          <a href="/families/programs" class="text-sm text-blue-600 hover:underline">Clear filters</a>
+        )}
+      </div>
+    </div>
+
+    <!-- Error state -->
+    {error && (
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+          <span class="material-symbols-outlined text-base align-middle mr-1">error</span>
+          Unable to load programs right now. Please try again shortly.
+        </div>
+      </div>
+    )}
+
+    <!-- Main content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+
+      <!-- Featured callout (no filters active) -->
+      {!hasFilters && featuredPrograms.length > 0 && (
+        <div class="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-5">
+          <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined">star</span>
+            Featured Programs
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {featuredPrograms.map((p: Program) => (
+              <a
+                href={p.registration_link ?? p.website ?? '#'}
+                target="_blank"
+                class="flex items-start gap-3 bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <span class="material-symbols-outlined text-amber-600 text-2xl shrink-0 mt-0.5">
+                  {getCategoryIcon(p.activity_type)}
+                </span>
+                <div class="min-w-0">
+                  <p class="font-medium text-gray-900 truncate">{p.name}</p>
+                  <p class="text-sm text-gray-500">
+                    {p.sponsoring_organization?.name && <>{p.sponsoring_organization.name} · </>}
+                    {formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade)}
+                  </p>
+                </div>
+                <span class="material-symbols-outlined text-gray-400 text-sm shrink-0 ml-auto">open_in_new</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Program grid -->
+      {filtered.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filtered.map((p: Program) => {
+            const regStatus = getRegStatus(p);
+            const ageLabel  = formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade);
+            const icon      = getCategoryIcon(p.activity_type);
+            const orgName   = p.sponsoring_organization?.name;
+            const fmt       = p.program_format ? formatLabels[p.program_format] : null;
+
+            return (
+              <div class={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow flex flex-col ${p.featured ? 'border-amber-300' : 'border-gray-200'}`}>
+                <div class="p-4 flex-1">
+                  <!-- Header row -->
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="flex items-start gap-2 min-w-0">
+                      <span class="material-symbols-outlined text-gray-500 text-xl shrink-0 mt-0.5">{icon}</span>
+                      <div class="min-w-0">
+                        <h3 class="font-semibold text-gray-900 leading-snug">{p.name}</h3>
+                        <p class="text-sm text-gray-500">
+                          {orgName && <>{orgName} · </>}{ageLabel}
+                        </p>
+                      </div>
+                    </div>
+                    <!-- Format + season badges -->
+                    <div class="flex flex-wrap gap-1 shrink-0">
+                      {fmt && (
+                        <span class={`status-badge status-badge--${fmt.color} status-badge--sm`}>{fmt.label}</span>
+                      )}
+                      {seasonBadges.map(sb => (
+                        p[sb.key as keyof Program] && (
+                          <span class={`status-badge status-badge--${sb.color} status-badge--sm`}>{sb.label}</span>
+                        )
+                      ))}
+                    </div>
+                  </div>
+
+                  <!-- Description -->
+                  {p.description && (
+                    <p class="text-sm text-gray-600 line-clamp-3 mb-3">{p.description}</p>
+                  )}
+
+                  <!-- Cost + assistance -->
+                  {(p.cost || p.cost_assistance_available) && (
+                    <div class="flex flex-wrap gap-2 items-center mb-2">
+                      {p.cost && (
+                        <span class="text-sm text-gray-700 font-medium">{p.cost}</span>
+                      )}
+                      {p.cost_assistance_available && (
+                        <span class="status-badge status-badge--green status-badge--sm">Financial assistance available</span>
+                      )}
+                    </div>
+                  )}
+
+                  <!-- Registration status badge -->
+                  {regStatus && (
+                    <div class="mb-2">
+                      <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
+                    </div>
+                  )}
+                </div>
+
+                <!-- CTA buttons -->
+                {(p.registration_link || p.website) && (
+                  <div class="px-4 pb-4 flex gap-2 flex-wrap">
+                    {p.registration_link && (
+                      <a
+                        href={p.registration_link}
+                        target="_blank"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                        Register Now
+                      </a>
+                    )}
+                    {p.website && p.website !== p.registration_link && (
+                      <a
+                        href={p.website}
+                        target="_blank"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+                      >
+                        <span class="material-symbols-outlined text-sm">open_in_new</span>
+                        Learn more
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : !error && (
+        <!-- Empty state -->
+        <div class="text-center py-16 text-gray-400">
+          <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
+          <p class="text-lg font-medium text-gray-600 mb-1">No programs found</p>
+          <p class="text-sm">Try adjusting your filters or <a href="/families/programs" class="text-blue-600 underline">view all programs</a>.</p>
+        </div>
+      )}
+    </div>
+
+    <Disclaimer />
+
+    <!-- CTA -->
+    <div class="mt-4 text-center">
+      <div class="bg-blue-green p-8">
+        <h2 class="text-2xl font-semibold mb-2">Know of a program we're missing?</h2>
+        <p class="text-gray-600 mb-4 text-sm">Help us keep this list complete for Leavenworth families.</p>
+        <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          Let Us Know
+        </a>
+      </div>
+    </div>
+
+  </div>
+</Layout>
