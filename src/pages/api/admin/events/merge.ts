@@ -23,6 +23,7 @@ const MERGEABLE_FIELDS = [
   'registration_link',
   'cost',
   'external_image_url',
+  'image_id',
   'image_alt_text',
   'featured',
   'registration',
@@ -86,6 +87,8 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   }
 
   // 3. Build mergedData from mergeable fields
+  // Any value other than 'secondary' is treated as 'primary'. This is intentional —
+  // callers pass 'primary' or 'secondary', but typos silently default to primary rather than erroring.
   const mergedData: Record<string, unknown> = {};
   for (const field of MERGEABLE_FIELDS) {
     const winner = mergedFields[field];
@@ -97,20 +100,30 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
     }
   }
 
-  // 5. If primary lacks source_id and secondary has one, copy source_id + source_title
+  // 4. If primary lacks source_id and secondary has one, copy source_id + source_title.
+  // source_title is always copied alongside source_id to keep the scraper's deduplication key intact.
   if (!primary.source_id && secondary.source_id) {
     mergedData.source_id = secondary.source_id;
     mergedData.source_title = secondary.source_title;
   }
 
-  // 6. Append merge note to comments
+  // 5. Append merge note to comments.
+  // `comments` is not in MERGEABLE_FIELDS: the primary's existing comments are always preserved
+  // and the merge note is always appended — the secondary's comments are intentionally discarded.
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const secondaryTitle = typeof secondary.title === 'string' ? secondary.title : '';
   const mergeNote = `\n[Merged with: "${secondaryTitle}" on ${today}]`;
   const existingComments = typeof primary.comments === 'string' ? primary.comments : '';
   mergedData.comments = existingComments + mergeNote;
 
-  // 4. Update primary record with mergedData
+  // 6. Update primary record with mergedData.
+  // NOTE: supabaseAdmin (service-role key) is used intentionally to bypass RLS — otherwise an
+  // UPDATE on a past-dated `events` row would fail the `start_date >= CURRENT_DATE` WITH CHECK
+  // policy that applies when using user-scoped auth.
+  //
+  // NOTE: This operation is not atomic. If archiving the secondary (step 7) fails after the
+  // primary has been updated, the data will be in an inconsistent state but can be recovered by
+  // re-running the merge or manually archiving the secondary.
   const { error: primaryUpdateError } = await supabaseAdmin
     .from(primaryTable as EventTable)
     .update(mergedData)
@@ -121,7 +134,7 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
     return jsonError(primaryUpdateError.message || 'Failed to update primary event', 500);
   }
 
-  // 7. Archive secondary
+  // 7. Archive secondary (see non-atomic note above)
   if (secondaryTable === 'events_staged') {
     const { error: archiveError } = await supabaseAdmin
       .from('events_staged')
@@ -165,6 +178,7 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   }
 
   // 8. Re-point parent_event_id from secondary to primary in both tables
+  //    (runs after archive so that any re-pointed rows aren't accidentally caught by a rollback)
   const repointTables: EventTable[] = ['events', 'events_staged'];
   for (const table of repointTables) {
     const { error: repointError } = await supabaseAdmin
