@@ -1,34 +1,12 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withSuperAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
+import { MERGEABLE_FIELDS } from '@/lib/merge-fields';
 
 export const prerender = false;
 
 type EventTable = 'events' | 'events_staged';
 
 const VALID_TABLES: EventTable[] = ['events', 'events_staged'];
-
-const MERGEABLE_FIELDS = [
-  'title',
-  'description',
-  'start_date',
-  'end_date',
-  'start_time',
-  'end_time',
-  'location_id',
-  'organization_id',
-  'primary_tag_id',
-  'secondary_tag_id',
-  'email',
-  'website',
-  'registration_link',
-  'cost',
-  'external_image_url',
-  'image_id',
-  'image_alt_text',
-  'featured',
-  'registration',
-  'exclude_from_calendar',
-] as const;
 
 
 export const POST = withSuperAdminAuth(async ({ request }) => {
