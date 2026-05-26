@@ -415,6 +415,16 @@
   @apply bg-purple-600;
 }
 
+.btn-merge {
+  @apply border-none px-4 py-2 rounded cursor-pointer;
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.btn-merge:hover {
+  background-color: #bbf7d0;
+}
+
 /* Autocomplete dropdown */
 .autocomplete-container {
   @apply relative;
