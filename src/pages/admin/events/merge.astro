@@ -1,0 +1,367 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../components/AdminLayout.astro';
+import { getSessionFromCookies, checkAdminAccess } from '../../../lib/session';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+// Auth: super-admin only
+const { session } = await getSessionFromCookies(Astro.cookies);
+if (!session) {
+  const redirectTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+}
+
+const { role } = await checkAdminAccess(Astro.cookies);
+if (role !== 'super_admin') {
+  return Astro.redirect('/admin');
+}
+
+// Require both query params
+const primaryId = Astro.url.searchParams.get('primary');
+const secondaryId = Astro.url.searchParams.get('secondary');
+
+if (!primaryId || !secondaryId) {
+  return Astro.redirect('/admin');
+}
+
+const userEmail = session.user?.email || 'Admin';
+
+// Helper: fetch event with joins, trying events first then events_staged
+type EventTable = 'events' | 'events_staged';
+
+const EVENTS_SELECT = `
+  *,
+  location:locations(name),
+  organization:organizations(name),
+  primary_tag:tags!events_primary_tag_id_fkey(name),
+  secondary_tag:tags!events_secondary_tag_id_fkey(name)
+`;
+
+const STAGED_SELECT = `
+  *,
+  location:locations(name),
+  organization:organizations(name),
+  primary_tag:tags!events_staged_primary_tag_id_fkey(name),
+  secondary_tag:tags!events_staged_secondary_tag_id_fkey(name)
+`;
+
+async function fetchEvent(id: string): Promise<{ event: Record<string, unknown> | null; table: EventTable | null }> {
+  const { data: eventsRow } = await supabaseAdmin
+    .from('events')
+    .select(EVENTS_SELECT)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (eventsRow) {
+    return { event: eventsRow as Record<string, unknown>, table: 'events' };
+  }
+
+  const { data: stagedRow } = await supabaseAdmin
+    .from('events_staged')
+    .select(STAGED_SELECT)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (stagedRow) {
+    return { event: stagedRow as Record<string, unknown>, table: 'events_staged' };
+  }
+
+  return { event: null, table: null };
+}
+
+const [{ event: primaryEvent, table: primaryTable }, { event: secondaryEvent, table: secondaryTable }] =
+  await Promise.all([fetchEvent(primaryId), fetchEvent(secondaryId)]);
+
+if (!primaryEvent || !secondaryEvent) {
+  return Astro.redirect('/admin');
+}
+
+// Helper: extract related name from joined object
+function getRelatedName(val: unknown): string {
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    const obj = val as Record<string, unknown>;
+    if (typeof obj.name === 'string') return obj.name;
+  }
+  return '';
+}
+
+// Display helpers
+function displayValue(field: string, event: Record<string, unknown>): string {
+  if (field === 'location_id') {
+    return getRelatedName(event['location']) || (event[field] ? String(event[field]) : 'none');
+  }
+  if (field === 'organization_id') {
+    return getRelatedName(event['organization']) || (event[field] ? String(event[field]) : 'none');
+  }
+  if (field === 'primary_tag_id') {
+    return getRelatedName(event['primary_tag']) || (event[field] ? String(event[field]) : 'none');
+  }
+  if (field === 'secondary_tag_id') {
+    return getRelatedName(event['secondary_tag']) || (event[field] ? String(event[field]) : 'none');
+  }
+  if (field === 'image_id') {
+    return event[field] ? String(event[field]) : 'none';
+  }
+  if (field === 'featured' || field === 'registration' || field === 'exclude_from_calendar') {
+    return event[field] ? 'Yes' : 'No';
+  }
+  const val = event[field];
+  if (val === null || val === undefined || val === '') return '—';
+  return String(val);
+}
+
+function isEmpty(field: string, event: Record<string, unknown>): boolean {
+  const val = event[field];
+  return val === null || val === undefined || val === '';
+}
+
+const MERGEABLE_FIELDS: Array<{ name: string; label: string }> = [
+  { name: 'title', label: 'Title' },
+  { name: 'description', label: 'Description' },
+  { name: 'start_date', label: 'Start Date' },
+  { name: 'end_date', label: 'End Date' },
+  { name: 'start_time', label: 'Start Time' },
+  { name: 'end_time', label: 'End Time' },
+  { name: 'location_id', label: 'Location' },
+  { name: 'organization_id', label: 'Organization' },
+  { name: 'primary_tag_id', label: 'Primary Tag' },
+  { name: 'secondary_tag_id', label: 'Secondary Tag' },
+  { name: 'email', label: 'Email' },
+  { name: 'website', label: 'Website' },
+  { name: 'registration_link', label: 'Registration Link' },
+  { name: 'cost', label: 'Cost' },
+  { name: 'external_image_url', label: 'Image URL' },
+  { name: 'image_id', label: 'Stored Image ID' },
+  { name: 'image_alt_text', label: 'Image Alt Text' },
+  { name: 'featured', label: 'Featured' },
+  { name: 'registration', label: 'Registration Required' },
+  { name: 'exclude_from_calendar', label: 'Exclude from Calendar' },
+];
+
+// Summary metadata display fields
+function summaryMeta(event: Record<string, unknown>): Array<{ label: string; value: string }> {
+  return [
+    { label: 'Title', value: displayValue('title', event) },
+    { label: 'Start Date', value: displayValue('start_date', event) },
+    { label: 'Start Time', value: displayValue('start_time', event) },
+    { label: 'Location', value: displayValue('location_id', event) },
+    { label: 'Organization', value: displayValue('organization_id', event) },
+    { label: 'Tag', value: displayValue('primary_tag_id', event) },
+    { label: 'Source', value: event['source_title'] ? String(event['source_title']) : (event['source_id'] ? String(event['source_id']) : '—') },
+    { label: 'Status', value: event['status'] ? String(event['status']) : '—' },
+  ];
+}
+---
+
+<AdminLayout title="Merge Events" userEmail={userEmail}>
+  <div class="max-w-5xl mx-auto">
+    <p class="text-sm text-gray-500 mb-6">
+      Review the two events below. For each field, select which value to keep in the merged result.
+      The <strong>Primary</strong> event's ID will be preserved; the <strong>Secondary</strong> event will be archived as a duplicate.
+    </p>
+
+    {/* Two-column summary cards */}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {/* Primary card */}
+      <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">Primary</span>
+          <span class="text-xs text-gray-500">keep this ID</span>
+        </div>
+        <dl class="space-y-1 text-sm">
+          {summaryMeta(primaryEvent).map(({ label, value }) => (
+            <div class="flex gap-2">
+              <dt class="w-24 flex-shrink-0 font-medium text-gray-600">{label}</dt>
+              <dd class="text-gray-900 break-words">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p class="mt-3 text-xs text-gray-400 font-mono">{primaryId}</p>
+        <p class="text-xs text-gray-400">Table: <code>{primaryTable}</code></p>
+      </div>
+
+      {/* Secondary card */}
+      <div class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Secondary</span>
+          <span class="text-xs text-gray-500">will be archived</span>
+        </div>
+        <dl class="space-y-1 text-sm">
+          {summaryMeta(secondaryEvent).map(({ label, value }) => (
+            <div class="flex gap-2">
+              <dt class="w-24 flex-shrink-0 font-medium text-gray-600">{label}</dt>
+              <dd class="text-gray-900 break-words">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p class="mt-3 text-xs text-gray-400 font-mono">{secondaryId}</p>
+        <p class="text-xs text-gray-400">Table: <code>{secondaryTable}</code></p>
+      </div>
+    </div>
+
+    {/* Merge form */}
+    <form id="mergeForm">
+      {/* Hidden fields for IDs and table names */}
+      <input type="hidden" name="primaryId" value={primaryId} />
+      <input type="hidden" name="primaryTable" value={primaryTable!} />
+      <input type="hidden" name="secondaryId" value={secondaryId} />
+      <input type="hidden" name="secondaryTable" value={secondaryTable!} />
+
+      {/* Comparison table */}
+      <div class="overflow-x-auto rounded-xl border border-gray-200 mb-8">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="py-3 px-4 text-left font-semibold text-gray-700 w-36">Field</th>
+              <th class="py-3 px-4 text-left font-semibold text-indigo-700 w-5/12">
+                <span class="inline-flex items-center gap-1">
+                  <span class="inline-block w-2 h-2 rounded-full bg-indigo-400"></span>
+                  Primary value
+                </span>
+              </th>
+              <th class="py-3 px-4 text-left font-semibold text-amber-700 w-5/12">
+                <span class="inline-flex items-center gap-1">
+                  <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                  Secondary value
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {MERGEABLE_FIELDS.map(({ name, label }) => {
+              const primaryVal = displayValue(name, primaryEvent);
+              const secondaryVal = displayValue(name, secondaryEvent);
+              // Smart default: primary unless primary is empty and secondary is not
+              const defaultPrimary = !(isEmpty(name, primaryEvent) && !isEmpty(name, secondaryEvent));
+              return (
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="py-3 px-4 font-medium text-gray-600 align-top">{label}</td>
+                  <td class="py-3 px-4 align-top">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`field_${name}`}
+                        value="primary"
+                        checked={defaultPrimary}
+                        class="mt-0.5 accent-indigo-600"
+                      />
+                      <span class={`break-words ${primaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                        {primaryVal}
+                      </span>
+                    </label>
+                  </td>
+                  <td class="py-3 px-4 align-top">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`field_${name}`}
+                        value="secondary"
+                        checked={!defaultPrimary}
+                        class="mt-0.5 accent-amber-600"
+                      />
+                      <span class={`break-words ${secondaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                        {secondaryVal}
+                      </span>
+                    </label>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer actions */}
+      <div class="flex items-center justify-between gap-4 pb-8">
+        <a href="/admin" class="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline">
+          Cancel
+        </a>
+        <button
+          type="submit"
+          id="mergeSubmitBtn"
+          class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">merge</span>
+          Merge &amp; Archive Duplicate
+        </button>
+      </div>
+    </form>
+  </div>
+</AdminLayout>
+
+<script type="module">
+  function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+      type === 'error' ? 'bg-red-600' :
+      type === 'success' ? 'bg-green-600' :
+      'bg-blue-600'
+    }`;
+    document.body.appendChild(messageDiv);
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 5000);
+  }
+
+  const form = document.getElementById('mergeForm');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('mergeSubmitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Merging…';
+      }
+
+      // Collect hidden field values
+      const primaryId = form.querySelector('[name="primaryId"]').value;
+      const primaryTable = form.querySelector('[name="primaryTable"]').value;
+      const secondaryId = form.querySelector('[name="secondaryId"]').value;
+      const secondaryTable = form.querySelector('[name="secondaryTable"]').value;
+
+      // Collect radio selections
+      const mergedFields = {};
+      const radios = form.querySelectorAll('input[type="radio"]:checked');
+      radios.forEach((radio) => {
+        const fieldName = radio.name.replace(/^field_/, '');
+        mergedFields[fieldName] = radio.value;
+      });
+
+      try {
+        const response = await fetch('/api/admin/events/merge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ primaryId, primaryTable, secondaryId, secondaryTable, mergedFields }),
+        });
+
+        if (response.ok) {
+          showMessage('Events merged successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin';
+          }, 800);
+        } else {
+          let errorMsg = 'Merge failed';
+          try {
+            const data = await response.json();
+            errorMsg = data.error || errorMsg;
+          } catch {
+            errorMsg = await response.text() || errorMsg;
+          }
+          throw new Error(errorMsg);
+        }
+      } catch (err) {
+        showMessage('Error: ' + (err.message || 'Merge failed'), 'error');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined text-base">merge</span> Merge &amp; Archive Duplicate';
+        }
+      }
+    });
+  }
+</script>
