@@ -1224,6 +1224,7 @@ const userEmail = session.user?.email || 'Admin';
               '<div class="duplicate-pill ' + (isLikelyDuplicate ? 'is-likely' : 'is-possible') + '">' + (isLikelyDuplicate ? 'Likely duplicate' : 'Possible duplicate') + '</div>' +
               '<div class="duplicate-target">' + (likelyDuplicate.title || 'Unknown event') + ' (' + Math.round((likelyDuplicate.score || 0) * 100) + '%)</div>' +
               '<div class="duplicate-none">' + duplicateDate + '</div>' +
+              '<a href="/admin/events/merge?primary=' + likelyDuplicate.id + '&secondary=' + event.id + '" style="font-size:0.75rem;color:#4f46e5;text-decoration:underline;margin-top:0.25rem;display:block;">Merge →</a>' +
               '</div>'
             )
             : '<span class="duplicate-none">No strong match</span>';
