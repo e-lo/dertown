@@ -32,6 +32,10 @@ if (!UUID_REGEX.test(primaryId) || !UUID_REGEX.test(secondaryId)) {
   return Astro.redirect('/admin');
 }
 
+if (primaryId === secondaryId) {
+  return Astro.redirect('/admin');
+}
+
 const userEmail = session.user?.email || 'Admin';
 
 // Helper: fetch event with joins, trying events first then events_staged
@@ -84,6 +88,10 @@ const [{ event: primaryEvent, table: primaryTable }, { event: secondaryEvent, ta
 let errorMessage: string | null = null;
 if (!primaryEvent || !secondaryEvent) {
   errorMessage = 'One or both events could not be found. They may have been deleted or already merged.';
+}
+
+if (!errorMessage && primaryEvent && (primaryEvent.status === 'duplicate' || primaryEvent.status === 'archived')) {
+  errorMessage = `The primary event "${primaryEvent.title}" is already archived or marked as a duplicate. Choose a different primary event.`;
 }
 
 // Helper: extract related name from joined object

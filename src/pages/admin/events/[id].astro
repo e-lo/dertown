@@ -666,7 +666,8 @@ const userEmail = session.user?.email || 'Admin';
                 const timeStr = ev.start_time ? String(ev.start_time).substring(0, 5) : '';
                 const sub = [dateStr, timeStr].filter(Boolean).join(' ');
                 const escaped = (ev.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
-                return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + (sub ? ' <span class="text-gray-500">' + sub + '</span>' : '') + '</div>';
+                const stagedSuffix = ev.table === 'events_staged' ? ' <span class="text-gray-400 italic">(staged)</span>' : '';
+                return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + stagedSuffix + (sub ? ' <span class="text-gray-500">' + sub + '</span>' : '') + '</div>';
               }).join('');
           }
           dropdown.classList.remove('hidden');
