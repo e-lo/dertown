@@ -59,8 +59,8 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   if (!VALID_TABLES.includes(secondaryTable as EventTable)) {
     return jsonError('secondaryTable must be "events" or "events_staged"', 400);
   }
-  if (primaryId === secondaryId && primaryTable === secondaryTable) {
-    return jsonError('primaryId and secondaryId must differ', 400);
+  if (primaryId === secondaryId) {
+    return jsonError('primaryId and secondaryId must not be the same', 400);
   }
   if (mergedFields === null) {
     return jsonError('mergedFields must be an object', 400);
