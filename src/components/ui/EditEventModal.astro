@@ -145,6 +145,10 @@
             <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">repeat</span>
             Create Series
           </button>
+          <button type="button" onclick="window.toggleMergeSearchPanel?.()" class="btn-merge" aria-label="Find duplicate to merge">
+            <span class="material-symbols-outlined" style="font-size: 1.125rem; vertical-align: middle; margin-right: 0.25rem;">merge</span>
+            Merge
+          </button>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
           <button type="button" onclick="closeEditEventModal()" class="btn-cancel">Cancel</button>
@@ -153,5 +157,9 @@
         </div>
       </div>
     </form>
+    <div id="mergeSearchPanel" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border: 1px solid #bbf7d0; border-radius: 0.5rem; background: #f0fdf4;">
+      <input type="text" id="mergeSearchInput" placeholder="Search for event to merge with..." autocomplete="off" class="form-input-base w-full" style="margin-bottom: 0.5rem;" />
+      <div id="mergeSearchDropdown"></div>
+    </div>
   </div>
 </div>

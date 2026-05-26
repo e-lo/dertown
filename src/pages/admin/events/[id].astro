@@ -608,6 +608,80 @@ const userEmail = session.user?.email || 'Admin';
     window.location.href = `/admin?openSeriesForEvent=${encodeURIComponent(currentEditId)}`;
   }
 
+  let mergeSearchTimeout = null;
+
+  function toggleMergeSearchPanel() {
+    const panel = document.getElementById('mergeSearchPanel');
+    if (!panel) return;
+    const isHidden = panel.style.display === 'none' || panel.style.display === '';
+    if (isHidden) {
+      panel.style.display = 'block';
+      const input = document.getElementById('mergeSearchInput');
+      if (input) input.focus();
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  function setupMergeSearch() {
+    const input = document.getElementById('mergeSearchInput');
+    const dropdown = document.getElementById('mergeSearchDropdown');
+    if (!input || !dropdown) return;
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (q.length < 2) {
+        dropdown.innerHTML = '';
+        return;
+      }
+      if (mergeSearchTimeout !== null) {
+        clearTimeout(mergeSearchTimeout);
+      }
+      mergeSearchTimeout = window.setTimeout(async () => {
+        try {
+          const res = await fetch('/api/admin/events/search?q=' + encodeURIComponent(q), { credentials: 'include' });
+          if (!res.ok) return;
+          const list = await res.json();
+          if (!Array.isArray(list) || list.length === 0) {
+            dropdown.innerHTML = '<div class="autocomplete-dropdown-item">No events found</div>';
+          } else {
+            dropdown.innerHTML = list
+              .filter(ev => ev.id !== currentEditId)
+              .map(ev => {
+                const dateStr = ev.start_date ? new Date(ev.start_date).toLocaleDateString() : '';
+                const timeStr = ev.start_time ? String(ev.start_time).substring(0, 5) : '';
+                const sub = [dateStr, timeStr].filter(Boolean).join(' ');
+                const escaped = (ev.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+                return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + (sub ? ' <span class="text-gray-500">' + sub + '</span>' : '') + '</div>';
+              }).join('');
+          }
+          dropdown.querySelectorAll('.autocomplete-dropdown-item[data-id]').forEach(item => {
+            item.addEventListener('click', () => {
+              const secondaryId = item.getAttribute('data-id');
+              if (secondaryId && currentEditId) {
+                window.location.href = '/admin/events/merge?primary=' + encodeURIComponent(currentEditId) + '&secondary=' + encodeURIComponent(secondaryId);
+              }
+            });
+          });
+        } catch {
+          dropdown.innerHTML = '';
+        }
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('mergeSearchPanel');
+      const target = e.target instanceof Node ? e.target : null;
+      if (panel && target && !panel.contains(target)) {
+        // Only close if click is also outside the merge button
+        const mergeBtn = document.querySelector('[aria-label="Find duplicate to merge"]');
+        if (!mergeBtn || !mergeBtn.contains(target)) {
+          panel.style.display = 'none';
+        }
+      }
+    });
+  }
+
   function applyCreatedLocation(location) {
     if (!location?.id) return;
     allLocations = allLocations.some(l => l.id === location.id) ? allLocations : [...allLocations, { id: location.id, name: location.name || '', address: location.address || '' }];
@@ -626,6 +700,7 @@ const userEmail = session.user?.email || 'Admin';
     const eventId = document.querySelector('[data-event-id]')?.getAttribute('data-event-id');
     await loadReferenceData();
     setupAutocompletes();
+    setupMergeSearch();
 
     window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
     window.addEventListener('admin:organization-created', (e) => applyCreatedOrganization(e.detail?.organization));
@@ -672,4 +747,5 @@ const userEmail = session.user?.email || 'Admin';
   window.closeEditEventModal = closeEditEventModal;
   window.duplicateCurrentEvent = duplicateCurrentEvent;
   window.createSeriesFromCurrentEvent = createSeriesFromCurrentEvent;
+  window.toggleMergeSearchPanel = toggleMergeSearchPanel;
 </script>
