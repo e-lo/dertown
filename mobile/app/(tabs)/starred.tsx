@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { THEME } from '../lib/theme';
+import { THEME } from '../../lib/theme';
 
 export default function StarredScreen() {
   return (

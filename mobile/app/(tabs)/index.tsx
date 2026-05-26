@@ -11,16 +11,16 @@ import {
   ListRenderItem,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { THEME } from '../lib/theme';
-import { CONSTANTS } from '../../src/lib/config';
-import { fetchEvents } from '../lib/api';
-import { filterUpcoming, groupEventsByDate, getTodayDateString } from '../lib/dateUtils';
-import { EventRow } from '../components/EventRow';
-import { DayHeader } from '../components/DayHeader';
-import { CategoryPills } from '../components/CategoryPills';
-import { DatePickerModal } from '../components/DatePickerModal';
-import { Icon } from '../components/Icon';
-import type { MobileEvent } from '../lib/types';
+import { THEME } from '../../lib/theme';
+import { CONSTANTS } from '../../../src/lib/config';
+import { fetchEvents } from '../../lib/api';
+import { filterUpcoming, groupEventsByDate, getTodayDateString } from '../../lib/dateUtils';
+import { EventRow } from '../../components/EventRow';
+import { DayHeader } from '../../components/DayHeader';
+import { CategoryPills } from '../../components/CategoryPills';
+import { DatePickerModal } from '../../components/DatePickerModal';
+import { Icon } from '../../components/Icon';
+import type { MobileEvent } from '../../lib/types';
 
 type ListItem =
   | { type: 'header'; date: string }
@@ -125,7 +125,7 @@ export default function EventsScreen() {
       <EventRow
         event={item.event}
         isStarred={starredIds.has(item.event.id)}
-        onPress={() => {/* navigation added in Plan 2 */}}
+        onPress={() => {/* navigation wired in Task 5 */}}
         onStar={() => toggleStar(item.event.id)}
       />
     );
