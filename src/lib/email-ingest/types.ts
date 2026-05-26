@@ -1,24 +1,17 @@
 // src/lib/email-ingest/types.ts
 
-export interface CloudMailinPayload {
-  envelope: {
-    from: string;
-    to: string;
-    helo_domain?: string;
-  };
-  headers: {
-    subject?: string;
-    date?: string;
-    [key: string]: string | undefined;
-  };
-  plain?: string;
-  html?: string;
-  reply_plain?: string;
-  attachments?: Array<{
-    file_name: string;
-    content_type: string;
-    size: number;
-  }>;
+export interface MailgunPayload {
+  sender: string;           // envelope from (bare email)
+  recipient: string;        // envelope to
+  from: string;             // From header (may include display name)
+  subject: string;
+  'body-plain'?: string;
+  'body-html'?: string;
+  'stripped-text'?: string; // new content only (quoted reply removed)
+  'stripped-html'?: string;
+  timestamp: string;
+  token: string;
+  signature: string;
 }
 
 export type EmailIntent =

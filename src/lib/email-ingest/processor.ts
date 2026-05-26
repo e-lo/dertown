@@ -10,11 +10,11 @@ import { matchEvents, loadReferenceData } from '../scraper/match';
 import { loadConfig } from '../scraper/config';
 import { normalizeEvent, isPastEvent } from '../scraper/normalize';
 import { clampDescription } from '../scraper/description';
-import type { CloudMailinPayload, ProcessResult } from './types';
+import type { MailgunPayload, ProcessResult } from './types';
 import type { SourceConfig, VenueTagRule } from '../scraper/types';
 
-export async function processInboundEmail(payload: CloudMailinPayload): Promise<ProcessResult> {
-  const senderEmail = payload.envelope.from;
+export async function processInboundEmail(payload: MailgunPayload): Promise<ProcessResult> {
+  const senderEmail = payload.sender;
 
   // Step 1: Validate sender is a super_admin
   let isAuthorized = false;

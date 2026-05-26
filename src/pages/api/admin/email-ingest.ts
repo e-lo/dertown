@@ -1,24 +1,52 @@
 import type { APIRoute } from 'astro';
+import { createHmac } from 'crypto';
 import { Resend } from 'resend';
 import { jsonResponse, jsonError } from '@/lib/api-utils';
 import { processInboundEmail } from '@/lib/email-ingest/processor';
-import type { CloudMailinPayload } from '@/lib/email-ingest/types';
+import type { MailgunPayload } from '@/lib/email-ingest/types';
 
 export const prerender = false;
 
+function verifyMailgunSignature(signingKey: string, timestamp: string, token: string, signature: string): boolean {
+  const expected = createHmac('sha256', signingKey).update(timestamp + token).digest('hex');
+  return expected === signature;
+}
+
 export const POST: APIRoute = async ({ request }) => {
-  const expectedSecret = import.meta.env.CLOUDMAILIN_SECRET;
-  if (!expectedSecret) {
-    console.warn('[email-ingest] CLOUDMAILIN_SECRET is not set — skipping signature check');
+  // Parse multipart form data (Mailgun sends form, not JSON)
+  let formData: FormData;
+  try { formData = await request.formData(); } catch { return jsonError('Invalid form payload', 400); }
+
+  const timestamp = formData.get('timestamp') as string ?? '';
+  const token = formData.get('token') as string ?? '';
+  const signature = formData.get('signature') as string ?? '';
+
+  const signingKey = import.meta.env.MAILGUN_WEBHOOK_SIGNING_KEY;
+  if (!signingKey) {
+    console.warn('[email-ingest] MAILGUN_WEBHOOK_SIGNING_KEY is not set — skipping signature check');
   } else {
-    const providedSecret = request.headers.get('x-cloudmailin-secret');
-    if (providedSecret !== expectedSecret) return jsonError('Unauthorized', 400);
+    if (!verifyMailgunSignature(signingKey, timestamp, token, signature)) {
+      return jsonError('Unauthorized', 400);
+    }
   }
-  // CloudMailin's payload shape is stable; we trust the contract without runtime validation.
-  let payload: CloudMailinPayload;
-  try { payload = await request.json(); } catch { return jsonError('Invalid JSON payload', 400); }
-  const senderEmail = payload.envelope?.from;
-  if (!senderEmail) return jsonError('Missing envelope.from', 400);
+
+  const payload: MailgunPayload = {
+    sender: formData.get('sender') as string ?? '',
+    recipient: formData.get('recipient') as string ?? '',
+    from: formData.get('from') as string ?? '',
+    subject: formData.get('subject') as string ?? '',
+    'body-plain': formData.get('body-plain') as string ?? undefined,
+    'body-html': formData.get('body-html') as string ?? undefined,
+    'stripped-text': formData.get('stripped-text') as string ?? undefined,
+    'stripped-html': formData.get('stripped-html') as string ?? undefined,
+    timestamp,
+    token,
+    signature,
+  };
+
+  const senderEmail = payload.sender;
+  if (!senderEmail) return jsonError('Missing sender', 400);
+
   try {
     const result = await processInboundEmail(payload);
     if (result.status === 'rejected_sender') {
