@@ -35,7 +35,7 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
             ]}
             onPress={() => onSelect(isSelected ? null : cat)}
           >
-            <Text style={[styles.label, isSelected && styles.labelActive]}>{cat}</Text>
+            <Text style={[styles.label, isSelected && styles.labelSelectedCat]}>{cat}</Text>
           </TouchableOpacity>
         );
       })}
@@ -71,5 +71,8 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: '#111827',
+  },
+  labelSelectedCat: {
+    color: THEME.textPrimary,
   },
 });

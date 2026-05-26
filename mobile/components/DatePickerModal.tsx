@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -41,6 +41,14 @@ export function DatePickerModal({
   const today = getTodayDateString();
   const [viewYear, setViewYear]   = useState(() => parseInt(selectedDate.split('-')[0]));
   const [viewMonth, setViewMonth] = useState(() => parseInt(selectedDate.split('-')[1])); // 1-12
+
+  // When the modal opens, reset the view to the currently selected month
+  useEffect(() => {
+    if (visible) {
+      setViewYear(parseInt(selectedDate.split('-')[0]));
+      setViewMonth(parseInt(selectedDate.split('-')[1]));
+    }
+  }, [visible]);
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDow    = getFirstDayOfWeek(viewYear, viewMonth);
