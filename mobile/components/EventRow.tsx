@@ -28,10 +28,10 @@ export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
       onPress={onPress}
       activeOpacity={0.85}
     >
-      {/* Left: date column */}
+      {/* Left: date column — month label above large day number */}
       <View style={styles.dateCol}>
-        <Text style={styles.dayNum}>{dayNum}</Text>
         <Text style={styles.month}>{monthStr}</Text>
+        <Text style={styles.dayNum}>{dayNum}</Text>
       </View>
 
       {/* Center: event info */}
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingLeft: 12,
-    paddingRight: 40,
+    paddingRight: 0,
     minHeight: 80,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.15)',
@@ -142,9 +142,8 @@ const styles = StyleSheet.create({
     color: THEME.textPrimary,
   },
   starBtn: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    marginTop: -11,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    alignSelf: 'center',
   },
 });
