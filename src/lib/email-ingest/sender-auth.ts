@@ -8,7 +8,7 @@ export async function isSuperAdminEmail(email: string): Promise<boolean> {
   const user = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
   if (!user) return false;
 
-  // Check user_permissions.is_admin (same logic as session.ts checkAdminAccess)
+  // user_permissions is not in the generated DB types (same workaround as session.ts)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: perm } = await (supabaseAdmin as any)
     .from('user_permissions')
