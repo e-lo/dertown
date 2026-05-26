@@ -75,7 +75,14 @@ export function filterUpcoming(events: MobileEvent[], todayStr?: string): Mobile
 export function getThisWeekendRange(): { start: string; end: string } {
   const today = new Date();
   const day = today.getDay(); // 0=Sun, 6=Sat
-  const daysUntilSat = day === 6 ? 7 : (6 - day);
+  const todayStr = getDateString(today);
+
+  if (day === 0) {
+    // Sunday — the weekend started yesterday; return just today as the remaining weekend day
+    return { start: todayStr, end: todayStr };
+  }
+
+  const daysUntilSat = day === 6 ? 0 : (6 - day); // Sat=today, otherwise count to Sat
   const sat = new Date(today);
   sat.setDate(today.getDate() + daysUntilSat);
   const sun = new Date(sat);
