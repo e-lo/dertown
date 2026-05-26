@@ -26,6 +26,7 @@ export type EmailIntent =
   | { type: 'announcement'; title: string; body: string }
   | { type: 'event'; body: string };
 
+// Subset of EventDuplicateHint — intentionally omits score and start_date (not needed by consumers)
 export interface DuplicateHint {
   id: string;
   title: string | null;

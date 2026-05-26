@@ -57,6 +57,10 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
   // Use the first (most prominent) extracted event
   const event = events[0];
 
+  if (events.length > 1) {
+    console.warn(`[email-ingest] Extracted ${events.length} events from email; using only the first`);
+  }
+
   // Load config once — used for screening and matching (graceful fallback if file unavailable)
   let globalExclude = null;
   let tagKeywords: Record<string, string[]> = {};
@@ -72,7 +76,7 @@ export async function processInboundEmail(payload: CloudMailinPayload): Promise<
 
   // Step 5: Screen against global exclusion rules
   const screen = screenEvent(event, globalExclude);
-  if (!screen.pass) return { status: 'screened_out', reason: screen.reason! };
+  if (!screen.pass) return { status: 'screened_out', reason: screen.reason };
 
   // Step 6: Check for duplicates
   const duplicateHint = await checkDuplicate(event);
