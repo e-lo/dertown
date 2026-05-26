@@ -12,24 +12,43 @@ const ageParam    = Astro.url.searchParams.get('age')     ?? ''; // little-kids|
 
 // --- Supabase query ---
 // Shows league, lesson, class, session programs (not camps).
-// NULL program_format entries are included as uncategorized — they'll show up here
-// until an admin assigns them a format.
-const { data: allPrograms, error } = await (supabase as any)
+// NULL program_format entries are included as uncategorized catch-all.
+// Try with program_format (requires migration 20260526120000 to be applied).
+// Falls back gracefully if the column doesn't exist yet (error 42703).
+const baseSelect = `
+  id, name, description, activity_type,
+  is_fall, is_winter, is_spring, is_summer, is_ongoing,
+  min_age, max_age, min_grade, max_grade,
+  cost, cost_assistance_available,
+  registration_link, registration_required,
+  registration_opens, registration_closes,
+  waitlist_status, featured, website,
+  sponsoring_organization:organizations!sponsoring_organization_id(name, website)
+`;
+
+let result = await (supabase as any)
   .from('public_activities')
-  .select(`
-    id, name, description, activity_type, program_format,
-    is_fall, is_winter, is_spring, is_summer, is_ongoing,
-    min_age, max_age, min_grade, max_grade,
-    cost, cost_assistance_available,
-    registration_link, registration_required,
-    registration_opens, registration_closes,
-    waitlist_status, featured, website,
-    sponsoring_organization:organizations!sponsoring_organization_id(name, website)
-  `)
+  .select(`program_format, ${baseSelect}`)
   .eq('activity_hierarchy_type', 'PROGRAM')
   .eq('status', 'approved')
-  .neq('program_format', 'camp')  // exclude camps; NULL (uncategorized) included by default
+  // Exclude camps; include NULL (uncategorized) — PostgREST neq drops NULLs, so use OR
+  .or('program_format.neq.camp,program_format.is.null')
   .order('name');
+
+let hasFormatColumn = true;
+
+// Fallback: column doesn't exist yet — show all approved programs (migration pending)
+if (result.error?.code === '42703') {
+  hasFormatColumn = false;
+  result = await (supabase as any)
+    .from('public_activities')
+    .select(baseSelect)
+    .eq('activity_hierarchy_type', 'PROGRAM')
+    .eq('status', 'approved')
+    .order('name');
+}
+
+const { data: allPrograms, error } = result;
 
 type Program = {
   id: string;
@@ -61,7 +80,8 @@ type Program = {
 // --- In-memory filtering ---
 let filtered: Program[] = allPrograms ?? [];
 
-if (formatParam) {
+// Format filter only applies when the column exists (post-migration)
+if (formatParam && hasFormatColumn) {
   filtered = filtered.filter(p => (p.program_format ?? '') === formatParam);
 }
 if (seasonParam === 'fall')    filtered = filtered.filter(p => p.is_fall);

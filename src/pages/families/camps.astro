@@ -9,24 +9,43 @@ const seasonParam = Astro.url.searchParams.get('season') ?? ''; // fall|winter|s
 const typeParam   = Astro.url.searchParams.get('type')   ?? ''; // sports|arts|dance|music|outdoor|academic|other
 const ageParam    = Astro.url.searchParams.get('age')    ?? ''; // little-kids|elementary|middle|teen
 
-// --- Supabase query (same pattern as /api/activities.ts) ---
-// public_activities view already filters active=true; joins to parent for activity_type fallback
-const { data: allPrograms, error } = await (supabase as any)
+// --- Supabase query ---
+// public_activities view already filters active=true; joins to parent for activity_type fallback.
+// Try with program_format (requires migration 20260526120000 to be applied).
+// Falls back gracefully if the column doesn't exist yet (error 42703).
+const baseSelect = `
+  id, name, description, activity_type,
+  is_fall, is_winter, is_spring, is_summer, is_ongoing,
+  min_age, max_age, min_grade, max_grade,
+  cost, cost_assistance_available,
+  registration_link, registration_required,
+  registration_opens, registration_closes,
+  waitlist_status, featured, website,
+  sponsoring_organization:organizations!sponsoring_organization_id(name, website)
+`;
+
+let result = await (supabase as any)
   .from('public_activities')
-  .select(`
-    id, name, description, activity_type, program_format,
-    is_fall, is_winter, is_spring, is_summer, is_ongoing,
-    min_age, max_age, min_grade, max_grade,
-    cost, cost_assistance_available,
-    registration_link, registration_required,
-    registration_opens, registration_closes,
-    waitlist_status, featured, website,
-    sponsoring_organization:organizations!sponsoring_organization_id(name, website)
-  `)
+  .select(`program_format, ${baseSelect}`)
   .eq('activity_hierarchy_type', 'PROGRAM')
   .eq('status', 'approved')
   .eq('program_format', 'camp')
   .order('name');
+
+let hasFormatColumn = true;
+
+// Fallback: column doesn't exist yet — show all approved programs (migration pending)
+if (result.error?.code === '42703') {
+  hasFormatColumn = false;
+  result = await (supabase as any)
+    .from('public_activities')
+    .select(baseSelect)
+    .eq('activity_hierarchy_type', 'PROGRAM')
+    .eq('status', 'approved')
+    .order('name');
+}
+
+const { data: allPrograms, error } = result;
 
 type Program = {
   id: string;
