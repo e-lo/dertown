@@ -1,4 +1,5 @@
 import { parseIntent } from '../email-ingest/command-parser';
+import { extractBody } from '../email-ingest/content-extractor';
 
 function runTests() {
   console.log('🧪 Testing email-ingest modules\n');
@@ -85,6 +86,64 @@ function runTests() {
       console.log('✅ PASS: URL in body beats announcement subject\n');
     } else {
       console.log(`❌ FAIL: URL priority. Got: ${JSON.stringify(result)}\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  // --- content-extractor ---
+
+  try {
+    const input = `Here is the event info.
+Join us Saturday at noon.
+
+> On Mon, May 26, 2026 at 10:00 AM, Alice wrote:
+> Hey can you add this?
+
+--
+Sent from my iPhone`;
+    const result = extractBody(input);
+    const hasContent = result.includes('Here is the event info');
+    const noQuotes = !result.includes('> On Mon');
+    const noSignature = !result.includes('Sent from my iPhone');
+    if (hasContent && noQuotes && noSignature) {
+      console.log('✅ PASS: extractBody strips quoted lines and signature\n');
+    } else {
+      console.log(`❌ FAIL: extractBody. Got:\n${result}\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  try {
+    const input = `Community meeting Thursday at 7pm at City Hall.
+
+Unsubscribe from this list | View in browser`;
+    const result = extractBody(input);
+    const hasContent = result.includes('Community meeting');
+    const noFooter = !result.includes('Unsubscribe');
+    if (hasContent && noFooter) {
+      console.log('✅ PASS: extractBody strips footer patterns\n');
+    } else {
+      console.log(`❌ FAIL: extractBody footer. Got:\n${result}\n`);
+      allTestsPassed = false;
+    }
+  } catch (error) {
+    console.log(`❌ ERROR: ${error}\n`);
+    allTestsPassed = false;
+  }
+
+  try {
+    const input = `Plain email with no footer or quotes.`;
+    const result = extractBody(input);
+    if (result === 'Plain email with no footer or quotes.') {
+      console.log('✅ PASS: extractBody passes clean text through unchanged\n');
+    } else {
+      console.log(`❌ FAIL: extractBody clean text. Got: "${result}"\n`);
       allTestsPassed = false;
     }
   } catch (error) {
