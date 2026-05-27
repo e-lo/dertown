@@ -72,9 +72,9 @@ export default function EventDetailScreen() {
     return item as unknown as MobileEvent;
   }
 
-  const hasSeries = related?.series != null && related.series.upcoming.length > 0;
-  const hasOrgEvents = (related?.org_events?.length ?? 0) > 0;
-  const isSeriesParent = related?.series?.parent_id === id;
+  const hasSeries    = (related?.series?.events?.length ?? 0) > 0;
+  const hasRelated   = (related?.related?.length ?? 0) > 0;
+  const isSeriesParent = related?.series?.is_parent ?? false;
 
   return (
     <>
@@ -206,7 +206,7 @@ export default function EventDetailScreen() {
           </View>
 
           {/* ── Related Events ─────────────────────────────────────── */}
-          {(hasSeries || hasOrgEvents) && (
+          {(hasSeries || hasRelated) && (
             <View style={styles.relatedSection}>
 
               {hasSeries && related?.series && (
@@ -226,7 +226,7 @@ export default function EventDetailScreen() {
                       <Icon name="chevron-right" size={16} color={THEME.canary} />
                     </TouchableOpacity>
                   )}
-                  {related.series.upcoming.map((item) => (
+                  {related.series.events.map((item) => (
                     <EventRow
                       key={item.id}
                       event={asEvent(item)}
@@ -238,14 +238,14 @@ export default function EventDetailScreen() {
                 </>
               )}
 
-              {hasOrgEvents && (
+              {hasRelated && (
                 <>
                   <Text style={[styles.relatedSectionTitle, hasSeries && styles.relatedSectionTitleSpaced]}>
                     {event.organization
                       ? `More from ${event.organization.name}`
                       : 'More events nearby'}
                   </Text>
-                  {related!.org_events.map((item) => (
+                  {related!.related.map((item) => (
                     <EventRow
                       key={item.id}
                       event={asEvent(item)}

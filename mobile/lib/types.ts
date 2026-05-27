@@ -51,9 +51,11 @@ export interface MobileRelatedEvents {
   series: {
     parent_id: string;
     parent_title: string;
-    upcoming: MobileRelatedEventItem[];
+    is_parent: boolean;
+    events: MobileRelatedEventItem[];
   } | null;
-  org_events: MobileRelatedEventItem[];
+  /** Events from the same organization or location */
+  related: MobileRelatedEventItem[];
 }
 
 /** Parameters for /api/events/search */

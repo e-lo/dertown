@@ -42,11 +42,11 @@ export async function fetchAnnouncements(): Promise<MobileAnnouncement[]> {
 
 export async function fetchRelatedEvents(
   id: string,
-  opts: { seriesLimit?: number; orgLimit?: number } = {}
+  opts: { seriesLimit?: number; relatedLimit?: number } = {}
 ): Promise<MobileRelatedEvents> {
-  const url = new URL(`${BASE_URL}/api/mobile/events/${encodeURIComponent(id)}/related`);
-  if (opts.seriesLimit != null) url.searchParams.set('seriesLimit', String(opts.seriesLimit));
-  if (opts.orgLimit    != null) url.searchParams.set('orgLimit',    String(opts.orgLimit));
+  const url = new URL(`${BASE_URL}/api/events/${encodeURIComponent(id)}/related`);
+  if (opts.seriesLimit  != null) url.searchParams.set('seriesLimit',  String(opts.seriesLimit));
+  if (opts.relatedLimit != null) url.searchParams.set('relatedLimit', String(opts.relatedLimit));
 
   const response = await fetch(url.toString());
   if (!response.ok) {
