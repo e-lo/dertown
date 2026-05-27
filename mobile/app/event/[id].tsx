@@ -10,6 +10,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../../lib/theme';
@@ -235,7 +236,7 @@ export default function EventDetailScreen() {
               {event.website ? (
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => Linking.openURL(event.website!)}
+                  onPress={() => WebBrowser.openBrowserAsync(event.website!)}
                 >
                   <Text style={styles.actionBtnText}>Visit Website</Text>
                 </TouchableOpacity>
@@ -244,7 +245,7 @@ export default function EventDetailScreen() {
               {event.registration && event.website ? (
                 <TouchableOpacity
                   style={[styles.actionBtn, styles.registerBtn]}
-                  onPress={() => Linking.openURL(event.website!)}
+                  onPress={() => WebBrowser.openBrowserAsync(event.website!)}
                 >
                   <Text style={[styles.actionBtnText, styles.registerBtnText]}>
                     Register

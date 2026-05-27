@@ -5,9 +5,9 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Linking,
   ListRenderItem,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
@@ -37,7 +37,7 @@ function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
 
   const handlePress = () => {
     if (item.link) {
-      Linking.openURL(item.link).catch(() => { /* ignore */ });
+      WebBrowser.openBrowserAsync(item.link).catch(() => { /* ignore */ });
     }
   };
 
