@@ -38,3 +38,13 @@ export interface EventSearchParams {
   q?: string;
   category?: string;
 }
+
+/** Shape of an announcement returned by GET /api/announcements */
+export interface MobileAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  show_at: string | null;
+  expires_at: string | null;
+}
