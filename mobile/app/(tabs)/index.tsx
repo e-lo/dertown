@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   TextInput,
   FlatList,
   StyleSheet,
@@ -18,8 +17,8 @@ import { EventRow } from '../../components/EventRow';
 import { DayHeader } from '../../components/DayHeader';
 import { DatePickerModal } from '../../components/DatePickerModal';
 import { Icon } from '../../components/Icon';
+import { AppHeader } from '../../components/AppHeader';
 import { useStars } from '../../contexts/StarContext';
-import { APP_CONFIG } from '../../lib/app-config';
 import type { MobileEvent } from '../../lib/types';
 
 type ListItem =
@@ -78,10 +77,6 @@ export default function EventsScreen() {
     }
   }
 
-  const headerLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric',
-  });
-
   const renderItem: ListRenderItem<ListItem> = ({ item }) => {
     if (item.type === 'header') return <DayHeader dateStr={item.date} />;
     return (
@@ -97,20 +92,21 @@ export default function EventsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setDatePickerVisible(true)} style={styles.headerBtn}>
-          <Icon name="calendar" size={22} color={THEME.textPrimary} />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>{headerLabel} · {APP_CONFIG.townName}</Text>
-
-        <TouchableOpacity
-          onPress={() => setSearchExpanded((v) => !v)}
-          style={styles.headerBtn}
-        >
-          <Icon name={searchExpanded ? 'x' : 'search'} size={22} color={THEME.textPrimary} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        right={
+          <>
+            <TouchableOpacity onPress={() => setDatePickerVisible(true)} style={styles.headerBtn}>
+              <Icon name="calendar" size={22} color={THEME.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSearchExpanded((v) => !v)}
+              style={styles.headerBtn}
+            >
+              <Icon name={searchExpanded ? 'x' : 'search'} size={22} color={THEME.textPrimary} />
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       {/* Inline search bar */}
       {searchExpanded && (
@@ -166,22 +162,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.feedBackground,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: THEME.tabBarBackground,
-  },
   headerBtn: {
     padding: 6,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '700',
-    color: THEME.textPrimary,
   },
   searchBar: {
     flexDirection: 'row',

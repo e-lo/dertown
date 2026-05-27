@@ -11,6 +11,7 @@ import { useFocusEffect } from 'expo-router';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { THEME } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
+import { AppHeader } from '../../components/AppHeader';
 import { fetchAnnouncements } from '../../lib/api';
 import type { MobileAnnouncement } from '../../lib/types';
 
@@ -55,9 +56,7 @@ export default function AnnouncementsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Announcements</Text>
-      </View>
+      <AppHeader />
 
       {loading && <LoadingView />}
 
@@ -87,18 +86,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: THEME.feedBackground,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: THEME.tabBarBackground,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: THEME.textPrimary,
   },
   list: {
     flex: 1,

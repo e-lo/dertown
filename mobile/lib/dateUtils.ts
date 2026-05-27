@@ -1,12 +1,15 @@
 import type { MobileEvent } from './types';
 
-/** Format "HH:MM:SS" → "HH:MM". Returns "" for null. */
+/** Format "HH:MM:SS" → "h:MM AM/PM". Returns "" for null. */
 export function formatTime(time: string | null): string {
   if (!time) return '';
-  return time.slice(0, 5);
+  const [h, m] = time.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12; // 0 → 12 (midnight), 12 → 12 (noon)
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
-/** Format a start/end time pair as "HH:MM – HH:MM" or just "HH:MM" if no end. */
+/** Format a start/end time pair as "h:MM AM – h:MM PM" or just "h:MM AM" if no end. */
 export function formatTimeRange(startTime: string | null, endTime: string | null): string {
   const start = formatTime(startTime);
   if (!start) return '';

@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   View,
-  Text,
   FlatList,
   StyleSheet,
   ListRenderItem,
@@ -9,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
+import { AppHeader } from '../../components/AppHeader';
 import { groupEventsByDate } from '../../lib/dateUtils';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { useEventList } from '../../hooks/useEventList';
@@ -57,10 +57,7 @@ export default function StarredScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Starred</Text>
-      </View>
+      <AppHeader />
 
       {loading && <LoadingView />}
 
@@ -91,18 +88,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: THEME.feedBackground,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: THEME.tabBarBackground,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: THEME.textPrimary,
   },
   list: {
     flex: 1,
