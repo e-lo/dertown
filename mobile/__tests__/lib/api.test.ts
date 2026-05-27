@@ -1,4 +1,4 @@
-import { fetchEvents, fetchEventById } from '../../lib/api';
+import { fetchEvents, fetchEventById, fetchAnnouncements, registerPushToken } from '../../lib/api';
 
 const MOCK_EVENT = {
   id: '1',
@@ -131,5 +131,69 @@ describe('fetchEventById', () => {
     });
 
     await expect(fetchEventById('bad-id')).rejects.toThrow('Failed to fetch event: 404');
+  });
+});
+
+const MOCK_ANNOUNCEMENT = {
+  id: 'ann-1',
+  title: 'Road Closure on Main St',
+  message: 'Main Street will be closed Saturday for the festival.',
+  created_at: '2026-05-27T10:00:00Z',
+  show_at: null,
+  expires_at: null,
+};
+
+describe('fetchAnnouncements', () => {
+  it('returns announcements array on success', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ announcements: [MOCK_ANNOUNCEMENT] }),
+    });
+
+    const result = await fetchAnnouncements();
+    expect(global.fetch).toHaveBeenCalledWith('http://localhost:4321/api/announcements');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('ann-1');
+  });
+
+  it('returns empty array when announcements key is missing', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    const result = await fetchAnnouncements();
+    expect(result).toEqual([]);
+  });
+
+  it('throws when response is not ok', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
+    await expect(fetchAnnouncements()).rejects.toThrow('Failed to fetch announcements: 500');
+  });
+});
+
+describe('registerPushToken', () => {
+  it('calls /api/mobile/register-push-token with token and platform', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+
+    await registerPushToken('ExponentPushToken[xxx]', 'ios');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:4321/api/mobile/register-push-token',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'ExponentPushToken[xxx]', platform: 'ios' }),
+      })
+    );
+  });
+
+  it('throws when response is not ok', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 400 });
+    await expect(registerPushToken('bad-token', 'android')).rejects.toThrow(
+      'Failed to register push token: 400'
+    );
   });
 });
