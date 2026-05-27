@@ -7,9 +7,11 @@ jest.mock('../../lib/api', () => ({
   fetchAnnouncements: jest.fn(),
 }));
 
-// useFocusEffect calls its callback immediately in tests
+// useFocusEffect calls its callback after render in tests
 jest.mock('expo-router', () => ({
-  useFocusEffect: (cb: () => unknown) => { cb(); },
+  useFocusEffect: (cb: () => unknown) => {
+    setTimeout(cb, 0);
+  },
 }));
 
 const MOCK_ANNOUNCEMENTS = [

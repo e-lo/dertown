@@ -33,6 +33,8 @@ export default function AnnouncementsScreen() {
   const [error, setError]                 = useState<string | null>(null);
 
   const loadAnnouncements = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetchAnnouncements()
       .then((data) => {
         setAnnouncements(data);
