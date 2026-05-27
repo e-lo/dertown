@@ -17,7 +17,10 @@ export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
   const bgColor   = getCategoryColor(category);
   const fgColor   = getCategoryTextColor(category);
   const fgMuted   = getCategoryTextMuted(category);
-  const starColor = isStarred ? THEME.starFilled : (category && ['Arts+Culture','Sports','Featured'].includes(category) ? 'rgba(0,0,0,0.3)' : THEME.starUnstarred);
+  const isLightBg = category ? ['Arts+Culture','Sports','Featured'].includes(category) : false;
+  const starColor = isLightBg
+    ? (isStarred ? '#111111' : 'rgba(0,0,0,0.25)')   // dark star on yellow bg
+    : (isStarred ? THEME.starFilled : THEME.starUnstarred); // yellow star on dark bg
   const [year, month, day] = event.start_date.split('-').map(Number);
   const dayNum = String(day); // no leading zero
   const monthStr = new Date(year, month - 1, 1)
