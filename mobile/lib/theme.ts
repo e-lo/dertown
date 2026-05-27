@@ -16,7 +16,7 @@ export function fixHex(color: string): string {
 // Darker shades chosen for readability on OLED/dark backgrounds.
 // Matches the category → palette assignments in src/lib/config.ts COLORS.eventCategories.
 export const CATEGORY_COLORS: Record<string, string> = {
-  'Arts+Culture': '#3730a3',   // palatinateBlue-dark  (web: canary)
+  'Arts+Culture': '#92400e',   // amber-dark (web: canary/yellow)
   'Civic':        '#1e4a4b',   // darkSlateGray-dark
   'Family':       '#7c1a5a',   // fandango-dark
   'Nature':       '#2a5c30',   // calPolyGreen-dark
