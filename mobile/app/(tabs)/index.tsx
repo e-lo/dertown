@@ -11,13 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
-import { CONSTANTS } from '../../../src/lib/config';
 import { groupEventsByDate, getTodayDateString } from '../../lib/dateUtils';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { useEventList } from '../../hooks/useEventList';
 import { EventRow } from '../../components/EventRow';
 import { DayHeader } from '../../components/DayHeader';
-import { CategoryPills } from '../../components/CategoryPills';
 import { DatePickerModal } from '../../components/DatePickerModal';
 import { Icon } from '../../components/Icon';
 import { useStars } from '../../contexts/StarContext';
@@ -28,11 +26,8 @@ type ListItem =
   | { type: 'header'; date: string }
   | { type: 'event'; event: MobileEvent };
 
-const CATEGORIES = CONSTANTS.tagCategories as unknown as string[];
-
 export default function EventsScreen() {
   const { events, loading, error, reload } = useEventList();
-  const [selectedCategory, setCategory]         = useState<string | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
   const [searchExpanded, setSearchExpanded]     = useState(false);
   const [selectedDate, setSelectedDate]         = useState(getTodayDateString());
@@ -44,14 +39,6 @@ export default function EventsScreen() {
   // Derive filtered list
   const filteredEvents = useMemo(() => {
     let result = events;
-
-    if (selectedCategory) {
-      result = result.filter(
-        (e) =>
-          e.primary_tag?.name === selectedCategory ||
-          e.secondary_tag?.name === selectedCategory
-      );
-    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -66,7 +53,7 @@ export default function EventsScreen() {
     }
 
     return result;
-  }, [events, selectedCategory, searchQuery]);
+  }, [events, searchQuery]);
 
   // Flatten grouped events for FlatList
   const listItems: ListItem[] = useMemo(() => {
@@ -144,13 +131,6 @@ export default function EventsScreen() {
           )}
         </View>
       )}
-
-      {/* Category pills */}
-      <CategoryPills
-        categories={CATEGORIES}
-        selected={selectedCategory}
-        onSelect={setCategory}
-      />
 
       {/* Events list */}
       {loading && <LoadingView />}
