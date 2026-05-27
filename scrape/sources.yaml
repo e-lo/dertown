@@ -231,6 +231,8 @@ sources:
         # Already tracked as series or user-managed
         - 'Leavenworth Village Art in the Park'
         - 'Leavenworth Community Farmers Market'
+        # Recurring series better managed manually
+        - 'Summer Entertainment @ The Gazebo'
       location_keywords:
         - "visconti's"
         - 'J5 Coffee'
