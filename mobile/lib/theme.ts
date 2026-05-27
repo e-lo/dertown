@@ -64,4 +64,9 @@ export const THEME = {
   canary:             fixHex(COLOR_PALETTE.canary),
   fandango:           fixHex(COLOR_PALETTE.fandango),    // '#c0268c'
   palatinateBlue:     fixHex(COLOR_PALETTE.palatinateBlue), // '#4740cb'
+
+  // Semantic colors
+  errorRed:           '#f87171',
+  cardBackground:     '#1e293b',
+  successGreen:       '#166534',
 };

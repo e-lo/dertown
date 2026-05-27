@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.cardBackground,
     marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 10,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   errorText: {
-    color: '#f87171',
+    color: THEME.errorRed,
     fontSize: 14,
     marginBottom: 12,
   },

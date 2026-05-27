@@ -54,7 +54,10 @@ export function groupEventsByDate(
     if (!groups.has(date)) groups.set(date, []);
     groups.get(date)!.push(event);
   }
-  return Array.from(groups.entries()).map(([date, evts]) => ({ date, events: evts }));
+  return Array.from(groups.entries()).map(([date, evts]) => ({
+    date,
+    events: evts.sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? '')),
+  }));
 }
 
 /**

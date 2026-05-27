@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   errorText: {
-    color: '#f87171',
+    color: THEME.errorRed,
     fontSize: 14,
   },
   emptyTitle: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: '#1e293b',
+    backgroundColor: THEME.cardBackground,
     borderRadius: 12,
     padding: 16,
     gap: 6,

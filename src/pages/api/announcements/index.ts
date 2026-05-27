@@ -6,9 +6,12 @@ export const prerender = false;
 
 export const GET: APIRoute = async () => {
   try {
+    const now = new Date().toISOString();
     const { data: announcements, error } = await supabase
       .from('public_announcements')
       .select('*')
+      .or(`show_at.is.null,show_at.lte.${now}`)
+      .or(`expires_at.is.null,expires_at.gte.${now}`)
       .order('created_at', { ascending: false });
 
     if (error) {

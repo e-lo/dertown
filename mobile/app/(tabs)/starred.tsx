@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   errorText: {
-    color: '#f87171',
+    color: THEME.errorRed,
     fontSize: 14,
   },
   emptyTitle: {

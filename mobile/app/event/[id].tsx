@@ -26,9 +26,11 @@ function openMaps(location: NonNullable<MobileEvent['location']>) {
       Platform.OS === 'ios'
         ? `maps://0,0?q=${query}&ll=${latitude},${longitude}`
         : `geo:${latitude},${longitude}?q=${query}`;
-    Linking.canOpenURL(url).then((can) => {
-      Linking.openURL(can ? url : `https://maps.google.com/?q=${latitude},${longitude}`);
-    });
+    Linking.canOpenURL(url)
+      .then((can) => {
+        Linking.openURL(can ? url : `https://maps.google.com/?q=${latitude},${longitude}`).catch(console.error);
+      })
+      .catch(console.error);
   } else {
     Linking.openURL(`https://maps.google.com/?q=${query}`);
   }
@@ -44,6 +46,9 @@ export default function EventDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
+    setEvent(null);
+    setLoading(true);
+    setError(null);
     fetchEventById(id)
       .then((data) => {
         setEvent(data);
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   errorText: {
-    color: '#f87171',
+    color: THEME.errorRed,
     fontSize: 14,
   },
   scroll: {
@@ -261,7 +266,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   regPill: {
-    backgroundColor: '#166534',
+    backgroundColor: THEME.successGreen,
   },
   pillText: {
     fontSize: 11,
@@ -321,8 +326,8 @@ const styles = StyleSheet.create({
     color: THEME.textPrimary,
   },
   registerBtn: {
-    backgroundColor: '#166534',
-    borderColor: '#166534',
+    backgroundColor: THEME.successGreen,
+    borderColor: THEME.successGreen,
   },
   registerBtnText: {
     color: '#ffffff',
