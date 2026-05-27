@@ -4,9 +4,9 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   ListRenderItem,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { THEME } from '../../lib/theme';

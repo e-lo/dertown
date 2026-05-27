@@ -6,9 +6,9 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ListRenderItem,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
 import { CONSTANTS } from '../../../src/lib/config';
