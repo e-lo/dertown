@@ -29,7 +29,7 @@ const userEmail = session.user?.email || 'Admin';
       <label for="announcement-search" class="sr-only">Search announcements</label>
       <input type="text" id="announcement-search" class="form-input-base w-full" placeholder="Type to search by title or message..." autocomplete="off" />
     </div>
-    <p class="text-sm text-gray-500">Limited to pending and published announcements within ±14 days of show date. Approve or edit from the dashboard.</p>
+    <p class="text-sm text-gray-500">Shows all pending announcements and published announcements that are currently active, upcoming, or expired within the last 30 days. Approve or edit from the dashboard.</p>
   </div>
   <div id="announcements-loading" class="loading">Loading announcements...</div>
   <div id="announcements-container"></div>
@@ -48,7 +48,7 @@ const userEmail = session.user?.email || 'Admin';
     const container = document.getElementById('announcements-container');
     if (!el || !container) return;
     try {
-      const res = await fetch('/api/admin/announcements/list?days=14', { credentials: 'include' });
+      const res = await fetch('/api/admin/announcements/list?days=30', { credentials: 'include' });
       if (res.status === 401) {
         window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;

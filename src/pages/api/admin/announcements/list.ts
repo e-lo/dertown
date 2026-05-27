@@ -4,19 +4,19 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 export const prerender = false;
 
 /**
- * GET /api/admin/announcements/list?days=14
- * Returns pending announcements plus published announcements within the date window
- * (show_at from today - days to today + days). Default 14 days each direction.
+ * GET /api/admin/announcements/list?days=30
+ * Returns pending announcements plus published announcements that are currently
+ * active, upcoming, or expired within the last `days` days.
+ *
+ * Previously filtered by show_at window, which incorrectly excluded announcements
+ * where show_at IS NULL (meaning "publish immediately"). Now filters by expires_at
+ * so every announcement visible to the public is guaranteed to appear here.
  */
 export const GET = withAdminAuth(async ({ url, auth }) => {
-  const days = Math.min(60, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
-  const today = new Date().toISOString().split('T')[0];
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-  const end = new Date();
-  end.setDate(end.getDate() + days);
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
+  const days = Math.min(90, Math.max(1, parseInt(url.searchParams.get('days') || '30', 10) || 30));
+  const lookback = new Date();
+  lookback.setDate(lookback.getDate() - days);
+  const lookbackStr = lookback.toISOString();
 
   // Org editors only see announcements for their assigned organizations.
   // Super admins see all.
@@ -38,10 +38,12 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
         .from('announcements')
         .select('*')
         .eq('status', 'published')
-        .gte('show_at', startStr)
-        .lte('show_at', endStr)
-        .order('show_at', { ascending: false })
-        .limit(100)
+        // Include: no expiry (permanent) OR expires in the future OR expired within `days` days.
+        // This guarantees every announcement visible to the public is included here.
+        // (Filtering by show_at would incorrectly exclude show_at IS NULL rows.)
+        .or(`expires_at.is.null,expires_at.gte.${lookbackStr}`)
+        .order('created_at', { ascending: false })
+        .limit(200)
     ),
   ]);
 
