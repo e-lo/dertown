@@ -30,10 +30,10 @@ function isNew(item: MobileAnnouncement): boolean {
 
 function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
   const fresh = isNew(item);
-  const bgColor = fresh ? '#fbbf24' : THEME.cardBackground;
-  // On yellow use near-black text; on dark card use white text
-  const textColor       = fresh ? '#1f2937' : THEME.textPrimary;
-  const textColorMuted  = fresh ? '#374151' : THEME.textSecondary;
+  const bgColor = fresh ? THEME.canary : THEME.cardBackground;
+  // On canary yellow use near-black text (matches Arts+Culture cards); on dark card use white text
+  const textColor       = fresh ? '#111111' : THEME.textPrimary;
+  const textColorMuted  = fresh ? 'rgba(0,0,0,0.6)' : THEME.textSecondary;
 
   const handlePress = () => {
     if (item.link) {
@@ -166,14 +166,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: '#1f2937',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     alignSelf: 'flex-start',
     marginTop: 1,
   },
   newBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#fbbf24',
+    color: '#ffe600',
     letterSpacing: 0.5,
   },
   message: {
