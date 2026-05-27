@@ -35,12 +35,6 @@ function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
   const textColor       = fresh ? '#1f2937' : THEME.textPrimary;
   const textColorMuted  = fresh ? '#374151' : THEME.textSecondary;
 
-  // Date label from show_at (or created_at as fallback)
-  const dateSource = item.show_at ?? item.created_at;
-  const dateObj = new Date(dateSource);
-  const dayNum  = String(dateObj.getDate());
-  const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-
   const handlePress = () => {
     if (item.link) {
       Linking.openURL(item.link).catch(() => { /* ignore */ });
@@ -56,13 +50,7 @@ function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
       activeOpacity={hasLink ? 0.75 : 1}
       disabled={!hasLink}
     >
-      {/* Left: date column */}
-      <View style={styles.dateCol}>
-        <Text style={[styles.month, { color: textColorMuted }]}>{monthStr}</Text>
-        <Text style={[styles.dayNum, { color: textColor }]}>{dayNum}</Text>
-      </View>
-
-      {/* Center: content */}
+      {/* Content */}
       <View style={styles.content}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: textColor }]} numberOfLines={2}>
@@ -153,27 +141,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingLeft: 12,
-    paddingRight: 0,
-    minHeight: 80,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    minHeight: 72,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.15)',
-  },
-  dateCol: {
-    width: 44,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  dayNum: {
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 32,
-  },
-  month: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   content: {
     flex: 1,
@@ -209,8 +181,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   linkIcon: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingLeft: 12,
     alignSelf: 'center',
   },
 });
