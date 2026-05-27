@@ -16,6 +16,7 @@ import { fetchEventById } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { Icon } from '../../components/Icon';
 import { useStars } from '../../contexts/StarContext';
+import { APP_CONFIG } from '../../lib/app-config';
 import type { MobileEvent } from '../../lib/types';
 
 function openMaps(location: NonNullable<MobileEvent['location']>) {
@@ -81,8 +82,8 @@ export default function EventDetailScreen() {
                   if (!event) return;
                   Share.share({
                     title: event.title,
-                    message: `${event.title} — https://dertown.com/events/${event.id}`,
-                    url: `https://dertown.com/events/${event.id}`,
+                    message: `${event.title} — ${APP_CONFIG.webBaseUrl}/events/${event.id}`,
+                    url: `${APP_CONFIG.webBaseUrl}/events/${event.id}`,
                   });
                 }}
                 style={{ padding: 6 }}

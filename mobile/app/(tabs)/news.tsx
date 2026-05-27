@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { THEME } from '../../lib/theme';
+import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
 import type { MobileAnnouncement } from '../../lib/types';
 
@@ -74,7 +75,7 @@ export default function AnnouncementsScreen() {
         <View style={styles.centered}>
           <Text style={styles.emptyTitle}>No announcements</Text>
           <Text style={styles.emptySubtitle}>
-            Check back soon for updates from Leavenworth
+            {`Check back soon for updates from ${APP_CONFIG.townName}`}
           </Text>
         </View>
       )}

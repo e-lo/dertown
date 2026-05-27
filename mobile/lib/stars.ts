@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { APP_CONFIG } from './app-config';
 
-const KEY = 'dertown:starred_ids';
+const KEY = `${APP_CONFIG.storageKeyPrefix}:starred_ids`;
 
 /** Load starred event IDs from AsyncStorage. Returns empty Set on missing/corrupted data. */
 export async function loadStarredIds(): Promise<Set<string>> {

@@ -21,6 +21,7 @@ import { CategoryPills } from '../../components/CategoryPills';
 import { DatePickerModal } from '../../components/DatePickerModal';
 import { Icon } from '../../components/Icon';
 import { useStars } from '../../contexts/StarContext';
+import { APP_CONFIG } from '../../lib/app-config';
 import type { MobileEvent } from '../../lib/types';
 
 type ListItem =
@@ -133,7 +134,7 @@ export default function EventsScreen() {
           <Icon name="calendar" size={22} color={THEME.textPrimary} />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>{headerLabel} · Leavenworth</Text>
+        <Text style={styles.headerTitle}>{headerLabel} · {APP_CONFIG.townName}</Text>
 
         <TouchableOpacity
           onPress={() => setSearchExpanded((v) => !v)}

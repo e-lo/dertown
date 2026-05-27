@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { registerPushToken } from './api';
+import { APP_CONFIG } from './app-config';
 
 /**
  * Request push notification permissions, get an Expo push token,
@@ -17,7 +18,7 @@ export async function setupPushNotifications(): Promise<void> {
   // Android requires an explicit notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Dertown',
+      name: APP_CONFIG.notificationChannelName,
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
     });
