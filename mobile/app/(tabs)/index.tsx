@@ -20,6 +20,7 @@ import { DayHeader } from '../../components/DayHeader';
 import { CategoryPills } from '../../components/CategoryPills';
 import { DatePickerModal } from '../../components/DatePickerModal';
 import { Icon } from '../../components/Icon';
+import { useStars } from '../../contexts/StarContext';
 import type { MobileEvent } from '../../lib/types';
 
 type ListItem =
@@ -37,7 +38,7 @@ export default function EventsScreen() {
   const [searchExpanded, setSearchExpanded]     = useState(false);
   const [selectedDate, setSelectedDate]         = useState(getTodayDateString());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [starredIds, setStarredIds]             = useState<Set<string>>(new Set());
+  const { starredIds, toggleStar } = useStars();
   const listRef = useRef<FlatList>(null);
   const router = useRouter();
 
@@ -97,14 +98,6 @@ export default function EventsScreen() {
     }
     return items;
   }, [filteredEvents]);
-
-  function toggleStar(id: string) {
-    setStarredIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
 
   function handleDateSelect(date: string) {
     setSelectedDate(date);
