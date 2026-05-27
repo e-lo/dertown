@@ -198,6 +198,23 @@ export default function EventDetailScreen() {
             ) : null}
 
             <View style={styles.actions}>
+              {/* Add to Calendar — ical on iOS, Google Calendar on Android */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => {
+                  const base = APP_CONFIG.webBaseUrl;
+                  const calUrl = Platform.OS === 'android'
+                    ? `${base}/api/events/${event.id}/google`
+                    : `${base}/api/events/${event.id}/ical`;
+                  Linking.openURL(calUrl).catch(console.error);
+                }}
+              >
+                <View style={styles.actionBtnInner}>
+                  <Icon name="calendar" size={16} color={THEME.textPrimary} />
+                  <Text style={styles.actionBtnText}>Add to Calendar</Text>
+                </View>
+              </TouchableOpacity>
+
               {event.website ? (
                 <TouchableOpacity
                   style={styles.actionBtn}
@@ -408,6 +425,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   actionBtnText: {
     fontSize: 15,
