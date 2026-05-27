@@ -83,12 +83,18 @@ export default function EventDetailScreen() {
 
       {loading && (
         <View style={[styles.centered, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={styles.centeredBackBtn} onPress={() => router.back()}>
+            <Icon name="chevron-left" size={26} color={THEME.textPrimary} />
+          </TouchableOpacity>
           <ActivityIndicator color={THEME.canary} size="large" />
         </View>
       )}
 
       {!loading && error && (
         <View style={[styles.centered, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={styles.centeredBackBtn} onPress={() => router.back()}>
+            <Icon name="chevron-left" size={26} color={THEME.textPrimary} />
+          </TouchableOpacity>
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
@@ -96,7 +102,16 @@ export default function EventDetailScreen() {
       {!loading && !error && event && (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Hero card — extends under status bar */}
-          <View style={[styles.hero, { backgroundColor: bgColor, paddingTop: insets.top + 20 }]}>
+          <View style={[styles.hero, { backgroundColor: bgColor, paddingTop: insets.top + 8 }]}>
+            {/* Back button */}
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => router.back()}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Icon name="chevron-left" size={26} color={fgColor} />
+            </TouchableOpacity>
+
             <Text style={[styles.heroTitle, { color: fgColor }]}>{event.title}</Text>
             <Text style={[styles.heroDate, { color: fgMuted }]}>
               {dayOfWeek}, {month} {dayNum}
@@ -271,6 +286,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  centeredBackBtn: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    padding: 8,
+  },
   errorText: {
     color: THEME.errorRed,
     fontSize: 14,
@@ -285,6 +306,12 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  backBtn: {
+    alignSelf: 'flex-start',
+    marginLeft: -6,
+    marginBottom: 10,
+    padding: 6,
   },
   heroTitle: {
     fontSize: 22,

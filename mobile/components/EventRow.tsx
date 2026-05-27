@@ -97,14 +97,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.15)',
   },
   dateCol: {
-    width: 44,
+    width: 48,
     alignItems: 'center',
     marginRight: 12,
   },
   dayNum: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
-    lineHeight: 32,
+    lineHeight: 26,
   },
   month: {
     fontSize: 10,
