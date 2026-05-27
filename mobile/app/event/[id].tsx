@@ -11,7 +11,8 @@ import {
   Share,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { THEME, getCategoryColor } from '../../lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../../lib/theme';
 import { fetchEventById } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { Icon } from '../../components/Icon';
@@ -43,6 +44,7 @@ export default function EventDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { starredIds, toggleStar } = useStars();
+  const insets = useSafeAreaInsets();
   const isStarred = starredIds.has(id ?? '');
 
   useEffect(() => {
@@ -61,7 +63,14 @@ export default function EventDetailScreen() {
       });
   }, [id]);
 
-  const bgColor = getCategoryColor(event?.primary_tag?.name ?? null);
+  const category = event?.primary_tag?.name ?? null;
+  const bgColor  = getCategoryColor(category);
+  const fgColor  = getCategoryTextColor(category);
+  const fgMuted  = getCategoryTextMuted(category);
+  const isLightBg = category ? ['Arts+Culture','Sports','Featured'].includes(category) : false;
+  const starColor = isLightBg
+    ? (isStarred ? '#111111' : 'rgba(0,0,0,0.25)')
+    : (isStarred ? THEME.starFilled : THEME.starUnstarred);
 
   const { dayOfWeek, dayNum, month } =
     event ? formatDayHeader(event.start_date) : { dayOfWeek: '', dayNum: '', month: '' };
@@ -72,77 +81,71 @@ export default function EventDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: event?.title ?? 'Event Details',
-          headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!event) return;
-                  Share.share({
-                    title: event.title,
-                    message: `${event.title} — ${APP_CONFIG.webBaseUrl}/events/${event.id}`,
-                    url: `${APP_CONFIG.webBaseUrl}/events/${event.id}`,
-                  });
-                }}
-                style={{ padding: 6 }}
-              >
-                <Icon name="share" size={20} color={THEME.textPrimary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => toggleStar(id ?? '')}
-                style={{ padding: 6, paddingRight: 0 }}
-              >
-                <Icon
-                  name="star"
-                  size={22}
-                  color={isStarred ? THEME.starFilled : THEME.starUnstarred}
-                />
-              </TouchableOpacity>
-            </View>
-          ),
-        }}
-      />
+      {/* Hide the system nav bar — swipe-back gesture handles navigation */}
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: true }} />
 
       {loading && (
-        <View style={styles.centered}>
+        <View style={[styles.centered, { paddingTop: insets.top }]}>
           <ActivityIndicator color={THEME.canary} size="large" />
         </View>
       )}
 
       {!loading && error && (
-        <View style={styles.centered}>
+        <View style={[styles.centered, { paddingTop: insets.top }]}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
 
       {!loading && !error && event && (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Hero card */}
-          <View style={[styles.hero, { backgroundColor: bgColor }]}>
-            <Text style={styles.heroTitle}>{event.title}</Text>
-            <Text style={styles.heroDate}>
+          {/* Hero card — extends under status bar, padded by safe area */}
+          <View style={[styles.hero, { backgroundColor: bgColor, paddingTop: insets.top + 20 }]}>
+            <Text style={[styles.heroTitle, { color: fgColor }]}>{event.title}</Text>
+            <Text style={[styles.heroDate, { color: fgMuted }]}>
               {dayOfWeek}, {month} {dayNum}
             </Text>
-            {timeStr ? <Text style={styles.heroTime}>{timeStr}</Text> : null}
+            {timeStr ? <Text style={[styles.heroTime, { color: fgMuted }]}>{timeStr}</Text> : null}
 
-            <View style={styles.pills}>
-              {event.primary_tag ? (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>{event.primary_tag.name}</Text>
-                </View>
-              ) : null}
-              {event.secondary_tag ? (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>{event.secondary_tag.name}</Text>
-                </View>
-              ) : null}
-              {event.registration ? (
-                <View style={[styles.pill, styles.regPill]}>
-                  <Text style={styles.pillText}>Register</Text>
-                </View>
-              ) : null}
+            {/* Pills row + share/star pinned to the right */}
+            <View style={styles.heroBottom}>
+              <View style={styles.pills}>
+                {event.primary_tag ? (
+                  <View style={styles.pill}>
+                    <Text style={[styles.pillText, { color: fgColor }]}>{event.primary_tag.name}</Text>
+                  </View>
+                ) : null}
+                {event.secondary_tag ? (
+                  <View style={styles.pill}>
+                    <Text style={[styles.pillText, { color: fgColor }]}>{event.secondary_tag.name}</Text>
+                  </View>
+                ) : null}
+                {event.registration ? (
+                  <View style={[styles.pill, styles.regPill]}>
+                    <Text style={[styles.pillText, { color: '#ffffff' }]}>Register</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.heroActions}>
+                <TouchableOpacity
+                  onPress={() => {
+                    Share.share({
+                      title: event.title,
+                      message: `${event.title} — ${APP_CONFIG.webBaseUrl}/events/${event.id}`,
+                      url: `${APP_CONFIG.webBaseUrl}/events/${event.id}`,
+                    });
+                  }}
+                  style={styles.heroActionBtn}
+                >
+                  <Icon name="share" size={20} color={fgColor} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => toggleStar(id ?? '')}
+                  style={styles.heroActionBtn}
+                >
+                  <Icon name="star" size={22} color={starColor} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -233,32 +236,36 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   hero: {
-    padding: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    // paddingTop is dynamic (insets.top + 20)
   },
   heroTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: THEME.textPrimary,
     marginBottom: 6,
     lineHeight: 28,
   },
   heroDate: {
     fontSize: 14,
     fontWeight: '600',
-    color: THEME.textSecondary,
     marginBottom: 2,
   },
   heroTime: {
     fontSize: 14,
-    color: THEME.textSecondary,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  heroBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 12,
   },
   pills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 8,
+    flex: 1,
   },
   pill: {
     paddingHorizontal: 10,
@@ -272,7 +279,15 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: THEME.textPrimary,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginLeft: 8,
+  },
+  heroActionBtn: {
+    padding: 8,
   },
   details: {
     paddingHorizontal: 16,
