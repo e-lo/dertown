@@ -12,22 +12,23 @@ export function fixHex(color: string): string {
   return color;
 }
 
-// Category colors keyed by the exact tag name returned from the API.
-// Darker shades chosen for readability on OLED/dark backgrounds.
-// Matches the category → palette assignments in src/lib/config.ts COLORS.eventCategories.
+// Exact colors from src/lib/config.ts COLOR_PALETTE — keyed by the API tag name.
 export const CATEGORY_COLORS: Record<string, string> = {
-  'Arts+Culture': '#92400e',   // amber-dark (web: canary/yellow)
-  'Civic':        '#1e4a4b',   // darkSlateGray-dark
-  'Family':       '#7c1a5a',   // fandango-dark
-  'Nature':       '#2a5c30',   // calPolyGreen-dark
-  'Recreation':   '#0c5464',   // blueGreen-dark
-  'Outdoors':     '#0c5464',   // blueGreen-dark
-  'School':       '#1e4a4b',   // darkSlateGray-dark
-  'Seniors':      '#7c1a5a',   // fandango-dark
-  'Sports':       '#b45309',   // amber-dark (web: canary — using amber to differ from arts)
-  'Town':         '#312e81',   // palatinateBlue-dark
-  'Featured':     '#3730a3',   // palatinateBlue-dark
+  'Arts+Culture': '#ffe600',   // canary
+  'Civic':        '#2f4445',   // darkSlateGray
+  'Family':       '#c0268c',   // fandango
+  'Nature':       '#14532d',   // calPolyGreen
+  'Recreation':   '#219ebc',   // blueGreen
+  'Outdoors':     '#219ebc',   // blueGreen
+  'School':       '#2f4445',   // darkSlateGray
+  'Seniors':      '#c0268c',   // fandango
+  'Sports':       '#ffe600',   // canary
+  'Town':         '#4740cb',   // palatinateBlue
+  'Featured':     '#ffe600',   // canary
 };
+
+// Yellow (canary) backgrounds need dark text — matches web eventTextColors.
+const LIGHT_BG_CATEGORIES = new Set(['Arts+Culture', 'Sports', 'Featured']);
 
 const FALLBACK_COLOR = fixHex(COLORS.primary);
 
@@ -36,9 +37,16 @@ export function getCategoryColor(category: string | null | undefined): string {
   return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
 }
 
-export function getCategoryTextColor(_category: string | null | undefined): string {
-  // All mobile category backgrounds are dark enough for white text
-  return '#ffffff';
+/** Returns the primary text color for a given category background. */
+export function getCategoryTextColor(category: string | null | undefined): string {
+  return category && LIGHT_BG_CATEGORIES.has(category) ? '#111111' : '#ffffff';
+}
+
+/** Returns a muted/secondary text color for a given category background. */
+export function getCategoryTextMuted(category: string | null | undefined): string {
+  return category && LIGHT_BG_CATEGORIES.has(category)
+    ? 'rgba(0,0,0,0.6)'
+    : 'rgba(255,255,255,0.7)';
 }
 
 // Core theme tokens — all 6-digit hex (no 8-digit, React Native safe)

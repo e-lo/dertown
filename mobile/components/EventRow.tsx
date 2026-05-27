@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { THEME, getCategoryColor } from '../lib/theme';
+import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../lib/theme';
 import { formatTimeRange } from '../lib/dateUtils';
 import { Icon } from './Icon';
 import type { MobileEvent } from '../lib/types';
@@ -14,7 +14,10 @@ export interface EventRowProps {
 
 export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
   const category = event.primary_tag?.name ?? null;
-  const bgColor = getCategoryColor(category);
+  const bgColor   = getCategoryColor(category);
+  const fgColor   = getCategoryTextColor(category);
+  const fgMuted   = getCategoryTextMuted(category);
+  const starColor = isStarred ? THEME.starFilled : (category && ['Arts+Culture','Sports','Featured'].includes(category) ? 'rgba(0,0,0,0.3)' : THEME.starUnstarred);
   const [year, month, day] = event.start_date.split('-').map(Number);
   const dayNum = String(day); // no leading zero
   const monthStr = new Date(year, month - 1, 1)
@@ -30,39 +33,39 @@ export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
     >
       {/* Left: date column — month label above large day number */}
       <View style={styles.dateCol}>
-        <Text style={styles.month}>{monthStr}</Text>
-        <Text style={styles.dayNum}>{dayNum}</Text>
+        <Text style={[styles.month, { color: fgMuted }]}>{monthStr}</Text>
+        <Text style={[styles.dayNum, { color: fgColor }]}>{dayNum}</Text>
       </View>
 
       {/* Center: event info */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{event.title}</Text>
-        {timeStr ? <Text style={styles.meta}>{timeStr}</Text> : null}
+        <Text style={[styles.title, { color: fgColor }]} numberOfLines={2}>{event.title}</Text>
+        {timeStr ? <Text style={[styles.meta, { color: fgMuted }]}>{timeStr}</Text> : null}
         {event.location ? (
-          <Text style={styles.meta} numberOfLines={1}>{event.location.name}</Text>
+          <Text style={[styles.meta, { color: fgMuted }]} numberOfLines={1}>{event.location.name}</Text>
         ) : null}
 
         {/* Category pills at bottom of content */}
         <View style={styles.pills}>
           {event.primary_tag ? (
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{event.primary_tag.name}</Text>
+            <View style={[styles.pill, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+              <Text style={[styles.pillText, { color: fgColor }]}>{event.primary_tag.name}</Text>
             </View>
           ) : null}
           {event.secondary_tag ? (
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{event.secondary_tag.name}</Text>
+            <View style={[styles.pill, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+              <Text style={[styles.pillText, { color: fgColor }]}>{event.secondary_tag.name}</Text>
             </View>
           ) : null}
           {event.registration ? (
             <View style={[styles.pill, styles.regPill]}>
-              <Text style={styles.pillText}>Register</Text>
+              <Text style={[styles.pillText, { color: '#ffffff' }]}>Register</Text>
             </View>
           ) : null}
         </View>
       </View>
 
-      {/* Right: star button — 40px right padding per spec */}
+      {/* Right: star button */}
       <TouchableOpacity
         style={styles.starBtn}
         onPress={onStar}
@@ -72,7 +75,7 @@ export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
         <Icon
           name="star"
           size={22}
-          color={isStarred ? THEME.starFilled : THEME.starUnstarred}
+          color={starColor}
         />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -98,13 +101,11 @@ const styles = StyleSheet.create({
   dayNum: {
     fontSize: 28,
     fontWeight: '800',
-    color: THEME.textPrimary,
     lineHeight: 32,
   },
   month: {
     fontSize: 10,
     fontWeight: '700',
-    color: THEME.textSecondary,
     letterSpacing: 0.5,
   },
   content: {
@@ -114,12 +115,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: THEME.textPrimary,
     lineHeight: 20,
   },
   meta: {
     fontSize: 12,
-    color: THEME.textSecondary,
   },
   pills: {
     flexDirection: 'row',
@@ -131,7 +130,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   regPill: {
     backgroundColor: '#166534',
@@ -139,7 +137,6 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 10,
     fontWeight: '600',
-    color: THEME.textPrimary,
   },
   starBtn: {
     paddingHorizontal: 18,
