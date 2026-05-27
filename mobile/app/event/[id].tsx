@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Linking,
-  Platform,
   Share,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,7 +18,8 @@ import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
 import { APP_CONFIG } from '../../lib/app-config';
-import type { MobileEvent, MobileRelatedEvents, MobileRelatedEventItem } from '../../lib/types';
+import { shareEventsAsICS } from '../../lib/icalUtils';
+import type { MobileEvent, MobileRelatedEvents, MobileRelatedEventItem, ICSEventData } from '../../lib/types';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -199,16 +198,10 @@ export default function EventDetailScreen() {
             ) : null}
 
             <View style={styles.actions}>
-              {/* Add to Calendar — ical on iOS, Google Calendar on Android */}
+              {/* Add to Calendar — generates .ics locally, no network needed */}
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => {
-                  const base = APP_CONFIG.webBaseUrl;
-                  const calUrl = Platform.OS === 'android'
-                    ? `${base}/api/events/${event.id}/google`
-                    : `${base}/api/events/${event.id}/ical`;
-                  Linking.openURL(calUrl).catch(console.error);
-                }}
+                onPress={() => shareEventsAsICS([event], event.title).catch(console.error)}
               >
                 <View style={styles.actionBtnInner}>
                   <Icon name="calendar" size={16} color={THEME.textPrimary} />
@@ -221,9 +214,11 @@ export default function EventDetailScreen() {
                 <TouchableOpacity
                   style={styles.actionBtn}
                   onPress={() => {
-                    const base = APP_CONFIG.webBaseUrl;
-                    const seriesUrl = `${base}/api/events/series/${related.series!.parent_id}/ical`;
-                    Linking.openURL(seriesUrl).catch(console.error);
+                    const seriesEvents: ICSEventData[] = [
+                      event,
+                      ...related.series!.events,
+                    ];
+                    shareEventsAsICS(seriesEvents, related.series!.parent_title).catch(console.error);
                   }}
                 >
                   <View style={styles.actionBtnInner}>

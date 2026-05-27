@@ -58,6 +58,9 @@ export interface MobileRelatedEvents {
   related: MobileRelatedEventItem[];
 }
 
+/** Re-exported so callers can import from one place. */
+export type { ICSEventData } from './icalUtils';
+
 /** Parameters for /api/events/search */
 export interface EventSearchParams {
   q?: string;
