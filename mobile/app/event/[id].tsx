@@ -215,6 +215,23 @@ export default function EventDetailScreen() {
                 </View>
               </TouchableOpacity>
 
+              {/* Add entire series when this event belongs to one */}
+              {hasSeries && related?.series && (
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => {
+                    const base = APP_CONFIG.webBaseUrl;
+                    const seriesUrl = `${base}/api/events/series/${related.series!.parent_id}/ical`;
+                    Linking.openURL(seriesUrl).catch(console.error);
+                  }}
+                >
+                  <View style={styles.actionBtnInner}>
+                    <Icon name="calendar" size={16} color={THEME.textPrimary} />
+                    <Text style={styles.actionBtnText}>Add Series to Calendar</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
               {event.website ? (
                 <TouchableOpacity
                   style={styles.actionBtn}
