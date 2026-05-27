@@ -11,7 +11,12 @@ COMMENT ON COLUMN "public"."activities"."program_format" IS
   'Distinguishes program type: camp (time-limited, break programs) vs. league/lesson/class/session (recurring school-year programs). NULL = uncategorized.';
 
 -- Rebuild public_activities view to include program_format
-CREATE OR REPLACE VIEW "public"."public_activities" AS
+-- Must DROP and recreate (not CREATE OR REPLACE) because we're inserting a column
+-- in the middle of the existing view definition, which PostgreSQL disallows via
+-- CREATE OR REPLACE VIEW (error 42P16).
+DROP VIEW IF EXISTS "public"."public_activities";
+
+CREATE VIEW "public"."public_activities" AS
  SELECT "ka"."id",
     "ka"."name",
     "ka"."description",
