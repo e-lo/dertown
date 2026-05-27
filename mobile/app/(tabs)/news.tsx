@@ -4,28 +4,88 @@ import {
   Text,
   FlatList,
   StyleSheet,
+  TouchableOpacity,
+  Linking,
   ListRenderItem,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
+import { AppHeader } from '../../components/AppHeader';
+import { Icon } from '../../components/Icon';
 import { THEME } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
-import { AppHeader } from '../../components/AppHeader';
 import { fetchAnnouncements } from '../../lib/api';
 import type { MobileAnnouncement } from '../../lib/types';
 
+const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
+
+/** Matches web app definition: new if show_at or created_at is within 72 hours. */
+function isNew(item: MobileAnnouncement): boolean {
+  const cutoff = Date.now() - SEVENTY_TWO_HOURS_MS;
+  const showAt   = item.show_at   ? new Date(item.show_at).getTime()   : null;
+  const createdAt = item.created_at ? new Date(item.created_at).getTime() : null;
+  return (showAt != null && showAt >= cutoff) || (createdAt != null && createdAt >= cutoff);
+}
+
 function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
-  const date = new Date(item.created_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
+  const fresh = isNew(item);
+  const bgColor = fresh ? '#fbbf24' : THEME.cardBackground;
+  // On yellow use near-black text; on dark card use white text
+  const textColor       = fresh ? '#1f2937' : THEME.textPrimary;
+  const textColorMuted  = fresh ? '#374151' : THEME.textSecondary;
+
+  // Date label from show_at (or created_at as fallback)
+  const dateSource = item.show_at ?? item.created_at;
+  const dateObj = new Date(dateSource);
+  const dayNum  = String(dateObj.getDate());
+  const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+  const handlePress = () => {
+    if (item.link) {
+      Linking.openURL(item.link).catch(() => { /* ignore */ });
+    }
+  };
+
+  const hasLink = Boolean(item.link);
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardDate}>{date}</Text>
-      <Text style={styles.cardMessage}>{item.message}</Text>
-    </View>
+    <TouchableOpacity
+      style={[styles.row, { backgroundColor: bgColor }]}
+      onPress={handlePress}
+      activeOpacity={hasLink ? 0.75 : 1}
+      disabled={!hasLink}
+    >
+      {/* Left: date column */}
+      <View style={styles.dateCol}>
+        <Text style={[styles.month, { color: textColorMuted }]}>{monthStr}</Text>
+        <Text style={[styles.dayNum, { color: textColor }]}>{dayNum}</Text>
+      </View>
+
+      {/* Center: content */}
+      <View style={styles.content}>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: textColor }]} numberOfLines={2}>
+            {item.title}
+          </Text>
+          {fresh && (
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>NEW</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.message, { color: textColorMuted }]} numberOfLines={3}>
+          {item.message}
+        </Text>
+      </View>
+
+      {/* Right: external-link indicator */}
+      {hasLink && (
+        <View style={styles.linkIcon}>
+          <Icon name="external-link" size={18} color={textColorMuted} />
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -75,7 +135,6 @@ export default function AnnouncementsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           style={styles.list}
-          contentContainerStyle={styles.listContent}
         />
       )}
     </SafeAreaView>
@@ -90,28 +149,68 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
   },
-  listContent: {
-    padding: 16,
-    gap: 12,
+  // Full-bleed row — matches EventRow visual rhythm
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 0,
+    minHeight: 80,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.15)',
   },
-  card: {
-    backgroundColor: THEME.cardBackground,
-    borderRadius: 12,
-    padding: 16,
+  dateCol: {
+    width: 44,
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  dayNum: {
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 32,
+  },
+  month: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  content: {
+    flex: 1,
+    gap: 4,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 6,
   },
-  cardTitle: {
-    fontSize: 16,
+  title: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: '700',
-    color: THEME.textPrimary,
-  },
-  cardDate: {
-    fontSize: 12,
-    color: THEME.textMuted,
-  },
-  cardMessage: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     lineHeight: 20,
+  },
+  newBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: '#1f2937',
+    alignSelf: 'flex-start',
+    marginTop: 1,
+  },
+  newBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#fbbf24',
+    letterSpacing: 0.5,
+  },
+  message: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  linkIcon: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignSelf: 'center',
   },
 });

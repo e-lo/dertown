@@ -44,6 +44,7 @@ export interface MobileAnnouncement {
   id: string;
   title: string;
   message: string;
+  link: string | null;
   created_at: string;
   show_at: string | null;
   expires_at: string | null;
