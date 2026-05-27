@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   ListRenderItem,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
 import { CONSTANTS } from '../../../src/lib/config';
 import { fetchEvents } from '../../lib/api';
@@ -39,6 +39,7 @@ export default function EventsScreen() {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [starredIds, setStarredIds]             = useState<Set<string>>(new Set());
   const listRef = useRef<FlatList>(null);
+  const router = useRouter();
 
   const loadEvents = useCallback(() => {
     setLoading(true);
@@ -125,7 +126,7 @@ export default function EventsScreen() {
       <EventRow
         event={item.event}
         isStarred={starredIds.has(item.event.id)}
-        onPress={() => {/* navigation wired in Task 5 */}}
+        onPress={() => router.push({ pathname: '/event/[id]', params: { id: item.event.id } })}
         onStar={() => toggleStar(item.event.id)}
       />
     );
