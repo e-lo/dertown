@@ -12,19 +12,21 @@ export function fixHex(color: string): string {
   return color;
 }
 
-// Darker category colors for mobile (better readability on OLED/dark backgrounds)
+// Category colors keyed by the exact tag name returned from the API.
+// Darker shades chosen for readability on OLED/dark backgrounds.
+// Matches the category → palette assignments in src/lib/config.ts COLORS.eventCategories.
 export const CATEGORY_COLORS: Record<string, string> = {
-  'arts-culture': '#3730a3',
-  civic:          '#1e2e2f',
-  family:         '#7c1a5a',
-  nature:         '#2a5c30',
-  recreation:     '#0c5464',
-  outdoors:       '#0c5464',
-  school:         '#1e2e2f',
-  seniors:        '#7c1a5a',
-  sports:         '#3730a3',
-  town:           '#312e81',
-  featured:       '#3730a3',
+  'Arts+Culture': '#3730a3',   // palatinateBlue-dark  (web: canary)
+  'Civic':        '#1e4a4b',   // darkSlateGray-dark
+  'Family':       '#7c1a5a',   // fandango-dark
+  'Nature':       '#2a5c30',   // calPolyGreen-dark
+  'Recreation':   '#0c5464',   // blueGreen-dark
+  'Outdoors':     '#0c5464',   // blueGreen-dark
+  'School':       '#1e4a4b',   // darkSlateGray-dark
+  'Seniors':      '#7c1a5a',   // fandango-dark
+  'Sports':       '#b45309',   // amber-dark (web: canary — using amber to differ from arts)
+  'Town':         '#312e81',   // palatinateBlue-dark
+  'Featured':     '#3730a3',   // palatinateBlue-dark
 };
 
 const FALLBACK_COLOR = fixHex(COLORS.primary);
