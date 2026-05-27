@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { loadStarredIds, saveStarredIds } from '../lib/stars';
 
 interface StarContextValue {
@@ -6,18 +6,25 @@ interface StarContextValue {
   toggleStar: (id: string) => void;
 }
 
-const StarContext = createContext<StarContextValue>({
-  starredIds: new Set(),
-  toggleStar: () => {},
-});
+const StarContext = createContext<StarContextValue | undefined>(undefined);
 
 export function StarProvider({ children }: { children: React.ReactNode }) {
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+  const hydratedRef = useRef(false);
 
   // Hydrate from AsyncStorage on mount
   useEffect(() => {
-    loadStarredIds().then(setStarredIds);
+    loadStarredIds().then((ids) => {
+      setStarredIds(ids);
+      hydratedRef.current = true;
+    });
   }, []);
+
+  // Persist whenever starredIds changes (but skip the initial empty Set before hydration)
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    saveStarredIds(starredIds);
+  }, [starredIds]);
 
   const toggleStar = useCallback((id: string) => {
     setStarredIds((prev) => {
@@ -27,7 +34,6 @@ export function StarProvider({ children }: { children: React.ReactNode }) {
       } else {
         next.add(id);
       }
-      saveStarredIds(next); // fire-and-forget
       return next;
     });
   }, []);
@@ -41,5 +47,9 @@ export function StarProvider({ children }: { children: React.ReactNode }) {
 
 /** Access the global starred state from any screen or component. */
 export function useStars() {
-  return useContext(StarContext);
+  const ctx = useContext(StarContext);
+  if (ctx === undefined) {
+    throw new Error('useStars must be used within a StarProvider');
+  }
+  return ctx;
 }
