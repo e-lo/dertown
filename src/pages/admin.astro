@@ -278,6 +278,7 @@ const userEmail = session.user?.email || 'Admin';
   let allTags = [];
   let allParentEvents = [];
   let currentEditId = null;
+  let currentEditLikelyDuplicate = null;
   let currentEditType = null; // 'staged-event', 'existing-event', 'staged-announcement', 'existing-announcement', 'new-event'
   /** 'draft' | 'publish' — set by modal action buttons before requestSubmit */
   let pendingEventSaveIntent = null;
@@ -769,9 +770,88 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   // ============================================================================
+  // MERGE SEARCH
+  // ============================================================================
+
+  let mergeSearchTimeout = null;
+
+  function setupMergeSearch() {
+    const input = document.getElementById('mergeSearchInput');
+    const dropdown = document.getElementById('mergeSearchDropdown');
+    if (!input || !dropdown || input.dataset.mergeSetup) return;
+    input.dataset.mergeSetup = 'true';
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (q.length < 2) {
+        dropdown.innerHTML = '';
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+      if (mergeSearchTimeout !== null) clearTimeout(mergeSearchTimeout);
+      mergeSearchTimeout = window.setTimeout(async () => {
+        try {
+          const res = await fetch('/api/admin/events/search?q=' + encodeURIComponent(q), { credentials: 'include' });
+          if (!res.ok) return;
+          const list = await res.json();
+          if (!Array.isArray(list) || list.length === 0) {
+            dropdown.innerHTML = '<div class="autocomplete-dropdown-item">No events found</div>';
+          } else {
+            dropdown.innerHTML = list
+              .filter(ev => ev.id !== currentEditId)
+              .map(ev => {
+                const dateStr = ev.start_date ? new Date(ev.start_date).toLocaleDateString() : '';
+                const escaped = (ev.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+                const stagedSuffix = ev.table === 'events_staged' ? ' <span class="text-gray-400 italic">(staged)</span>' : '';
+                return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + stagedSuffix + (dateStr ? ' <span class="text-gray-500">' + dateStr + '</span>' : '') + '</div>';
+              }).join('');
+          }
+          dropdown.classList.remove('hidden');
+          dropdown.classList.add('block');
+          dropdown.querySelectorAll('.autocomplete-dropdown-item[data-id]').forEach(item => {
+            item.addEventListener('click', () => {
+              const foundId = item.getAttribute('data-id');
+              if (foundId && currentEditId) {
+                window.location.href = '/admin/events/merge?primary=' + encodeURIComponent(foundId) + '&secondary=' + encodeURIComponent(currentEditId);
+              }
+            });
+          });
+        } catch {
+          dropdown.innerHTML = '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+        }
+      }, 200);
+    });
+  }
+
+  window.toggleMergeSearchPanel = function() {
+    if (!currentEditId) return;
+    const panel = document.getElementById('mergeSearchPanel');
+    if (!panel) return;
+    setupMergeSearch();
+    const isHidden = panel.style.display === 'none' || panel.style.display === '';
+    if (isHidden) {
+      panel.style.display = 'block';
+      const input = document.getElementById('mergeSearchInput');
+      if (input) {
+        // Pre-populate with likely duplicate title so admin can confirm with one click
+        if (currentEditLikelyDuplicate?.title) {
+          input.value = currentEditLikelyDuplicate.title;
+          input.dispatchEvent(new Event('input'));
+        }
+        input.focus();
+      }
+    } else {
+      panel.style.display = 'none';
+    }
+  };
+
+  // ============================================================================
   // DATA DISPLAY FUNCTIONS
   // ============================================================================
-  
+
   /** Cache of loaded events so action handlers don't need to re-fetch. */
   let _cachedEvents = [];
 
@@ -1869,6 +1949,7 @@ const userEmail = session.user?.email || 'Admin';
       const event = data.events.find(e => e.id === eventId);
       
       if (event) {
+        currentEditLikelyDuplicate = event.likely_duplicate || null;
         document.getElementById('editEventModalTitle').textContent = 'Edit Staged Event';
         document.getElementById('editEventTitle').value = event.title || '';
         document.getElementById('editEventDescription').value = event.description || '';
@@ -1930,6 +2011,12 @@ const userEmail = session.user?.email || 'Admin';
         }
         
         document.getElementById('editEventComments').value = event.comments || '';
+        const mergePanel = document.getElementById('mergeSearchPanel');
+        if (mergePanel) mergePanel.style.display = 'none';
+        const mergeInput = document.getElementById('mergeSearchInput');
+        if (mergeInput) mergeInput.value = '';
+        const mergeDropdown = document.getElementById('mergeSearchDropdown');
+        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); }
         const modal = document.getElementById('editEventModal');
         if (modal) {
           modal.classList.remove('hidden');
@@ -1968,6 +2055,7 @@ const userEmail = session.user?.email || 'Admin';
       }
       
       if (event) {
+        currentEditLikelyDuplicate = event.likely_duplicate || null;
         document.getElementById('editEventModalTitle').textContent = 'Edit Existing Event';
         document.getElementById('editEventTitle').value = event.title || '';
         document.getElementById('editEventDescription').value = event.description || '';
@@ -2038,6 +2126,12 @@ const userEmail = session.user?.email || 'Admin';
         }
         
         document.getElementById('editEventComments').value = event.comments || '';
+        const mergePanel = document.getElementById('mergeSearchPanel');
+        if (mergePanel) mergePanel.style.display = 'none';
+        const mergeInput = document.getElementById('mergeSearchInput');
+        if (mergeInput) mergeInput.value = '';
+        const mergeDropdown = document.getElementById('mergeSearchDropdown');
+        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); }
         const modal = document.getElementById('editEventModal');
         if (modal) {
           modal.classList.remove('hidden');
@@ -2080,15 +2174,16 @@ const userEmail = session.user?.email || 'Admin';
       
       // Open modal in "new event" mode with pre-filled data
       currentEditId = null;
+      currentEditLikelyDuplicate = null;
       currentEditType = 'new-event';
       setEditEventModalStagedQueueUi(false);
-      
+
       const titleElement = document.getElementById('editEventModalTitle');
       titleElement.textContent = 'Duplicate Event';
       // Add a visual highlight to make it obvious
       titleElement.style.color = '#4f46e5'; // Indigo color to match duplicate button
       titleElement.style.fontWeight = '600';
-      
+
       // Pre-fill all fields
       document.getElementById('editEventTitle').value = event.title || '';
       document.getElementById('editEventDescription').value = event.description || '';
@@ -2227,6 +2322,7 @@ const userEmail = session.user?.email || 'Admin';
     
     // Open duplicate modal with form data (dates will be cleared)
     currentEditId = null;
+    currentEditLikelyDuplicate = null;
     currentEditType = 'new-event';
     setEditEventModalStagedQueueUi(false);
     
@@ -3337,6 +3433,7 @@ const userEmail = session.user?.email || 'Admin';
    */
   window.openCreateEventModal = function() {
       currentEditId = null;
+      currentEditLikelyDuplicate = null;
       currentEditType = 'new-event';
       setEditEventModalStagedQueueUi(false);
       
@@ -3397,6 +3494,7 @@ const userEmail = session.user?.email || 'Admin';
       hideEditEventModalHelpNotes();
       pendingEventSaveIntent = null;
       currentEditId = null;
+      currentEditLikelyDuplicate = null;
       currentEditType = null;
     };
 
@@ -3410,6 +3508,7 @@ const userEmail = session.user?.email || 'Admin';
         modal.classList.remove('flex');
       }
       currentEditId = null;
+      currentEditLikelyDuplicate = null;
       currentEditType = null;
     };
     
