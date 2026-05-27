@@ -33,6 +33,29 @@ export interface MobileEvent {
   organization: { name: string } | null;
 }
 
+/** Compact event shape returned inside /api/mobile/events/[id]/related */
+export interface MobileRelatedEventItem {
+  id: string;
+  title: string;
+  start_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  registration: boolean | null;
+  organization_id: string | null;
+  primary_tag:   { name: string } | null;
+  secondary_tag: { name: string } | null;
+  location: { name: string; address: string | null } | null;
+}
+
+export interface MobileRelatedEvents {
+  series: {
+    parent_id: string;
+    parent_title: string;
+    upcoming: MobileRelatedEventItem[];
+  } | null;
+  org_events: MobileRelatedEventItem[];
+}
+
 /** Parameters for /api/events/search */
 export interface EventSearchParams {
   q?: string;

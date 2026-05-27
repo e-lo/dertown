@@ -1,4 +1,4 @@
-import type { MobileEvent, MobileAnnouncement, EventSearchParams } from './types';
+import type { MobileEvent, MobileAnnouncement, MobileRelatedEvents, EventSearchParams } from './types';
 
 // Set EXPO_PUBLIC_API_BASE_URL in .env:
 //   Dev:  http://localhost:4321
@@ -38,6 +38,22 @@ export async function fetchAnnouncements(): Promise<MobileAnnouncement[]> {
   }
   const data = await response.json();
   return (data.announcements ?? []) as MobileAnnouncement[];
+}
+
+export async function fetchRelatedEvents(
+  id: string,
+  opts: { seriesLimit?: number; orgLimit?: number } = {}
+): Promise<MobileRelatedEvents> {
+  const url = new URL(`${BASE_URL}/api/mobile/events/${encodeURIComponent(id)}/related`);
+  if (opts.seriesLimit != null) url.searchParams.set('seriesLimit', String(opts.seriesLimit));
+  if (opts.orgLimit    != null) url.searchParams.set('orgLimit',    String(opts.orgLimit));
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch related events: ${response.status}`);
+  }
+  const data = await response.json();
+  return data as MobileRelatedEvents;
 }
 
 export async function registerPushToken(

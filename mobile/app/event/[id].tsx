@@ -10,37 +10,22 @@ import {
   Platform,
   Share,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../../lib/theme';
-import { fetchEventById } from '../../lib/api';
+import { fetchEventById, fetchRelatedEvents } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { Icon } from '../../components/Icon';
+import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
 import { APP_CONFIG } from '../../lib/app-config';
-import type { MobileEvent } from '../../lib/types';
-
-function openMaps(location: NonNullable<MobileEvent['location']>) {
-  const { name, address, latitude, longitude } = location;
-  const query = encodeURIComponent(address ?? name);
-  if (latitude && longitude) {
-    const url =
-      Platform.OS === 'ios'
-        ? `maps://0,0?q=${query}&ll=${latitude},${longitude}`
-        : `geo:${latitude},${longitude}?q=${query}`;
-    Linking.canOpenURL(url)
-      .then((can) => {
-        Linking.openURL(can ? url : `https://maps.google.com/?q=${latitude},${longitude}`).catch(console.error);
-      })
-      .catch(console.error);
-  } else {
-    Linking.openURL(`https://maps.google.com/?q=${query}`);
-  }
-}
+import type { MobileEvent, MobileRelatedEvents, MobileRelatedEventItem } from '../../lib/types';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [event, setEvent] = useState<MobileEvent | null>(null);
+  const [related, setRelated] = useState<MobileRelatedEvents | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { starredIds, toggleStar } = useStars();
@@ -50,12 +35,15 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (!id) return;
     setEvent(null);
+    setRelated(null);
     setLoading(true);
     setError(null);
     fetchEventById(id)
       .then((data) => {
         setEvent(data);
         setLoading(false);
+        // Fetch related events in the background after main event loads
+        fetchRelatedEvents(id).then(setRelated).catch(() => { /* non-fatal */ });
       })
       .catch((err: Error) => {
         setError(err.message ?? 'Failed to load event');
@@ -79,6 +67,15 @@ export default function EventDetailScreen() {
     ? formatTimeRange(event.start_time, event.end_time)
     : '';
 
+  // Cast a related event item to the shape EventRow expects
+  function asEvent(item: MobileRelatedEventItem): MobileEvent {
+    return item as unknown as MobileEvent;
+  }
+
+  const hasSeries = related?.series != null && related.series.upcoming.length > 0;
+  const hasOrgEvents = (related?.org_events?.length ?? 0) > 0;
+  const isSeriesParent = related?.series?.parent_id === id;
+
   return (
     <>
       {/* Hide the system nav bar — swipe-back gesture handles navigation */}
@@ -98,7 +95,7 @@ export default function EventDetailScreen() {
 
       {!loading && !error && event && (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Hero card — extends under status bar, padded by safe area */}
+          {/* Hero card — extends under status bar */}
           <View style={[styles.hero, { backgroundColor: bgColor, paddingTop: insets.top + 20 }]}>
             <Text style={[styles.heroTitle, { color: fgColor }]}>{event.title}</Text>
             <Text style={[styles.heroDate, { color: fgMuted }]}>
@@ -152,10 +149,7 @@ export default function EventDetailScreen() {
           {/* Details section */}
           <View style={styles.details}>
             {event.location ? (
-              <TouchableOpacity
-                style={styles.detailRow}
-                onPress={() => openMaps(event.location!)}
-              >
+              <View style={styles.detailRow}>
                 <Icon name="map" size={18} color={THEME.canary} />
                 <View style={styles.detailText}>
                   <Text style={styles.detailLabel}>{event.location.name}</Text>
@@ -163,8 +157,7 @@ export default function EventDetailScreen() {
                     <Text style={styles.detailSub}>{event.location.address}</Text>
                   ) : null}
                 </View>
-                <Icon name="chevron-right" size={16} color={THEME.textMuted} />
-              </TouchableOpacity>
+              </View>
             ) : null}
 
             {event.organization ? (
@@ -211,6 +204,60 @@ export default function EventDetailScreen() {
               ) : null}
             </View>
           </View>
+
+          {/* ── Related Events ─────────────────────────────────────── */}
+          {(hasSeries || hasOrgEvents) && (
+            <View style={styles.relatedSection}>
+
+              {hasSeries && related?.series && (
+                <>
+                  {/* Series header — tapping navigates to the parent event */}
+                  {isSeriesParent ? (
+                    <Text style={styles.relatedSectionTitle}>Upcoming in this series</Text>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.seriesHeader}
+                      onPress={() => router.push(`/event/${related.series!.parent_id}` as never)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.seriesHeaderText} numberOfLines={1}>
+                        Part of: {related.series.parent_title}
+                      </Text>
+                      <Icon name="chevron-right" size={16} color={THEME.canary} />
+                    </TouchableOpacity>
+                  )}
+                  {related.series.upcoming.map((item) => (
+                    <EventRow
+                      key={item.id}
+                      event={asEvent(item)}
+                      isStarred={starredIds.has(item.id)}
+                      onPress={() => router.push(`/event/${item.id}` as never)}
+                      onStar={() => toggleStar(item.id)}
+                    />
+                  ))}
+                </>
+              )}
+
+              {hasOrgEvents && (
+                <>
+                  <Text style={[styles.relatedSectionTitle, hasSeries && styles.relatedSectionTitleSpaced]}>
+                    {event.organization
+                      ? `More from ${event.organization.name}`
+                      : 'More events nearby'}
+                  </Text>
+                  {related!.org_events.map((item) => (
+                    <EventRow
+                      key={item.id}
+                      event={asEvent(item)}
+                      isStarred={starredIds.has(item.id)}
+                      onPress={() => router.push(`/event/${item.id}` as never)}
+                      onStar={() => toggleStar(item.id)}
+                    />
+                  ))}
+                </>
+              )}
+            </View>
+          )}
         </ScrollView>
       )}
     </>
@@ -238,7 +285,6 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    // paddingTop is dynamic (insets.top + 20)
   },
   heroTitle: {
     fontSize: 22,
@@ -292,7 +338,6 @@ const styles = StyleSheet.create({
   details: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    gap: 0,
   },
   detailRow: {
     flexDirection: 'row',
@@ -328,6 +373,7 @@ const styles = StyleSheet.create({
   actions: {
     gap: 10,
     paddingTop: 20,
+    paddingBottom: 4,
   },
   actionBtn: {
     paddingVertical: 14,
@@ -347,5 +393,41 @@ const styles = StyleSheet.create({
   },
   registerBtnText: {
     color: '#ffffff',
+  },
+
+  // ── Related events ─────────────────────────────────────────────────────────
+  relatedSection: {
+    marginTop: 24,
+  },
+  seriesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    gap: 8,
+  },
+  seriesHeaderText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: THEME.canary,
+    letterSpacing: 0.3,
+  },
+  relatedSectionTitle: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  relatedSectionTitleSpaced: {
+    marginTop: 16,
   },
 });
