@@ -4,11 +4,11 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   SafeAreaView,
   ListRenderItem,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { THEME } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
@@ -59,25 +59,15 @@ export default function AnnouncementsScreen() {
         <Text style={styles.headerTitle}>Announcements</Text>
       </View>
 
-      {loading && (
-        <View style={styles.centered}>
-          <ActivityIndicator color={THEME.canary} size="large" />
-        </View>
-      )}
+      {loading && <LoadingView />}
 
-      {!loading && error && (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
+      {!loading && error && <ErrorView message={error} />}
 
       {!loading && !error && announcements.length === 0 && (
-        <View style={styles.centered}>
-          <Text style={styles.emptyTitle}>No announcements</Text>
-          <Text style={styles.emptySubtitle}>
-            {`Check back soon for updates from ${APP_CONFIG.townName}`}
-          </Text>
-        </View>
+        <EmptyView
+          title="No announcements"
+          subtitle={`Check back soon for updates from ${APP_CONFIG.townName}`}
+        />
       )}
 
       {!loading && !error && announcements.length > 0 && (
@@ -109,28 +99,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: THEME.textPrimary,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  errorText: {
-    color: THEME.errorRed,
-    fontSize: 14,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: THEME.textPrimary,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: THEME.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: 40,
   },
   list: {
     flex: 1,

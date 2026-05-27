@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,15 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   SafeAreaView,
   ListRenderItem,
 } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
 import { CONSTANTS } from '../../../src/lib/config';
-import { fetchEvents } from '../../lib/api';
-import { filterUpcoming, groupEventsByDate, getTodayDateString } from '../../lib/dateUtils';
+import { groupEventsByDate, getTodayDateString } from '../../lib/dateUtils';
+import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
+import { useEventList } from '../../hooks/useEventList';
 import { EventRow } from '../../components/EventRow';
 import { DayHeader } from '../../components/DayHeader';
 import { CategoryPills } from '../../components/CategoryPills';
@@ -31,9 +31,7 @@ type ListItem =
 const CATEGORIES = CONSTANTS.tagCategories as unknown as string[];
 
 export default function EventsScreen() {
-  const [events, setEvents]                     = useState<MobileEvent[]>([]);
-  const [loading, setLoading]                   = useState(true);
-  const [error, setError]                       = useState<string | null>(null);
+  const { events, loading, error, reload } = useEventList();
   const [selectedCategory, setCategory]         = useState<string | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
   const [searchExpanded, setSearchExpanded]     = useState(false);
@@ -42,23 +40,6 @@ export default function EventsScreen() {
   const { starredIds, toggleStar } = useStars();
   const listRef = useRef<FlatList>(null);
   const router = useRouter();
-
-  const loadEvents = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetchEvents({})
-      .then((data) => {
-        setEvents(filterUpcoming(data));
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message ?? 'Failed to load events');
-        setLoading(false);
-      });
-  }, []);
-
-  // Reload events whenever this tab comes into focus
-  useFocusEffect(loadEvents);
 
   // Derive filtered list
   const filteredEvents = useMemo(() => {
@@ -172,20 +153,9 @@ export default function EventsScreen() {
       />
 
       {/* Events list */}
-      {loading && (
-        <View style={styles.centered}>
-          <ActivityIndicator color={THEME.canary} size="large" />
-        </View>
-      )}
+      {loading && <LoadingView />}
 
-      {!loading && error && (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={loadEvents} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {!loading && error && <ErrorView message={error} onRetry={reload} />}
 
       {!loading && !error && (
         <FlatList
@@ -197,11 +167,7 @@ export default function EventsScreen() {
           renderItem={renderItem}
           style={styles.list}
           onScrollToIndexFailed={() => {/* no-op — index may be out of range */}}
-          ListEmptyComponent={
-            <View style={styles.centered}>
-              <Text style={styles.emptyText}>No events found</Text>
-            </View>
-          }
+          ListEmptyComponent={<EmptyView title="No events found" />}
         />
       )}
 
@@ -255,30 +221,5 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  errorText: {
-    color: THEME.errorRed,
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: THEME.canary,
-  },
-  retryText: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  emptyText: {
-    color: THEME.textMuted,
-    fontSize: 15,
   },
 });

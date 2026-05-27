@@ -1,17 +1,17 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   SafeAreaView,
   ListRenderItem,
 } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { THEME } from '../../lib/theme';
-import { fetchEvents } from '../../lib/api';
-import { filterUpcoming, groupEventsByDate } from '../../lib/dateUtils';
+import { groupEventsByDate } from '../../lib/dateUtils';
+import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
+import { useEventList } from '../../hooks/useEventList';
 import { EventRow } from '../../components/EventRow';
 import { DayHeader } from '../../components/DayHeader';
 import { useStars } from '../../contexts/StarContext';
@@ -23,26 +23,8 @@ type ListItem =
 
 export default function StarredScreen() {
   const { starredIds, toggleStar } = useStars();
-  const [events, setEvents]   = useState<MobileEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const { events, loading, error } = useEventList();
   const router = useRouter();
-
-  const loadEvents = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetchEvents({})
-      .then((data) => {
-        setEvents(filterUpcoming(data));
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message ?? 'Failed to load events');
-        setLoading(false);
-      });
-  }, []);
-
-  useFocusEffect(loadEvents);
 
   const starredEvents = useMemo(
     () => events.filter((e) => starredIds.has(e.id)),
@@ -80,25 +62,15 @@ export default function StarredScreen() {
         <Text style={styles.headerTitle}>Starred</Text>
       </View>
 
-      {loading && (
-        <View style={styles.centered}>
-          <ActivityIndicator color={THEME.canary} size="large" />
-        </View>
-      )}
+      {loading && <LoadingView />}
 
-      {!loading && error && (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
+      {!loading && error && <ErrorView message={error} />}
 
       {!loading && !error && listItems.length === 0 && (
-        <View style={styles.centered}>
-          <Text style={styles.emptyTitle}>No starred events</Text>
-          <Text style={styles.emptySubtitle}>
-            Tap ★ on any event to save it here
-          </Text>
-        </View>
+        <EmptyView
+          title="No starred events"
+          subtitle="Tap ★ on any event to save it here"
+        />
       )}
 
       {!loading && !error && listItems.length > 0 && (
@@ -131,28 +103,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: THEME.textPrimary,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  errorText: {
-    color: THEME.errorRed,
-    fontSize: 14,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: THEME.textPrimary,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: THEME.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: 40,
   },
   list: {
     flex: 1,
