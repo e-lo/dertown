@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   Linking,
   Platform,
+  Share,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { THEME, getCategoryColor } from '../../lib/theme';
 import { fetchEventById } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { Icon } from '../../components/Icon';
+import { useStars } from '../../contexts/StarContext';
 import type { MobileEvent } from '../../lib/types';
 
 function openMaps(location: NonNullable<MobileEvent['location']>) {
@@ -37,7 +39,8 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<MobileEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isStarred, setIsStarred] = useState(false);
+  const { starredIds, toggleStar } = useStars();
+  const isStarred = starredIds.has(id ?? '');
 
   useEffect(() => {
     if (!id) return;
@@ -67,16 +70,31 @@ export default function EventDetailScreen() {
         options={{
           title: event?.title ?? 'Event Details',
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => setIsStarred((v) => !v)}
-              style={{ paddingRight: 4 }}
-            >
-              <Icon
-                name="star"
-                size={22}
-                color={isStarred ? THEME.starFilled : THEME.starUnstarred}
-              />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!event) return;
+                  Share.share({
+                    title: event.title,
+                    message: `${event.title} — https://dertown.com/events/${event.id}`,
+                    url: `https://dertown.com/events/${event.id}`,
+                  });
+                }}
+                style={{ padding: 6 }}
+              >
+                <Icon name="share" size={20} color={THEME.textPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => toggleStar(id ?? '')}
+                style={{ padding: 6, paddingRight: 0 }}
+              >
+                <Icon
+                  name="star"
+                  size={22}
+                  color={isStarred ? THEME.starFilled : THEME.starUnstarred}
+                />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />

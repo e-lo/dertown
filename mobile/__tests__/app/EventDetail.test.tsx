@@ -17,6 +17,13 @@ jest.mock('../../lib/api', () => ({
   fetchEventById: jest.fn(),
 }));
 
+jest.mock('../../contexts/StarContext', () => ({
+  useStars: () => ({
+    starredIds: new Set<string>(),
+    toggleStar: jest.fn(),
+  }),
+}));
+
 import { fetchEventById } from '../../lib/api';
 import EventDetailScreen from '../../app/event/[id]';
 import type { MobileEvent } from '../../lib/types';
