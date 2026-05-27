@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { THEME } from '../lib/theme';
+import { THEME } from '../../lib/theme';
 
-export default function NewsScreen() {
+export default function MapScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Announcements — coming in Plan 4</Text>
+      <Text style={styles.text}>Map coming in Plan 5</Text>
     </View>
   );
 }

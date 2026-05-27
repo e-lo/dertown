@@ -19,3 +19,13 @@ export async function fetchEvents(params: EventSearchParams): Promise<MobileEven
   const data = await response.json();
   return (data.events ?? []) as MobileEvent[];
 }
+
+export async function fetchEventById(id: string): Promise<MobileEvent> {
+  const url = `${BASE_URL}/api/events/${encodeURIComponent(id)}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch event: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.event as MobileEvent;
+}
