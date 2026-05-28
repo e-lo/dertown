@@ -8,18 +8,22 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.dertown.app",
       "infoPlist": {
-        "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar."
+        "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar.",
+        "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown."
       }
     },
     "android": {
       "package": "com.dertown.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       }
     },
@@ -29,7 +33,15 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
-      "@rnmapbox/maps"
+      "@rnmapbox/maps",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffe600",
+          "androidMode": "default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
