@@ -26,7 +26,7 @@ type ListItem =
   | { type: 'event'; event: MobileEvent };
 
 export default function EventsScreen() {
-  const { events, loading, error, reload } = useEventList();
+  const { events, loading, refreshing, error, refresh, reload } = useEventList();
   const [searchQuery, setSearchQuery]           = useState('');
   const [searchExpanded, setSearchExpanded]     = useState(false);
   const [selectedDate, setSelectedDate]         = useState(getTodayDateString());
@@ -143,6 +143,8 @@ export default function EventsScreen() {
           renderItem={renderItem}
           style={styles.list}
           onScrollToIndexFailed={() => {/* no-op — index may be out of range */}}
+          refreshing={refreshing}
+          onRefresh={refresh}
           ListEmptyComponent={<EmptyView title="No events found" />}
         />
       )}

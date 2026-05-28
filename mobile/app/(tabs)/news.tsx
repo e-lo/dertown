@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   ListRenderItem,
+  AppState,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { AppHeader } from '../../components/AppHeader';
 import { Icon } from '../../components/Icon';
 import { THEME } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
+import { getCache, setCache } from '../../lib/cache';
 import type { MobileAnnouncement } from '../../lib/types';
 
 const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
@@ -77,26 +78,64 @@ function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
   );
 }
 
+const CACHE_KEY = 'announcements:all';
+const ANNOUNCEMENTS_TTL_MS = 5 * 60 * 1000; // 5 min — more time-sensitive than events
+
 export default function AnnouncementsScreen() {
   const [announcements, setAnnouncements] = useState<MobileAnnouncement[]>([]);
   const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
   const [error, setError]                 = useState<string | null>(null);
+  const fetchingRef                       = useRef(false);
 
-  const loadAnnouncements = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetchAnnouncements()
-      .then((data) => {
-        setAnnouncements(data);
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message ?? 'Failed to load announcements');
-        setLoading(false);
+  const doFetch = useCallback(async (opts: { pullToRefresh?: boolean } = {}) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    if (opts.pullToRefresh) setRefreshing(true);
+    try {
+      const data = await fetchAnnouncements();
+      setAnnouncements(data);
+      setError(null);
+      await setCache(CACHE_KEY, data);
+    } catch (err: unknown) {
+      setAnnouncements((prev) => {
+        if (prev.length === 0) setError((err as Error).message ?? 'Failed to load announcements');
+        return prev;
       });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      fetchingRef.current = false;
+    }
   }, []);
 
-  useFocusEffect(loadAnnouncements);
+  // Mount: show cache instantly, background-refresh if stale
+  useEffect(() => {
+    async function init() {
+      const cached = await getCache<MobileAnnouncement[]>(CACHE_KEY, ANNOUNCEMENTS_TTL_MS);
+      if (cached) {
+        setAnnouncements(cached.data);
+        setLoading(false);
+        if (cached.stale) doFetch();
+      } else {
+        doFetch();
+      }
+    }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Foreground: silently refresh if stale
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        getCache<MobileAnnouncement[]>(CACHE_KEY, ANNOUNCEMENTS_TTL_MS).then((cached) => {
+          if (!cached || cached.stale) doFetch();
+        });
+      }
+    });
+    return () => sub.remove();
+  }, [doFetch]);
 
   const renderItem: ListRenderItem<MobileAnnouncement> = ({ item }) => (
     <AnnouncementCard item={item} />
@@ -123,6 +162,8 @@ export default function AnnouncementsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           style={styles.list}
+          refreshing={refreshing}
+          onRefresh={() => doFetch({ pullToRefresh: true })}
         />
       )}
     </SafeAreaView>
