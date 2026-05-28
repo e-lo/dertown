@@ -3,6 +3,7 @@
     "name": "Dertown",
     "slug": "dertown",
     "version": "1.0.0",
+    "privacyPolicyUrl": "https://dertown.org/privacy",
     "scheme": "dertown",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
