@@ -3,7 +3,6 @@
     "name": "Dertown",
     "slug": "dertown",
     "version": "1.0.0",
-    "privacyPolicyUrl": "https://dertown.org/privacy",
     "scheme": "dertown",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -42,10 +41,18 @@
           "color": "#ffe600",
           "androidMode": "default"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "277e0394-6b08-4df7-8740-cf30a4ee4ec6"
+      }
+    },
+    "owner": "dertown"
   }
 }
