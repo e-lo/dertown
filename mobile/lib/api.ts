@@ -56,6 +56,35 @@ export async function fetchRelatedEvents(
   return data as MobileRelatedEvents;
 }
 
+export interface MapVenueEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  tag: string;
+}
+
+export interface MapVenue {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  eventCount: number;
+  events: MapVenueEvent[];
+}
+
+/** Fetch events grouped by venue for the map tab (next N days). */
+export async function fetchMapVenues(days = 3): Promise<MapVenue[]> {
+  const url = new URL(`${BASE_URL}/api/events/map`);
+  url.searchParams.set('from', '0');
+  url.searchParams.set('to', String(days));
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Failed to fetch map data: ${response.status}`);
+  const data = await response.json();
+  return (data.groups ?? []) as MapVenue[];
+}
+
 export async function fetchOrganization(id: string): Promise<{
   organization: MobileOrganization;
   events: MobileEvent[];
