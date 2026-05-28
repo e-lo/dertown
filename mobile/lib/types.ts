@@ -58,6 +58,23 @@ export interface MobileRelatedEvents {
   related: MobileRelatedEventItem[];
 }
 
+/** Shape of an organization returned by GET /api/mobile/organizations/[id] */
+export interface MobileOrganization {
+  id: string;
+  name: string;
+  description: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  location: {
+    id: string;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+}
+
 /** Re-exported so callers can import from one place. */
 export type { ICSEventData } from './icalUtils';
 

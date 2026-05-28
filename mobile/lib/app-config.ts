@@ -11,7 +11,7 @@ export const APP_CONFIG = {
   townName: 'Leavenworth',
 
   /** Base URL of the web app — used for share links. No trailing slash. */
-  webBaseUrl: 'https://dertown.com',
+  webBaseUrl: 'https://dertown.org',
 
   /** Prefix for AsyncStorage keys. Change if deploying multiple apps on the same device. */
   storageKeyPrefix: 'dertown',

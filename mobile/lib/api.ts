@@ -1,4 +1,4 @@
-import type { MobileEvent, MobileAnnouncement, MobileRelatedEvents, EventSearchParams } from './types';
+import type { MobileEvent, MobileAnnouncement, MobileRelatedEvents, MobileOrganization, EventSearchParams } from './types';
 
 // Set EXPO_PUBLIC_API_BASE_URL in .env:
 //   Dev:  http://localhost:4321
@@ -54,6 +54,35 @@ export async function fetchRelatedEvents(
   }
   const data = await response.json();
   return data as MobileRelatedEvents;
+}
+
+export async function fetchOrganization(id: string): Promise<{
+  organization: MobileOrganization;
+  events: MobileEvent[];
+}> {
+  const url = `${BASE_URL}/api/mobile/organizations/${encodeURIComponent(id)}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch organization: ${response.status}`);
+  }
+  const data = await response.json();
+  return data as { organization: MobileOrganization; events: MobileEvent[] };
+}
+
+export async function fetchFollowedEvents(
+  orgIds: string[],
+  seriesIds: string[]
+): Promise<MobileEvent[]> {
+  if (orgIds.length === 0 && seriesIds.length === 0) return [];
+  const url = new URL(`${BASE_URL}/api/mobile/followed/events`);
+  if (orgIds.length > 0)    url.searchParams.set('orgIds',    orgIds.join(','));
+  if (seriesIds.length > 0) url.searchParams.set('seriesIds', seriesIds.join(','));
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch followed events: ${response.status}`);
+  }
+  const data = await response.json();
+  return (data.events ?? []) as MobileEvent[];
 }
 
 export async function registerPushToken(

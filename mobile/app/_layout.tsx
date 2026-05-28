@@ -21,7 +21,10 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
+        <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="organization/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="webview" options={{ headerShown: false }} />
+        <Stack.Screen name="calendar-subscribe" options={{ headerShown: false }} />
       </Stack>
     </StarProvider>
   );

@@ -1,4 +1,15 @@
-import React, { useState } from 'react';
+/**
+ * Calendar subscription screen.
+ *
+ * Works for any live iCal feed — "all events", a specific organization,
+ * a series, or a location. Route params control which feed is used:
+ *
+ *   /calendar-subscribe                   → all Der Town events
+ *   /calendar-subscribe?calendarUrl=...   → specific feed URL (https://)
+ *   /calendar-subscribe?calendarName=...  → custom title shown on screen
+ *   /calendar-subscribe?calendarDesc=...  → custom subtitle shown on screen
+ */
+import React from 'react';
 import {
   View,
   Text,
@@ -9,35 +20,50 @@ import {
   Linking,
   Share,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../lib/theme';
 import { Icon } from '../components/Icon';
 import { APP_CONFIG } from '../lib/app-config';
 
-const ICAL_HTTPS_URL = `${APP_CONFIG.webBaseUrl}/api/calendar/ical`;
-const WEBCAL_URL     = ICAL_HTTPS_URL.replace(/^https?:\/\//, 'webcal://');
-const GOOGLE_CAL_URL = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(ICAL_HTTPS_URL)}`;
+const ALL_EVENTS_URL = `${APP_CONFIG.webBaseUrl}/api/calendar/ical`;
 
 export default function CalendarSubscribeScreen() {
-  const router   = useRouter();
-  const insets   = useSafeAreaInsets();
-  const [copied, setCopied] = useState(false);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const {
+    calendarUrl: paramUrl,
+    calendarName: paramName,
+    calendarDesc: paramDesc,
+  } = useLocalSearchParams<{
+    calendarUrl?: string;
+    calendarName?: string;
+    calendarDesc?: string;
+  }>();
+
+  // Use provided URL or fall back to the all-events feed
+  const httpsUrl     = paramUrl  ?? ALL_EVENTS_URL;
+  const calendarName = paramName ?? 'Der Town Events';
+  const calendarDesc = paramDesc ??
+    `Subscribe once and every Der Town event lands in your Calendar app automatically — including new events as they're published.`;
+
+  const webcalUrl    = httpsUrl.replace(/^https?:\/\//, 'webcal://');
+  const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(httpsUrl)}`;
 
   const handleSubscribe = () => {
     if (Platform.OS === 'android') {
-      Linking.openURL(GOOGLE_CAL_URL).catch(console.error);
+      Linking.openURL(googleCalUrl).catch(console.error);
     } else {
-      // iOS: webcal:// triggers the native "Subscribe to Calendar?" sheet
-      Linking.openURL(WEBCAL_URL).catch(console.error);
+      Linking.openURL(webcalUrl).catch(console.error);
     }
   };
 
   const handleShareLink = () => {
     Share.share({
-      title: 'Der Town Events Calendar',
-      message: `Subscribe to Der Town events: ${ICAL_HTTPS_URL}`,
-      url: ICAL_HTTPS_URL,
+      title: calendarName,
+      message: `Subscribe to ${calendarName}: ${httpsUrl}`,
+      url: httpsUrl,
     });
   };
 
@@ -47,7 +73,10 @@ export default function CalendarSubscribeScreen() {
 
       <ScrollView
         style={[styles.scroll, { backgroundColor: THEME.feedBackground }]}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 },
+        ]}
       >
         {/* Back button */}
         <TouchableOpacity
@@ -63,13 +92,10 @@ export default function CalendarSubscribeScreen() {
           <View style={styles.iconWrap}>
             <Icon name="calendar" size={32} color={THEME.canary} />
           </View>
-          <Text style={styles.title}>Calendar Feed</Text>
+          <Text style={styles.title}>{calendarName}</Text>
         </View>
 
-        <Text style={styles.subtitle}>
-          Subscribe once and every Der Town event lands in your Calendar app
-          automatically — including new events as they're published.
-        </Text>
+        <Text style={styles.subtitle}>{calendarDesc}</Text>
 
         {/* Primary CTA */}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleSubscribe} activeOpacity={0.8}>
@@ -79,7 +105,7 @@ export default function CalendarSubscribeScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Secondary: share / copy the raw https URL */}
+        {/* Secondary: share the raw https URL */}
         <TouchableOpacity style={styles.secondaryBtn} onPress={handleShareLink} activeOpacity={0.75}>
           <Icon name="share" size={16} color={THEME.textPrimary} />
           <Text style={styles.secondaryBtnText}>Share Link</Text>
@@ -105,7 +131,8 @@ export default function CalendarSubscribeScreen() {
           <View style={styles.howRow}>
             <Text style={styles.howNum}>3</Text>
             <Text style={styles.howText}>
-              That's it. New events appear in your calendar automatically.
+              That's it. New events appear in your calendar automatically.{' '}
+              <Text style={styles.howNote}>It may take a few hours for your calendar app to sync initially.</Text>
             </Text>
           </View>
         </View>
@@ -113,7 +140,7 @@ export default function CalendarSubscribeScreen() {
         {/* Manual URL for power users */}
         <View style={styles.urlCard}>
           <Text style={styles.urlLabel}>Feed URL (for manual setup)</Text>
-          <Text style={styles.urlText} selectable>{ICAL_HTTPS_URL}</Text>
+          <Text style={styles.urlText} selectable>{httpsUrl}</Text>
           <Text style={styles.urlNote}>
             Works with Apple Calendar, Google Calendar, Outlook, and any app
             that supports calendar subscriptions.
@@ -152,10 +179,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
     color: THEME.textPrimary,
     flex: 1,
+    lineHeight: 28,
   },
   subtitle: {
     fontSize: 15,
@@ -230,6 +258,10 @@ const styles = StyleSheet.create({
   howBold: {
     color: THEME.textPrimary,
     fontWeight: '600',
+  },
+  howNote: {
+    color: THEME.textMuted,
+    fontStyle: 'italic',
   },
   urlCard: {
     backgroundColor: THEME.cardBackground,

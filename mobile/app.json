@@ -12,7 +12,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.dertown.app"
+      "bundleIdentifier": "com.dertown.app",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar."
+      }
     },
     "android": {
       "package": "com.dertown.app",

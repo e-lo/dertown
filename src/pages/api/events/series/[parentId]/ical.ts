@@ -105,10 +105,11 @@ export const GET: APIRoute = async ({ params }) => {
     'PRODID:-//Der Town//Event Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
+    `X-WR-CALNAME:${parent.title ?? 'Event Series'}`,
     VTIMEZONE,
     ...vevents,
     'END:VCALENDAR',
-  ].join('\r\n');
+  ].join('\r\n') + '\r\n';
 
   const safeName = (parent.title ?? 'series').replace(/[^a-z0-9]/gi, '_');
 

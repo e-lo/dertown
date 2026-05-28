@@ -7,19 +7,25 @@ import {
   StyleSheet,
   ActivityIndicator,
   Share,
+  Linking,
+  Platform,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../../lib/theme';
 import { fetchEventById, fetchRelatedEvents } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
+import { openMaps } from '../../lib/mapUtils';
 import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
 import { APP_CONFIG } from '../../lib/app-config';
-import { shareEventsAsICS } from '../../lib/icalUtils';
-import type { MobileEvent, MobileRelatedEvents, MobileRelatedEventItem, ICSEventData } from '../../lib/types';
+import { addEventsToCalendar } from '../../lib/icalUtils';
+import Markdown from 'react-native-markdown-display';
+import type { MobileEvent, MobileRelatedEvents, MobileRelatedEventItem } from '../../lib/types';
+
+const SERIES_PREVIEW_LIMIT = 5;
+const RELATED_PREVIEW_LIMIT = 3;
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +34,11 @@ export default function EventDetailScreen() {
   const [related, setRelated] = useState<MobileRelatedEvents | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { starredIds, toggleStar } = useStars();
+  const [calendarEventId, setCalendarEventId] = useState<string | null>(null);
+  const {
+    starredIds, toggleStar,
+    starredSeriesIds, toggleStarSeries,
+  } = useStars();
   const insets = useSafeAreaInsets();
   const isStarred = starredIds.has(id ?? '');
 
@@ -38,12 +48,12 @@ export default function EventDetailScreen() {
     setRelated(null);
     setLoading(true);
     setError(null);
+    setCalendarEventId(null);
     fetchEventById(id)
       .then((data) => {
         setEvent(data);
         setLoading(false);
-        // Fetch related events in the background after main event loads
-        fetchRelatedEvents(id).then(setRelated).catch(() => { /* non-fatal */ });
+        fetchRelatedEvents(id, { seriesLimit: SERIES_PREVIEW_LIMIT, relatedLimit: RELATED_PREVIEW_LIMIT }).then(setRelated).catch(() => { /* non-fatal */ });
       })
       .catch((err: Error) => {
         setError(err.message ?? 'Failed to load event');
@@ -67,7 +77,6 @@ export default function EventDetailScreen() {
     ? formatTimeRange(event.start_time, event.end_time)
     : '';
 
-  // Cast a related event item to the shape EventRow expects
   function asEvent(item: MobileRelatedEventItem): MobileEvent {
     return item as unknown as MobileEvent;
   }
@@ -75,10 +84,12 @@ export default function EventDetailScreen() {
   const hasSeries    = (related?.series?.events?.length ?? 0) > 0;
   const hasRelated   = (related?.related?.length ?? 0) > 0;
   const isSeriesParent = related?.series?.is_parent ?? false;
+  // True for any child event, even when all sibling events have already passed
+  // (in which case hasSeries is false but we still want to show the series callout).
+  const isChildEvent = related?.series != null && !isSeriesParent;
 
   return (
     <>
-      {/* Hide the system nav bar — swipe-back gesture handles navigation */}
       <Stack.Screen options={{ headerShown: false, gestureEnabled: true }} />
 
       {loading && (
@@ -101,9 +112,8 @@ export default function EventDetailScreen() {
 
       {!loading && !error && event && (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Hero card — extends under status bar */}
+          {/* Hero card */}
           <View style={[styles.hero, { backgroundColor: bgColor, paddingTop: insets.top + 8 }]}>
-            {/* Back button */}
             <TouchableOpacity
               style={styles.backBtn}
               onPress={() => router.back()}
@@ -118,7 +128,6 @@ export default function EventDetailScreen() {
             </Text>
             {timeStr ? <Text style={[styles.heroTime, { color: fgMuted }]}>{timeStr}</Text> : null}
 
-            {/* Pills row + share/star pinned to the right */}
             <View style={styles.heroBottom}>
               <View style={styles.pills}>
                 {event.primary_tag ? (
@@ -163,8 +172,13 @@ export default function EventDetailScreen() {
 
           {/* Details section */}
           <View style={styles.details}>
+
             {event.location ? (
-              <View style={styles.detailRow}>
+              <TouchableOpacity
+                style={styles.detailRow}
+                onPress={() => openMaps(event.location!)}
+                activeOpacity={0.7}
+              >
                 <Icon name="map" size={18} color={THEME.canary} />
                 <View style={styles.detailText}>
                   <Text style={styles.detailLabel}>{event.location.name}</Text>
@@ -172,16 +186,22 @@ export default function EventDetailScreen() {
                     <Text style={styles.detailSub}>{event.location.address}</Text>
                   ) : null}
                 </View>
-              </View>
+                <Icon name="chevron-right" size={16} color={THEME.textMuted} />
+              </TouchableOpacity>
             ) : null}
 
-            {event.organization ? (
-              <View style={styles.detailRow}>
+            {event.organization && event.organization_id ? (
+              <TouchableOpacity
+                style={styles.detailRow}
+                onPress={() => router.push(`/organization/${event.organization_id}` as never)}
+                activeOpacity={0.7}
+              >
                 <Icon name="home" size={18} color={THEME.canary} />
                 <Text style={[styles.detailLabel, { flex: 1 }]}>
                   {event.organization.name}
                 </Text>
-              </View>
+                <Icon name="chevron-right" size={16} color={THEME.textMuted} />
+              </TouchableOpacity>
             ) : null}
 
             {event.cost ? (
@@ -193,37 +213,57 @@ export default function EventDetailScreen() {
 
             {event.description ? (
               <View style={styles.descriptionBlock}>
-                <Text style={styles.description}>{event.description}</Text>
+                <Markdown
+                  style={markdownStyles}
+                  onLinkPress={(url) => {
+                    router.push({
+                      pathname: '/webview',
+                      params: { url, title: event.title },
+                    } as never);
+                    return false; // prevent default handling
+                  }}
+                >
+                  {event.description}
+                </Markdown>
               </View>
             ) : null}
 
             <View style={styles.actions}>
-              {/* Add to Calendar — generates .ics locally, no network needed */}
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => shareEventsAsICS([event], event.title).catch(console.error)}
-              >
-                <View style={styles.actionBtnInner}>
-                  <Icon name="calendar" size={16} color={THEME.textPrimary} />
-                  <Text style={styles.actionBtnText}>Add to Calendar</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Add entire series when this event belongs to one */}
-              {hasSeries && related?.series && (
+              {calendarEventId ? (
                 <TouchableOpacity
                   style={styles.actionBtn}
                   onPress={() => {
-                    const seriesEvents: ICSEventData[] = [
-                      event,
-                      ...related.series!.events,
-                    ];
-                    shareEventsAsICS(seriesEvents, related.series!.parent_title).catch(console.error);
+                    const startUnixSec = Math.floor(
+                      new Date(`${event.start_date}T${event.start_time ?? '00:00:00'}`).getTime() / 1000
+                    );
+                    // calshow: uses Apple's Core Data epoch (seconds since Jan 1 2001),
+                    // not Unix epoch (seconds since Jan 1 1970). Subtract the 31-year offset.
+                    const CF_EPOCH_OFFSET = 978307200;
+                    const url = Platform.OS === 'ios'
+                      ? `calshow:${startUnixSec - CF_EPOCH_OFFSET}`
+                      : `content://com.android.calendar/events/${calendarEventId}`;
+                    Linking.openURL(url).catch(console.error);
                   }}
                 >
                   <View style={styles.actionBtnInner}>
+                    <Icon name="calendar" size={16} color={THEME.canary} />
+                    <Text style={[styles.actionBtnText, { color: THEME.canary }]}>
+                      View in Calendar
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() =>
+                    addEventsToCalendar([event], event.title)
+                      .then((eid) => { if (eid) setCalendarEventId(eid); })
+                      .catch(console.error)
+                  }
+                >
+                  <View style={styles.actionBtnInner}>
                     <Icon name="calendar" size={16} color={THEME.textPrimary} />
-                    <Text style={styles.actionBtnText}>Add Series to Calendar</Text>
+                    <Text style={styles.actionBtnText}>Add to Calendar</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -231,7 +271,12 @@ export default function EventDetailScreen() {
               {event.website ? (
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => WebBrowser.openBrowserAsync(event.website!)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/webview',
+                      params: { url: event.website!, title: event.title },
+                    } as never)
+                  }
                 >
                   <Text style={styles.actionBtnText}>Visit Website</Text>
                 </TouchableOpacity>
@@ -240,7 +285,12 @@ export default function EventDetailScreen() {
               {event.registration && event.website ? (
                 <TouchableOpacity
                   style={[styles.actionBtn, styles.registerBtn]}
-                  onPress={() => WebBrowser.openBrowserAsync(event.website!)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/webview',
+                      params: { url: event.website!, title: `Register — ${event.title}` },
+                    } as never)
+                  }
                 >
                   <Text style={[styles.actionBtnText, styles.registerBtnText]}>
                     Register
@@ -250,27 +300,134 @@ export default function EventDetailScreen() {
             </View>
           </View>
 
-          {/* ── Related Events ─────────────────────────────────────── */}
-          {(hasSeries || hasRelated) && (
+          {/* Related Events */}
+          {(hasSeries || hasRelated || isChildEvent) && (
             <View style={styles.relatedSection}>
 
-              {hasSeries && related?.series && (
+              {(hasSeries || isChildEvent) && related?.series && (
                 <>
-                  {/* Series header — tapping navigates to the parent event */}
                   {isSeriesParent ? (
-                    <Text style={styles.relatedSectionTitle}>Upcoming in this series</Text>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.seriesHeader}
-                      onPress={() => router.push(`/event/${related.series!.parent_id}` as never)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.seriesHeaderText} numberOfLines={1}>
-                        Part of: {related.series.parent_title}
+                    <View style={styles.seriesParentHeader}>
+                      <Text style={[styles.relatedSectionTitle, styles.seriesParentTitle]}>
+                        Upcoming in this series
                       </Text>
-                      <Icon name="chevron-right" size={16} color={THEME.canary} />
-                    </TouchableOpacity>
+                      {/* Follow/unfollow the series */}
+                      <TouchableOpacity
+                        style={styles.seriesActionBtn}
+                        onPress={() =>
+                          toggleStarSeries({ id: id ?? '', name: event.title })
+                        }
+                      >
+                        <Icon
+                          name="star"
+                          size={13}
+                          color={
+                            starredSeriesIds.has(id ?? '')
+                              ? THEME.canary
+                              : THEME.textMuted
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.seriesActionBtnText,
+                            starredSeriesIds.has(id ?? '') && styles.seriesActionBtnActive,
+                          ]}
+                        >
+                          {starredSeriesIds.has(id ?? '') ? 'Following' : 'Follow'}
+                        </Text>
+                      </TouchableOpacity>
+                      {/* Subscribe to calendar feed */}
+                      <TouchableOpacity
+                        style={styles.seriesActionBtn}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/calendar-subscribe',
+                            params: {
+                              calendarUrl: `${APP_CONFIG.webBaseUrl}/api/events/series/${id}/ical`,
+                              calendarName: event.title,
+                              calendarDesc: `Subscribe to get all events in the "${event.title}" series automatically synced to your calendar.`,
+                            },
+                          } as never)
+                        }
+                      >
+                        <Icon name="calendar" size={13} color={THEME.textMuted} />
+                        <Text style={styles.seriesActionBtnText}>Subscribe</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    /* Callout card: prominently shows series membership with follow + two calendar actions */
+                    <View style={styles.seriesCallout}>
+                      {/* Header row: "PART OF SERIES" label + follow button */}
+                      <View style={styles.seriesCalloutHeader}>
+                        <Text style={styles.seriesCalloutLabel}>PART OF SERIES</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.seriesCalloutFollowBtn,
+                            starredSeriesIds.has(related.series.parent_id) && styles.seriesCalloutFollowBtnActive,
+                          ]}
+                          onPress={() =>
+                            toggleStarSeries({
+                              id: related.series!.parent_id,
+                              name: related.series!.parent_title,
+                            })
+                          }
+                        >
+                          <Icon
+                            name="star"
+                            size={12}
+                            color={starredSeriesIds.has(related.series.parent_id) ? THEME.canary : THEME.textMuted}
+                          />
+                          <Text
+                            style={[
+                              styles.seriesCalloutFollowText,
+                              starredSeriesIds.has(related.series.parent_id) && styles.seriesCalloutFollowTextActive,
+                            ]}
+                          >
+                            {starredSeriesIds.has(related.series.parent_id) ? 'Following' : 'Follow'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Series name — taps through to the parent event page */}
+                      <TouchableOpacity
+                        onPress={() => router.push(`/event/${related.series!.parent_id}` as never)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.seriesCalloutTitle} numberOfLines={2}>
+                          {related.series.parent_title}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Subscribe action */}
+                      <View style={styles.seriesCalloutActions}>
+                        <TouchableOpacity
+                          style={styles.seriesCalloutActionBtn}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/calendar-subscribe',
+                              params: {
+                                calendarUrl: `${APP_CONFIG.webBaseUrl}/api/events/series/${related.series!.parent_id}/ical`,
+                                calendarName: related.series!.parent_title,
+                                calendarDesc: `Subscribe to get all events in the "${related.series!.parent_title}" series automatically synced to your calendar.`,
+                              },
+                            } as never)
+                          }
+                        >
+                          <Icon name="bell" size={15} color={THEME.textPrimary} />
+                          <Text style={styles.seriesCalloutActionTitle}>Subscribe</Text>
+                          <Text style={styles.seriesCalloutActionSub}>Auto-syncs new events</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   )}
+
+                  {/* Section title for upcoming series instances */}
+                  {!isSeriesParent && related.series.events.length > 0 && (
+                    <Text style={styles.seriesCalloutEventsTitle}>
+                      UPCOMING IN THIS SERIES ({related.series.events.length})
+                    </Text>
+                  )}
+
                   {related.series.events.map((item) => (
                     <EventRow
                       key={item.id}
@@ -308,6 +465,53 @@ export default function EventDetailScreen() {
     </>
   );
 }
+
+// Markdown renderer styles — matches the app's dark theme
+const markdownStyles = {
+  body: {
+    color: THEME.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  strong: {
+    color: THEME.textPrimary,
+    fontWeight: '700' as const,
+  },
+  em: {
+    color: THEME.textSecondary,
+    fontStyle: 'italic' as const,
+  },
+  link: {
+    color: THEME.canary,
+    textDecorationLine: 'underline' as const,
+  },
+  bullet_list: { marginVertical: 4 },
+  ordered_list: { marginVertical: 4 },
+  list_item: { marginVertical: 2 },
+  heading1: { color: THEME.textPrimary, fontSize: 18, fontWeight: '700' as const, marginVertical: 6 },
+  heading2: { color: THEME.textPrimary, fontSize: 16, fontWeight: '700' as const, marginVertical: 4 },
+  heading3: { color: THEME.textPrimary, fontSize: 15, fontWeight: '600' as const, marginVertical: 4 },
+  code_inline: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: THEME.textPrimary,
+    fontSize: 13,
+    borderRadius: 3,
+    paddingHorizontal: 4,
+  },
+  fence: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 6,
+    padding: 10,
+  },
+  blockquote: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderLeftWidth: 3,
+    borderLeftColor: THEME.canary,
+    paddingLeft: 10,
+    marginVertical: 6,
+  },
+  hr: { backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 10 },
+};
 
 const styles = StyleSheet.create({
   centered: {
@@ -396,6 +600,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
+  // ── Detail rows ─────────────────────────────────────────────────────────────
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -458,25 +663,93 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 
-  // ── Related events ─────────────────────────────────────────────────────────
+  // ── Related events ──────────────────────────────────────────────────────────
   relatedSection: {
     marginTop: 24,
   },
-  seriesHeader: {
+  // ── Series callout card (child event only) ──────────────────────────────────
+  seriesCallout: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    marginTop: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  seriesCalloutHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
-  seriesHeaderText: {
-    flex: 1,
-    fontSize: 13,
+  seriesCalloutLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.textMuted,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  seriesCalloutFollowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  seriesCalloutFollowBtnActive: {
+    backgroundColor: 'rgba(250,204,21,0.12)',
+  },
+  seriesCalloutFollowText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.textMuted,
+  },
+  seriesCalloutFollowTextActive: {
+    color: THEME.canary,
+  },
+  seriesCalloutTitle: {
+    fontSize: 17,
     fontWeight: '700',
     color: THEME.canary,
-    letterSpacing: 0.3,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    lineHeight: 22,
+  },
+  seriesCalloutActions: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  seriesCalloutActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 4,
+  },
+  seriesCalloutActionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.textPrimary,
+  },
+  seriesCalloutActionSub: {
+    fontSize: 10,
+    color: THEME.textMuted,
+  },
+  seriesCalloutEventsTitle: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   relatedSectionTitle: {
     paddingHorizontal: 16,
@@ -492,5 +765,35 @@ const styles = StyleSheet.create({
   },
   relatedSectionTitleSpaced: {
     marginTop: 16,
+  },
+  // Series parent header: title + subscribe button side by side
+  seriesParentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingRight: 8,
+    gap: 6,
+  },
+  seriesParentTitle: {
+    borderTopWidth: 0, // border is on the parent View
+    flex: 1,
+  },
+  seriesActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  seriesActionBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.textMuted,
+  },
+  seriesActionBtnActive: {
+    color: THEME.canary,
   },
 });
