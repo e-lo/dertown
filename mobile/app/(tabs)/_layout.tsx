@@ -1,10 +1,12 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../../lib/theme';
 import { Icon } from '../../components/Icon';
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -12,18 +14,14 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: THEME.tabBarBackground,
           borderTopColor: 'rgba(255,255,255,0.08)',
-          // Android centers content with explicit height + padding
-          ...(Platform.OS === 'android' ? { height: 60, paddingBottom: 8, paddingTop: 4 } : {}),
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom,
         },
         tabBarActiveTintColor:   THEME.tabBarActive,
         tabBarInactiveTintColor: THEME.tabBarInactive,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
-        },
-        tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
         },
       }}
     >

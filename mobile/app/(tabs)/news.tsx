@@ -142,7 +142,7 @@ export default function AnnouncementsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
 
       {loading && <LoadingView />}

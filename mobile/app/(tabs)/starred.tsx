@@ -178,7 +178,7 @@ export default function StarredScreen() {
   const goToSubscribe = () => router.push('/calendar-subscribe' as never);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
 
       {loading && <LoadingView />}
