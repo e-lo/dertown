@@ -79,6 +79,7 @@ export function EventRow({ event, isStarred, onPress, onStar }: EventRowProps) {
           name="star"
           size={22}
           color={starColor}
+          filled={isStarred}
         />
       </TouchableOpacity>
     </TouchableOpacity>

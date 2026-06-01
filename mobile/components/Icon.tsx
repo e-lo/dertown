@@ -48,9 +48,11 @@ interface IconProps {
   name: IconName;
   size?: number;
   color?: string;
+  /** Render a filled variant (iOS only — Android MaterialIcons are already filled). */
+  filled?: boolean;
 }
 
-export function Icon({ name, size = 24, color = '#ffffff' }: IconProps) {
+export function Icon({ name, size = 24, color = '#ffffff', filled = false }: IconProps) {
   const mapping = ICON_MAP[name];
 
   if (Platform.OS === 'android') {
@@ -64,5 +66,12 @@ export function Icon({ name, size = 24, color = '#ffffff' }: IconProps) {
   }
 
   const LucideIcon = mapping.Lucide;
-  return <LucideIcon size={size} color={color} strokeWidth={1.5} />;
+  return (
+    <LucideIcon
+      size={size}
+      color={color}
+      strokeWidth={filled ? 0 : 1.5}
+      fill={filled ? color : 'transparent'}
+    />
+  );
 }

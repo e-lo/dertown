@@ -130,7 +130,9 @@ export default function MapScreen() {
   const [loading, setLoading]   = useState(true);
   const [selectedVenue, setSelectedVenue] = useState<MapVenue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MapVenueEvent | null>(null);
-  const fetchingRef = useRef(false);
+  const fetchingRef    = useRef(false);
+  const cameraRef      = useRef<MapboxGL.Camera>(null);
+  const shapeSourceRef = useRef<MapboxGL.ShapeSource>(null);
 
   const doFetch = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -180,8 +182,31 @@ export default function MapScreen() {
     setSelectedEvent(null);
   }, []);
 
-  const handlePinPress = useCallback(
-    (feature: GeoJSON.Feature) => {
+  const handleFeaturePress = useCallback(
+    async (e: { features: GeoJSON.Feature[] }) => {
+      if (e.features.length === 0) return;
+      const feature = e.features[0];
+
+      // Cluster tap — zoom in to expand
+      if (feature.properties?.cluster) {
+        try {
+          const zoom = await shapeSourceRef.current?.getClusterExpansionZoom(feature as GeoJSON.Feature<GeoJSON.Point>);
+          cameraRef.current?.setCamera({
+            centerCoordinate: (feature.geometry as GeoJSON.Point).coordinates as [number, number],
+            zoomLevel: (zoom ?? DEFAULT_ZOOM) + 0.5,
+            animationDuration: 400,
+          });
+        } catch {
+          // Fallback: just fly to cluster center
+          cameraRef.current?.flyTo(
+            (feature.geometry as GeoJSON.Point).coordinates as [number, number],
+            400
+          );
+        }
+        return;
+      }
+
+      // Individual venue pin
       const venueId = feature.properties?.id as string | undefined;
       if (!venueId) return;
       const venue = venues.find((v) => v.id === venueId);
@@ -189,11 +214,9 @@ export default function MapScreen() {
 
       dismiss();
       if (venue.eventCount === 1) {
-        // Single event — show event popup
         setSelectedEvent(venue.events[0]);
         setSelectedVenue(venue);
       } else {
-        // Multiple events — show venue sheet
         setSelectedVenue(venue);
       }
     },
@@ -222,21 +245,49 @@ export default function MapScreen() {
           attributionEnabled={false}
         >
           <MapboxGL.Camera
+            ref={cameraRef}
             defaultSettings={{ centerCoordinate: TOWN_CENTER, zoomLevel: DEFAULT_ZOOM }}
           />
 
           {venues.length > 0 && (
             <MapboxGL.ShapeSource
+              ref={shapeSourceRef}
               id="venues"
               shape={venuesToGeoJSON(venues)}
-              onPress={(e) => {
-                if (e.features.length > 0) handlePinPress(e.features[0]);
-              }}
+              cluster
+              clusterRadius={50}
+              clusterMaxZoom={13}
+              onPress={handleFeaturePress}
             >
+              {/* ── Cluster pins (zoomed out) ─────────────────────────────── */}
+              <MapboxGL.CircleLayer
+                id="cluster-circle"
+                filter={['has', 'point_count']}
+                style={{
+                  circleRadius: 22,
+                  circleColor: THEME.canary,
+                  circleOpacity: 0.92,
+                  circleStrokeWidth: 2,
+                  circleStrokeColor: 'rgba(255,255,255,0.4)',
+                }}
+              />
+              <MapboxGL.SymbolLayer
+                id="cluster-count"
+                filter={['has', 'point_count']}
+                style={{
+                  textField: ['get', 'point_count_abbreviated'],
+                  textSize: 13,
+                  textColor: '#111111',
+                  textFont: ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+                  textAllowOverlap: true,
+                }}
+              />
+
+              {/* ── Individual venue pins (zoomed in) ────────────────────── */}
               {/* Soft glow ring behind multi-event pins */}
               <MapboxGL.CircleLayer
                 id="venue-glow"
-                filter={['>', ['get', 'eventCount'], 1]}
+                filter={['all', ['!', ['has', 'point_count']], ['>', ['get', 'eventCount'], 1]]}
                 style={{
                   circleRadius: 20,
                   circleColor: ['get', 'color'],
@@ -247,6 +298,7 @@ export default function MapScreen() {
               {/* Main pin */}
               <MapboxGL.CircleLayer
                 id="venue-pin"
+                filter={['!', ['has', 'point_count']]}
                 style={{
                   circleRadius: ['case', ['>', ['get', 'eventCount'], 1], 14, 9],
                   circleColor: ['get', 'color'],
@@ -254,10 +306,10 @@ export default function MapScreen() {
                   circleStrokeColor: 'rgba(255,255,255,0.35)',
                 }}
               />
-              {/* Count label on multi-event pins */}
+              {/* Count label on multi-event venue pins */}
               <MapboxGL.SymbolLayer
                 id="venue-count"
-                filter={['>', ['get', 'eventCount'], 1]}
+                filter={['all', ['!', ['has', 'point_count']], ['>', ['get', 'eventCount'], 1]]}
                 style={{
                   textField: ['to-string', ['get', 'eventCount']],
                   textSize: 11,
