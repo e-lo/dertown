@@ -80,3 +80,6 @@ export const THEME = {
   cardBackground:     '#1e293b',
   successGreen:       '#166534',
 };
+
+/** Max width for list/content screens on tablet — centred on wider displays. */
+export const MAX_CONTENT_WIDTH = 600;

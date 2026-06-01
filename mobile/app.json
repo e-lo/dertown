@@ -13,11 +13,12 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.dertown.app",
       "infoPlist": {
         "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar.",
-        "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown."
+        "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

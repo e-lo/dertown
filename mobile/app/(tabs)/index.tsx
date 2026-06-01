@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { THEME } from '../../lib/theme';
+import { THEME, MAX_CONTENT_WIDTH } from '../../lib/theme';
 import { groupEventsByDate, getTodayDateString } from '../../lib/dateUtils';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { useEventList } from '../../hooks/useEventList';
@@ -184,6 +184,9 @@ const styles = StyleSheet.create({
     color: THEME.textPrimary,
   },
   list: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
     flex: 1,
   },
 });

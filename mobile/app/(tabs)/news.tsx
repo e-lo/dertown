@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingView, ErrorView, EmptyView } from '../../components/ScreenStates';
 import { AppHeader } from '../../components/AppHeader';
 import { Icon } from '../../components/Icon';
-import { THEME } from '../../lib/theme';
+import { THEME, MAX_CONTENT_WIDTH } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
 import { getCache, setCache } from '../../lib/cache';
@@ -176,6 +176,9 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.feedBackground,
   },
   list: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
     flex: 1,
   },
   // Full-bleed row — matches EventRow visual rhythm

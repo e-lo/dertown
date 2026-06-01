@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { THEME } from '../lib/theme';
+import { THEME, MAX_CONTENT_WIDTH } from '../lib/theme';
 
 interface AppHeaderProps {
   /** Icon buttons or other controls to show on the right side. */
@@ -42,22 +42,29 @@ function MountainLogo() {
 export function AppHeader({ right }: AppHeaderProps) {
   return (
     <View style={styles.header}>
-      <View style={styles.wordmarkRow}>
-        <MountainLogo />
-        <Text style={styles.wordmark}>DerTown</Text>
+      <View style={styles.inner}>
+        <View style={styles.wordmarkRow}>
+          <MountainLogo />
+          <Text style={styles.wordmark}>DerTown</Text>
+        </View>
+        {right ? <View style={styles.rightSlot}>{right}</View> : null}
       </View>
-      {right ? <View style={styles.rightSlot}>{right}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
+    backgroundColor: THEME.tabBarBackground,
+    alignItems: 'center',
+  },
+  inner: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: THEME.tabBarBackground,
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
   },
   wordmarkRow: {
     flex: 1,

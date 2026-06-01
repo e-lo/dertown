@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { THEME } from '../../lib/theme';
+import { THEME, MAX_CONTENT_WIDTH } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { AppHeader } from '../../components/AppHeader';
 import { Icon } from '../../components/Icon';
@@ -305,6 +305,9 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.feedBackground,
   },
   list: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
     flex: 1,
   },
   // ── Calendar feed banner ────────────────────────────────────────────────────
