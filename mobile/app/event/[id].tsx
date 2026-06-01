@@ -460,6 +460,19 @@ export default function EventDetailScreen() {
               )}
             </View>
           )}
+
+          {/* Report / suggest update */}
+          <TouchableOpacity
+            style={styles.reportBtn}
+            onPress={() =>
+              Linking.openURL(
+                `mailto:dertownleavenworth@gmail.com?subject=${encodeURIComponent(`Event update: ${event?.title ?? ''}`)}`
+              )
+            }
+            activeOpacity={0.7}
+          >
+            <Text style={styles.reportBtnText}>Something wrong? Suggest an update →</Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
     </>
@@ -536,6 +549,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  reportBtn: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  reportBtnText: {
+    fontSize: 13,
+    color: THEME.textMuted,
   },
   hero: {
     paddingHorizontal: 20,
