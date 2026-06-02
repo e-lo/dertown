@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
-import { THEME, getCategoryColor } from '../../lib/theme';
+import { THEME } from '../../lib/theme';
 import { Icon } from '../../components/Icon';
 import { AppHeader } from '../../components/AppHeader';
 import { fetchMapVenues } from '../../lib/api';
@@ -40,7 +40,7 @@ function venuesToGeoJSON(venues: MapVenue[]): GeoJSON.FeatureCollection {
         id:         v.id,
         name:       v.name,
         eventCount: v.eventCount,
-        color: v.events[0]?.tag ? getCategoryColor(v.events[0].tag) : THEME.canary,
+        color: THEME.canary,
       },
     })),
   };
