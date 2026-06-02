@@ -108,7 +108,7 @@ function VenueSheet({
             onPress={() => onSelectEvent(event)}
             activeOpacity={0.7}
           >
-            <View style={[styles.venueDot, { backgroundColor: getCategoryColor(event.tag) }]} />
+            <View style={[styles.venueDot, { backgroundColor: THEME.canary }]} />
             <View style={styles.venueEventText}>
               <Text style={styles.venueEventTitle} numberOfLines={1}>{event.title}</Text>
               <Text style={styles.venueEventMeta}>
