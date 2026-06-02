@@ -140,7 +140,7 @@ export default function HelpScreen() {
         {/* ── App feedback ────────────────────────────────────────────────── */}
         <Section title="I found a bug in the app">
           <Text style={styles.body}>
-            Please report it so we can fix it! You can email us or file a GitHub issue.
+            Please report it so we can fix it! You can email us or file a GitHub issue (requires a free GitHub account).
           </Text>
           <ActionBtn label="Email us about a bug →" subject="Dertown app bug report" />
           <ActionBtn label="Report on GitHub →" url={BUG_REPORT_URL} />
@@ -148,7 +148,7 @@ export default function HelpScreen() {
 
         <Section title="I have an idea or feature request">
           <Text style={styles.body}>
-            We'd love to hear it. Email us or file a GitHub feature request.
+            We'd love to hear it. Email us or file a GitHub feature request (requires a free GitHub account).
           </Text>
           <ActionBtn label="Email us your idea →" subject="Dertown app feature idea" />
           <ActionBtn label="Request on GitHub →" url={FEATURE_REQUEST_URL} />
