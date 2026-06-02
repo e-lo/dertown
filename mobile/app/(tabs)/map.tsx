@@ -241,6 +241,7 @@ export default function MapScreen() {
           styleURL="mapbox://styles/mapbox/dark-v11"
           onPress={dismiss}
           compassEnabled={false}
+          scaleBarEnabled={false}
           logoEnabled={false}
           attributionEnabled={false}
         >
