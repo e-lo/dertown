@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 
 const SUBMIT_EVENT_URL        = 'https://dertown.org/submit';
 const SUBMIT_ANNOUNCEMENT_URL = 'https://dertown.org/submit-announcement';
+const TERMS_URL               = 'https://dertown.org/terms';
 const CONTACT_EMAIL           = 'dertownleavenworth@gmail.com';
 const FEATURE_REQUEST_URL     = 'https://github.com/e-lo/dertown/issues/new?template=feature_request.yml';
 const BUG_REPORT_URL          = 'https://github.com/e-lo/dertown/issues/new?template=bug_report.yml';
@@ -159,6 +160,29 @@ export default function HelpScreen() {
             label={`Email ${CONTACT_EMAIL} →`}
             subject="Dertown feedback"
           />
+        </Section>
+
+        {/* ── Legal ───────────────────────────────────────────────────────── */}
+        <Section title="Terms of Use">
+          <ActionBtn label="Read Terms of Use at dertown.org →" url={TERMS_URL} />
+        </Section>
+
+        <Section title="Disclaimer">
+          <Text style={styles.body}>
+            The information provided in this app is for convenience only and should not be
+            construed as official. While we strive to maintain accurate and up-to-date
+            information, please verify details directly with the organizing entity.
+            Corrections and updates are gladly accepted —{' '}
+            <Text
+              style={styles.link}
+              onPress={() =>
+                Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Dertown inaccuracy report`)
+              }
+            >
+              let us know
+            </Text>
+            {' '}if you notice any inaccuracies.
+          </Text>
         </Section>
       </ScrollView>
     </View>
