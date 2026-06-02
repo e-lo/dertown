@@ -20,8 +20,10 @@ import type { MapVenue, MapVenueEvent } from '../../lib/api';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '');
 
-const CACHE_KEY = 'map:venues';
 const CACHE_TTL = 10 * 60 * 1000; // 10 min
+const DAY_OPTIONS = [3, 10] as const;
+type DayWindow = typeof DAY_OPTIONS[number];
+const cacheKey = (d: DayWindow) => `map:venues:${d}` as const;
 
 // Leavenworth, WA town center
 const TOWN_CENTER: [number, number] = [-120.6615, 47.5962];
@@ -128,19 +130,21 @@ export default function MapScreen() {
   const router = useRouter();
   const [venues, setVenues]     = useState<MapVenue[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [days, setDays]         = useState<DayWindow>(3);
   const [selectedVenue, setSelectedVenue] = useState<MapVenue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MapVenueEvent | null>(null);
   const fetchingRef    = useRef(false);
+  const daysRef        = useRef<DayWindow>(3);
   const cameraRef      = useRef<MapboxGL.Camera>(null);
   const shapeSourceRef = useRef<MapboxGL.ShapeSource>(null);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (d: DayWindow) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const data = await fetchMapVenues(3);
+      const data = await fetchMapVenues(d);
       setVenues(data);
-      await setCache(CACHE_KEY, data);
+      await setCache(cacheKey(d), data);
     } catch {
       // Silently keep whatever is already displayed
     } finally {
@@ -152,25 +156,44 @@ export default function MapScreen() {
   // Mount: show cache instantly, background-refresh if stale
   useEffect(() => {
     async function init() {
-      const cached = await getCache<MapVenue[]>(CACHE_KEY, CACHE_TTL);
+      const cached = await getCache<MapVenue[]>(cacheKey(3), CACHE_TTL);
       if (cached) {
         setVenues(cached.data);
         setLoading(false);
-        if (cached.stale) doFetch();
+        if (cached.stale) doFetch(3);
       } else {
-        doFetch();
+        doFetch(3);
       }
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // When day window changes — load from cache or fetch fresh
+  useEffect(() => {
+    daysRef.current = days;
+    setLoading(true);
+    setVenues([]);
+    async function switchWindow() {
+      const cached = await getCache<MapVenue[]>(cacheKey(days), CACHE_TTL);
+      if (cached) {
+        setVenues(cached.data);
+        setLoading(false);
+        if (cached.stale) doFetch(days);
+      } else {
+        doFetch(days);
+      }
+    }
+    switchWindow();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days]);
+
   // Foreground: silently refresh if stale
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        getCache<MapVenue[]>(CACHE_KEY, CACHE_TTL).then((c) => {
-          if (!c || c.stale) doFetch();
+        getCache<MapVenue[]>(cacheKey(daysRef.current), CACHE_TTL).then((c) => {
+          if (!c || c.stale) doFetch(daysRef.current);
         });
       }
     });
@@ -323,15 +346,30 @@ export default function MapScreen() {
           )}
         </MapboxGL.MapView>
 
-        {/* "Next 3 days · N events" chip */}
-        {!loading && (
-          <View style={styles.chip} pointerEvents="none">
-            <Icon name="calendar" size={11} color={THEME.textMuted} />
-            <Text style={styles.chipText}>
-              Next 3 days · {totalEvents} event{totalEvents !== 1 ? 's' : ''}
-            </Text>
+        {/* Day window toggle + event count */}
+        <View style={styles.topBar} pointerEvents="box-none">
+          <View style={styles.segmented}>
+            {DAY_OPTIONS.map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={[styles.segment, days === d && styles.segmentActive]}
+                onPress={() => setDays(d)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.segmentText, days === d && styles.segmentTextActive]}>
+                  {d === 3 ? '3 days' : '10 days'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
+          {!loading && (
+            <View style={styles.countChip}>
+              <Text style={styles.countText}>
+                {totalEvents} event{totalEvents !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Single-event popup */}
         {selectedVenue && selectedEvent && (
@@ -376,14 +414,42 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
-  chip: {
-    position: 'absolute', top: 12, alignSelf: 'center',
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(15,23,42,0.85)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  topBar: {
+    position: 'absolute', top: 12, left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  chipText: { fontSize: 11, fontWeight: '700', color: THEME.textMuted },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15,23,42,0.88)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  segment: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+  },
+  segmentActive: {
+    backgroundColor: THEME.canary,
+  },
+  segmentText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.textMuted,
+  },
+  segmentTextActive: {
+    color: '#111111',
+  },
+  countChip: {
+    backgroundColor: 'rgba(15,23,42,0.88)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  countText: { fontSize: 12, fontWeight: '700', color: THEME.textMuted },
 
   // Single-event popup
   singlePopup: {
