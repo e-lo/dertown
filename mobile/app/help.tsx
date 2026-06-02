@@ -89,6 +89,25 @@ export default function HelpScreen() {
         </Section>
 
         {/* ── Features ────────────────────────────────────────────────────── */}
+        <Section title="How do we source events?">
+          <Text style={styles.body}>
+            Events are gathered from multiple sources around the community:
+          </Text>
+          <Bullet text="Venue and organization calendars (e.g. Icicle Creek Center for the Arts, Wenatchee River Institute, Leavenworth Public Library, City of Leavenworth)" />
+          <Bullet text="Events posted to local social media groups" />
+          <Bullet text="Flyers and posters around town" />
+          <Text style={[styles.body, { marginTop: 8 }]}>
+            Know about something we missed?{' '}
+            <Text
+              style={styles.link}
+              onPress={() => Linking.openURL(SUBMIT_EVENT_URL)}
+            >
+              Submit it at dertown.org
+            </Text>
+            .
+          </Text>
+        </Section>
+
         <Section title="What can I do in the app?">
           <Bullet text="Browse upcoming events by day, category, or keyword search" />
           <Bullet text="Explore a live map of where events are happening around town" />
