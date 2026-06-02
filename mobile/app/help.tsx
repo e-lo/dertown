@@ -108,6 +108,25 @@ export default function HelpScreen() {
           </Text>
         </Section>
 
+        <Section title="Manage your organization's events">
+          <Text style={styles.body}>
+            We're beginning to experiment with admin accounts for local organizations and
+            venues to manage and curate their own events on Dertown. If you represent an
+            organization in the Leavenworth area and are interested,{' '}
+            <Text
+              style={styles.link}
+              onPress={() =>
+                Linking.openURL(
+                  'mailto:dertownleavenworth@gmail.com?subject=Organization admin account interest'
+                )
+              }
+            >
+              email us
+            </Text>
+            .
+          </Text>
+        </Section>
+
         <Section title="What can I do in the app?">
           <Bullet text="Browse upcoming events by day, category, or keyword search" />
           <Bullet text="Explore a live map of where events are happening around town" />
