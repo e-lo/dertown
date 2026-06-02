@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 import { THEME, MAX_CONTENT_WIDTH } from '../lib/theme';
 
 interface AppHeaderProps {
@@ -40,6 +41,7 @@ function MountainLogo() {
  * optional right slot for icon buttons.
  */
 export function AppHeader({ right }: AppHeaderProps) {
+  const router = useRouter();
   return (
     <View style={styles.header}>
       <View style={styles.inner}>
@@ -47,7 +49,16 @@ export function AppHeader({ right }: AppHeaderProps) {
           <MountainLogo />
           <Text style={styles.wordmark}>DerTown</Text>
         </View>
-        {right ? <View style={styles.rightSlot}>{right}</View> : null}
+        <View style={styles.rightSlot}>
+          {right}
+          <TouchableOpacity
+            onPress={() => router.push('/help' as never)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Help and FAQ"
+          >
+            <Text style={styles.infoIcon}>ⓘ</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -82,5 +93,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  infoIcon: {
+    fontSize: 20,
+    color: THEME.textMuted,
+    paddingHorizontal: 4,
   },
 });

@@ -39,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="organization/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="webview" options={{ headerShown: false }} />
         <Stack.Screen name="calendar-subscribe" options={{ headerShown: false }} />
+        <Stack.Screen name="help" options={{ headerShown: false }} />
       </Stack>
       <WelcomeModal visible={showWelcome} onDismiss={handleDismissWelcome} />
     </StarProvider>
