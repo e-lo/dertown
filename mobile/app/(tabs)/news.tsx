@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ListRenderItem,
   AppState,
+  Linking,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,18 @@ import type { MobileAnnouncement } from '../../lib/types';
 const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
 
 /** Matches web app definition: new if show_at or created_at is within 72 hours. */
+function SubmitBanner() {
+  return (
+    <TouchableOpacity
+      style={styles.submitBanner}
+      onPress={() => Linking.openURL('https://dertown.org/submit-announcement')}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.submitBannerText}>Submit an announcement →</Text>
+    </TouchableOpacity>
+  );
+}
+
 function isNew(item: MobileAnnouncement): boolean {
   const cutoff = Date.now() - SEVENTY_TWO_HOURS_MS;
   const showAt   = item.show_at   ? new Date(item.show_at).getTime()   : null;
@@ -150,10 +163,13 @@ export default function AnnouncementsScreen() {
       {!loading && error && <ErrorView message={error} />}
 
       {!loading && !error && announcements.length === 0 && (
-        <EmptyView
-          title="No announcements"
-          subtitle={`Check back soon for updates from ${APP_CONFIG.townName}`}
-        />
+        <>
+          <EmptyView
+            title="No announcements"
+            subtitle={`Check back soon for updates from ${APP_CONFIG.townName}`}
+          />
+          <SubmitBanner />
+        </>
       )}
 
       {!loading && !error && announcements.length > 0 && (
@@ -164,6 +180,7 @@ export default function AnnouncementsScreen() {
           style={styles.list}
           refreshing={refreshing}
           onRefresh={() => doFetch({ pullToRefresh: true })}
+          ListFooterComponent={<SubmitBanner />}
         />
       )}
     </SafeAreaView>
@@ -180,6 +197,21 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
     flex: 1,
+  },
+  submitBanner: {
+    margin: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: THEME.cardBackground,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  submitBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME.canary,
   },
   // Full-bleed row — matches EventRow visual rhythm
   row: {
