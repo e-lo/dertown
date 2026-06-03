@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   // ── Hero ─────────────────────────────────────────────────────────────────────
   hero: {
-    backgroundColor: THEME.cardBackground,
+    backgroundColor: THEME.headerBackground,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },

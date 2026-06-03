@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: THEME.tabBarBackground,
+    backgroundColor: THEME.headerBackground,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(255,255,255,0.12)',
   },
   headerTitle: {
     fontSize: 16,

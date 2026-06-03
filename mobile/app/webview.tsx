@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   navbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.tabBarBackground,
+    backgroundColor: THEME.headerBackground,
     paddingBottom: 10,
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,

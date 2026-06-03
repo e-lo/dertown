@@ -29,7 +29,7 @@ export default function RootLayout() {
     <StarProvider>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: THEME.tabBarBackground },
+          headerStyle: { backgroundColor: THEME.headerBackground },
           headerTintColor: THEME.textPrimary,
           headerTitleStyle: { fontSize: 16, fontWeight: '700' },
         }}
