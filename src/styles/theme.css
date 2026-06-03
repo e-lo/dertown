@@ -19,8 +19,6 @@
   --palette-fandango: #c0268cff;
   --palette-cal-poly-green: #14532dff;
   --palette-dark-slate-gray: #2f4445ff;
-  --palette-brandeis-blue: #2472fcff;
-  --palette-neon-blue: #5460f9ff;
 
   /* ────────────────────────────────────────────────────────────────── */
   /* COLOR ASSIGNMENTS - How palette colors are used (from config.ts)   */
@@ -76,17 +74,17 @@
   /* ────────────────────────────────────────────────────────────────── */
   /* MARKER COLORS (from config.ts MARKER_COLORS)                       */
   /* ────────────────────────────────────────────────────────────────── */
-  --color-marker-current: var(--palette-brandeis-blue);
+  --color-marker-current: var(--palette-palatinate-blue);
   --color-marker-parent: var(--palette-fandango);
   --color-marker-sibling: var(--color-muted);
   --color-marker-child: var(--palette-pigment-green);
-  --color-marker-event: var(--palette-brandeis-blue);
+  --color-marker-event: var(--palette-palatinate-blue);
 
   /* ────────────────────────────────────────────────────────────────── */
   /* GRADIENTS (from palette colors)                                     */
   /* ────────────────────────────────────────────────────────────────── */
-  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%);
-  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-neon-blue) 100%);
+  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%);
+  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%);
 
   /* ────────────────────────────────────────────────────────────────── */
   /* TYPOGRAPHY - Font families (from config.ts TYPOGRAPHY.fontFamilies)*/
@@ -182,16 +180,16 @@
 
 /* Default event color */
 .bg-event-default {
-  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%) !important;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%) !important;
 }
 
 /* Gradients */
 .bg-gradient-blues-light {
-  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-brandeis-blue) 100%) !important;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%) !important;
 }
 
 .bg-gradient-blues-bold {
-  background: linear-gradient(90deg, var(--color-primary) 0%, var(--palette-neon-blue) 100%) !important;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%) !important;
 }
 
 /* Border utilities */

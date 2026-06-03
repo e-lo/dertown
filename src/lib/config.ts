@@ -81,8 +81,6 @@ export const COLOR_PALETTE = {
   fandango: '#c0268cff',
   calPolyGreen: '#14532dff',
   darkSlateGray: '#2f4445ff',
-  brandeisBlue: '#2472fcff',
-  neonBlue: '#5460f9ff',
 };
 
 // ============================================================================
@@ -151,11 +149,11 @@ export const TYPOGRAPHY = {
 // ============================================================================
 
 export const MARKER_COLORS = {
-  current: COLOR_PALETTE.brandeisBlue,
+  current: COLOR_PALETTE.palatinateBlue,
   parent: COLOR_PALETTE.fandango,
   sibling: COLORS.muted,
   child: COLOR_PALETTE.pigmentGreen,
-  event: COLOR_PALETTE.brandeisBlue,
+  event: COLOR_PALETTE.palatinateBlue,
 };
 
 // ============================================================================

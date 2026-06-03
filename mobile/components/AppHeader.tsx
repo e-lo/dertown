@@ -66,7 +66,7 @@ export function AppHeader({ right }: AppHeaderProps) {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: THEME.tabBarBackground,
+    backgroundColor: THEME.headerBackground,
     alignItems: 'center',
   },
   inner: {

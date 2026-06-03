@@ -52,12 +52,13 @@ export function getCategoryTextMuted(category: string | null | undefined): strin
 // Core theme tokens — all 6-digit hex (no 8-digit, React Native safe)
 export const THEME = {
   // Navigation
-  tabBarBackground:   '#0f172a',
-  tabBarActive:       fixHex(COLOR_PALETTE.canary),      // '#ffe600'
+  headerBackground:   fixHex(COLOR_PALETTE.palatinateBlue), // '#4740cb' — top app bar
+  tabBarBackground:   '#0f172a',                             // bottom tab bar stays dark
+  tabBarActive:       fixHex(COLOR_PALETTE.canary),          // '#ffe600'
   tabBarInactive:     '#94a3b8',
 
   // Feed
-  feedBackground:     '#111827',
+  feedBackground:     '#0f172a',
   dayHeaderBg:        '#f1f5f9',
   dayHeaderText:      '#374151',
 
