@@ -36,6 +36,7 @@ export function getCategoryBadgeVariant(
   | 'arts-culture'
   | 'civic'
   | 'family'
+  | 'give-back'
   | 'nature'
   | 'outdoors'
   | 'school'
@@ -54,6 +55,7 @@ export function getCategoryBadgeVariant(
     'arts-culture',
     'civic',
     'family',
+    'give-back',
     'nature',
     'outdoors',
     'school',
@@ -67,6 +69,7 @@ export function getCategoryBadgeVariant(
       | 'arts-culture'
       | 'civic'
       | 'family'
+      | 'give-back'
       | 'nature'
       | 'outdoors'
       | 'school'
