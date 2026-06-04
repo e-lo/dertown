@@ -56,6 +56,7 @@
   --color-category-arts-culture: var(--palette-canary);
   --color-category-civic: var(--palette-dark-slate-gray);
   --color-category-family: var(--palette-fandango);
+  --color-category-give-back: var(--palette-pigment-green);
   --color-category-nature: var(--palette-cal-poly-green);
   --color-category-recreation: var(--palette-blue-green);
   --color-category-outdoors: var(--palette-blue-green);
@@ -148,6 +149,10 @@
 
 .bg-event-family {
   background-color: var(--color-category-family) !important;
+}
+
+.bg-event-give-back {
+  background-color: var(--color-category-give-back) !important;
 }
 
 .bg-event-nature {
