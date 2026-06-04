@@ -1,0 +1,122 @@
+---
+import Layout from '../components/Layout.astro';
+import SectionHeader from '../components/ui/SectionHeader.astro';
+import LinkBox from '../components/ui/LinkBox.astro';
+import Calendar from '../components/Calendar.astro';
+---
+
+<Layout
+  title="Do Good | Der Town"
+  description="Lend a hand to your neighbors and community. Find volunteer opportunities and community events in Leavenworth."
+>
+  <div class="bg-white min-h-screen">
+    <!-- Hero -->
+    <div class="bg-event-give-back py-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="material-symbols-outlined text-4xl text-white">volunteer_activism</span>
+          <h1 class="text-4xl font-bold text-white">Do Good</h1>
+        </div>
+        <p class="text-white text-lg opacity-90">Lend a hand to your neighbors and community.</p>
+      </div>
+    </div>
+
+    <!-- Volunteer Opportunities -->
+    <div class="py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Volunteer Opportunities"
+          icon="handshake"
+          text="Ongoing ways to support your community — no specific date required."
+        />
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="Waste Loop"
+              text="Assist with store operations, tool library management, salvage projects, or apply specific skills like bookkeeping or tool repair"
+              subtext="Store & Tool Library help (2-hour shifts), Salvage & Deconstruction, Skill-Based volunteering"
+              link="https://www.wasteloop.org/get-involved-1"
+              icon="recycling"
+              external={true}
+            />
+            <LinkBox
+              title="Wenatchee River Institute"
+              text="Volunteer with youth education, community events, campus maintenance, or serve on committees and boards"
+              subtext="Youth Education, Community Education, Board/Committee, Campus Maintenance, Events Planning"
+              link="https://wenatcheeriverinstitute.org/support/volunteer.html"
+              icon="nature"
+              external={true}
+            />
+            <LinkBox
+              title="Upper Valley MEND"
+              text="Support community services through the Community Cupboard, Grocery Rescue, Gleaning, Das Thrift, or administrative tasks"
+              subtext="Food assistance, thrift store operations, gleaning programs, and community support services"
+              link="https://www.uvmend.org/volunteer"
+              icon="volunteer_activism"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth National Fish Hatchery"
+              text="Contribute to environmental conservation efforts by volunteering at the hatchery, assisting with events, tours, and educational programs"
+              subtext="Hatchery events, visitor information, environmental education programs"
+              link="https://www.fws.gov/fish-hatchery/leavenworth/get-involved"
+              icon="water"
+              external={true}
+            />
+            <LinkBox
+              title="Cascade Medical Foundation"
+              text="Support local healthcare by volunteering at events such as the Mother's Day 5K Run/Walk, Cascade Golf Classic, and Jive Time in the Cascades concert"
+              subtext="Event support, fundraising activities, community health initiatives"
+              link="https://cascademedicalfoundation.org/support/volunteer"
+              icon="medical_services"
+              external={true}
+            />
+            <LinkBox
+              title="Chelan County Fire District #3"
+              text="Serve the community by becoming a volunteer firefighter or assisting in support services, contributing to public safety and emergency response"
+              subtext="Resident firefighter, combat firefighter, non-combat firefighter, support services"
+              link="https://www.chelanfd3.org/recruiting/"
+              icon="local_fire_department"
+              external={true}
+            />
+            <LinkBox
+              title="Leavenworth Friends of the Library"
+              text="Support the Leavenworth Public Library through fundraising events, book sales, and community programs that enhance library resources and services"
+              subtext="Book sales, fundraising events, library programs, community outreach"
+              link="https://www.facebook.com/LeavenworthFriendsOfTheLibrary/"
+              icon="library_books"
+              external={true}
+            />
+            <LinkBox
+              title="North Central Washington Audubon Society"
+              text="Volunteer with bird conservation, education, and community science projects in North Central Washington"
+              subtext="Community science surveys, education programs, field trips, conservation activities"
+              link="https://ncwaudubon.org/volunteer/"
+              icon="bird"
+              external={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Give Back Events Calendar -->
+    <div class="py-8 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Give Back Events"
+          icon="event"
+          text="Fundraisers, food drives, benevolent nights, and other community support events."
+        />
+        <div class="bg-white rounded-lg shadow-lg p-4" style="min-height: 500px;">
+          <Calendar
+            initialTag="give back"
+            showSearch={false}
+            showCategoryFilter={false}
+            defaultView="month"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
