@@ -3,6 +3,7 @@ import Layout from '../components/Layout.astro';
 import SectionHeader from '../components/ui/SectionHeader.astro';
 import LinkBox from '../components/ui/LinkBox.astro';
 import Calendar from '../components/Calendar.astro';
+import Disclaimer from '../components/ui/Disclaimer.astro';
 ---
 
 <Layout
@@ -23,7 +24,7 @@ import Calendar from '../components/Calendar.astro';
 
     <!-- Volunteer Opportunities -->
     <div class="py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
         <SectionHeader
           title="Volunteer Opportunities"
           icon="handshake"
@@ -102,7 +103,7 @@ import Calendar from '../components/Calendar.astro';
 
     <!-- Give Back Events Calendar -->
     <div class="py-8 bg-gray-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
         <SectionHeader
           title="Give Back Events"
           icon="event"
@@ -115,6 +116,21 @@ import Calendar from '../components/Calendar.astro';
             showCategoryFilter={false}
             defaultView="month"
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <Disclaimer />
+
+    <!-- Call to Action -->
+    <div class="mt-8 text-center">
+      <div class="bg-blue-green p-8">
+        <h2 class="text-2xl font-semibold mb-4">Have a resource you think we should add?</h2>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Let Us Know
+          </a>
         </div>
       </div>
     </div>
