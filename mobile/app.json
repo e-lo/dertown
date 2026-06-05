@@ -15,10 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dertown.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar.",
         "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown.",
+        "NSLocationWhenInUseUsageDescription": "Dertown uses your location to show nearby events on the map.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
