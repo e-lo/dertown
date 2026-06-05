@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dertown.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar.",
         "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown.",
@@ -23,6 +24,7 @@
     },
     "android": {
       "package": "com.dertown.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4740cb"
@@ -43,7 +45,11 @@
           "androidMode": "default"
         }
       ],
-      "expo-font"
+      "expo-font",
+      ["@sentry/react-native", {
+        "organization": "der-town",
+        "project": "dertown-mobile"
+      }]
     ],
     "experiments": {
       "typedRoutes": true

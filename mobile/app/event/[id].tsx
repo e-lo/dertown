@@ -466,7 +466,7 @@ export default function EventDetailScreen() {
             style={styles.reportBtn}
             onPress={() =>
               Linking.openURL(
-                `mailto:dertownleavenworth@gmail.com?subject=${encodeURIComponent(`Event update: ${event?.title ?? ''}`)}`
+                `mailto:${APP_CONFIG.contactEmail}?subject=${encodeURIComponent(`Event update: ${event?.title ?? ''}`)}`
               )
             }
             activeOpacity={0.7}

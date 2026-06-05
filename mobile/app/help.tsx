@@ -12,12 +12,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../lib/theme';
 import { Icon } from '../components/Icon';
 
-const SUBMIT_EVENT_URL        = 'https://dertown.org/submit';
-const SUBMIT_ANNOUNCEMENT_URL = 'https://dertown.org/submit-announcement';
-const TERMS_URL               = 'https://dertown.org/terms';
-const CONTACT_EMAIL           = 'dertownleavenworth@gmail.com';
-const FEATURE_REQUEST_URL     = 'https://github.com/e-lo/dertown/issues/new?template=feature_request.yml';
-const BUG_REPORT_URL          = 'https://github.com/e-lo/dertown/issues/new?template=bug_report.yml';
+import { APP_CONFIG } from '../lib/app-config';
+
+const SUBMIT_EVENT_URL        = APP_CONFIG.submitEventUrl;
+const SUBMIT_ANNOUNCEMENT_URL = APP_CONFIG.submitAnnouncementUrl;
+const TERMS_URL               = APP_CONFIG.termsUrl;
+const CONTACT_EMAIL           = APP_CONFIG.contactEmail;
+const FEATURE_REQUEST_URL     = APP_CONFIG.featureRequestUrl;
+const BUG_REPORT_URL          = APP_CONFIG.bugReportUrl;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -76,8 +78,8 @@ export default function HelpScreen() {
         {/* ── About ───────────────────────────────────────────────────────── */}
         <Section title="What is Dertown?">
           <Text style={styles.body}>
-            A community-powered calendar of events, announcements and helpful info for
-            Leavenworth, WA — built by locals, for locals and visitors alike.
+            A community-powered calendar of events, announcements and helpful info for{' '}
+            {APP_CONFIG.townName} — built by locals, for locals and visitors alike.
           </Text>
         </Section>
 
@@ -85,7 +87,7 @@ export default function HelpScreen() {
           <Bullet text="A social network" />
           <Bullet text="A ticketing platform — we link to tickets, we don't sell them" />
           <Bullet text="A complete business or restaurant directory" />
-          <Bullet text="Officially affiliated with the City of Leavenworth or the Chamber of Commerce" />
+          <Bullet text={`Officially affiliated with the City of ${APP_CONFIG.townName} or the Chamber of Commerce`} />
         </Section>
 
         {/* ── Features ────────────────────────────────────────────────────── */}
@@ -93,7 +95,7 @@ export default function HelpScreen() {
           <Text style={styles.body}>
             Events are gathered from multiple sources around the community:
           </Text>
-          <Bullet text="Venue and organization calendars (e.g. Icicle Creek Center for the Arts, Wenatchee River Institute, Leavenworth Public Library, City of Leavenworth)" />
+          <Bullet text={`Venue and organization calendars (e.g. Icicle Creek Center for the Arts, Wenatchee River Institute, ${APP_CONFIG.townName} Public Library, City of ${APP_CONFIG.townName})`} />
           <Bullet text="Events posted to local social media groups" />
           <Bullet text="Flyers and posters around town" />
           <Text style={[styles.body, { marginTop: 8 }]}>
@@ -112,12 +114,12 @@ export default function HelpScreen() {
           <Text style={styles.body}>
             We're beginning to experiment with admin accounts for local organizations and
             venues to manage and curate their own events on Dertown. If you represent an
-            organization in the Leavenworth area and are interested,{' '}
+            organization in the {APP_CONFIG.townName} area and are interested,{' '}
             <Text
               style={styles.link}
               onPress={() =>
                 Linking.openURL(
-                  'mailto:dertownleavenworth@gmail.com?subject=Organization admin account interest'
+                  `mailto:${APP_CONFIG.contactEmail}?subject=Organization admin account interest`
                 )
               }
             >

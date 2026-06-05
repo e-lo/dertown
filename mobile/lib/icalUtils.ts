@@ -11,6 +11,7 @@
  */
 import { Alert, Linking, Platform } from 'react-native';
 import * as Calendar from 'expo-calendar';
+import { APP_CONFIG } from './app-config';
 import * as IntentLauncher from 'expo-intent-launcher';
 // expo-file-system v19 moved the legacy API to a sub-path
 import * as FileSystem from 'expo-file-system/legacy';
@@ -194,7 +195,7 @@ export async function addEventsToCalendar(
       allDay: !event.start_time,
       location: event.location?.address ?? event.location?.name ?? undefined,
       notes: event.description ?? undefined,
-      timeZone: 'America/Los_Angeles',
+      timeZone: APP_CONFIG.timezone,
     });
     if (firstEventId === null) firstEventId = eventId;
   }
@@ -223,8 +224,8 @@ function addOneHour(timeStr: string): string {
 
 const VTIMEZONE = [
   'BEGIN:VTIMEZONE',
-  'TZID:America/Los_Angeles',
-  'X-LIC-LOCATION:America/Los_Angeles',
+  `TZID:${APP_CONFIG.timezone}`,
+  `X-LIC-LOCATION:${APP_CONFIG.timezone}`,
   'BEGIN:DAYLIGHT',
   'TZOFFSETFROM:-0800',
   'TZOFFSETTO:-0700',
@@ -257,11 +258,11 @@ function buildVEvent(event: ICSEventData, dtstamp: string): string | null {
       dtstart = `DTSTART;VALUE=DATE:${event.start_date.replace(/-/g, '')}`;
       dtend   = `DTEND;VALUE=DATE:${nextStr}`;
     } else {
-      dtstart = `DTSTART;TZID=America/Los_Angeles:${icalLocalDT(event.start_date, event.start_time!)}`;
+      dtstart = `DTSTART;TZID=${APP_CONFIG.timezone}:${icalLocalDT(event.start_date, event.start_time!)}`;
       const endTimeStr = event.end_time
         ? icalLocalDT(endDate, event.end_time)
         : icalLocalDT(event.start_date, addOneHour(event.start_time!));
-      dtend = `DTEND;TZID=America/Los_Angeles:${endTimeStr}`;
+      dtend = `DTEND;TZID=${APP_CONFIG.timezone}:${endTimeStr}`;
     }
 
     const locationStr = event.location?.address ?? event.location?.name ?? '';

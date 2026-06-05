@@ -1,20 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import { THEME } from '../lib/theme';
 import { StarProvider } from '../contexts/StarContext';
-import { setupPushNotifications } from '../lib/notifications';
 import { WelcomeModal } from '../components/WelcomeModal';
+
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    environment: __DEV__ ? 'development' : 'production',
+    tracesSampleRate: 0.1,
+    debug: __DEV__,
+  });
+}
 
 const WELCOME_KEY = 'welcome:seen';
 
-export default function RootLayout() {
+function RootLayout() {
   const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    setupPushNotifications().catch((err) =>
-      console.error('Push notification setup error:', err)
-    );
     AsyncStorage.getItem(WELCOME_KEY).then((val) => {
       if (!val) setShowWelcome(true);
     });
@@ -45,3 +51,5 @@ export default function RootLayout() {
     </StarProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

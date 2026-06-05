@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { THEME } from '../lib/theme';
+import { APP_CONFIG } from '../lib/app-config';
 
 interface Props {
   visible: boolean;
@@ -81,8 +82,8 @@ export function WelcomeModal({ visible, onDismiss }: Props) {
           {/* Logo + name */}
           <View style={styles.hero}>
             <MountainLogo />
-            <Text style={styles.appName}>DerTown</Text>
-            <Text style={styles.tagline}>Leavenworth's community events guide</Text>
+            <Text style={styles.appName}>Der Town</Text>
+            <Text style={styles.tagline}>{`${APP_CONFIG.townName}'s community events guide`}</Text>
           </View>
 
           {/* What it is */}
@@ -90,7 +91,7 @@ export function WelcomeModal({ visible, onDismiss }: Props) {
             <Text style={styles.sectionTitle}>What is Dertown?</Text>
             <Text style={styles.body}>
               A community-powered calendar of events, announcements and helpful info for
-              Leavenworth, WA — built by locals, for locals.
+              {APP_CONFIG.townName} — built by locals, for locals.
             </Text>
           </View>
 
@@ -99,7 +100,7 @@ export function WelcomeModal({ visible, onDismiss }: Props) {
             <Text style={styles.sectionTitle}>What Dertown is not</Text>
             <Bullet text="Social network" />
             <Bullet text="Business directory" />
-            <Bullet text="Officially affiliated with the City of Leavenworth or the Chamber of Commerce" />
+            <Bullet text={`Officially affiliated with the City of ${APP_CONFIG.townName} or the Chamber of Commerce`} />
           </View>
 
           {/* Feature tour */}

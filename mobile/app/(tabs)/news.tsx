@@ -17,6 +17,7 @@ import { Icon } from '../../components/Icon';
 import { THEME, MAX_CONTENT_WIDTH } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
+import { setupPushNotifications } from '../../lib/notifications';
 import { getCache, setCache } from '../../lib/cache';
 import type { MobileAnnouncement } from '../../lib/types';
 
@@ -27,7 +28,7 @@ function SubmitBanner() {
   return (
     <TouchableOpacity
       style={styles.submitBanner}
-      onPress={() => Linking.openURL('https://dertown.org/submit-announcement')}
+      onPress={() => Linking.openURL(APP_CONFIG.submitAnnouncementUrl)}
       activeOpacity={0.7}
     >
       <Text style={styles.submitBannerText}>Submit an announcement →</Text>
@@ -100,6 +101,14 @@ export default function AnnouncementsScreen() {
   const [refreshing, setRefreshing]       = useState(false);
   const [error, setError]                 = useState<string | null>(null);
   const fetchingRef                       = useRef(false);
+
+  // Request push permission here so users understand the value before being asked
+  useEffect(() => {
+    setupPushNotifications().catch((err) =>
+      console.error('Push notification setup error:', err)
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const doFetch = useCallback(async (opts: { pullToRefresh?: boolean } = {}) => {
     if (fetchingRef.current) return;

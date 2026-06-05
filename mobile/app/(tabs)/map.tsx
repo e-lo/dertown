@@ -17,6 +17,7 @@ import { AppHeader } from '../../components/AppHeader';
 import { fetchMapVenues } from '../../lib/api';
 import { getCache, setCache } from '../../lib/cache';
 import type { MapVenue, MapVenueEvent } from '../../lib/api';
+import { APP_CONFIG } from '../../lib/app-config';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '');
 
@@ -25,8 +26,7 @@ const DAY_OPTIONS = [3, 10] as const;
 type DayWindow = typeof DAY_OPTIONS[number];
 const cacheKey = (d: DayWindow) => `map:venues:${d}` as const;
 
-// Leavenworth, WA town center
-const TOWN_CENTER: [number, number] = [-120.6615, 47.5962];
+const TOWN_CENTER: [number, number] = [APP_CONFIG.mapCenter.longitude, APP_CONFIG.mapCenter.latitude];
 const DEFAULT_ZOOM = 13.5;
 
 // ── GeoJSON builder ───────────────────────────────────────────────────────────
