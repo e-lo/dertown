@@ -57,50 +57,51 @@ const userEmail = session.user?.email || 'Admin';
 
     <!-- ── Quick Import modal ──────────────────────────────────────────── -->
     <div id="paste-import-modal" class="modal-overlay" onclick="if(event.target===this)closePasteImportModal()">
-      <div class="modal-container" style="max-width:580px">
+      <div class="modal-container" style="max-width:560px">
         <div class="modal-header">
-          <h2 class="modal-title">Quick Import</h2>
-          <button onclick="closePasteImportModal()" class="modal-close" aria-label="Close">
-            <span class="material-symbols-outlined">close</span>
+          <h3 class="modal-title">Quick Import</h3>
+          <button type="button" onclick="closePasteImportModal()" class="modal-close-btn" aria-label="Close modal">
+            <span class="material-symbols-outlined text-2xl">close</span>
           </button>
         </div>
-        <div class="modal-body">
-          <!-- Type toggle -->
-          <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem;">
-            <button id="pi-type-event" onclick="setPasteImportType('event')"
-              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;">
-              📅 Event
-            </button>
-            <button id="pi-type-activity" onclick="setPasteImportType('activity')"
-              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;">
-              🏕️ Activity / Camp
-            </button>
-            <button id="pi-type-announcement" onclick="setPasteImportType('announcement')"
-              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;">
-              📢 Announcement
-            </button>
-          </div>
-          <p id="pi-hint-event" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;">
-            Paste a <strong>URL</strong> to scrape events, or paste an <strong>email / description</strong> — AI extracts date, time, location and stages it for review.
-          </p>
-          <p id="pi-hint-activity" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;display:none;">
-            Paste a camp or class description — AI extracts name, grade range, dates, cost, location and creates a <strong>pending draft</strong> in Kid Activities for you to review and publish.
-          </p>
-          <p id="pi-hint-announcement" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;display:none;">
-            Paste an announcement text — AI extracts the title, message, and link, then <strong>publishes it immediately</strong>.
-          </p>
-          <textarea
-            id="paste-import-text"
-            rows="9"
-            style="width:100%;padding:0.6rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;font-family:inherit;"
-            placeholder="Paste a URL, email, or description here…"></textarea>
-          <div id="paste-import-result" style="display:none;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;"></div>
+
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem;">
+          <button type="button" id="pi-type-event" onclick="setPasteImportType('event')"
+            style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;cursor:pointer;">
+            📅 Event
+          </button>
+          <button type="button" id="pi-type-activity" onclick="setPasteImportType('activity')"
+            style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;cursor:pointer;">
+            🏕️ Activity / Camp
+          </button>
+          <button type="button" id="pi-type-announcement" onclick="setPasteImportType('announcement')"
+            style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;cursor:pointer;">
+            📢 Announcement
+          </button>
         </div>
-        <div class="modal-footer">
-          <button onclick="closePasteImportModal()" class="btn btn-secondary">Cancel</button>
-          <button id="paste-import-submit" onclick="submitPasteImport()" class="btn btn-primary">
-            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:-2px;">auto_awesome</span>
-            Import
+
+        <p id="pi-hint-event" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;">
+          Paste a <strong>URL</strong> to scrape events, or paste an <strong>email / description</strong> — AI extracts date, time, location and stages it for review.
+        </p>
+        <p id="pi-hint-activity" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;display:none;">
+          Paste a camp or class description — AI extracts name, grade range, dates, cost, location and creates a <strong>pending draft</strong> in Kid Activities for you to review and publish.
+        </p>
+        <p id="pi-hint-announcement" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;display:none;">
+          Paste announcement text — AI extracts the title, message, and link, then <strong>publishes it immediately</strong>.
+        </p>
+
+        <textarea
+          id="paste-import-text"
+          rows="8"
+          class="form-input-base"
+          placeholder="Paste a URL, email, or description here…"></textarea>
+
+        <div id="paste-import-result" style="display:none;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;"></div>
+
+        <div class="form-actions">
+          <button type="button" onclick="closePasteImportModal()" class="btn-cancel">Cancel</button>
+          <button type="button" id="paste-import-submit" onclick="submitPasteImport()" class="btn-save">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:-2px;margin-right:0.25rem;">auto_awesome</span>Import
           </button>
         </div>
       </div>
