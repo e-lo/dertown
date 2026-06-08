@@ -28,6 +28,7 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
     .neq('status', 'pending')
     .neq('status', 'archived')
     .neq('status', 'cancelled')
+    .neq('status', 'duplicate')
     .gte('start_date', today)
     .order('start_date', { ascending: true });
 
