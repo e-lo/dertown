@@ -42,8 +42,12 @@ export async function writeProcessedEvents(
   source: SourceConfig,
   verbose: boolean
 ): Promise<WriteResult> {
-  // Remove rejected staged rows (duplicate/archived) so they do not clutter FK parent lookups.
-  // DB constraint events_staged_status_staging_only prevents status = approved on this table.
+  // Nullify parent_event_id references that point to rejected (archived/duplicate) staged rows.
+  // This prevents pending children from being orphaned if their staged parent was rejected.
+  // We intentionally do NOT delete the rejected rows themselves — they serve as permanent
+  // scraper memory so that admin-rejected events are not re-queued on subsequent runs.
+  // The dedup logic in match.ts includes all staged events (any status) in its pool, so
+  // archived/duplicate rows will continue to match and be skipped on future scrapes.
   const { data: rejectedStaged } = await db
     .from('events_staged')
     .select('id')
@@ -55,15 +59,6 @@ export async function writeProcessedEvents(
       .from('events_staged')
       .update({ parent_event_id: null })
       .in('parent_event_id', stuckIds);
-    const { error: cleanupError } = await db
-      .from('events_staged')
-      .delete()
-      .in('status', ['duplicate', 'archived']);
-    if (cleanupError) {
-      if (verbose) console.log(`    WARN: cleanup of rejected staged events failed: ${cleanupError.message}`);
-    } else {
-      console.log(`  Cleaned up ${rejectedStaged.length} rejected staged event(s) (duplicate/archived)`);
-    }
   }
 
   const result: WriteResult = {
