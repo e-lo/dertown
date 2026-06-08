@@ -3814,43 +3814,37 @@ const userEmail = session.user?.email || 'Admin';
           formData.expires_at = null;
         }
         
-        // Handle organization - for new announcements, use organization_added if provided
+        // Handle organization
         const orgId = document.getElementById('editAnnouncementOrganizationId').value;
         const orgAdded = document.getElementById('editAnnouncementOrganizationAdded').value.trim();
-        
+
         if (orgId) {
-          // Look up the organization name for staged announcements
-          const org = allOrganizations.find(o => o.id === orgId);
-          if (org) {
-            formData.organization = org.name;
-            formData.organization_added = null;
-          }
+          formData.organization_id = orgId;
         } else if (orgAdded) {
-          formData.organization = null;
           formData.organization_added = orgAdded;
         }
-        
+
         // Validate required fields
         if (!formData.title || !formData.message) {
           showMessage('Title and message are required', 'error');
           return;
         }
-        
+
         try {
-          // Create as staged announcement
-          const response = await fetch('/api/admin/announcements-staged/create', {
+          const response = await fetch('/api/admin/announcements/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(formData)
           });
-          
+
           if (response.ok) {
             closeEditAnnouncementModal();
-            showMessage('Announcement created successfully! It will appear in the approval queue.', 'success');
-            if (typeof loadAnnouncementsToApprove === 'function') {
-              loadAnnouncementsToApprove();
-            }
+            showMessage('Announcement created and published.', 'success');
+            await Promise.all([
+              typeof loadAnnouncementsToApprove === 'function' ? loadAnnouncementsToApprove() : Promise.resolve(),
+              typeof loadUpcomingAnnouncements === 'function' ? loadUpcomingAnnouncements() : Promise.resolve(),
+            ]);
           } else {
             const errorData = await response.json().catch(() => ({ error: 'Failed to create announcement' }));
             throw new Error(errorData.error || 'Failed to create announcement');
