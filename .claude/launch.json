@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4444", "--directory", "/Users/elizabethsall/Documents/GitHub/dertown/.claude/map-preview"],
       "port": 4444
+    },
+    {
+      "name": "dertown-dev",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "cd /Users/elizabethsall/Documents/GitHub/dertown && npm run dev -- --port 4321"],
+      "port": 4321
     }
   ]
 }

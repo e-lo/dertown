@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
+import EditAnnouncementModal from '../../components/ui/EditAnnouncementModal.astro';
 import { getSessionFromCookies } from '../../lib/session';
 
 const { session } = await getSessionFromCookies(Astro.cookies);
@@ -12,10 +13,19 @@ const userEmail = session.user?.email || 'Admin';
 
 <AdminLayout title="Announcements" userEmail={userEmail}>
   <Fragment slot="actions">
-    <a href="/admin#announcements-container" class="icon-btn btn-create" aria-label="Create / manage announcements">
+    <button
+      type="button"
+      onclick="openCreateAnnouncementModal()"
+      class="icon-btn btn-create btn-announcement"
+      aria-label="Create New Announcement"
+    >
       <span class="material-symbols-outlined text-2xl">campaign</span>
-      <span class="tooltip">Manage on Dashboard</span>
-    </a>
+      <span class="tooltip">Create New Announcement</span>
+    </button>
+  </Fragment>
+
+  <Fragment slot="modals">
+    <EditAnnouncementModal />
   </Fragment>
 
   <div class="section-header">
@@ -27,21 +37,141 @@ const userEmail = session.user?.email || 'Admin';
   <div class="mb-4 flex flex-wrap items-center gap-4">
     <div class="relative max-w-md flex-1 min-w-[200px]">
       <label for="announcement-search" class="sr-only">Search announcements</label>
-      <input type="text" id="announcement-search" class="form-input-base w-full" placeholder="Type to search by title or message..." autocomplete="off" />
+      <input
+        type="text"
+        id="announcement-search"
+        class="form-input-base w-full"
+        placeholder="Type to search by title or message..."
+        autocomplete="off"
+      />
     </div>
-    <p class="text-sm text-gray-500">Shows all pending announcements and published announcements that are currently active, upcoming, or expired within the last 30 days. Approve or edit from the dashboard.</p>
+    <p class="text-sm text-gray-500">
+      Shows pending and published announcements active, upcoming, or expired within the last 30 days.
+    </p>
   </div>
   <div id="announcements-loading" class="loading">Loading announcements...</div>
   <div id="announcements-container"></div>
 </AdminLayout>
 
 <script>
-  // @ts-nocheck - script runs in browser; JSDoc types kept for documentation
-  /** @typedef {{ id: string; title?: string; message?: string; show_at?: string; expires_at?: string; status?: string }} ListAnnouncement */
-  /** @type {ListAnnouncement[]} */
+  // @ts-nocheck
+  /** @typedef {{ id: string; title?: string; message?: string; show_at?: string; expires_at?: string; status?: string; organization_id?: string; link?: string; email?: string; author?: string; comments?: string }} ListAnnouncement */
+
   let announcements = /** @type {ListAnnouncement[]} */ ([]);
-  /** @type {ListAnnouncement[]} */
   let filtered = /** @type {ListAnnouncement[]} */ ([]);
+  let allOrganizations = [];
+  let currentEditId = null;
+  let currentEditType = null;
+
+  let autocompleteSetupComplete = false;
+  let autocompleteSetupRetries = 0;
+  const MAX_RETRIES = 10;
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
+
+  function normalizeUrl(url) {
+    if (!url || url.trim() === '') return null;
+    const trimmed = url.trim();
+    if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed;
+    return 'https://' + trimmed;
+  }
+
+  function showMessage(message, type = 'info') {
+    const div = document.createElement('div');
+    div.textContent = message;
+    div.className =
+      'fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ' +
+      (type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-600');
+    document.body.appendChild(div);
+    setTimeout(() => div.parentNode?.removeChild(div), 5000);
+  }
+
+  // ── Reference data ─────────────────────────────────────────────────────────
+
+  async function loadOrganizations() {
+    try {
+      const res = await fetch('/api/admin/organizations', { credentials: 'include' });
+      if (res.ok) allOrganizations = await res.json();
+    } catch {
+      // non-fatal
+    }
+  }
+
+  // ── Org autocomplete ────────────────────────────────────────────────────────
+
+  function setupAnnouncementOrganizationAutocomplete() {
+    const searchInput = document.getElementById('editAnnouncementOrganizationSearch');
+    const hiddenInput = document.getElementById('editAnnouncementOrganizationId');
+    const dropdown = document.getElementById('editAnnouncementOrganizationDropdown');
+    const newOrgInput = document.getElementById('editAnnouncementOrganizationAdded');
+
+    if (!searchInput || !hiddenInput || !dropdown) {
+      if (autocompleteSetupRetries < MAX_RETRIES) {
+        autocompleteSetupRetries++;
+        setTimeout(setupAnnouncementOrganizationAutocomplete, 100);
+      }
+      return;
+    }
+    if (autocompleteSetupComplete) return;
+    autocompleteSetupComplete = true;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (!query) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        hiddenInput.value = '';
+        return;
+      }
+      const matches = allOrganizations.filter(
+        (o) => o && o.name && o.name.toLowerCase().includes(query)
+      ).slice(0, 10);
+      if (!matches.length) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+        return;
+      }
+      dropdown.innerHTML = matches
+        .map((org) => {
+          const label = (org.name || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          return `<div class="autocomplete-dropdown-item" data-id="${org.id}" data-label="${label}">${label}</div>`;
+        })
+        .join('');
+      dropdown.querySelectorAll('.autocomplete-dropdown-item').forEach((el) => {
+        el.addEventListener('pointerdown', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          searchInput.value = el.getAttribute('data-label') || '';
+          hiddenInput.value = el.getAttribute('data-id') || '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+          if (newOrgInput) newOrgInput.value = '';
+        });
+      });
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('block');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
+      }
+    });
+
+    if (newOrgInput) {
+      newOrgInput.addEventListener('input', () => {
+        if (newOrgInput.value.trim()) {
+          searchInput.value = '';
+          hiddenInput.value = '';
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('block');
+        }
+      });
+    }
+  }
+
+  // ── Data loading ────────────────────────────────────────────────────────────
 
   async function loadAnnouncements() {
     const el = document.getElementById('announcements-loading');
@@ -55,11 +185,10 @@ const userEmail = session.user?.email || 'Admin';
       }
       if (!res.ok) throw new Error('Failed to load announcements');
       const data = await res.json();
-      announcements = /** @type {ListAnnouncement[]} */ (data.announcements || []);
+      announcements = data.announcements || [];
       applyFilter();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load announcements';
-      container.innerHTML = '<p class="text-red-600">' + msg + '</p>';
+      container.innerHTML = '<p class="text-red-600">' + (err instanceof Error ? err.message : 'Failed to load announcements') + '</p>';
     } finally {
       el.classList.add('hidden');
     }
@@ -68,15 +197,21 @@ const userEmail = session.user?.email || 'Admin';
   function applyFilter() {
     const searchEl = document.getElementById('announcement-search');
     const q = (searchEl instanceof HTMLInputElement ? searchEl.value : '').toLowerCase().trim();
-    filtered = /** @type {ListAnnouncement[]} */ (
-      !q
-        ? announcements.slice()
-        : announcements.filter(a =>
+    filtered = !q
+      ? announcements.slice()
+      : announcements.filter(
+          (a) =>
             (a.title || '').toLowerCase().includes(q) ||
             (a.message || '').toLowerCase().includes(q)
-          )
-    );
+        );
     renderAnnouncements();
+  }
+
+  function statusBadge(status) {
+    if (status === 'published') return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Published</span>';
+    if (status === 'pending') return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Pending</span>';
+    if (status === 'archived') return '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Archived</span>';
+    return '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">' + (status || '—') + '</span>';
   }
 
   function renderAnnouncements() {
@@ -95,27 +230,275 @@ const userEmail = session.user?.email || 'Admin';
       '<thead><tr>' +
       '<th>Title</th><th>Message</th><th>Show At</th><th>Expires At</th><th>Status</th><th>Actions</th>' +
       '</tr></thead><tbody>' +
-      filtered.map(a => (
-        '<tr>' +
-        '<td>' + (a.title || '—') + '</td>' +
-        '<td>' + (a.message || '').substring(0, 80) + (a.message && a.message.length > 80 ? '...' : '') + '</td>' +
-        '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : '—') + '</td>' +
-        '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : '—') + '</td>' +
-        '<td>' + (a.status || '—') + '</td>' +
-        '<td style="white-space:nowrap;">' +
-        '<a href="/admin#announcements-container" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" aria-label="Manage on dashboard">' +
-        '<span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span>' +
-        '<span class="tooltip">Manage on Dashboard</span></a>' +
-        '</td></tr>'
-      )).join('') +
+      filtered
+        .map((a) => {
+          const isPending = a.status === 'pending';
+          const approveBtn = isPending
+            ? '<button onclick="approveAnnouncement(\'' +
+              a.id +
+              '\')" class="icon-btn btn-approve" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;" aria-label="Publish announcement">' +
+              '<span class="material-symbols-outlined" style="font-size:1.25rem;">check</span>' +
+              '<span class="tooltip">Publish</span></button>'
+            : '';
+          return (
+            '<tr>' +
+            '<td>' + (a.title || '—') + '</td>' +
+            '<td>' + (a.message || '').substring(0, 80) + (a.message && a.message.length > 80 ? '...' : '') + '</td>' +
+            '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : '—') + '</td>' +
+            '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : '—') + '</td>' +
+            '<td>' + statusBadge(a.status) + '</td>' +
+            '<td style="white-space:nowrap;">' +
+            '<button onclick="editAnnouncement(\'' +
+            a.id +
+            '\')" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;" aria-label="Edit announcement">' +
+            '<span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span>' +
+            '<span class="tooltip">Edit</span></button>' +
+            approveBtn +
+            '<button onclick="archiveAnnouncement(\'' +
+            a.id +
+            '\')" class="icon-btn btn-reject" style="padding:0.5rem;min-width:auto;" aria-label="Archive announcement">' +
+            '<span class="material-symbols-outlined" style="font-size:1.25rem;">archive</span>' +
+            '<span class="tooltip">Archive</span></button>' +
+            '</td></tr>'
+          );
+        })
+        .join('') +
       '</tbody></table>';
     container.innerHTML = table;
   }
 
-  const searchInput = document.getElementById('announcement-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', applyFilter);
+  // ── Modal open/close ────────────────────────────────────────────────────────
+
+  function openModal() {
+    const modal = document.getElementById('editAnnouncementModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        autocompleteSetupRetries = 0;
+        setupAnnouncementOrganizationAutocomplete();
+      }, 50);
+    }
   }
 
-  loadAnnouncements();
+  window.closeEditAnnouncementModal = function () {
+    const modal = document.getElementById('editAnnouncementModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    currentEditId = null;
+    currentEditType = null;
+  };
+
+  function clearModalFields() {
+    [
+      'editAnnouncementTitle',
+      'editAnnouncementMessage',
+      'editAnnouncementShowAtDate',
+      'editAnnouncementShowAtTime',
+      'editAnnouncementExpiresAtDate',
+      'editAnnouncementExpiresAtTime',
+      'editAnnouncementLink',
+      'editAnnouncementEmail',
+      'editAnnouncementAuthor',
+      'editAnnouncementOrganizationSearch',
+      'editAnnouncementOrganizationId',
+      'editAnnouncementOrganizationAdded',
+      'editAnnouncementComments',
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }
+
+  window.openCreateAnnouncementModal = function () {
+    currentEditId = null;
+    currentEditType = 'new-announcement';
+    clearModalFields();
+    document.getElementById('editAnnouncementModalTitle').textContent = 'Create New Announcement';
+    const orgContainer = document.getElementById('editAnnouncementOrganizationAddedContainer');
+    if (orgContainer) orgContainer.classList.remove('hidden');
+    openModal();
+  };
+
+  // ── Edit ────────────────────────────────────────────────────────────────────
+
+  window.editAnnouncement = async function (announcementId) {
+    currentEditId = announcementId;
+    currentEditType = 'existing-announcement';
+
+    // Try the list cache first, then fetch directly
+    let announcement = announcements.find((a) => a.id === announcementId);
+    if (!announcement) {
+      const res = await fetch(`/api/admin/announcements/${announcementId}`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        announcement = data.announcement;
+      }
+    }
+    if (!announcement) {
+      showMessage('Announcement not found', 'error');
+      return;
+    }
+
+    clearModalFields();
+    document.getElementById('editAnnouncementModalTitle').textContent = 'Edit Announcement';
+    document.getElementById('editAnnouncementTitle').value = announcement.title || '';
+    document.getElementById('editAnnouncementMessage').value = announcement.message || '';
+    document.getElementById('editAnnouncementLink').value = announcement.link || '';
+    document.getElementById('editAnnouncementEmail').value = announcement.email || '';
+    document.getElementById('editAnnouncementAuthor').value = announcement.author || '';
+    document.getElementById('editAnnouncementComments').value = announcement.comments || '';
+
+    if (announcement.show_at) {
+      const d = new Date(announcement.show_at);
+      document.getElementById('editAnnouncementShowAtDate').value = d.toISOString().split('T')[0];
+      document.getElementById('editAnnouncementShowAtTime').value = d.toTimeString().substring(0, 5);
+    }
+    if (announcement.expires_at) {
+      const d = new Date(announcement.expires_at);
+      document.getElementById('editAnnouncementExpiresAtDate').value = d.toISOString().split('T')[0];
+      document.getElementById('editAnnouncementExpiresAtTime').value = d.toTimeString().substring(0, 5);
+    }
+    if (announcement.organization_id) {
+      const org = allOrganizations.find((o) => o.id === announcement.organization_id);
+      if (org) {
+        document.getElementById('editAnnouncementOrganizationSearch').value = org.name;
+        document.getElementById('editAnnouncementOrganizationId').value = org.id;
+      }
+    }
+
+    openModal();
+  };
+
+  // ── Approve / Archive ───────────────────────────────────────────────────────
+
+  window.approveAnnouncement = async function (announcementId) {
+    try {
+      const res = await fetch('/api/admin/announcements/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ announcementId }),
+      });
+      if (!res.ok) throw new Error('Failed to publish announcement');
+      showMessage('Announcement published!', 'success');
+      await loadAnnouncements();
+    } catch (err) {
+      showMessage('Error: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    }
+  };
+
+  window.archiveAnnouncement = async function (announcementId) {
+    const reason = prompt('Reason for archiving (optional):');
+    if (reason === null) return; // cancelled
+    try {
+      const res = await fetch('/api/admin/announcements/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ announcementId, reason }),
+      });
+      if (!res.ok) throw new Error('Failed to archive announcement');
+      showMessage('Announcement archived.', 'success');
+      await loadAnnouncements();
+    } catch (err) {
+      showMessage('Error: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    }
+  };
+
+  // ── Form submission ─────────────────────────────────────────────────────────
+
+  function buildFormData() {
+    const showAtDate = document.getElementById('editAnnouncementShowAtDate').value;
+    const showAtTime = document.getElementById('editAnnouncementShowAtTime').value;
+    const expiresAtDate = document.getElementById('editAnnouncementExpiresAtDate').value;
+    const expiresAtTime = document.getElementById('editAnnouncementExpiresAtTime').value;
+    const orgId = document.getElementById('editAnnouncementOrganizationId').value;
+
+    return {
+      title: document.getElementById('editAnnouncementTitle').value,
+      message: document.getElementById('editAnnouncementMessage').value,
+      link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
+      email: document.getElementById('editAnnouncementEmail').value || null,
+      author: document.getElementById('editAnnouncementAuthor').value || null,
+      comments: document.getElementById('editAnnouncementComments').value || null,
+      show_at: showAtDate
+        ? showAtDate + 'T' + (showAtTime || '00:00') + ':00'
+        : null,
+      expires_at: expiresAtDate
+        ? expiresAtDate + 'T' + (expiresAtTime || '23:59') + ':59'
+        : null,
+      organization_id: orgId || null,
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadOrganizations();
+    setupAnnouncementOrganizationAutocomplete();
+    await loadAnnouncements();
+
+    const searchInput = document.getElementById('announcement-search');
+    if (searchInput) searchInput.addEventListener('input', applyFilter);
+
+    const form = document.getElementById('editAnnouncementForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentEditType) return;
+
+      const formData = buildFormData();
+
+      if (!formData.title || !formData.message) {
+        showMessage('Title and message are required', 'error');
+        return;
+      }
+
+      if (currentEditType === 'new-announcement') {
+        // Add new-org field if provided
+        const orgAdded = document.getElementById('editAnnouncementOrganizationAdded').value.trim();
+        if (orgAdded && !formData.organization_id) formData.organization_added = orgAdded;
+
+        try {
+          const res = await fetch('/api/admin/announcements/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to create announcement');
+          }
+          window.closeEditAnnouncementModal();
+          showMessage('Announcement created and published.', 'success');
+          await loadAnnouncements();
+        } catch (err) {
+          showMessage('Error creating: ' + (err instanceof Error ? err.message : String(err)), 'error');
+        }
+        return;
+      }
+
+      if (!currentEditId) return;
+      formData.id = currentEditId;
+
+      try {
+        const res = await fetch('/api/admin/announcements', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        window.closeEditAnnouncementModal();
+        showMessage('Announcement updated!', 'success');
+        await loadAnnouncements();
+      } catch (err) {
+        showMessage('Error updating: ' + (err instanceof Error ? err.message : String(err)), 'error');
+      }
+    });
+  });
 </script>
