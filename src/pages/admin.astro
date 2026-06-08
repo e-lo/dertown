@@ -38,6 +38,14 @@ const userEmail = session.user?.email || 'Admin';
       <span class="material-symbols-outlined text-2xl">campaign</span>
       <span class="tooltip">Create New Announcement</span>
     </button>
+    <a href="/admin/kid-activities" class="icon-btn btn-create" aria-label="Kid Activities & Camps" style="background: linear-gradient(to bottom right, #0891b2, #0e7490);">
+      <span class="material-symbols-outlined text-2xl">sports</span>
+      <span class="tooltip">Kid Activities & Camps</span>
+    </a>
+    <button class="icon-btn btn-create" onclick="openPasteImportModal()" aria-label="Quick Import — paste text or URL" style="background: linear-gradient(to bottom right, #b45309, #92400e);">
+      <span class="material-symbols-outlined text-2xl">content_paste</span>
+      <span class="tooltip">Quick Import</span>
+    </button>
   </Fragment>
 
   <Fragment slot="modals">
@@ -46,6 +54,50 @@ const userEmail = session.user?.email || 'Admin';
     <AddOrganizationModal />
     <EditAnnouncementModal />
     <SeriesModal />
+
+    <!-- ── Quick Import modal ──────────────────────────────────────────── -->
+    <div id="paste-import-modal" class="modal-overlay hidden" onclick="if(event.target===this)closePasteImportModal()">
+      <div class="modal-container" style="max-width:580px">
+        <div class="modal-header">
+          <h2 class="modal-title">Quick Import</h2>
+          <button onclick="closePasteImportModal()" class="modal-close" aria-label="Close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Type toggle -->
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem;">
+            <button id="pi-type-event" onclick="setPasteImportType('event')"
+              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;">
+              📅 Event
+            </button>
+            <button id="pi-type-activity" onclick="setPasteImportType('activity')"
+              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;">
+              🏕️ Activity / Camp
+            </button>
+          </div>
+          <p id="pi-hint-event" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;">
+            Paste a <strong>URL</strong> to scrape events, or paste an <strong>email / description</strong> — AI extracts date, time, location and stages it for review.
+          </p>
+          <p id="pi-hint-activity" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;display:none;">
+            Paste a camp or class description — AI extracts name, grade range, dates, cost, location and creates a <strong>pending draft</strong> in Kid Activities for you to review and publish.
+          </p>
+          <textarea
+            id="paste-import-text"
+            rows="9"
+            style="width:100%;padding:0.6rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;font-family:inherit;"
+            placeholder="Paste a URL, email, or description here…"></textarea>
+          <div id="paste-import-result" style="display:none;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;"></div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="closePasteImportModal()" class="btn btn-secondary">Cancel</button>
+          <button id="paste-import-submit" onclick="submitPasteImport()" class="btn btn-primary">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:-2px;">auto_awesome</span>
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
   </Fragment>
 
   <nav class="view-all-nav" aria-label="View all content">
@@ -3388,7 +3440,125 @@ const userEmail = session.user?.email || 'Admin';
     window.clearPendingEvents = clearPendingEvents;
     window.markDuplicateStagedEvent = markDuplicateStagedEvent;
     window.markDuplicateExistingEvent = markDuplicateExistingEvent;
-    
+
+    // ── Quick Import (paste text or URL) ──────────────────────────────────
+    let pasteImportType = 'event'; // 'event' | 'activity'
+
+    window.setPasteImportType = function(type) {
+      pasteImportType = type;
+      const eventBtn = document.getElementById('pi-type-event');
+      const actBtn = document.getElementById('pi-type-activity');
+      const hintEvent = document.getElementById('pi-hint-event');
+      const hintActivity = document.getElementById('pi-hint-activity');
+      if (type === 'event') {
+        eventBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;';
+        actBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;';
+        hintEvent.style.display = '';
+        hintActivity.style.display = 'none';
+      } else {
+        actBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #0891b2;background:#ecfeff;color:#0e7490;border-radius:0.375rem;';
+        eventBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;';
+        hintEvent.style.display = 'none';
+        hintActivity.style.display = '';
+      }
+    };
+
+    window.openPasteImportModal = function() {
+      const modal = document.getElementById('paste-import-modal');
+      const textarea = document.getElementById('paste-import-text');
+      const result = document.getElementById('paste-import-result');
+      if (!modal) return;
+      textarea.value = '';
+      result.style.display = 'none';
+      modal.classList.remove('hidden');
+      setTimeout(() => textarea.focus(), 50);
+    };
+
+    window.closePasteImportModal = function() {
+      document.getElementById('paste-import-modal')?.classList.add('hidden');
+    };
+
+    window.submitPasteImport = async function() {
+      const textarea = document.getElementById('paste-import-text');
+      const resultEl = document.getElementById('paste-import-result');
+      const submitBtn = document.getElementById('paste-import-submit');
+      const text = textarea?.value?.trim();
+      if (!text) { showMessage('Paste some text or a URL first.', 'error'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:-2px;">hourglass_empty</span> Importing…';
+      resultEl.style.display = 'none';
+
+      const endpoint = pasteImportType === 'activity'
+        ? '/api/admin/activity-import'
+        : '/api/admin/paste-import';
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ text }),
+        });
+        const data = await resp.json();
+
+        let msg = '';
+        let style = 'good';
+
+        if (pasteImportType === 'activity') {
+          if (!resp.ok || !data.ok) {
+            style = 'error';
+            msg = '✗ ' + (data.error || 'Import failed');
+          } else {
+            const names = data.created.map(a => `"${a.name}"`).join(', ');
+            msg = `✓ Created ${data.created.length} draft activit${data.created.length === 1 ? 'y' : 'ies'}: ${names}. Review in Kid Activities →`;
+            if (data.errors?.length) msg += ` (${data.errors.length} failed to save)`;
+            textarea.value = '';
+          }
+        } else {
+          if (!resp.ok || !data.ok) {
+            style = 'error';
+            msg = '✗ ' + (data.error || 'Import failed');
+          } else {
+            const r = data.result;
+            if (r.status === 'event_staged') {
+              msg = '✓ Event staged for review.';
+              if (r.duplicateHint) msg += ` Possible duplicate: "${r.duplicateHint.title}" (${r.duplicateHint.match_level}).`;
+              if (typeof loadEventsToApprove === 'function') loadEventsToApprove();
+            } else if (r.status === 'scrape_queued') {
+              msg = r.count > 0
+                ? `✓ Scraped ${r.count} event${r.count !== 1 ? 's' : ''} from ${r.url}`
+                : `⚠ No upcoming events found at ${r.url}`;
+              if (r.count === 0) style = 'warn';
+              if (typeof loadEventsToApprove === 'function') loadEventsToApprove();
+            } else if (r.status === 'screened_out') {
+              style = 'warn';
+              msg = '⚠ Screened out: ' + r.reason;
+            } else {
+              msg = JSON.stringify(r);
+            }
+            textarea.value = '';
+          }
+        }
+
+        const styleMap = {
+          good:  'display:block;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;background:#f0fdf4;color:#166534;border:1px solid #86efac;',
+          warn:  'display:block;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;background:#fffbeb;color:#92400e;border:1px solid #fcd34d;',
+          error: 'display:block;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;',
+        };
+        resultEl.style.cssText = styleMap[style];
+        resultEl.textContent = msg;
+
+      } catch (err) {
+        resultEl.style.cssText = 'display:block;margin-top:0.75rem;padding:0.6rem 0.8rem;border-radius:0.375rem;font-size:0.875rem;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;';
+        resultEl.textContent = '✗ Network error: ' + err.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:-2px;">auto_awesome</span> Import';
+      }
+    };
+    // ─────────────────────────────────────────────────────────────────────
+
     // Modal functions
   /**
    * Opens the announcement edit modal in "create new announcement" mode
