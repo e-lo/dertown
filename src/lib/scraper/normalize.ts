@@ -67,7 +67,7 @@ export function normalizeTime(raw: string | null | undefined): string | null {
 export function normalizeUrl(raw: string | null | undefined): string | null {
   if (!raw || raw.trim() === '') return null;
   const trimmed = raw.trim();
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed;
   return 'https://' + trimmed;
 }
 

@@ -107,7 +107,7 @@ async function requestCalendarAccess(): Promise<boolean> {
     'Please allow Dertown to access your Calendar in Settings.',
     [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Open Settings', onPress: () => Linking.openSettings() },
+      { text: 'Open Settings', onPress: () => Linking.openSettings().catch(() => {}) },
     ]
   );
   return false;

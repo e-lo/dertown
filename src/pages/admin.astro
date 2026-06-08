@@ -189,8 +189,8 @@ const userEmail = session.user?.email || 'Admin';
   function normalizeUrl(url) {
     if (!url || url.trim() === '') return null;
     const trimmed = url.trim();
-    // If it already has a protocol (http:// or https://), return as is
-    if (/^https?:\/\//i.test(trimmed)) {
+    // If it already has any URI scheme (http://, https://, mailto:, tel:, etc.), return as is
+    if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) {
       return trimmed;
     }
     // Otherwise, add https://
