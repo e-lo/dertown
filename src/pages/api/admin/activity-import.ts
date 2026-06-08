@@ -1,8 +1,12 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import { extractActivitiesWithAI } from '@/lib/ai/extract-activity';
+import { fetchPage } from '@/lib/scraper/fetch';
+import { htmlToCleanText } from '@/lib/scraper/parse-ai';
 
 export const prerender = false;
+
+const URL_RE = /^https?:\/\/\S+/i;
 
 export const POST = withAdminAuth(async ({ request }) => {
   let text: string;
@@ -15,10 +19,32 @@ export const POST = withAdminAuth(async ({ request }) => {
 
   if (!text) return jsonError('No text provided', 400);
 
+  // ── If a URL was pasted, fetch the page and extract clean text ───────────
+  let contentText = text;
+  if (URL_RE.test(text)) {
+    try {
+      const html = await fetchPage(text);
+      contentText = htmlToCleanText(html, 10_000);
+      if (contentText.length < 50) {
+        return jsonResponse({
+          ok: false,
+          error: 'Page fetched but content was too short to extract from. The site may require JavaScript to render. Try copying and pasting the page text directly.',
+        }, 422);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[activity-import] URL fetch failed:', msg);
+      return jsonResponse({
+        ok: false,
+        error: `Could not fetch that URL (${msg}). The page may be private or block automated access. Try copying and pasting the text directly instead.`,
+      }, 422);
+    }
+  }
+
   // ── AI extraction ────────────────────────────────────────────────────────
   let extracted;
   try {
-    extracted = await extractActivitiesWithAI(text);
+    extracted = await extractActivitiesWithAI(contentText);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[activity-import] AI extraction failed:', msg);
