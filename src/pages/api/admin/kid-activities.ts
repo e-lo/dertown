@@ -55,3 +55,22 @@ export const POST = withAdminAuth(async ({ request }) => {
   }
   return jsonResponse({ activity: data }, 201);
 });
+
+const VALID_STATUSES = ['pending', 'approved', 'duplicate', 'archived', 'cancelled'];
+
+export const DELETE = withAdminAuth(async ({ url }) => {
+  const status = url.searchParams.get('status');
+  if (!status) return jsonError('status query param required', 400);
+  if (!VALID_STATUSES.includes(status)) return jsonError(`Invalid status: ${status}`, 400);
+
+  const { error } = await supabaseAdmin
+    .from('activities')
+    .delete()
+    .eq('status', status as any);
+
+  if (error) {
+    console.error('[kid-activities bulk DELETE]', error);
+    return jsonError(`Failed to bulk delete: ${error.message}`, 500);
+  }
+  return jsonResponse({ ok: true });
+});
