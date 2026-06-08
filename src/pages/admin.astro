@@ -75,12 +75,19 @@ const userEmail = session.user?.email || 'Admin';
               class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;">
               🏕️ Activity / Camp
             </button>
+            <button id="pi-type-announcement" onclick="setPasteImportType('announcement')"
+              class="btn" style="flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;">
+              📢 Announcement
+            </button>
           </div>
           <p id="pi-hint-event" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;">
             Paste a <strong>URL</strong> to scrape events, or paste an <strong>email / description</strong> — AI extracts date, time, location and stages it for review.
           </p>
           <p id="pi-hint-activity" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;display:none;">
             Paste a camp or class description — AI extracts name, grade range, dates, cost, location and creates a <strong>pending draft</strong> in Kid Activities for you to review and publish.
+          </p>
+          <p id="pi-hint-announcement" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.6rem;display:none;">
+            Paste an announcement text — AI extracts the title, message, and link, then <strong>publishes it immediately</strong>.
           </p>
           <textarea
             id="paste-import-text"
@@ -3444,23 +3451,20 @@ const userEmail = session.user?.email || 'Admin';
     // ── Quick Import (paste text or URL) ──────────────────────────────────
     let pasteImportType = 'event'; // 'event' | 'activity'
 
+    const PI_STYLES = {
+      event:        'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;',
+      activity:     'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #0891b2;background:#ecfeff;color:#0e7490;border-radius:0.375rem;',
+      announcement: 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #7c3aed;background:#f5f3ff;color:#5b21b6;border-radius:0.375rem;',
+      inactive:     'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;',
+    };
+
     window.setPasteImportType = function(type) {
       pasteImportType = type;
-      const eventBtn = document.getElementById('pi-type-event');
-      const actBtn = document.getElementById('pi-type-activity');
-      const hintEvent = document.getElementById('pi-hint-event');
-      const hintActivity = document.getElementById('pi-hint-activity');
-      if (type === 'event') {
-        eventBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:0.375rem;';
-        actBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;';
-        hintEvent.style.display = '';
-        hintActivity.style.display = 'none';
-      } else {
-        actBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #0891b2;background:#ecfeff;color:#0e7490;border-radius:0.375rem;';
-        eventBtn.style.cssText = 'flex:1;padding:0.45rem;font-size:0.8rem;border:2px solid #d1d5db;background:#f9fafb;color:#6b7280;border-radius:0.375rem;';
-        hintEvent.style.display = 'none';
-        hintActivity.style.display = '';
-      }
+      ['event', 'activity', 'announcement'].forEach(t => {
+        document.getElementById('pi-type-' + t).style.cssText = t === type ? PI_STYLES[t] : PI_STYLES.inactive;
+        document.getElementById('pi-hint-' + t).style.display = t === type ? '' : 'none';
+      });
+      document.getElementById('paste-import-result').style.display = 'none';
     };
 
     window.openPasteImportModal = function() {
@@ -3491,6 +3495,8 @@ const userEmail = session.user?.email || 'Admin';
 
       const endpoint = pasteImportType === 'activity'
         ? '/api/admin/activity-import'
+        : pasteImportType === 'announcement'
+        ? '/api/admin/announcement-import'
         : '/api/admin/paste-import';
 
       try {
@@ -3505,7 +3511,17 @@ const userEmail = session.user?.email || 'Admin';
         let msg = '';
         let style = 'good';
 
-        if (pasteImportType === 'activity') {
+        if (pasteImportType === 'announcement') {
+          if (!resp.ok || !data.ok) {
+            style = 'error';
+            msg = '✗ ' + (data.error || 'Import failed');
+          } else {
+            msg = `✓ Announcement published: "${data.announcement.title}"`;
+            textarea.value = '';
+            if (typeof loadAnnouncementsToApprove === 'function') loadAnnouncementsToApprove();
+            if (typeof loadUpcomingAnnouncements === 'function') loadUpcomingAnnouncements();
+          }
+        } else if (pasteImportType === 'activity') {
           if (!resp.ok || !data.ok) {
             style = 'error';
             msg = '✗ ' + (data.error || 'Import failed');
