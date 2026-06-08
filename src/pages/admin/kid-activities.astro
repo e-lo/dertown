@@ -1186,5 +1186,251 @@ const hierarchyTree = buildHierarchy(activities || []);
 
     // Make functions available globally for form submissions
     (window as any).makeApiCall = makeApiCall;
+
+    // ── Modal helpers ──────────────────────────────────────────────────────
+    function showModal(modalId: string) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeModal(modalId: string) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function resetActivityForm() {
+      const form = document.getElementById('activityForm') as HTMLFormElement | null;
+      if (form) form.reset();
+      (document.getElementById('activityId') as HTMLInputElement).value = '';
+      (document.getElementById('parentActivityId') as HTMLInputElement).value = '';
+      (document.getElementById('activityHierarchyType') as HTMLInputElement).value = '';
+      // Hide all conditional sections
+      document.getElementById('sessionInfoSection')?.classList.add('hidden');
+      document.getElementById('classInstanceInfoSection')?.classList.add('hidden');
+      document.getElementById('standardActivityFields')?.classList.remove('hidden');
+    }
+
+    function showSectionsForType(hierarchyType: string) {
+      const sessionSection = document.getElementById('sessionInfoSection');
+      const instanceSection = document.getElementById('classInstanceInfoSection');
+      const standardFields = document.getElementById('standardActivityFields');
+      if (hierarchyType === 'SESSION') {
+        sessionSection?.classList.remove('hidden');
+        instanceSection?.classList.add('hidden');
+        standardFields?.classList.add('hidden');
+      } else if (hierarchyType === 'CLASS_INSTANCE') {
+        sessionSection?.classList.add('hidden');
+        instanceSection?.classList.remove('hidden');
+        standardFields?.classList.remove('hidden');
+      } else {
+        // PROGRAM, CLASS_TYPE
+        sessionSection?.classList.add('hidden');
+        instanceSection?.classList.add('hidden');
+        standardFields?.classList.remove('hidden');
+      }
+    }
+
+    function selectScheduleType(type: string) {
+      const recurringBtn = document.getElementById('recurringBtn');
+      const oneOffBtn = document.getElementById('oneOffBtn');
+      const recurringSection = document.getElementById('recurringForm');
+      const oneOffSection = document.getElementById('oneOffForm');
+      if (type === 'RECURRING') {
+        recurringBtn?.classList.add('border-green-500');
+        oneOffBtn?.classList.remove('border-green-500');
+        recurringSection?.classList.remove('hidden');
+        oneOffSection?.classList.add('hidden');
+      } else {
+        oneOffBtn?.classList.add('border-green-500');
+        recurringBtn?.classList.remove('border-green-500');
+        oneOffSection?.classList.remove('hidden');
+        recurringSection?.classList.add('hidden');
+      }
+    }
+
+    (window as any).showModal = showModal;
+    (window as any).closeModal = closeModal;
+    (window as any).selectScheduleType = selectScheduleType;
+
+    // ── CRUD operations ────────────────────────────────────────────────────
+    async function editActivity(id: string) {
+      try {
+        const response = await makeApiCall(`/api/admin/kid-activities/${id}`);
+        if (!response) return;
+        const { activity } = await response.json();
+
+        resetActivityForm();
+
+        // Populate hidden fields
+        (document.getElementById('activityId') as HTMLInputElement).value = activity.id;
+        (document.getElementById('parentActivityId') as HTMLInputElement).value = activity.parent_activity_id ?? '';
+        (document.getElementById('activityHierarchyType') as HTMLInputElement).value = activity.activity_hierarchy_type;
+
+        // Populate visible fields
+        (document.getElementById('activityName') as HTMLInputElement).value = activity.name ?? '';
+        (document.getElementById('activityType') as HTMLSelectElement).value = activity.activity_type ?? '';
+        (document.getElementById('activityDescription') as HTMLTextAreaElement).value = activity.description ?? '';
+        (document.getElementById('locationId') as HTMLSelectElement).value = activity.location_id ?? '';
+        (document.getElementById('minAge') as HTMLInputElement).value = activity.min_age ?? '';
+        (document.getElementById('maxAge') as HTMLInputElement).value = activity.max_age ?? '';
+        (document.getElementById('minGrade') as HTMLInputElement).value = activity.min_grade ?? '';
+        (document.getElementById('maxGrade') as HTMLInputElement).value = activity.max_grade ?? '';
+        (document.getElementById('cost') as HTMLInputElement).value = activity.cost ?? '';
+        (document.getElementById('website') as HTMLInputElement).value = activity.website ?? '';
+        (document.getElementById('commitmentLevel') as HTMLSelectElement).value = activity.commitment_level ?? '';
+        (document.getElementById('startDatetime') as HTMLInputElement).value = activity.start_datetime?.split('T')[0] ?? '';
+        (document.getElementById('endDatetime') as HTMLInputElement).value = activity.end_datetime?.split('T')[0] ?? '';
+        (document.getElementById('registrationOpens') as HTMLInputElement).value = activity.registration_opens ?? '';
+        (document.getElementById('registrationCloses') as HTMLInputElement).value = activity.registration_closes ?? '';
+        (document.getElementById('registrationLink') as HTMLInputElement).value = activity.registration_link ?? '';
+        (document.getElementById('registrationInfo') as HTMLTextAreaElement).value = activity.registration_info ?? '';
+        (document.getElementById('registrationRequired') as HTMLInputElement).checked = !!activity.registration_required;
+
+        showSectionsForType(activity.activity_hierarchy_type);
+
+        const title = document.getElementById('modalTitle');
+        if (title) title.textContent = `Edit ${activity.activity_hierarchy_type.replace('_', ' ')}`;
+
+        showModal('activityModal');
+      } catch (err) {
+        alert('Failed to load activity: ' + (err as Error).message);
+      }
+    }
+
+    (window as any).editActivity = editActivity;
+
+    async function createChildActivity(parentId: string, hierarchyType: string) {
+      resetActivityForm();
+      (document.getElementById('parentActivityId') as HTMLInputElement).value = parentId;
+      (document.getElementById('activityHierarchyType') as HTMLInputElement).value = hierarchyType;
+
+      showSectionsForType(hierarchyType);
+
+      const title = document.getElementById('modalTitle');
+      if (title) title.textContent = `Add ${hierarchyType.replace('_', ' ')}`;
+
+      showModal('activityModal');
+    }
+
+    (window as any).createChildActivity = createChildActivity;
+
+    async function deleteActivity(id: string) {
+      if (!confirm('Delete this activity and all its children? This cannot be undone.')) return;
+      try {
+        await makeApiCall(`/api/admin/kid-activities/${id}`, { method: 'DELETE' });
+        window.location.reload();
+      } catch (err) {
+        alert('Failed to delete: ' + (err as Error).message);
+      }
+    }
+
+    (window as any).deleteActivity = deleteActivity;
+
+    async function duplicateActivity(id: string) {
+      if (!confirm('Duplicate this activity?')) return;
+      try {
+        const getRes = await makeApiCall(`/api/admin/kid-activities/${id}`);
+        if (!getRes) return;
+        const { activity } = await getRes.json();
+
+        const { id: _id, created_at, updated_at, ...rest } = activity;
+        rest.name = `${rest.name} (copy)`;
+        rest.status = 'pending';
+
+        await makeApiCall('/api/admin/kid-activities', {
+          method: 'POST',
+          body: JSON.stringify(rest),
+        });
+        window.location.reload();
+      } catch (err) {
+        alert('Failed to duplicate: ' + (err as Error).message);
+      }
+    }
+
+    (window as any).duplicateActivity = duplicateActivity;
+
+    // ── Form submission ────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('activityForm') as HTMLFormElement | null;
+      if (!form) return;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = (document.getElementById('activityId') as HTMLInputElement).value;
+        const isEdit = !!id;
+
+        const formData = new FormData(form);
+        const body: Record<string, unknown> = {};
+        for (const [key, value] of formData.entries()) {
+          if (key === 'registration_required') {
+            body[key] = true; // checkbox — only present if checked
+          } else {
+            body[key] = value === '' ? null : value;
+          }
+        }
+        // registration_required defaults to false if checkbox absent
+        if (!body.registration_required) body.registration_required = false;
+
+        try {
+          if (isEdit) {
+            await makeApiCall(`/api/admin/kid-activities/${id}`, {
+              method: 'PUT',
+              body: JSON.stringify(body),
+            });
+          } else {
+            await makeApiCall('/api/admin/kid-activities', {
+              method: 'POST',
+              body: JSON.stringify(body),
+            });
+          }
+          closeModal('activityModal');
+          window.location.reload();
+        } catch (err) {
+          alert('Failed to save: ' + (err as Error).message);
+        }
+      });
+    });
+
+    // ── Stubs for out-of-scope features ────────────────────────────────────
+    function manageMeetingPatterns(id: string) {
+      alert('Meeting patterns management coming soon. Activity ID: ' + id);
+    }
+    function manageEvents(id: string) {
+      alert('Event management coming soon. Activity ID: ' + id);
+    }
+    function exportCalendar(id: string) {
+      alert('Calendar export coming soon. Activity ID: ' + id);
+    }
+    function bulkMigrateCalendarData() { alert('Bulk migrate coming soon.'); }
+    function bulkCreateSessions() { alert('Bulk create sessions coming soon.'); }
+    function exportCalendarData() { alert('Export calendar data coming soon.'); }
+    function bulkDuplicatePrograms() { alert('Bulk duplicate coming soon.'); }
+
+    function scrollToSession(id: string) {
+      document.getElementById(`session-${id}`)?.scrollIntoView({ behavior: 'smooth' });
+    }
+    function scrollToClassType(id: string) {
+      document.getElementById(`classtype-${id}`)?.scrollIntoView({ behavior: 'smooth' });
+    }
+    function scrollToClassInstance(id: string) {
+      document.getElementById(`instance-${id}`)?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    (window as any).manageMeetingPatterns = manageMeetingPatterns;
+    (window as any).manageEvents = manageEvents;
+    (window as any).exportCalendar = exportCalendar;
+    (window as any).bulkMigrateCalendarData = bulkMigrateCalendarData;
+    (window as any).bulkCreateSessions = bulkCreateSessions;
+    (window as any).exportCalendarData = exportCalendarData;
+    (window as any).bulkDuplicatePrograms = bulkDuplicatePrograms;
+    (window as any).scrollToSession = scrollToSession;
+    (window as any).scrollToClassType = scrollToClassType;
+    (window as any).scrollToClassInstance = scrollToClassInstance;
   </script>
 </Layout>
