@@ -3,8 +3,6 @@ import Layout from '../../components/Layout.astro';
 import { supabase } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
 import type { Database } from '../../types/database';
-import MeetingPatternForm from '../../components/MeetingPatternForm.astro';
-import ActivityScheduleForm from '../../components/ActivityScheduleForm.astro';
 import AdminAuthRefresh from '../../components/AdminAuthRefresh.astro';
 
 // Server-side authentication check using cookies
