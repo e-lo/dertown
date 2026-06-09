@@ -28,6 +28,15 @@ export interface ExtractedActivity {
   website: string | null;
   organization_name: string | null;
   max_capacity: number | null;
+  /** For multi-week camps: one entry per week/session. Empty/absent for single offerings. */
+  sessions?: Array<{
+    name: string;            // e.g. "Week of July 14"
+    start_date: string | null;  // YYYY-MM-DD
+    end_date: string | null;    // YYYY-MM-DD
+    cost: string | null;        // per-week cost override, or null to inherit
+    registration_opens: string | null;  // YYYY-MM-DD or null
+    registration_closes: string | null; // YYYY-MM-DD or null
+  }>;
 }
 
 const SYSTEM_PROMPT = `You extract structured activity/program data from text for a community activities directory.
@@ -61,12 +70,23 @@ Return a JSON array where each object has these exact fields:
   "registration_link": "https://..." or null,
   "website": "https://..." or null,
   "organization_name": "org or club name" or null,
-  "max_capacity": integer or null
+  "max_capacity": integer or null,
+  "sessions": [
+    {
+      "name": "Week of July 14",
+      "start_date": "YYYY-MM-DD" or null,
+      "end_date": "YYYY-MM-DD" or null,
+      "cost": "$75" or null,
+      "registration_opens": "YYYY-MM-DD" or null,
+      "registration_closes": "YYYY-MM-DD" or null
+    }
+  ]
 }
 
 Rules:
 - program_format: "camp" = time-limited (often per-week) break program; "class" = recurring/multi-instance offering (gymnastics, dance, lessons); "league" = sports league/club with seasons & teams; "workshop" = one-off or very short standalone event. Use null if unclear.
-- For a multi-week camp, return ONE item for the camp with its overall start_date + end_date — do NOT emit a separate top-level item per week.
+- For a multi-week camp, return ONE item for the camp (with its overall start_date = first week start, end_date = last week end) AND populate "sessions" with one entry per week (name like "Week of July 14", that week's start_date/end_date, and any per-week cost/registration if stated). For a single-session offering (a class, a one-off workshop), use an empty array or omit "sessions".
+- Keep emitting separate top-level items only for genuinely DIFFERENT programs (e.g. a soccer camp AND a separate art camp), not for weeks of the same camp.
 - For multi-week camps/sessions use start_date + end_date (not start_time/end_time for the range)
 - is_summer = true for July/August programs; is_fall for Sept-Nov; is_winter for Dec-Feb; is_spring for Mar-May
 - If a single text mentions two grade bands with different times/costs, emit TWO items
@@ -146,5 +166,17 @@ export async function extractActivitiesWithAI(text: string): Promise<ExtractedAc
       website: typeof item.website === 'string' ? item.website : null,
       organization_name: typeof item.organization_name === 'string' ? item.organization_name : null,
       max_capacity: typeof item.max_capacity === 'number' ? item.max_capacity : null,
+      sessions: Array.isArray(item.sessions)
+        ? (item.sessions as Record<string, unknown>[])
+            .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+            .map((s) => ({
+              name: String(s.name).trim(),
+              start_date: typeof s.start_date === 'string' ? s.start_date : null,
+              end_date: typeof s.end_date === 'string' ? s.end_date : null,
+              cost: typeof s.cost === 'string' ? s.cost : null,
+              registration_opens: typeof s.registration_opens === 'string' ? s.registration_opens : null,
+              registration_closes: typeof s.registration_closes === 'string' ? s.registration_closes : null,
+            }))
+        : [],
     }));
 }
