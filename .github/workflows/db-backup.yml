@@ -1,0 +1,37 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 6 * * 0' # Every Sunday at 6am UTC
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump (data only)
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pg_dump \
+            --host=db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            --data-only \
+            --no-owner \
+            --no-acl \
+            | gzip > backup_$(date +%Y%m%d).sql.gz
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}
+          path: backup_*.sql.gz
+          retention-days: 90

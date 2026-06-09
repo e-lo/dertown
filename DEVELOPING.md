@@ -224,7 +224,46 @@ All changes take effect immediately in development and after rebuild in producti
 - **Seeding:** `make db-seed` or use Python scripts
 - **Validation:** Use provided scripts to validate/clean data before import
 - **Manual Import:** Use `scripts/dev_utils.py` for CSV/ICS import
-- **Backup:** Use Supabase dashboard or CLI for backups; test recovery monthly
+- **Backup:** Automated weekly backups via GitHub Actions (see [Disaster Recovery](#-disaster-recovery--restoring-from-backup) below). For an immediate on-demand backup run `make db-backup` or trigger the workflow manually in GitHub Actions.
+
+---
+
+## 🆘 Disaster Recovery / Restoring from Backup
+
+Database backups run automatically every Sunday via GitHub Actions (`.github/workflows/db-backup.yml`). Each backup is a compressed, data-only `pg_dump` of the production Supabase database. The schema is already version-controlled in `supabase/migrations/` so it doesn't need to be backed up separately.
+
+Backups are stored as GitHub Actions artifacts with 90-day rolling retention.
+
+### Adding Required GitHub Secrets (one-time setup)
+
+Go to **GitHub repo → Settings → Secrets and variables → Actions → New repository secret** and add:
+
+| Secret Name | Where to find it |
+|---|---|
+| `SUPABASE_PROJECT_REF` | `hracrmsclsinpgidgjwb` |
+| `SUPABASE_DB_PASSWORD` | Supabase dashboard → Settings → Database → Database password |
+
+### Triggering a Manual Backup
+
+Go to **GitHub repo → Actions → Database Backup → Run workflow**.
+
+### Restoring from a Backup
+
+1. Go to **GitHub repo → Actions → Database Backup** and pick a recent successful run
+2. Click **Artifacts** and download the `.sql.gz` file
+3. Decompress: `gunzip backup_YYYYMMDD.sql.gz`
+4. Create a fresh Supabase project (or use the existing one after verifying it's accessible)
+5. Apply migrations to restore the schema: `supabase link --project-ref <ref>` then `supabase db push`
+6. Restore data:
+   ```sh
+   psql "postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres" \
+     -f backup_YYYYMMDD.sql \
+     --set ON_ERROR_STOP=off
+   ```
+7. Verify in Supabase Studio (spot-check event/org/location counts look reasonable)
+8. Update Netlify environment variables if the project ref or keys changed
+
+> **Tip:** Test this procedure on a local Supabase instance (`supabase start`) at least once so you know it works before you ever need it under pressure.
 
 ---
 
@@ -273,12 +312,31 @@ All changes take effect immediately in development and after rebuild in producti
 
 ---
 
+## 📦 Dependency Updates
+
+Dependabot (`.github/dependabot.yml`) automatically opens PRs every Monday for outdated packages across:
+- **npm** (web app at `/`) — Astro, Solid.js, Tailwind, and all other dependencies
+- **npm** (mobile app at `/mobile`) — Expo SDK, React Native stack
+- **pip** (`requirements.txt`) — Python scripts
+- **GitHub Actions** (monthly) — keeps workflow action versions current
+
+### Review Process
+
+- **Patch/minor PRs** (grouped into one PR per ecosystem): generally safe to merge once you've glanced at what changed
+- **Major version PRs**: read the changelog before merging — these may have breaking changes
+- **Expo SDK / Astro major bumps**: treat as mini-projects; test locally before merging
+- **SaaS services** (Supabase, Netlify, Resend, Mapbox): these self-update; just watch for API deprecation notices in their changelog or emails
+
+Batch-review Dependabot PRs at your convenience — there's no pressure to merge immediately. Nothing auto-merges.
+
+---
+
 ## 🛠️ Troubleshooting & Maintenance
 
 - If you encounter issues, check logs, Supabase status, and environment variables
 - Use AI agent for troubleshooting and best practices
-- Regularly backup DB and test recovery
-- Review and update dependencies monthly
+- Backups run automatically every Sunday — check the Actions tab if you suspect a failure
+- Review and merge Dependabot PRs weekly (they open every Monday)
 
 ---
 
