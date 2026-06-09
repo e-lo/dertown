@@ -1,5 +1,9 @@
 # Kid Activities Admin — CRUD Implementation Plan
 
+> **✅ SUPERSEDED (delivered).** This plan's scope (admin CRUD) is complete and merged.
+> The canonical spec for the broader Kid Activities feature is now
+> [`docs/KID_ACTIVITIES_PRD.md`](../../KID_ACTIVITIES_PRD.md). Kept for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make `/admin/kid-activities` fully interactive — fix 404 errors, wire up Edit/Create/Delete/Duplicate buttons, implement form submission.
