@@ -140,7 +140,43 @@ export const POST = withAdminAuth(async ({ request }) => {
       console.error('[activity-import] Insert error:', error.message);
       errors.push({ name: act.name, error: error.message });
     } else {
-      created.push({ id: row.id, name: row.name });
+      let sessionCount = 0;
+
+      // ── Nest weekly SESSION children under the PROGRAM ─────────────────────
+      if (Array.isArray(act.sessions) && act.sessions.length > 0) {
+        const sessionRows = act.sessions.map((session) => ({
+          name: session.name,
+          activity_hierarchy_type: 'SESSION',
+          parent_activity_id: row.id,
+          program_format: null, // format lives on the PROGRAM
+          start_datetime: session.start_date ? `${session.start_date}T00:00:00` : null,
+          end_datetime: session.end_date ? `${session.end_date}T23:59:59` : null,
+          cost: session.cost, // null inherits via effective resolvers
+          registration_opens: session.registration_opens,
+          registration_closes: session.registration_closes,
+          location_id: locationId,
+          location_details: !locationId && act.location_name ? act.location_name : null,
+          sponsoring_organization_id: orgId,
+          status: 'pending' as const,
+          notes: `Imported session under "${act.name}"`,
+        }));
+
+        const { data: insertedSessions, error: sessionError } = await supabaseAdmin
+          .from('activities')
+          .insert(sessionRows)
+          .select('id');
+
+        if (sessionError) {
+          console.error('[activity-import] Session insert error:', sessionError.message);
+          for (const session of act.sessions) {
+            errors.push({ name: `${act.name} — ${session.name}`, error: sessionError.message });
+          }
+        } else {
+          sessionCount = insertedSessions?.length ?? sessionRows.length;
+        }
+      }
+
+      created.push({ id: row.id, name: row.name, sessions: sessionCount });
     }
   }
 

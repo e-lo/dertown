@@ -1,5 +1,12 @@
 # Kid Activity Calendar - Implementation Notes
 
+> **⚠️ SUPERSEDED & STALE.** This document is retained for history only. It describes a
+> renamed `kid_activities` table (now `activities`) and marks a calendar engine
+> (`recurrence_patterns` / `event_exceptions` RRULE model) "✅ complete" that was never
+> wired up. The canonical spec is now [`docs/KID_ACTIVITIES_PRD.md`](./docs/KID_ACTIVITIES_PRD.md),
+> which replaces the RRULE engine with a materialized event-series approach and resolves the
+> `program_format` vs `activity_hierarchy_type` confusion. Do not implement from this file.
+
 > **Note:** This document contains detailed implementation notes, schema design, and development history for the kid activities calendar system. For current system architecture and design decisions, see [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md). For developer setup and workflow, see [DEVELOPING.md](./DEVELOPING.md).
 
 ---

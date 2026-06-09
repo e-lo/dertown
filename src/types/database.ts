@@ -1423,6 +1423,18 @@ export type Database = {
           source_level: string;
         }[];
       };
+      get_effective_registration: {
+        Args: { activity_uuid: string };
+        Returns: {
+          registration_closes: string;
+          registration_info: string;
+          registration_link: string;
+          registration_opens: string;
+          registration_required: boolean;
+          source_id: string;
+          source_level: string;
+        }[];
+      };
       is_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;

@@ -5,13 +5,13 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 
 // --- URL params ---
-const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|lesson|class|session
+const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|class|workshop
 const seasonParam = Astro.url.searchParams.get('season')  ?? ''; // fall|winter|spring|summer|ongoing
 const typeParam   = Astro.url.searchParams.get('type')    ?? ''; // sports|arts|dance|music|outdoor|academic|other
 const ageParam    = Astro.url.searchParams.get('age')     ?? ''; // little-kids|elementary|middle|teen
 
 // --- Supabase query ---
-// Shows league, lesson, class, session programs (not camps).
+// Shows league, class, workshop programs (not camps).
 // NULL program_format entries are included as uncategorized catch-all.
 // Try with program_format (requires migration 20260526120000 to be applied).
 // Falls back gracefully if the column doesn't exist yet (error 42703).
@@ -168,18 +168,16 @@ const featuredPrograms: Program[] = (allPrograms ?? []).filter((p: Program) => p
 // Format pill config
 const formats = [
   { value: '', label: 'All types' },
-  { value: 'league',  label: 'League'  },
-  { value: 'lesson',  label: 'Lessons' },
-  { value: 'class',   label: 'Class'   },
-  { value: 'session', label: 'Session' },
+  { value: 'league',   label: 'League'   },
+  { value: 'class',    label: 'Class'    },
+  { value: 'workshop', label: 'Workshop' },
 ];
 
 // Format label helpers for cards
 const formatLabels: Record<string, { label: string; color: string }> = {
-  league:  { label: 'League',  color: 'blue'   },
-  lesson:  { label: 'Lessons', color: 'green'  },
-  class:   { label: 'Class',   color: 'purple' },
-  session: { label: 'Session', color: 'orange' },
+  league:   { label: 'League',   color: 'blue'   },
+  class:    { label: 'Class',    color: 'purple' },
+  workshop: { label: 'Workshop', color: 'green'  },
 };
 
 const seasons = [
@@ -220,7 +218,7 @@ const seasonBadges = [
 ] as const;
 ---
 
-<Layout title="Programs - Families | Der Town" description="Find leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area.">
+<Layout title="Programs - Families | Der Town" description="Find leagues, classes, and workshops for kids of all ages in the Leavenworth area.">
   <div class="bg-white min-h-screen">
 
     <!-- Hero -->
@@ -228,7 +226,7 @@ const seasonBadges = [
       <SectionHeader
         title="Programs"
         icon="emoji_events"
-        text="Leagues, lessons, classes, and sessions for kids of all ages in the Leavenworth area. Filter by format, season, type, or age group."
+        text="Leagues, classes, and workshops for kids of all ages in the Leavenworth area. Filter by format, season, type, or age group."
       />
       <p class="text-gray-400 text-center text-sm mt-1">
         Looking for camps? Visit <a href="/families/camps" class="underline">Camps &amp; Classes</a>.
@@ -448,30 +446,25 @@ const seasonBadges = [
                 </div>
 
                 <!-- CTA buttons -->
-                {(p.registration_link || p.website) && (
-                  <div class="px-4 pb-4 flex gap-2 flex-wrap">
-                    {p.registration_link && (
-                      <a
-                        href={p.registration_link}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
-                        Register Now
-                      </a>
-                    )}
-                    {p.website && p.website !== p.registration_link && (
-                      <a
-                        href={p.website}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">open_in_new</span>
-                        Learn more
-                      </a>
-                    )}
-                  </div>
-                )}
+                <div class="px-4 pb-4 flex gap-2 flex-wrap">
+                  <a
+                    href={`/families/programs/${p.id}`}
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-sm">info</span>
+                    View details
+                  </a>
+                  {p.registration_link && (
+                    <a
+                      href={p.registration_link}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                      Register Now
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}

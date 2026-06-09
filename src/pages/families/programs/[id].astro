@@ -1,0 +1,553 @@
+---
+import Layout from '../../../components/Layout.astro';
+import Disclaimer from '../../../components/ui/Disclaimer.astro';
+import { supabase } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+// --- Fetch the program ---
+const programSelect = `
+  id, name, description, activity_type, program_format,
+  activity_hierarchy_type, parent_activity_id,
+  is_fall, is_winter, is_spring, is_summer, is_ongoing,
+  min_age, max_age, min_grade, max_grade,
+  cost, cost_assistance_available, cost_assistance_details,
+  registration_link, registration_required,
+  registration_opens, registration_closes, registration_info,
+  waitlist_status, featured, website,
+  start_datetime, end_datetime,
+  location_id, location_details,
+  sponsoring_organization:organizations!sponsoring_organization_id(name, website)
+`;
+
+const { data: program, error: programError } = await (supabase as any)
+  .from('public_activities')
+  .select(programSelect)
+  .eq('id', id)
+  .eq('status', 'approved')
+  .single();
+
+type Activity = {
+  id: string;
+  name: string;
+  description?: string | null;
+  activity_type?: string | null;
+  program_format?: string | null;
+  activity_hierarchy_type?: string | null;
+  parent_activity_id?: string | null;
+  is_fall?: boolean | null;
+  is_winter?: boolean | null;
+  is_spring?: boolean | null;
+  is_summer?: boolean | null;
+  is_ongoing?: boolean | null;
+  min_age?: number | null;
+  max_age?: number | null;
+  min_grade?: string | null;
+  max_grade?: string | null;
+  cost?: string | null;
+  cost_assistance_available?: boolean | null;
+  cost_assistance_details?: string | null;
+  registration_link?: string | null;
+  registration_required?: boolean | null;
+  registration_opens?: string | null;
+  registration_closes?: string | null;
+  registration_info?: string | null;
+  waitlist_status?: string | null;
+  featured?: boolean | null;
+  website?: string | null;
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  location_id?: string | null;
+  location_details?: string | null;
+  sponsoring_organization?: { name?: string | null; website?: string | null } | null;
+};
+
+type Occurrence = {
+  event_id: string;
+  activity_id: string;
+  name?: string | null;
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  event_type?: string | null;
+};
+
+// --- Fetch descendants (only if program found) ---
+const childSelect = `
+  id, name, description, activity_hierarchy_type, parent_activity_id,
+  start_datetime, end_datetime, location_details,
+  min_age, max_age, min_grade, max_grade, cost
+`;
+
+let children: Activity[] = [];
+let grandchildren: Activity[] = [];
+let occurrencesByActivity: Record<string, Occurrence[]> = {};
+
+if (program) {
+  // Direct children of the program
+  const { data: childData } = await (supabase as any)
+    .from('activities')
+    .select(childSelect)
+    .eq('parent_activity_id', id)
+    .order('start_datetime', { ascending: true })
+    .order('name', { ascending: true });
+  children = (childData ?? []) as Activity[];
+
+  // Grandchildren: children of any CLASS_TYPE child (CLASS_INSTANCEs)
+  const classTypeIds = children
+    .filter((c) => c.activity_hierarchy_type === 'CLASS_TYPE')
+    .map((c) => c.id);
+  if (classTypeIds.length > 0) {
+    const { data: grandData } = await (supabase as any)
+      .from('activities')
+      .select(childSelect)
+      .in('parent_activity_id', classTypeIds)
+      .order('start_datetime', { ascending: true })
+      .order('name', { ascending: true });
+    grandchildren = (grandData ?? []) as Activity[];
+  }
+
+  // Occurrences for the program + every descendant
+  const allIds = [
+    id,
+    ...children.map((c) => c.id),
+    ...grandchildren.map((g) => g.id),
+  ].filter(Boolean);
+
+  if (allIds.length > 0) {
+    const { data: occData } = await (supabase as any)
+      .from('activity_events')
+      .select('event_id, activity_id, name, start_datetime, end_datetime, event_type')
+      .in('activity_id', allIds)
+      .order('start_datetime', { ascending: true });
+    for (const occ of (occData ?? []) as Occurrence[]) {
+      const key = occ.activity_id;
+      if (!key) continue;
+      (occurrencesByActivity[key] ??= []).push(occ);
+    }
+  }
+}
+
+// --- Helpers ---
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatAge(min: number | null | undefined, max: number | null | undefined,
+                   minGrade?: string | null, maxGrade?: string | null): string {
+  if (min != null && max != null) return `Ages ${min}–${max}`;
+  if (min != null) return `Ages ${min}+`;
+  if (max != null) return `Up to age ${max}`;
+  if (minGrade || maxGrade) {
+    return `${minGrade ?? ''}${minGrade && maxGrade ? '–' : ''}${maxGrade ?? ''}`;
+  }
+  return 'All ages';
+}
+
+function formatDate(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateRange(start: string | null | undefined, end: string | null | undefined): string | null {
+  const s = formatDate(start);
+  const e = formatDate(end);
+  if (s && e && s !== e) return `${s} – ${e}`;
+  return s ?? e ?? null;
+}
+
+function formatTime(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function weekday(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return null;
+  return WD[d.getDay()];
+}
+
+// Summarize an occurrence into a "Mon 3:00 PM – 4:00 PM" style string
+function occurrenceLabel(occ: Occurrence): string {
+  const wd = weekday(occ.start_datetime);
+  const start = formatTime(occ.start_datetime);
+  const end = formatTime(occ.end_datetime);
+  const time = start && end ? `${start} – ${end}` : (start ?? '');
+  return [wd, time].filter(Boolean).join(' ').trim();
+}
+
+// Distinct weekday names present across a set of occurrences
+function weekdaySummary(occs: Occurrence[]): string {
+  const days = Array.from(
+    new Set(occs.map((o) => weekday(o.start_datetime)).filter(Boolean) as string[])
+  );
+  // Re-order by week order
+  days.sort((a, b) => WD.indexOf(a) - WD.indexOf(b));
+  return days.join(', ');
+}
+
+function getRegStatus(p: Activity): { label: string; color: string } | null {
+  const now = new Date();
+  const opens  = p.registration_opens  ? new Date(p.registration_opens)  : null;
+  const closes = p.registration_closes ? new Date(p.registration_closes) : null;
+  if (opens && now < opens) {
+    const d = opens.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label: `Registration opens ${d}`, color: 'yellow' };
+  }
+  if (closes && now > closes) return { label: 'Registration closed', color: 'gray' };
+  if (p.waitlist_status)      return { label: 'Waitlist open', color: 'orange' };
+  return null;
+}
+
+const formatLabels: Record<string, { label: string; color: string }> = {
+  camp:     { label: 'Camp',     color: 'orange' },
+  league:   { label: 'League',   color: 'blue'   },
+  class:    { label: 'Class',    color: 'purple' },
+  workshop: { label: 'Workshop', color: 'green'  },
+};
+
+const seasonBadges = [
+  { key: 'is_fall',    label: 'Fall',       color: 'yellow' },
+  { key: 'is_winter',  label: 'Winter',     color: 'blue'   },
+  { key: 'is_spring',  label: 'Spring',     color: 'green'  },
+  { key: 'is_summer',  label: 'Summer',     color: 'orange' },
+  { key: 'is_ongoing', label: 'Year-round', color: 'gray'   },
+] as const;
+
+// --- Derived view data (only meaningful when program exists) ---
+const notFound = !program || programError;
+
+const regStatus = program ? getRegStatus(program) : null;
+const fmt = program?.program_format ? formatLabels[program.program_format] : null;
+const ageLabel = program ? formatAge(program.min_age, program.max_age, program.min_grade, program.max_grade) : '';
+const orgName = program?.sponsoring_organization?.name;
+const regLink = program?.registration_link ?? null;
+const siteLink = program?.website ?? null;
+
+// CLASS_TYPE children with their instances attached
+const classTypes = children.filter((c) => c.activity_hierarchy_type === 'CLASS_TYPE');
+const sessions = children.filter((c) => c.activity_hierarchy_type === 'SESSION');
+// Anything else that's a direct child (e.g. a stray CLASS_INSTANCE directly under program)
+const otherChildren = children.filter(
+  (c) => c.activity_hierarchy_type !== 'CLASS_TYPE' && c.activity_hierarchy_type !== 'SESSION'
+);
+
+const instancesByClassType: Record<string, Activity[]> = {};
+for (const g of grandchildren) {
+  if (!g.parent_activity_id) continue;
+  (instancesByClassType[g.parent_activity_id] ??= []).push(g);
+}
+
+const programOccurrences = program ? (occurrencesByActivity[program.id] ?? []) : [];
+
+const hasSchedule =
+  children.length > 0 || grandchildren.length > 0 || programOccurrences.length > 0;
+
+const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program not found | Der Town';
+---
+
+<Layout title={pageTitle} description={program?.description ?? 'Program details for Leavenworth-area families.'}>
+  <div class="bg-white min-h-screen">
+
+    {notFound ? (
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center text-gray-400">
+        <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
+        <p class="text-lg font-medium text-gray-600 mb-1">Program not found</p>
+        <p class="text-sm mb-6">This program may have been removed or isn't available right now.</p>
+        <a href="/families/programs" class="text-blue-600 underline text-sm">Back to all programs</a>
+      </div>
+    ) : (
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Back link -->
+        <a href="/families/programs" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
+          <span class="material-symbols-outlined text-base">arrow_back</span>
+          All programs
+        </a>
+
+        <!-- Header -->
+        <div class="border-b border-gray-200 pb-6 mb-6">
+          <div class="flex flex-wrap items-center gap-2 mb-2">
+            {fmt && (
+              <span class={`status-badge status-badge--${fmt.color} status-badge--md`}>{fmt.label}</span>
+            )}
+            {seasonBadges.map(sb => (
+              program[sb.key as keyof Activity] && (
+                <span class={`status-badge status-badge--${sb.color} status-badge--sm`}>{sb.label}</span>
+              )
+            ))}
+          </div>
+
+          <h1 class="text-3xl font-semibold text-gray-900 leading-tight">{program.name}</h1>
+
+          <p class="text-sm text-gray-500 mt-2">
+            {orgName && <>{orgName} · </>}
+            {ageLabel}
+            {program.activity_type && <> · {program.activity_type}</>}
+          </p>
+
+          {program.description && (
+            <p class="text-gray-700 mt-4 whitespace-pre-line">{program.description}</p>
+          )}
+
+          <!-- Meta facts -->
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mt-6 text-sm">
+            {program.cost && (
+              <div>
+                <dt class="text-gray-500">Cost</dt>
+                <dd class="text-gray-900 font-medium">{program.cost}</dd>
+              </div>
+            )}
+            {program.location_details && (
+              <div>
+                <dt class="text-gray-500">Location</dt>
+                <dd class="text-gray-900 font-medium">{program.location_details}</dd>
+              </div>
+            )}
+            {formatDateRange(program.start_datetime, program.end_datetime) && (
+              <div>
+                <dt class="text-gray-500">Dates</dt>
+                <dd class="text-gray-900 font-medium">{formatDateRange(program.start_datetime, program.end_datetime)}</dd>
+              </div>
+            )}
+          </dl>
+
+          {program.cost_assistance_available && (
+            <p class="mt-4">
+              <span class="status-badge status-badge--green status-badge--sm">Financial assistance available</span>
+              {program.cost_assistance_details && (
+                <span class="block text-sm text-gray-600 mt-1">{program.cost_assistance_details}</span>
+              )}
+            </p>
+          )}
+        </div>
+
+        <!-- Registration block -->
+        <div class="bg-gray-50 rounded-lg p-5 mb-8">
+          <h2 class="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+            <span class="material-symbols-outlined">how_to_reg</span>
+            Registration
+          </h2>
+
+          {regStatus && (
+            <div class="mb-3">
+              <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
+            </div>
+          )}
+
+          {(program.registration_opens || program.registration_closes) && (
+            <p class="text-sm text-gray-600 mb-3">
+              {program.registration_opens && (
+                <>Opens {formatDate(program.registration_opens)}</>
+              )}
+              {program.registration_opens && program.registration_closes && <> · </>}
+              {program.registration_closes && (
+                <>Closes {formatDate(program.registration_closes)}</>
+              )}
+            </p>
+          )}
+
+          {program.registration_info && (
+            <p class="text-sm text-gray-600 mb-3 whitespace-pre-line">{program.registration_info}</p>
+          )}
+
+          <div class="flex gap-2 flex-wrap">
+            {regLink && (
+              <a
+                href={regLink}
+                target="_blank"
+                class="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                Register
+              </a>
+            )}
+            {siteLink && siteLink !== regLink && (
+              <a
+                href={siteLink}
+                target="_blank"
+                class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                <span class="material-symbols-outlined text-sm">open_in_new</span>
+                Visit website
+              </a>
+            )}
+            {!regLink && !siteLink && (
+              <p class="text-sm text-gray-500">No registration link provided.</p>
+            )}
+          </div>
+
+          <!-- Add to calendar / Subscribe -->
+          <div class="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-200">
+            <a
+              href={`webcal://${Astro.url.host}/api/kid-activities/${program.id}/ical`}
+              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              📅 Subscribe (calendar)
+            </a>
+            <a
+              href={`/api/kid-activities/${program.id}/ical`}
+              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              ⬇️ Download .ics
+            </a>
+          </div>
+        </div>
+
+        <!-- Sessions & Schedule -->
+        <div class="mb-8">
+          <h2 class="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined">calendar_month</span>
+            Sessions &amp; Schedule
+          </h2>
+
+          {!hasSchedule && (
+            <p class="text-sm text-gray-500">Schedule not yet posted.</p>
+          )}
+
+          <!-- Program-level occurrences (when there are no children) -->
+          {children.length === 0 && programOccurrences.length > 0 && (
+            <div class="border border-gray-200 rounded-lg p-4">
+              <p class="text-sm text-gray-500 mb-2">
+                Meets {weekdaySummary(programOccurrences)}
+              </p>
+              <ul class="space-y-1 text-sm text-gray-700">
+                {programOccurrences.map((occ: Occurrence) => (
+                  <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-gray-400">schedule</span>
+                    <span>{formatDate(occ.start_datetime)} · {occurrenceLabel(occ)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <!-- Sessions (e.g. camp weeks) -->
+          {sessions.length > 0 && (
+            <div class="space-y-4">
+              {sessions.map((s: Activity) => {
+                const occs = occurrencesByActivity[s.id] ?? [];
+                const range = formatDateRange(s.start_datetime, s.end_datetime);
+                return (
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <h3 class="font-medium text-gray-900">{s.name}</h3>
+                        {range && <p class="text-sm text-gray-500">{range}</p>}
+                        {occs.length > 0 && (
+                          <p class="text-sm text-gray-500">Meets {weekdaySummary(occs)}</p>
+                        )}
+                      </div>
+                      {s.cost && <span class="text-sm text-gray-700 font-medium shrink-0">{s.cost}</span>}
+                    </div>
+                    {occs.length > 0 && (
+                      <ul class="space-y-1 text-sm text-gray-700 mt-3">
+                        {occs.map((occ: Occurrence) => (
+                          <li class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-gray-400">schedule</span>
+                            <span>{formatDate(occ.start_datetime)} · {occurrenceLabel(occ)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <!-- Class types -> instances (e.g. class/league) -->
+          {classTypes.length > 0 && (
+            <div class="space-y-4 mt-4">
+              {classTypes.map((ct: Activity) => {
+                const instances = instancesByClassType[ct.id] ?? [];
+                const ctOccs = occurrencesByActivity[ct.id] ?? [];
+                return (
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-medium text-gray-900">{ct.name}</h3>
+                    {ct.description && (
+                      <p class="text-sm text-gray-600 mt-1">{ct.description}</p>
+                    )}
+
+                    {/* Occurrences attached directly to the class type */}
+                    {ctOccs.length > 0 && (
+                      <p class="text-sm text-gray-500 mt-1">Meets {weekdaySummary(ctOccs)}</p>
+                    )}
+
+                    {instances.length > 0 ? (
+                      <ul class="mt-3 space-y-2">
+                        {instances.map((inst: Activity) => {
+                          const occs = occurrencesByActivity[inst.id] ?? [];
+                          const range = formatDateRange(inst.start_datetime, inst.end_datetime);
+                          return (
+                            <li class="bg-gray-50 rounded-md p-3">
+                              <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                  <p class="font-medium text-gray-800 text-sm">{inst.name}</p>
+                                  {range && <p class="text-xs text-gray-500">{range}</p>}
+                                  {occs.length > 0 && (
+                                    <p class="text-xs text-gray-500">
+                                      {occs.map((o: Occurrence) => occurrenceLabel(o)).filter(Boolean).join(' · ')}
+                                    </p>
+                                  )}
+                                </div>
+                                {inst.cost && (
+                                  <span class="text-sm text-gray-700 font-medium shrink-0">{inst.cost}</span>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      ctOccs.length === 0 && (
+                        <p class="text-sm text-gray-500 mt-2">Schedule not yet posted.</p>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <!-- Any other direct children -->
+          {otherChildren.length > 0 && (
+            <div class="space-y-4 mt-4">
+              {otherChildren.map((c: Activity) => {
+                const occs = occurrencesByActivity[c.id] ?? [];
+                const range = formatDateRange(c.start_datetime, c.end_datetime);
+                return (
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-medium text-gray-900">{c.name}</h3>
+                    {range && <p class="text-sm text-gray-500">{range}</p>}
+                    {occs.length > 0 && (
+                      <ul class="space-y-1 text-sm text-gray-700 mt-2">
+                        {occs.map((occ: Occurrence) => (
+                          <li class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-gray-400">schedule</span>
+                            <span>{formatDate(occ.start_datetime)} · {occurrenceLabel(occ)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <a href="/families/programs" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+          <span class="material-symbols-outlined text-base">arrow_back</span>
+          Back to all programs
+        </a>
+      </div>
+    )}
+
+    <Disclaimer />
+  </div>
+</Layout>
+</content>
+</invoke>

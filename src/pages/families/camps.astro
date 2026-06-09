@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase';
 const seasonParam = Astro.url.searchParams.get('season') ?? ''; // fall|winter|spring|summer|ongoing
 const typeParam   = Astro.url.searchParams.get('type')   ?? ''; // sports|arts|dance|music|outdoor|academic|other
 const ageParam    = Astro.url.searchParams.get('age')    ?? ''; // little-kids|elementary|middle|teen
+const fromParam   = Astro.url.searchParams.get('from')   ?? ''; // YYYY-MM-DD — start of date window
+const toParam     = Astro.url.searchParams.get('to')     ?? ''; // YYYY-MM-DD — end of date window
 
 // --- Supabase query ---
 // public_activities view already filters active=true; joins to parent for activity_type fallback.
@@ -95,7 +97,118 @@ if (ageParam === 'elementary')   filtered = filtered.filter(p => (p.max_age ?? 9
 if (ageParam === 'middle')       filtered = filtered.filter(p => (p.max_age ?? 99) >= 11 && (p.min_age ?? 0) <= 14);
 if (ageParam === 'teen')         filtered = filtered.filter(p => (p.max_age ?? 99) >= 13);
 
+// --- Weekly SESSION children (for inline weeks + date-window filtering) ---
+type Session = {
+  id: string;
+  name?: string | null;
+  parent_activity_id?: string | null;
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  status?: string | null;
+};
+
+const campIds: string[] = (filtered ?? []).map((c: Program) => c.id);
+const sessionsByCamp: Record<string, Session[]> = {};
+
+if (campIds.length) {
+  const { data: sessions } = await (supabase as any)
+    .from('activities')
+    .select('id, name, parent_activity_id, start_datetime, end_datetime, status')
+    .in('parent_activity_id', campIds)
+    .eq('activity_hierarchy_type', 'SESSION')
+    .order('start_datetime', { ascending: true });
+
+  for (const s of (sessions ?? []) as Session[]) {
+    if (s.status !== 'approved') continue; // skip pending/archived
+    const pid = s.parent_activity_id;
+    if (!pid) continue;
+    (sessionsByCamp[pid] ??= []).push(s);
+  }
+}
+
+// Reduce a datetime to its YYYY-MM-DD date portion for window comparison
+function toDateStr(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+// A session intersects [from, to] when start <= to AND end >= from (date portions).
+function sessionIntersects(session: Session, from: string, to: string): boolean {
+  if (!from && !to) return true;
+  const lo = from || to; // if only `to` is set, treat `from` as `to`
+  const hi = to || from; // if only `from` is set, treat `to` as `from`
+  const sStart = toDateStr(session.start_datetime);
+  const sEnd   = toDateStr(session.end_datetime) ?? sStart;
+  const start  = sStart ?? sEnd;
+  if (!start) return false; // null-guard: no dates → can't intersect
+  const end = sEnd ?? start;
+  return start <= hi && end >= lo;
+}
+
+const hasDateWindow = !!(fromParam || toParam);
+
+// matchingSessionsByCamp: when a window is active, sessions that intersect it;
+// otherwise the full (approved) session list for inline display.
+const matchingSessionsByCamp: Record<string, Session[]> = {};
+for (const id of campIds) {
+  const all = sessionsByCamp[id] ?? [];
+  matchingSessionsByCamp[id] = hasDateWindow
+    ? all.filter((s) => sessionIntersects(s, fromParam, toParam))
+    : all;
+}
+
+// When a date window is active, keep only camps with >=1 intersecting session.
+if (hasDateWindow) {
+  filtered = filtered.filter((p: Program) => (matchingSessionsByCamp[p.id] ?? []).length > 0);
+}
+
 // --- Helper functions ---
+function formatSessionDate(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function sessionDateRange(s: Session): string | null {
+  const start = formatSessionDate(s.start_datetime);
+  const end   = formatSessionDate(s.end_datetime);
+  if (start && end && start !== end) return `${start}–${end}`;
+  return start ?? end ?? null;
+}
+
+// "Week of Jul 14 · Jul 14–Jul 18"
+function sessionLabel(s: Session): string {
+  const range = sessionDateRange(s);
+  const weekOf = formatSessionDate(s.start_datetime);
+  if (weekOf && range) return `Week of ${weekOf} · ${range}`;
+  return s.name?.trim() || range || weekOf || 'Dates TBA';
+}
+
+// --- Quick date-window links (this week / next week, Mon–Sun) ---
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+function weekRange(offsetWeeks: number): { from: string; to: string } {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun..6=Sat
+  const diffToMon = (day + 6) % 7; // days since Monday
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - diffToMon + offsetWeeks * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { from: isoDate(monday), to: isoDate(sunday) };
+}
+const thisWeek = weekRange(0);
+const nextWeek = weekRange(1);
+const dateQuickLinks = [
+  { label: 'This week', ...thisWeek },
+  { label: 'Next week', ...nextWeek },
+];
+
+
 function formatAge(min: number | null | undefined, max: number | null | undefined,
                    minGrade?: string | null, maxGrade?: string | null): string {
   if (min != null && max != null) return `Ages ${min}–${max}`;
@@ -137,9 +250,13 @@ function buildUrl(overrides: Record<string, string>): string {
   const s = overrides.season ?? seasonParam;
   const t = overrides.type   ?? typeParam;
   const a = overrides.age    ?? ageParam;
+  const f = overrides.from   ?? fromParam;
+  const u = overrides.to     ?? toParam;
   if (s) p.set('season', s);
   if (t) p.set('type',   t);
   if (a) p.set('age',    a);
+  if (f) p.set('from',   f);
+  if (u) p.set('to',     u);
   return '/families/camps' + (p.toString() ? '?' + p.toString() : '');
 }
 
@@ -291,6 +408,48 @@ const seasonBadges = [
           ))}
         </div>
 
+        <!-- Date window row -->
+        <form method="get" class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Week</span>
+          {/* Preserve existing filters when submitting the date window */}
+          {seasonParam && <input type="hidden" name="season" value={seasonParam} />}
+          {typeParam   && <input type="hidden" name="type"   value={typeParam} />}
+          {ageParam    && <input type="hidden" name="age"    value={ageParam} />}
+          <label class="flex items-center gap-1 text-xs text-gray-600">
+            From
+            <input
+              type="date"
+              name="from"
+              value={fromParam}
+              onchange="this.form.submit()"
+              class="px-2 py-0.5 text-xs bg-white text-gray-700 rounded-md border border-gray-300"
+            />
+          </label>
+          <label class="flex items-center gap-1 text-xs text-gray-600">
+            To
+            <input
+              type="date"
+              name="to"
+              value={toParam}
+              onchange="this.form.submit()"
+              class="px-2 py-0.5 text-xs bg-white text-gray-700 rounded-md border border-gray-300"
+            />
+          </label>
+          {dateQuickLinks.map(q => (
+            <a
+              href={buildUrl({ from: q.from, to: q.to })}
+              class={(fromParam === q.from && toParam === q.to)
+                ? 'status-badge status-badge--blue status-badge--md'
+                : 'inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors'}
+            >
+              {q.label}
+            </a>
+          ))}
+          {hasDateWindow && (
+            <a href={buildUrl({ from: '', to: '' })} class="text-xs text-blue-600 hover:underline ml-1">Clear dates</a>
+          )}
+        </form>
+
       </div>
 
       <!-- Result count + clear -->
@@ -357,6 +516,11 @@ const seasonBadges = [
             const icon      = getCategoryIcon(p.activity_type);
             const orgName   = p.sponsoring_organization?.name;
 
+            // Inline weeks: when a date window is active show matches; otherwise up to 5 upcoming.
+            const allSessions     = matchingSessionsByCamp[p.id] ?? [];
+            const visibleSessions = hasDateWindow ? allSessions : allSessions.slice(0, 5);
+            const moreCount       = hasDateWindow ? 0 : Math.max(0, allSessions.length - visibleSessions.length);
+
             return (
               <div class={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow flex flex-col ${p.featured ? 'border-amber-300' : 'border-gray-200'}`}>
                 <div class="p-4 flex-1">
@@ -404,33 +568,48 @@ const seasonBadges = [
                       <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
                     </div>
                   )}
+
+                  <!-- Inline weeks -->
+                  {visibleSessions.length > 0 && (
+                    <div class="mt-2 border-t border-gray-100 pt-2">
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                        {hasDateWindow ? 'Matching weeks' : 'Weeks'}
+                      </p>
+                      <ul class="space-y-0.5">
+                        {visibleSessions.map((s: Session) => (
+                          <li class="flex items-start gap-1.5 text-xs text-gray-600">
+                            <span class="material-symbols-outlined text-sm text-gray-400 mt-0.5">event</span>
+                            <span>{sessionLabel(s)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {moreCount > 0 && (
+                        <p class="text-xs text-gray-400 mt-0.5">+{moreCount} more week{moreCount !== 1 ? 's' : ''}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <!-- CTA buttons -->
-                {(p.registration_link || p.website) && (
-                  <div class="px-4 pb-4 flex gap-2 flex-wrap">
-                    {p.registration_link && (
-                      <a
-                        href={p.registration_link}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
-                        Register Now
-                      </a>
-                    )}
-                    {p.website && p.website !== p.registration_link && (
-                      <a
-                        href={p.website}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">open_in_new</span>
-                        Learn more
-                      </a>
-                    )}
-                  </div>
-                )}
+                <div class="px-4 pb-4 flex gap-2 flex-wrap">
+                  <a
+                    href={`/families/programs/${p.id}`}
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-sm">info</span>
+                    View details
+                  </a>
+                  {p.registration_link && (
+                    <a
+                      href={p.registration_link}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                      Register Now
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}
