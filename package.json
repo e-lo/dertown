@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
-    "@astrojs/netlify": "^5.5.4",
+    "@astrojs/netlify": "^7.0.12",
     "@astrojs/solid-js": "^5.1.0",
     "@astrojs/tailwind": "^5.1.0",
     "@date-fns/tz": "^1.4.1",
