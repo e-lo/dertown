@@ -446,30 +446,25 @@ const seasonBadges = [
                 </div>
 
                 <!-- CTA buttons -->
-                {(p.registration_link || p.website) && (
-                  <div class="px-4 pb-4 flex gap-2 flex-wrap">
-                    {p.registration_link && (
-                      <a
-                        href={p.registration_link}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
-                        Register Now
-                      </a>
-                    )}
-                    {p.website && p.website !== p.registration_link && (
-                      <a
-                        href={p.website}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-                      >
-                        <span class="material-symbols-outlined text-sm">open_in_new</span>
-                        Learn more
-                      </a>
-                    )}
-                  </div>
-                )}
+                <div class="px-4 pb-4 flex gap-2 flex-wrap">
+                  <a
+                    href={`/families/programs/${p.id}`}
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-sm">info</span>
+                    View details
+                  </a>
+                  {p.registration_link && (
+                    <a
+                      href={p.registration_link}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                      Register Now
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}
