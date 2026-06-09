@@ -378,6 +378,22 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
               <p class="text-sm text-gray-500">No registration link provided.</p>
             )}
           </div>
+
+          <!-- Add to calendar / Subscribe -->
+          <div class="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-200">
+            <a
+              href={`webcal://${Astro.url.host}/api/kid-activities/${program.id}/ical`}
+              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              📅 Subscribe (calendar)
+            </a>
+            <a
+              href={`/api/kid-activities/${program.id}/ical`}
+              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              ⬇️ Download .ics
+            </a>
+          </div>
         </div>
 
         <!-- Sessions & Schedule -->
