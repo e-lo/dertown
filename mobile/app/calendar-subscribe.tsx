@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Device from 'expo-device';
 import { THEME } from '../lib/theme';
 import { Icon } from '../components/Icon';
 import { APP_CONFIG } from '../lib/app-config';
@@ -50,6 +51,11 @@ export default function CalendarSubscribeScreen() {
 
   const webcalUrl    = httpsUrl.replace(/^https?:\/\//, 'webcal://');
   const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(httpsUrl)}`;
+
+  const isSamsung =
+    Platform.OS === 'android' &&
+    (Device.brand?.toLowerCase() === 'samsung' ||
+      Device.manufacturer?.toLowerCase() === 'samsung');
 
   const handleSubscribe = () => {
     if (Platform.OS === 'android') {
@@ -104,6 +110,16 @@ export default function CalendarSubscribeScreen() {
             {Platform.OS === 'android' ? 'Subscribe in Google Calendar' : 'Open in Calendar App'}
           </Text>
         </TouchableOpacity>
+
+        {/* Samsung devices: subscription routes through Google Calendar */}
+        {isSamsung && (
+          <Text style={styles.samsungNote}>
+            On Samsung devices, Subscribe opens Google Calendar — Samsung Calendar
+            doesn't support calendar subscriptions. To use Samsung Calendar, tap{' '}
+            <Text style={styles.samsungNoteBold}>Share Link</Text> below and add the
+            feed URL manually, or subscribe through Google Calendar.
+          </Text>
+        )}
 
         {/* Secondary: share the raw https URL */}
         <TouchableOpacity style={styles.secondaryBtn} onPress={handleShareLink} activeOpacity={0.75}>
@@ -205,6 +221,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#111111',
+  },
+  samsungNote: {
+    fontSize: 13,
+    color: THEME.textMuted,
+    lineHeight: 19,
+    marginBottom: 16,
+    paddingHorizontal: 2,
+  },
+  samsungNoteBold: {
+    color: THEME.textPrimary,
+    fontWeight: '600',
   },
   secondaryBtn: {
     flexDirection: 'row',

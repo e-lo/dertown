@@ -139,6 +139,22 @@ export default function HelpScreen() {
           <Bullet text="Share individual events with friends" />
         </Section>
 
+        <Section title="Adding an event vs. subscribing to the calendar">
+          <Text style={styles.body}>
+            These are two different things:
+          </Text>
+          <Bullet text="Add to calendar copies a single event into your phone's calendar — a one-time snapshot. It works with any calendar app, including Samsung Calendar." />
+          <Bullet text="Subscribe keeps a live feed in sync, so new Der Town events appear automatically without you adding each one." />
+          <Text style={[styles.body, { marginTop: 8 }]}>
+            On Android, subscription currently opens in Google Calendar. Samsung
+            Calendar and other non-Google calendar apps don't support subscribing to
+            calendar feeds directly. If you use Samsung Calendar, you can subscribe
+            through Google Calendar, or use{' '}
+            <Text style={styles.em}>Share Link</Text> on the subscribe screen and add
+            the feed URL manually in your calendar app's settings.
+          </Text>
+        </Section>
+
         <Section title="What's on the website that's not in the app?">
           <Text style={styles.body}>
             Submitting events and announcements is done through{' '}
