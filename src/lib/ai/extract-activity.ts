@@ -3,8 +3,8 @@ import Anthropic from '@anthropic-ai/sdk';
 export interface ExtractedActivity {
   name: string;
   description: string | null;
-  /** 'camp' for time-limited programs; 'class'/'lesson'/'league'/'session' for ongoing */
-  program_format: 'camp' | 'class' | 'lesson' | 'league' | 'session' | null;
+  /** 'camp' (time-limited, weekly sessions); 'class' (recurring); 'league'; 'workshop' (one-off) */
+  program_format: 'camp' | 'class' | 'league' | 'workshop' | null;
   activity_type: 'sports' | 'arts' | 'music' | 'dance' | 'academic' | 'recreation' | 'other';
   /** Grade as ordinal string: "K", "1st", "2nd" … "12th" */
   min_grade: string | null;
@@ -42,7 +42,7 @@ Return a JSON array where each object has these exact fields:
 {
   "name": "descriptive name — include age/grade group in name when multiple groups exist",
   "description": "what participants do / learn, or null",
-  "program_format": "camp" | "class" | "lesson" | "league" | "session" | null,
+  "program_format": "camp" | "class" | "league" | "workshop" | null,
   "activity_type": "sports" | "arts" | "music" | "dance" | "academic" | "recreation" | "other",
   "min_grade": "K" | "1st" | "2nd" | ... | "12th" | null,
   "max_grade": "K" | "1st" | ... | "12th" | null,
@@ -65,6 +65,8 @@ Return a JSON array where each object has these exact fields:
 }
 
 Rules:
+- program_format: "camp" = time-limited (often per-week) break program; "class" = recurring/multi-instance offering (gymnastics, dance, lessons); "league" = sports league/club with seasons & teams; "workshop" = one-off or very short standalone event. Use null if unclear.
+- For a multi-week camp, return ONE item for the camp with its overall start_date + end_date — do NOT emit a separate top-level item per week.
 - For multi-week camps/sessions use start_date + end_date (not start_time/end_time for the range)
 - is_summer = true for July/August programs; is_fall for Sept-Nov; is_winter for Dec-Feb; is_spring for Mar-May
 - If a single text mentions two grade bands with different times/costs, emit TWO items
@@ -118,7 +120,7 @@ export async function extractActivitiesWithAI(text: string): Promise<ExtractedAc
     .map((item) => ({
       name: String(item.name).trim(),
       description: typeof item.description === 'string' ? item.description : null,
-      program_format: (['camp', 'class', 'lesson', 'league', 'session'].includes(String(item.program_format))
+      program_format: (['camp', 'class', 'league', 'workshop'].includes(String(item.program_format))
         ? item.program_format
         : null) as ExtractedActivity['program_format'],
       activity_type: (['sports', 'arts', 'music', 'dance', 'academic', 'recreation', 'other'].includes(
