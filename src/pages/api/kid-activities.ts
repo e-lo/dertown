@@ -10,10 +10,11 @@ export const GET: APIRoute = async ({ url }) => {
     const ageRange = searchParams.get('age_range');
     const gradeLevel = searchParams.get('grade_level');
 
-    // Build the main query with all necessary joins
-    // Note: Using type assertion since public_kid_activities view may not be in generated types
+    // Build the main query with all necessary joins.
+    // Queries the real `public_activities` view (the former `public_kid_activities`
+    // reference was a phantom view that exists in no migration).
     let query = (supabase as any)
-      .from('public_kid_activities')
+      .from('public_activities')
       .select(
         `
         *,
