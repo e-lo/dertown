@@ -7,11 +7,20 @@ jest.mock('../../lib/api', () => ({
   fetchAnnouncements: jest.fn(),
 }));
 
+// The screen reads/writes a module-level cache (lib/cache keeps an in-memory
+// Map that would leak state between tests) — stub it to a cold cache.
+jest.mock('../../lib/cache', () => ({
+  getCache: jest.fn(() => Promise.resolve(null)),
+  setCache: jest.fn(() => Promise.resolve()),
+  invalidateCache: jest.fn(),
+}));
+
 // useFocusEffect calls its callback after render in tests
 jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => unknown) => {
     setTimeout(cb, 0);
   },
+  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 }));
 
 const MOCK_ANNOUNCEMENTS = [

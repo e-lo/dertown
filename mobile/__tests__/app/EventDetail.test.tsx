@@ -1,8 +1,13 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 
+jest.mock('react-native-safe-area-context', () =>
+  require('react-native-safe-area-context/jest/mock').default
+);
+
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'test-event-id' }),
+  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
   Stack: {
     Screen: ({ options }: { options: object }) => null,
   },
@@ -15,6 +20,7 @@ jest.mock('expo-linking', () => ({
 
 jest.mock('../../lib/api', () => ({
   fetchEventById: jest.fn(),
+  fetchRelatedEvents: jest.fn(() => Promise.resolve({ series: null, related: [] })),
 }));
 
 jest.mock('../../contexts/StarContext', () => ({

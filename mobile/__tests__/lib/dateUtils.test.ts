@@ -35,26 +35,35 @@ function makeEvent(id: string, start_date: string, start_time: string | null = n
 }
 
 describe('formatTime', () => {
-  it('returns HH:MM from HH:MM:SS', () => {
-    expect(formatTime('10:30:00')).toBe('10:30');
+  it('returns 12-hour h:MM AM/PM from HH:MM:SS', () => {
+    expect(formatTime('10:30:00')).toBe('10:30 AM');
   });
 
   it('returns empty string for null', () => {
     expect(formatTime(null)).toBe('');
   });
 
-  it('preserves leading zero', () => {
-    expect(formatTime('09:00:00')).toBe('09:00');
+  it('drops leading zero and marks morning times AM', () => {
+    expect(formatTime('09:00:00')).toBe('9:00 AM');
+  });
+
+  it('converts afternoon times to PM', () => {
+    expect(formatTime('13:05:00')).toBe('1:05 PM');
+  });
+
+  it('formats midnight as 12:00 AM and noon as 12:00 PM', () => {
+    expect(formatTime('00:00:00')).toBe('12:00 AM');
+    expect(formatTime('12:00:00')).toBe('12:00 PM');
   });
 });
 
 describe('formatTimeRange', () => {
   it('returns start – end when both present', () => {
-    expect(formatTimeRange('10:00:00', '12:00:00')).toBe('10:00 – 12:00');
+    expect(formatTimeRange('10:00:00', '12:00:00')).toBe('10:00 AM – 12:00 PM');
   });
 
   it('returns just start when no end time', () => {
-    expect(formatTimeRange('10:00:00', null)).toBe('10:00');
+    expect(formatTimeRange('10:00:00', null)).toBe('10:00 AM');
   });
 
   it('returns empty string when no start time', () => {

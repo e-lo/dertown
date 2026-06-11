@@ -280,7 +280,7 @@ export default function MapScreen() {
               shape={venuesToGeoJSON(venues)}
               cluster
               clusterRadius={50}
-              clusterMaxZoom={13}
+              clusterMaxZoomLevel={13}
               onPress={handleFeaturePress}
             >
               {/* ── Cluster pins (zoomed out) ─────────────────────────────── */}

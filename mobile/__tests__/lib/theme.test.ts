@@ -20,7 +20,7 @@ describe('fixHex', () => {
 
 describe('getCategoryColor', () => {
   it('returns color for known category', () => {
-    expect(getCategoryColor('nature')).toBe(CATEGORY_COLORS.nature);
+    expect(getCategoryColor('Nature')).toBe(CATEGORY_COLORS.Nature);
   });
 
   it('returns fallback for unknown category', () => {
@@ -36,8 +36,12 @@ describe('getCategoryColor', () => {
 
 describe('getCategoryTextColor', () => {
   it('returns white for most categories', () => {
-    expect(getCategoryTextColor('nature')).toBe('#ffffff');
-    expect(getCategoryTextColor('civic')).toBe('#ffffff');
+    expect(getCategoryTextColor('Nature')).toBe('#ffffff');
+    expect(getCategoryTextColor('Civic')).toBe('#ffffff');
+  });
+
+  it('returns dark text for light (canary) backgrounds', () => {
+    expect(getCategoryTextColor('Sports')).toBe('#111111');
   });
 
   it('returns white for null', () => {

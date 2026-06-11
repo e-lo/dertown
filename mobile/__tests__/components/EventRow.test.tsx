@@ -37,7 +37,7 @@ describe('EventRow', () => {
     render(
       <EventRow event={BASE_EVENT} isStarred={false} onPress={jest.fn()} onStar={jest.fn()} />
     );
-    expect(screen.getByText('09:00 – 12:00')).toBeTruthy();
+    expect(screen.getByText('9:00 AM – 12:00 PM')).toBeTruthy();
   });
 
   it('renders location name', () => {
