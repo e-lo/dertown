@@ -18,7 +18,8 @@
     "test:timezone": "TZ=UTC tsx scripts/validate_timezone.mjs",
     "validate-theme-colors": "node --loader ts-node/esm scripts/validate_theme_colors.ts",
     "setup-env": "echo 'Create .env.local with: SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_ANON_KEY=your-key'",
-    "test:email-ingest": "tsx src/lib/__tests__/email-ingest.test.ts"
+    "test:email-ingest": "tsx src/lib/__tests__/email-ingest.test.ts",
+    "test:activity-fields": "tsx src/lib/__tests__/activity-fields.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.103.0",

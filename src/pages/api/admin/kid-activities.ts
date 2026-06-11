@@ -1,6 +1,7 @@
 // src/pages/api/admin/kid-activities.ts
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { stripScheduleFields } from '@/lib/activity-fields';
 
 export const prerender = false;
 
@@ -36,16 +37,18 @@ export const POST = withAdminAuth(async ({ request }) => {
     return jsonError('name and activity_hierarchy_type are required', 400);
   }
 
-  // Clean empty strings to null
+  // Clean empty strings to null, then drop schedule-only fields (not columns
+  // on `activities`) so the form's hidden schedule inputs can't break the write.
   const cleaned: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(body)) {
     cleaned[k] = v === '' ? null : v;
   }
   cleaned.status = cleaned.status ?? 'pending';
+  const payload = stripScheduleFields(cleaned);
 
   const { data, error } = await supabaseAdmin
     .from('activities')
-    .insert(cleaned as any)
+    .insert(payload as any)
     .select()
     .single();
 
