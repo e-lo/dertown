@@ -22,7 +22,7 @@
     "test:activity-fields": "tsx src/lib/__tests__/activity-fields.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.103.0",
+    "@anthropic-ai/sdk": "^0.104.1",
     "@astrojs/netlify": "^5.5.4",
     "@astrojs/solid-js": "^5.1.0",
     "@astrojs/tailwind": "^6.0.2",
