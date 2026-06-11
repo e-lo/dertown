@@ -55,3 +55,11 @@ db.sqlite3.*
 # Claude Code local overrides
 .claude/settings.local.json
 .worktrees/
+
+# agent session artifacts
+.claire/
+.claude/map-preview/
+
+# Expo prebuild output (generated; builds run on EAS)
+mobile/ios/
+mobile/android/
