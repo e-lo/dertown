@@ -1,99 +1,12 @@
 /**
- * Theme CSS Variables
+ * Component / FullCalendar theme styles.
  *
- * These variables mirror values from src/lib/config.ts for CSS usage.
- * For all customization guidance, see CUSTOMIZATION.md
- *
- * Colors come from COLOR_PALETTE and COLORS in config.ts
- * Typography comes from TYPOGRAPHY in config.ts
+ * Color tokens (palette, semantic, category, fonts) are generated from
+ * src/lib/config.ts into theme.generated.css (imported before this file).
+ * This file holds only the bundled bg+text helper classes and the
+ * FullCalendar overrides that aren't expressible as plain utilities.
+ * See CUSTOMIZATION.md.
  */
-
-:root {
-  /* ────────────────────────────────────────────────────────────────── */
-  /* COLOR PALETTE - Base colors (from config.ts COLOR_PALETTE)          */
-  /* ────────────────────────────────────────────────────────────────── */
-  --palette-palatinate-blue: #4740cbff;
-  --palette-canary: #ffe600ff;
-  --palette-pigment-green: #4daa57ff;
-  --palette-blue-green: #219ebcff;
-  --palette-fandango: #c0268cff;
-  --palette-cal-poly-green: #14532dff;
-  --palette-dark-slate-gray: #2f4445ff;
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* COLOR ASSIGNMENTS - How palette colors are used (from config.ts)   */
-  /* ────────────────────────────────────────────────────────────────── */
-
-  /* Theme assignments */
-  --color-primary: var(--palette-palatinate-blue);
-  --color-secondary: var(--palette-canary);
-  --color-background: var(--palette-palatinate-blue);
-  --color-surface: #f9fafb;
-  --color-surface-light: #f3f4f6;
-  --color-text: #111827;
-  --color-text-secondary: #374151;
-  --color-text-dark: #1f2937;
-  --color-muted: #6b7280;
-  --color-muted-dark: #4b5563;
-  --color-border: #d1d5db;
-  --color-link: #1d4ed8;
-  --color-primary-light: #eef2ff;
-  --color-primary-dark: #312e81;
-
-  /* Notification colors (from config.ts COLORS.notifications) */
-  --color-error-text: #d32f2f;
-  --color-error-bg: #ffeaea;
-  --color-success-text: #388e3c;
-  --color-success-bg: #e8f5e9;
-  --color-warning-text: #f57c00;
-  --color-warning-bg: #fef3c7;
-  --color-info-text: #1976d2;
-  --color-info-bg: #e3f2fd;
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* EVENT CATEGORY COLORS (from config.ts COLORS.eventCategories)      */
-  /* ────────────────────────────────────────────────────────────────── */
-  --color-category-arts-culture: var(--palette-canary);
-  --color-category-civic: var(--palette-dark-slate-gray);
-  --color-category-family: var(--palette-fandango);
-  --color-category-give-back: var(--palette-pigment-green);
-  --color-category-nature: var(--palette-cal-poly-green);
-  --color-category-recreation: var(--palette-blue-green);
-  --color-category-outdoors: var(--palette-blue-green);
-  --color-category-school: var(--palette-dark-slate-gray);
-  --color-category-seniors: var(--palette-fandango);
-  --color-category-sports: var(--palette-canary);
-  --color-category-town: var(--palette-palatinate-blue);
-  --color-category-featured: var(--palette-canary);
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* EVENT TEXT COLORS (from config.ts COLORS.eventTextColors)          */
-  /* ────────────────────────────────────────────────────────────────── */
-  --color-event-text-dark: #111111;
-  --color-event-text-default: #ffffff;
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* MARKER COLORS (from config.ts MARKER_COLORS)                       */
-  /* ────────────────────────────────────────────────────────────────── */
-  --color-marker-current: var(--palette-palatinate-blue);
-  --color-marker-parent: var(--palette-fandango);
-  --color-marker-sibling: var(--color-muted);
-  --color-marker-child: var(--palette-pigment-green);
-  --color-marker-event: var(--palette-palatinate-blue);
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* GRADIENTS (from palette colors)                                     */
-  /* ────────────────────────────────────────────────────────────────── */
-  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%);
-  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%);
-
-  /* ────────────────────────────────────────────────────────────────── */
-  /* TYPOGRAPHY - Font families (from config.ts TYPOGRAPHY.fontFamilies)*/
-  /* ────────────────────────────────────────────────────────────────── */
-  --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  --font-serif: 'Georgia', serif;
-  --font-mono: 'Menlo', 'Monaco', monospace;
-}
 
 /* ══════════════════════════════════════════════════════════════════════════════ */
 /* UTILITY CLASSES                                                              */
@@ -195,40 +108,6 @@
 
 .bg-gradient-blues-bold {
   background: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%) !important;
-}
-
-/* Border utilities */
-.border-fandango {
-  border-color: var(--palette-fandango) !important;
-}
-
-.border-canary {
-  border-color: var(--palette-canary) !important;
-}
-
-.border-pigment-green {
-  border-color: var(--palette-pigment-green) !important;
-}
-
-.border-blue-green {
-  border-color: var(--palette-blue-green) !important;
-}
-
-.border-palatinate-blue {
-  border-color: var(--color-primary) !important;
-}
-
-/* Font utilities */
-.font-sans {
-  font-family: var(--font-sans) !important;
-}
-
-.font-serif {
-  font-family: var(--font-serif) !important;
-}
-
-.font-mono {
-  font-family: var(--font-mono) !important;
 }
 
 /* Tag filter pill active state */

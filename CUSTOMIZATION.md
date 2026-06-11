@@ -9,7 +9,8 @@ All **customizable settings** are centralized in two files:
 | File | Purpose |
 |------|---------|
 | `/src/lib/config.ts` | Central configuration for colors, fonts, location, and map settings |
-| `/src/styles/theme.css` | CSS variables that mirror config values for CSS usage |
+| `/src/styles/theme.generated.css` | Auto-generated from config.ts (`@theme` tokens + CSS vars) — do not edit |
+| `/src/styles/theme.css` | Component / FullCalendar styles only (no color definitions) |
 
 ### What's Customizable vs. Design System
 
@@ -182,30 +183,34 @@ export const COLORS = {
 };
 ```
 
-#### CSS Variables
+#### CSS variables & Tailwind tokens (generated)
 
-These colors are mirrored as CSS variables in `/src/styles/theme.css`:
+`config.ts` is the **single source of truth**. A build step generates
+`/src/styles/theme.generated.css` from it — you do **not** edit that file (or
+hand-maintain CSS variables) anymore.
+
+The generated file emits a Tailwind v4 `@theme` block, so every color/font
+becomes both a CSS variable **and** a real utility class automatically:
 
 ```css
+@theme {
+  --color-fandango: #c0268cff;        /* → bg-fandango, text-fandango, border-fandango, … */
+  --color-category-family: #c0268cff; /* → bg-category-family, text-category-family, … */
+  --font-sans: 'Inter', …;            /* → font-sans */
+}
 :root {
-  /* Palette colors */
-  --palette-palatinate-blue: #4740cbff;
-  --palette-canary: #ffe600ff;
-  /* ... etc */
-  
-  /* Color assignments */
-  --color-primary: var(--palette-palatinate-blue);
-  --color-secondary: var(--palette-canary);
-  /* ... etc */
-  
-  /* Notification colors */
-  --color-error-text: #d32f2f;
-  --color-error-bg: #ffeaea;
-  /* ... etc */
+  --palette-fandango: var(--color-fandango);  /* back-compat alias */
+  --color-error-text: #d32f2f;                /* used via var() */
 }
 ```
 
-**Key principle:** When you change a color, update BOTH `config.ts` and `theme.css` to keep them in sync. Components reference these config values and CSS variables.
+**Key principle:** change a color in **`config.ts` only**, then run
+`npm run theme:generate` (it also runs automatically on `npm run dev` /
+`npm run build` via the `predev`/`prebuild` hooks). No more keeping two files in
+sync by hand.
+
+> `/src/styles/theme.css` now holds only component/FullCalendar styles that
+> aren't expressible as plain utilities — not color definitions.
 
 ### Event Category Colors
 
