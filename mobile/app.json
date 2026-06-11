@@ -48,6 +48,20 @@
       ],
       "expo-font",
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "Dertown adds events you choose directly to your Calendar."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class com.mapbox.maps.** { *; }\n-keep interface com.mapbox.maps.** { *; }\n-keep class com.rnmapbox.rnmap.** { *; }\n-keep interface com.rnmapbox.rnmap.** { *; }\n-dontwarn com.mapbox.**"
+          }
+        }
+      ],
+      [
         "@sentry/react-native",
         {
           "organization": "der-town",

@@ -1,9 +1,11 @@
 /**
  * Calendar integration utilities.
  *
- * addEventsToCalendar  — iOS: adds events directly via expo-calendar (silent, no share sheet).
- *                        Android: opens the native Google Calendar "Add Event" screen via
- *                        ACTION_INSERT intent so the user sees the normal calendar picker.
+ * addEventsToCalendar  — adds events directly via expo-calendar (silent, no share sheet).
+ *                        Note: an Android ACTION_INSERT intent is NOT viable here —
+ *                        CalendarContract requires long extras for beginTime/endTime,
+ *                        but expo-intent-launcher truncates JS numbers to Int, so
+ *                        Google Calendar silently falls back to "now".
  *
  * shareEventsAsICS     — writes a .ics file and opens the share sheet.
  *                        Still useful for bulk series exports where the user
@@ -12,7 +14,6 @@
 import { Alert, Linking, Platform } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { APP_CONFIG } from './app-config';
-import * as IntentLauncher from 'expo-intent-launcher';
 // expo-file-system v19 moved the legacy API to a sub-path
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -36,22 +37,28 @@ function pad(n: number): string {
 }
 
 /**
- * Build a Date from YYYY-MM-DD + optional HH:MM:SS in America/Los_Angeles.
- * We construct the wall-clock time as if it were UTC so that when the OS
- * stores it with America/Los_Angeles timezone, the displayed time is correct.
+ * Build a Date (an absolute instant) from YYYY-MM-DD + optional HH:MM:SS
+ * wall-clock time in the community timezone (America/Los_Angeles).
+ *
+ * All-day events are platform-specific: iOS EventKit normalizes the all-day
+ * date to the LOCAL day containing the instant (UTC midnight would land on the
+ * previous day in Pacific time), while Android's CalendarProvider requires
+ * all-day events at UTC midnight.
  */
-function toDate(dateStr: string, timeStr: string | null): Date {
+export function toDate(dateStr: string, timeStr: string | null): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   if (!timeStr) {
-    // All-day: midnight local
-    return new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+    if (Platform.OS === 'android') {
+      // Android CalendarProvider stores all-day events at UTC midnight.
+      return new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+    }
+    // iOS: local midnight so EventKit places the event on the intended day.
+    const offset = getPacificOffsetMinutes(y, m - 1, d);
+    return new Date(Date.UTC(y, m - 1, d, 0, offset, 0));
   }
   const [h, min, s] = timeStr.split(':').map(Number);
-  // Pacific offset: standard -8h, daylight -7h
-  // We let the Calendar API handle the timezone with timeZone: 'America/Los_Angeles'
-  // so pass the local wall time as a plain ISO string that we convert to a Date.
-  // JavaScript Date is UTC-based; we produce a UTC Date that represents the
-  // correct instant by adding the Pacific offset.
+  // JavaScript Date is UTC-based; produce the UTC instant for this Pacific
+  // wall-clock time by adding the offset (PST +8h / PDT +7h).
   const pacificOffset = getPacificOffsetMinutes(y, m - 1, d);
   return new Date(Date.UTC(y, m - 1, d, h, (min ?? 0) + pacificOffset, s ?? 0));
 }
@@ -81,12 +88,14 @@ function nthSundayOfMonth(year: number, month: number, n: number): { y: number; 
   return { y: year, m: month, d: 1 };
 }
 
-function buildEndDate(event: ICSEventData): Date {
+export function buildEndDate(event: ICSEventData): Date {
   const endDate = event.end_date ?? event.start_date;
   if (!event.start_time) {
-    // All-day: end is exclusive next day
+    // All-day: end is exclusive next day (same platform-specific midnight as toDate)
     const [y, m, d] = endDate.split('-').map(Number);
-    return new Date(Date.UTC(y, m - 1, d + 1, 0, 0, 0));
+    const next = new Date(Date.UTC(y, m - 1, d + 1));
+    const nextStr = `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}`;
+    return toDate(nextStr, null);
   }
   if (event.end_time) {
     return toDate(endDate, event.end_time);
@@ -127,56 +136,16 @@ async function getWritableCalendarId(): Promise<string | null> {
   return preferred.id;
 }
 
-/**
- * Android: open Google Calendar's native "New Event" screen via ACTION_INSERT.
- * The user sees their normal calendar list, picks one, and saves — all within
- * their calendar app. No permissions required from our side.
- */
-async function addEventViaAndroidIntent(event: ICSEventData): Promise<void> {
-  const startMs = toDate(event.start_date, event.start_time).getTime();
-  const endMs = buildEndDate(event).getTime();
-
-  await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
-    data: 'content://com.android.calendar/events',
-    extra: {
-      title: event.title,
-      description: event.description ?? '',
-      eventLocation: event.location?.address ?? event.location?.name ?? '',
-      beginTime: startMs,
-      endTime: endMs,
-      allDay: !event.start_time,
-    },
-  });
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Add one or more events to the device calendar.
- *
- * Android: opens Google Calendar's native "New Event" screen via an ACTION_INSERT
- *   intent. The user picks their calendar and saves inside their calendar app.
- *   Returns null (no event ID available from the intent).
- *
- * iOS: silently adds events via expo-calendar and returns the first created
- *   event ID so the caller can offer a "View in Calendar" link.
+ * Add one or more events to the device calendar via expo-calendar and return
+ * the first created event ID so the caller can offer a "View in Calendar" link.
  */
 export async function addEventsToCalendar(
   events: ICSEventData[],
   calName: string
 ): Promise<string | null> {
-  // Android: delegate to the native calendar app via intent (no permission needed,
-  // shows the normal Google Calendar picker the user expects).
-  if (Platform.OS === 'android') {
-    // For multiple events on Android fall through to the expo-calendar path below,
-    // since the intent approach only supports one event at a time.
-    if (events.length === 1) {
-      await addEventViaAndroidIntent(events[0]);
-      return null; // outcome is handled inside Google Calendar, no ID to return
-    }
-  }
-
-  // iOS (and Android multi-event fallback): write directly via expo-calendar.
   const granted = await requestCalendarAccess();
   if (!granted) return null;
 
