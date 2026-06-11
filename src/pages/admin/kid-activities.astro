@@ -1447,6 +1447,9 @@ const hierarchyTree = buildHierarchy(activities || []);
           start_datetime: body.start_datetime as string | null,
           end_datetime: body.end_datetime as string | null,
         };
+        // Schedule-only fields are not columns on `activities` (the server also
+        // strips these defensively). NOTE: waitlist_status IS a real column, so
+        // it is intentionally NOT removed here.
         for (const k of [
           'start_time',
           'end_time',
@@ -1458,7 +1461,6 @@ const hierarchyTree = buildHierarchy(activities || []);
           'event_name',
           'event_description',
           'ignore_exceptions',
-          'waitlist_status',
         ]) {
           delete body[k];
         }

@@ -1,6 +1,7 @@
 // src/pages/api/admin/kid-activities/[id].ts
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { stripScheduleFields } from '@/lib/activity-fields';
 
 export const prerender = false;
 
@@ -39,16 +40,19 @@ export const PUT = withAdminAuth(async ({ request, params }) => {
     return jsonError('Invalid JSON', 400);
   }
 
-  // Clean empty strings to null, remove id from update payload
+  // Clean empty strings to null, remove id from update payload, then drop
+  // schedule-only fields (not columns on `activities`) so the form's hidden
+  // schedule inputs can't break the write.
   const { id: _id, ...rest } = body;
   const cleaned: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(rest)) {
     cleaned[k] = v === '' ? null : v;
   }
+  const payload = stripScheduleFields(cleaned);
 
   const { data, error } = await supabaseAdmin
     .from('activities')
-    .update(cleaned)
+    .update(payload)
     .eq('id', id)
     .select('*')
     .single();
