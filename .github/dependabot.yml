@@ -23,15 +23,22 @@ updates:
       interval: weekly
       day: monday
     groups:
-      expo-ecosystem:
-        patterns:
-          - expo*
-          - react-native*
-          - "@expo/*"
       patch-and-minor:
         update-types:
           - minor
           - patch
+    ignore:
+      # Expo SDK pins these — upgrading them outside `npx expo install --fix`
+      # breaks EAS builds (e.g. react-native 0.86 on SDK 54, PR #22). Upgrade
+      # by bumping the Expo SDK, not via dependabot.
+      - dependency-name: "expo*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native*"
+      - dependency-name: "@react-native*"
+      - dependency-name: "@types/react"
+      - dependency-name: "@sentry/react-native"
 
   # Python scripts (requirements.txt)
   - package-ecosystem: pip
