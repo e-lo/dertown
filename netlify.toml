@@ -3,7 +3,8 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  # Astro 6 requires Node 20.19+ / 22.12+
+  NODE_VERSION = "20"
 
 [functions]
   directory = "netlify/functions"
