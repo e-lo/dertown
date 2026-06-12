@@ -9,6 +9,10 @@ export interface Props {
   showCategoryFilter?: boolean;
   initialTag?: string;
   initialOrg?: string;
+  /** Keep only events whose primary OR secondary tag matches (server-side). */
+  filterTags?: string[];
+  /** Pre-built calendar events to merge in (already in calendar shape). */
+  extraEvents?: any[];
 }
 
 const {
@@ -18,15 +22,28 @@ const {
   showCategoryFilter = true,
   initialTag = '',
   initialOrg = '',
+  filterTags,
+  extraEvents = [],
 } = Astro.props;
 
 const { data: allEvents, error: eventsError } = await db.events.getAll();
 if (eventsError) {
   console.error('Error fetching events:', eventsError);
 }
-const calendarEvents = (allEvents || [])
-  .map(transformEventForCalendar)
-  .filter(Boolean);
+
+let sourceEvents = allEvents || [];
+if (filterTags && filterTags.length) {
+  const wanted = new Set(filterTags.map((t) => t.toLowerCase()));
+  sourceEvents = sourceEvents.filter((e: any) =>
+    wanted.has((e.primary_tag?.name || '').toLowerCase()) ||
+    wanted.has((e.secondary_tag?.name || '').toLowerCase())
+  );
+}
+
+const calendarEvents = [
+  ...sourceEvents.map(transformEventForCalendar).filter(Boolean),
+  ...extraEvents,
+];
 ---
 
 {eventsError ? (

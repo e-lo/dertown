@@ -1,6 +1,10 @@
 /* Admin Dashboard Styles */
 /* Using Tailwind where possible, custom CSS only when needed */
 
+/* This stylesheet is imported standalone (not through global.css), so it needs
+   @reference to resolve @apply against the Tailwind theme/utilities (v4). */
+@reference './global.css';
+
 /* Material Symbols Outlined font styling - override global.css for admin page */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';

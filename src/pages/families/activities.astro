@@ -1,12 +1,11 @@
 ---
 import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
-import LinkBox from '../../components/ui/LinkBox.astro';
+import Calendar from '../../components/Calendar.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 
-// Lightweight counts for the hub cards. Best-effort — if the query fails
-// (e.g. migration not yet applied), the cards still render without counts.
+// --- Counts for the category blocks (best-effort) ---
 let campCount: number | null = null;
 let programCount: number | null = null;
 try {
@@ -26,60 +25,129 @@ try {
     .or('program_format.neq.camp,program_format.is.null');
   programCount = programs ?? null;
 } catch {
-  // Counts are optional; ignore failures.
+  // counts are optional
+}
+const campSub = campCount != null ? `${campCount} listed` : '';
+const programSub = programCount != null ? `${programCount} listed` : '';
+
+// --- Registration windows for upcoming seasons (overlaid on the calendar) ---
+// One multi-day all-day event per activity, spanning registration open -> close.
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+let regEvents: any[] = [];
+try {
+  const { data: regRows } = await (supabase as any)
+    .from('public_activities')
+    .select('id, name, registration_opens, registration_closes')
+    .eq('status', 'approved')
+    .or('registration_opens.not.is.null,registration_closes.not.is.null');
+
+  for (const r of (regRows ?? []) as any[]) {
+    const opens = r.registration_opens as string | null;
+    const closes = r.registration_closes as string | null;
+    const endRef = closes ?? opens;
+    if (!endRef) continue;
+    const endDate = new Date(endRef);
+    if (isNaN(endDate.getTime()) || endDate < today) continue; // only current/upcoming
+
+    // All-day end is exclusive in the calendar, so add a day to include the close date.
+    let end: string | undefined;
+    if (closes) {
+      const e = new Date(closes);
+      e.setDate(e.getDate() + 1);
+      end = e.toISOString().slice(0, 10);
+    }
+    regEvents.push({
+      id: `reg-${r.id}`,
+      title: `Registration: ${r.name}`,
+      category: 'registration',
+      start: opens ?? closes,
+      end,
+      allDay: true,
+      url: `/families/programs/${r.id}`,
+    });
+  }
+} catch {
+  // registration overlay is optional
 }
 
-const campSubtext = campCount != null ? `${campCount} camp${campCount === 1 ? '' : 's'} listed` : undefined;
-const programSubtext =
-  programCount != null ? `${programCount} program${programCount === 1 ? '' : 's'} listed` : undefined;
+const blocks = [
+  {
+    href: '/families/camps',
+    cls: 'bg-blue-green',
+    icon: 'cabin',
+    title: 'Camps',
+    text: 'Summer and school-break camps. Browse by week to find something for a specific date.',
+    sub: campSub,
+  },
+  {
+    href: '/families/programs',
+    cls: 'bg-blue',
+    icon: 'emoji_events',
+    title: 'Programs, Classes & Leagues',
+    text: 'Recurring programs, classes, lessons, and sports leagues that run through the year.',
+    sub: programSub,
+  },
+  {
+    href: '/families/after-school-activities',
+    cls: 'bg-green',
+    icon: 'backpack',
+    title: 'After-School Activities',
+    text: 'Curated after-school programs and clubs, organized by school and grade level.',
+    sub: '',
+  },
+];
 ---
 
 <Layout
-  title="Activities - Families | Der Town"
+  title="Activities for Kids - Families | Der Town"
   description="Find camps, programs, classes, leagues, and after-school activities for children of all ages in the Leavenworth area."
 >
   <div class="bg-white min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
       <SectionHeader
         title="Activities for Kids"
         icon="sports_and_outdoors"
-        text="Camps, programs, classes, leagues, and after-school activities for children of all ages in the Leavenworth area. Pick a category to start browsing."
+        text="Camps, programs, classes, leagues, and after-school activities for children of all ages in the Leavenworth area."
       />
+    </div>
 
-      <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <LinkBox
-            title="Camps"
-            text="Summer and school-break camps — browse by week to find something for a specific date, like the week of July 14."
-            subtext={campSubtext}
-            link="/families/camps"
-            icon="cabin"
-            external={false}
-          />
-          <LinkBox
-            title="Programs, Classes & Leagues"
-            text="Recurring programs, classes, lessons, and sports leagues that run through the school year and beyond."
-            subtext={programSubtext}
-            link="/families/programs"
-            icon="emoji_events"
-            external={false}
-          />
-          <LinkBox
-            title="After-School Activities"
-            text="Curated after-school programs and clubs organized by school and grade level."
-            link="/families/after-school-activities"
-            icon="backpack"
-            external={false}
-          />
-          <LinkBox
-            title="School"
-            text="School calendars, enrollment, and district information for local families."
-            link="/families/school"
-            icon="school"
-            external={false}
-          />
-        </div>
-      </div>
+    <!-- Three full-bleed category blocks -->
+    <div class="mt-6 space-y-1">
+      {blocks.map((b) => (
+        <a href={b.href} class={`${b.cls} block group transition-opacity hover:opacity-95`}>
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex items-center gap-5">
+            <span class="material-symbols-outlined text-5xl shrink-0">{b.icon}</span>
+            <div class="min-w-0">
+              <h2 class="text-2xl font-bold leading-tight">{b.title}</h2>
+              <p class="opacity-90 mt-1">{b.text}</p>
+              {b.sub && <p class="opacity-75 text-sm mt-1">{b.sub}</p>}
+            </div>
+            <span class="material-symbols-outlined text-3xl ml-auto shrink-0 transition-transform group-hover:translate-x-1">
+              arrow_forward
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+
+    <!-- Family events + registration calendar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h2 class="text-2xl font-bold flex items-center justify-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-3xl">calendar_month</span>
+        Family Calendar
+      </h2>
+      <p class="text-center text-gray-500 mb-6">
+        Family-friendly events from the community calendar, plus registration windows for
+        upcoming camps, programs, and leagues.
+      </p>
+      <Calendar
+        title="Family Activities"
+        defaultView="month"
+        showSearch={false}
+        filterTags={['family']}
+        extraEvents={regEvents}
+      />
 
       <div class="mt-8">
         <Disclaimer

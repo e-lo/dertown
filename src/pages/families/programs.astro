@@ -1,6 +1,7 @@
 ---
 import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 
@@ -223,6 +224,7 @@ const seasonBadges = [
 
     <!-- Hero -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+      <Breadcrumb items={[{ label: 'Activities', href: '/families/activities' }, { label: 'Programs, Classes & Leagues' }]} />
       <SectionHeader
         title="Programs"
         icon="emoji_events"

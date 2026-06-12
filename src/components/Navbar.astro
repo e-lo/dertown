@@ -11,7 +11,7 @@ import { db } from '../lib/supabase';
     <div class="flex justify-between h-16">
       <!-- Logo and primary nav -->
       <div class="flex">
-        <div class="flex-shrink-0 flex items-center">
+        <div class="shrink-0 flex items-center">
           <a href="/" class="flex items-center space-x-2 text-xl font-bold text-gray-900">
             <img src="/logo.svg" alt="Der Town Logo" class="h-8 w-8" />
             <span>DerTown</span>
@@ -69,12 +69,6 @@ import { db } from '../lib/supabase';
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   Activities
-                </a>
-                <a
-                  href="/families/after-school-activities"
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  After School Activities
                 </a>
               </div>
             </div>
@@ -149,7 +143,6 @@ import { db } from '../lib/supabase';
         <div class="hidden pl-2" id="mobile-families-menu">
           <a href="/families/school" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">School</a>
           <a href="/families/activities" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Activities</a>
-          <a href="/families/after-school-activities" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">After School Activities</a>
         </div>
       </div>
       <!-- Mobile Subscribe Menu -->

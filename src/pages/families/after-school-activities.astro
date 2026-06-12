@@ -1,6 +1,7 @@
 ---
 import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import QuickNavItem from '../../components/ui/QuickNavItem.astro';
 import LinkBox from '../../components/ui/LinkBox.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
@@ -11,6 +12,7 @@ import Disclaimer from '../../components/ui/Disclaimer.astro';
   <div class="bg-white min-h-screen">
     <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+      <Breadcrumb items={[{ label: 'Activities', href: '/families/activities' }, { label: 'After-School' }]} />
       <SectionHeader
         title="After School Activities"
         text="Note that this is not an exhaustive list and focuses on programs that are available immediately after school without the need for families to separately arrange transportation to the activity from school."

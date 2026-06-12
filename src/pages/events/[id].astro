@@ -209,16 +209,16 @@ const locationMapMarkers =
               <!-- Date/Time -->
               <div class="flex items-center gap-2 text-base sm:text-lg text-gray-700">
                 <span class="material-symbols-outlined text-blue-600">calendar_today</span>
-                <span class="break-words">{formatEventDateTime(event as any)}</span>
+                <span class="wrap-break-word">{formatEventDateTime(event as any)}</span>
               </div>
               <!-- Location -->
               {event.location?.name && (
                 <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
                   <span class="material-symbols-outlined text-blue-600">location_on</span>
                   {event.location_id ? (
-                    <a class="break-words text-blue-600 hover:underline" href={`/locations/${event.location_id}`}>{event.location.name}</a>
+                    <a class="wrap-break-word text-blue-600 hover:underline" href={`/locations/${event.location_id}`}>{event.location.name}</a>
                   ) : (
-                    <span class="break-words">{event.location.name}</span>
+                    <span class="wrap-break-word">{event.location.name}</span>
                   )}
                 </div>
               )}
@@ -227,11 +227,11 @@ const locationMapMarkers =
                 <div class="flex items-start gap-2 text-base sm:text-lg text-gray-700 mt-2">
                   <span class="material-symbols-outlined text-blue-600">diversity_3</span>
                   {event.organization_id ? (
-                    <a class="break-words text-blue-600 hover:underline" href={`/organizations/${event.organization_id}`}>
+                    <a class="wrap-break-word text-blue-600 hover:underline" href={`/organizations/${event.organization_id}`}>
                       {typeof event.organization === 'object' && event.organization !== null ? event.organization.name : (event.organization ?? '')}
                     </a>
                   ) : (
-                    <span class="break-words">{typeof event.organization === 'object' && event.organization !== null ? event.organization.name : (event.organization ?? '')}</span>
+                    <span class="wrap-break-word">{typeof event.organization === 'object' && event.organization !== null ? event.organization.name : (event.organization ?? '')}</span>
                   )}
                 </div>
               )}
@@ -239,21 +239,21 @@ const locationMapMarkers =
               {event.website && (
                 <a href={event.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-base sm:text-lg text-blue-600 hover:underline mt-2">
                   <span class="material-symbols-outlined text-blue-600">link</span>
-                  <span class="break-words">Website</span>
+                  <span class="wrap-break-word">Website</span>
                 </a>
               )}
               <!-- Registration Required -->
               {event.registration && (
                 <div class="flex items-center gap-2 text-base sm:text-lg text-orange-600 mt-2">
                   <span class="material-symbols-outlined text-orange-600">local_activity</span>
-                  <span class="break-words">Registration required</span>
+                  <span class="wrap-break-word">Registration required</span>
                 </div>
               )}
               <!-- Cost -->
               {event.cost && (
                 <div class="flex items-center gap-2 text-base sm:text-lg text-gray-700 mt-2">
                   <span class="material-symbols-outlined text-green-600">attach_money</span>
-                  <span class="break-words">{event.cost as string}</span>
+                  <span class="wrap-break-word">{event.cost as string}</span>
                 </div>
               )}
             </div>

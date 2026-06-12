@@ -2,8 +2,16 @@
   command = "npm run build"
   publish = "dist"
 
+# Disambiguate framework detection (the repo only uses Astro). Prevents
+# "Multiple possible dev commands found: Astro, SolidJS" on the dev server.
+[dev]
+  command = "npm run dev"
+  framework = "astro"
+  targetPort = 4321
+
 [build.environment]
-  NODE_VERSION = "18"
+  # Astro 6.4+ requires Node >=22.12.0 (astro + @astrojs/prism EBADENGINE on 20)
+  NODE_VERSION = "22"
 
 [functions]
   directory = "netlify/functions"

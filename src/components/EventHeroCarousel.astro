@@ -40,7 +40,7 @@ const hasEvents = displayEvents.length > 0;
   <div class="embla relative">
     <div class="embla__container">
       {displayEvents.map((event, index) => (
-        <div class="embla__slide flex-shrink-0">
+        <div class="embla__slide shrink-0">
           <EventCarouselCard event={event} tags={{ primary: event.primary_tag?.name, secondary: event.secondary_tag?.name }} />
         </div>
       ))}
