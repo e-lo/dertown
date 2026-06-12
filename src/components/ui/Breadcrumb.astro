@@ -1,0 +1,26 @@
+---
+export interface Props {
+  /** Ordered trail; the last item is the current page (rendered without a link). */
+  items: { label: string; href?: string }[];
+  class?: string;
+}
+const { items, class: className = '' } = Astro.props;
+---
+<nav aria-label="Breadcrumb" class={`mb-4 ${className}`}>
+  <ol class="flex flex-wrap items-center gap-1 text-sm text-gray-500">
+    {items.map((item, i) => (
+      <li class="flex items-center gap-1">
+        {item.href ? (
+          <a href={item.href} class="text-blue-600 hover:underline">{item.label}</a>
+        ) : (
+          <span class="text-gray-700" aria-current="page">{item.label}</span>
+        )}
+        {i < items.length - 1 && (
+          <span class="material-symbols-outlined text-base text-gray-300" aria-hidden="true"
+            >chevron_right</span
+          >
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>

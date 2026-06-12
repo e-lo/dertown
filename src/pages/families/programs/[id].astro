@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../components/Layout.astro';
 import Disclaimer from '../../../components/ui/Disclaimer.astro';
+import Breadcrumb from '../../../components/ui/Breadcrumb.astro';
 import { supabase } from '../../../lib/supabase';
 
 const { id } = Astro.params;
@@ -240,6 +241,39 @@ for (const g of grandchildren) {
   (instancesByClassType[g.parent_activity_id] ??= []).push(g);
 }
 
+// --- Current vs. past sessions ---
+// Past seasons shouldn't be raised to the same level as current/upcoming ones;
+// show them collapsed and only going back ~2 years.
+const now = new Date();
+const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
+function sessionEnd(s: Activity): Date | null {
+  const dt = s.end_datetime ?? s.start_datetime;
+  if (!dt) return null;
+  const d = new Date(dt);
+  return isNaN(d.getTime()) ? null : d;
+}
+// A session with no end date is treated as current/ongoing.
+const upcomingSessions = sessions.filter((s) => {
+  const e = sessionEnd(s);
+  return !e || e >= now;
+});
+const pastSessions = sessions
+  .filter((s) => {
+    const e = sessionEnd(s);
+    return e && e < now && e >= twoYearsAgo;
+  })
+  .sort((a, b) => (sessionEnd(b)?.getTime() ?? 0) - (sessionEnd(a)?.getTime() ?? 0));
+
+const isOngoing = !!program?.is_ongoing;
+// A program-level date range only makes sense for a standalone dated offering
+// (e.g. a one-off workshop) — NOT for programs whose real dates live on their
+// sessions/classes, and not for ongoing/year-round programs.
+const showProgramDates =
+  !isOngoing &&
+  sessions.length === 0 &&
+  classTypes.length === 0 &&
+  !!formatDateRange(program?.start_datetime, program?.end_datetime);
+
 const programOccurrences = program ? (occurrencesByActivity[program.id] ?? []) : [];
 
 const hasSchedule =
@@ -261,11 +295,11 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
     ) : (
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <!-- Back link -->
-        <a href="/families/programs" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
-          <span class="material-symbols-outlined text-base">arrow_back</span>
-          All programs
-        </a>
+        <Breadcrumb items={[
+          { label: 'Activities', href: '/families/activities' },
+          { label: 'Programs', href: '/families/programs' },
+          { label: program.name },
+        ]} />
 
         <!-- Header -->
         <div class="border-b border-gray-200 pb-6 mb-6">
@@ -306,10 +340,16 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
                 <dd class="text-gray-900 font-medium">{program.location_details}</dd>
               </div>
             )}
-            {formatDateRange(program.start_datetime, program.end_datetime) && (
+            {showProgramDates && (
               <div>
                 <dt class="text-gray-500">Dates</dt>
                 <dd class="text-gray-900 font-medium">{formatDateRange(program.start_datetime, program.end_datetime)}</dd>
+              </div>
+            )}
+            {isOngoing && (
+              <div>
+                <dt class="text-gray-500">Schedule</dt>
+                <dd class="text-gray-900 font-medium">Year-round · not session-based</dd>
               </div>
             )}
           </dl>
@@ -404,7 +444,11 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
           </h2>
 
           {!hasSchedule && (
-            <p class="text-sm text-gray-500">Schedule not yet posted.</p>
+            isOngoing ? (
+              <p class="text-sm text-gray-500">This program runs year-round and isn't organized into sessions — contact the organizer for current schedule and openings.</p>
+            ) : (
+              <p class="text-sm text-gray-500">Schedule not yet posted.</p>
+            )
           )}
 
           <!-- Program-level occurrences (when there are no children) -->
@@ -424,10 +468,10 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
             </div>
           )}
 
-          <!-- Sessions (e.g. camp weeks) -->
-          {sessions.length > 0 && (
+          <!-- Sessions (camp weeks / league seasons): current & upcoming, prominent -->
+          {upcomingSessions.length > 0 && (
             <div class="space-y-4">
-              {sessions.map((s: Activity) => {
+              {upcomingSessions.map((s: Activity) => {
                 const occs = occurrencesByActivity[s.id] ?? [];
                 const range = formatDateRange(s.start_datetime, s.end_datetime);
                 return (
@@ -456,6 +500,31 @@ const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program n
                 );
               })}
             </div>
+          )}
+
+          <!-- Past sessions: de-emphasized, collapsed, last ~2 years only -->
+          {pastSessions.length > 0 && (
+            <details class="mt-4">
+              <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700 select-none">
+                Past sessions ({pastSessions.length})
+              </summary>
+              <div class="space-y-2 mt-3 opacity-75">
+                {pastSessions.map((s: Activity) => {
+                  const range = formatDateRange(s.start_datetime, s.end_datetime);
+                  return (
+                    <div class="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                          <h3 class="font-medium text-gray-700 text-sm">{s.name}</h3>
+                          {range && <p class="text-xs text-gray-400">{range}</p>}
+                        </div>
+                        {s.cost && <span class="text-xs text-gray-500 shrink-0">{s.cost}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
           )}
 
           <!-- Class types -> instances (e.g. class/league) -->
