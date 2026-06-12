@@ -40,7 +40,6 @@
     "resend": "^6.12.4",
     "rollup-plugin-copy": "^3.5.0",
     "rrule": "^2.8.1",
-    "solid-js": "^1.9.13",
     "tablesort": "^5.7.1",
     "zod": "^4.4.3"
   },
