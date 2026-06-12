@@ -205,9 +205,10 @@ becomes both a CSS variable **and** a real utility class automatically:
 ```
 
 **Key principle:** change a color in **`config.ts` only**, then run
-`npm run theme:generate` (it also runs automatically on `npm run dev` /
-`npm run build` via the `predev`/`prebuild` hooks). No more keeping two files in
-sync by hand.
+`npm run theme:generate` to refresh `theme.generated.css` and commit it (it also
+runs automatically on `npm run dev` via the `predev` hook). The committed
+generated file is what the production build uses, so the build itself doesn't
+depend on the generator. No more keeping two files in sync by hand.
 
 > `/src/styles/theme.css` now holds only component/FullCalendar styles that
 > aren't expressible as plain utilities — not color definitions.

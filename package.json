@@ -7,7 +7,6 @@
     "start": "astro dev",
     "theme:generate": "tsx scripts/generate-theme.ts",
     "predev": "npm run theme:generate",
-    "prebuild": "npm run theme:generate",
     "build": "astro build",
     "build:validate": "npm run validate-theme-colors && astro build",
     "preview": "astro preview",
