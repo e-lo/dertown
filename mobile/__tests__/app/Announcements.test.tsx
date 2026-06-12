@@ -23,6 +23,16 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 }));
 
+// ReportModal pulls in BlockContext — stub the hook so no provider is needed
+jest.mock('../../contexts/BlockContext', () => ({
+  useBlocked: () => ({
+    blockedOrgs: [],
+    blockedOrgIds: new Set<string>(),
+    blockOrg: jest.fn(),
+    unblockOrg: jest.fn(),
+  }),
+}));
+
 const MOCK_ANNOUNCEMENTS = [
   {
     id: 'ann-1',

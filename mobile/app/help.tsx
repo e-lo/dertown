@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../lib/theme';
 import { Icon } from '../components/Icon';
+import { useBlocked } from '../contexts/BlockContext';
 
 import { APP_CONFIG } from '../lib/app-config';
 
@@ -49,6 +50,30 @@ function ActionBtn({ label, url, subject }: { label: string; url?: string; subje
     >
       <Text style={styles.actionBtnText}>{label}</Text>
     </TouchableOpacity>
+  );
+}
+
+/** Blocked organizers with one-tap unblock (Guideline 1.2 block management). */
+function BlockedOrgList() {
+  const { blockedOrgs, unblockOrg } = useBlocked();
+
+  if (blockedOrgs.length === 0) {
+    return <Text style={styles.blockedEmpty}>You haven't blocked any organizers.</Text>;
+  }
+
+  return (
+    <View style={styles.blockedList}>
+      {blockedOrgs.map((org) => (
+        <View key={org.id} style={styles.blockedRow}>
+          <Text style={styles.blockedName} numberOfLines={1}>
+            {org.name}
+          </Text>
+          <TouchableOpacity onPress={() => unblockOrg(org.id)}>
+            <Text style={styles.unblockText}>Unblock</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -218,6 +243,17 @@ export default function HelpScreen() {
           />
         </Section>
 
+        {/* ── Moderation ──────────────────────────────────────────────────── */}
+        <Section title="Reporting & blocked organizers">
+          <Text style={styles.body}>
+            We have zero tolerance for objectionable content. Use the Report
+            buttons on events, announcements, and organizations to flag
+            anything inappropriate — we act on reports within 24 hours. You can
+            also block an organizer from their page to hide all their content.
+          </Text>
+          <BlockedOrgList />
+        </Section>
+
         {/* ── Legal ───────────────────────────────────────────────────────── */}
         <Section title="Terms of Use">
           <ActionBtn label="Read Terms of Use at dertown.org →" url={TERMS_URL} />
@@ -309,5 +345,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: THEME.canary,
     fontWeight: '600',
+  },
+  blockedEmpty: {
+    marginTop: 8,
+    fontSize: 13,
+    color: THEME.textMuted,
+    fontStyle: 'italic',
+  },
+  blockedList: {
+    marginTop: 10,
+    gap: 8,
+  },
+  blockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: THEME.cardBackground,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  blockedName: {
+    flex: 1,
+    fontSize: 14,
+    color: THEME.textPrimary,
+    marginRight: 12,
+  },
+  unblockText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.canary,
   },
 });

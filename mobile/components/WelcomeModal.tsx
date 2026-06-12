@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -123,8 +124,20 @@ export function WelcomeModal({ visible, onDismiss }: Props) {
         </ScrollView>
 
         <View style={styles.footer}>
+          <Text style={styles.termsText}>
+            By continuing, you agree to the{' '}
+            <Text
+              style={styles.termsLink}
+              onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}
+            >
+              Terms of Use
+            </Text>
+            . We have zero tolerance for objectionable content or abusive
+            behavior — you can report content or block organizers in the app,
+            and reports are acted on within 24 hours.
+          </Text>
           <TouchableOpacity style={styles.ctaBtn} onPress={onDismiss} activeOpacity={0.85}>
-            <Text style={styles.ctaBtnText}>Got it, let's explore!</Text>
+            <Text style={styles.ctaBtnText}>Agree & Continue</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.learnMoreBtn} onPress={handleLearnMore} activeOpacity={0.7}>
             <Text style={styles.learnMoreText}>Read the full Help & FAQ →</Text>
@@ -218,6 +231,15 @@ const styles = StyleSheet.create({
     gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  termsText: {
+    fontSize: 12,
+    color: THEME.textSecondary,
+    lineHeight: 17,
+  },
+  termsLink: {
+    color: THEME.canary,
+    textDecorationLine: 'underline',
   },
   ctaBtn: {
     backgroundColor: THEME.canary,

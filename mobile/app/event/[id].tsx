@@ -19,6 +19,7 @@ import { openMaps } from '../../lib/mapUtils';
 import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
+import { ReportModal } from '../../components/ReportModal';
 import { APP_CONFIG } from '../../lib/app-config';
 import { addEventsToCalendar } from '../../lib/icalUtils';
 import Markdown from 'react-native-markdown-display';
@@ -35,6 +36,7 @@ export default function EventDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [calendarEventId, setCalendarEventId] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
   const {
     starredIds, toggleStar,
     starredSeriesIds, toggleStarSeries,
@@ -461,7 +463,7 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {/* Report / suggest update */}
+          {/* Suggest update / report objectionable content */}
           <TouchableOpacity
             style={styles.reportBtn}
             onPress={() =>
@@ -473,6 +475,27 @@ export default function EventDetailScreen() {
           >
             <Text style={styles.reportBtnText}>Something wrong? Suggest an update →</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.flagBtn}
+            onPress={() => setReportVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Icon name="flag" size={13} color={THEME.textMuted} />
+            <Text style={styles.reportBtnText}>Report this content</Text>
+          </TouchableOpacity>
+
+          <ReportModal
+            visible={reportVisible}
+            onClose={() => setReportVisible(false)}
+            contentType="event"
+            contentId={event.id}
+            contentTitle={event.title}
+            organization={
+              event.organization && event.organization_id
+                ? { id: event.organization_id, name: event.organization.name }
+                : null
+            }
+          />
         </ScrollView>
       )}
     </>
@@ -553,9 +576,18 @@ const styles = StyleSheet.create({
   reportBtn: {
     marginHorizontal: 20,
     marginTop: 24,
-    marginBottom: 8,
+    marginBottom: 0,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  flagBtn: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
   },
   reportBtnText: {
     fontSize: 13,

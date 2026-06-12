@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Linking,
+  Alert,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +19,8 @@ import { openMaps } from '../../lib/mapUtils';
 import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
+import { useBlocked } from '../../contexts/BlockContext';
+import { ReportModal } from '../../components/ReportModal';
 import type { MobileOrganization, MobileEvent } from '../../lib/types';
 
 export default function OrganizationScreen() {
@@ -33,6 +36,33 @@ export default function OrganizationScreen() {
   const [events, setEvents] = useState<MobileEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
+  const { blockedOrgIds, blockOrg, unblockOrg } = useBlocked();
+
+  const isBlocked = org ? blockedOrgIds.has(org.id) : false;
+
+  const handleBlockToggle = () => {
+    if (!org) return;
+    if (isBlocked) {
+      unblockOrg(org.id);
+      return;
+    }
+    Alert.alert(
+      `Block ${org.name}?`,
+      'All events and content from this organizer will be hidden immediately, and we will be notified to review their content.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: () => {
+            blockOrg({ id: org.id, name: org.name });
+            router.back();
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -221,6 +251,37 @@ export default function OrganizationScreen() {
               ))
             )}
           </View>
+
+          {/* Moderation: report or block this organizer (Guideline 1.2) */}
+          <View style={styles.moderationSection}>
+            <TouchableOpacity
+              style={styles.moderationBtn}
+              onPress={() => setReportVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Icon name="flag" size={13} color={THEME.textMuted} />
+              <Text style={styles.moderationBtnText}>Report this organization</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.moderationBtn}
+              onPress={handleBlockToggle}
+              activeOpacity={0.7}
+            >
+              <Icon name="block" size={13} color={isBlocked ? THEME.canary : THEME.textMuted} />
+              <Text style={[styles.moderationBtnText, isBlocked && { color: THEME.canary }]}>
+                {isBlocked ? 'Unblock this organizer' : 'Block this organizer'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ReportModal
+            visible={reportVisible}
+            onClose={() => setReportVisible(false)}
+            contentType="organization"
+            contentId={org.id}
+            contentTitle={org.name}
+            organization={{ id: org.id, name: org.name }}
+          />
         </ScrollView>
       )}
     </>
@@ -372,6 +433,24 @@ const styles = StyleSheet.create({
   },
   emptyEventsText: {
     fontSize: 14,
+    color: THEME.textMuted,
+  },
+  // ── Moderation ──────────────────────────────────────────────────────────────
+  moderationSection: {
+    marginTop: 20,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  moderationBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+  },
+  moderationBtnText: {
+    fontSize: 13,
     color: THEME.textMuted,
   },
 });

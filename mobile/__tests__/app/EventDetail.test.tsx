@@ -30,6 +30,15 @@ jest.mock('../../contexts/StarContext', () => ({
   }),
 }));
 
+jest.mock('../../contexts/BlockContext', () => ({
+  useBlocked: () => ({
+    blockedOrgs: [],
+    blockedOrgIds: new Set<string>(),
+    blockOrg: jest.fn(),
+    unblockOrg: jest.fn(),
+  }),
+}));
+
 import { fetchEventById } from '../../lib/api';
 import EventDetailScreen from '../../app/event/[id]';
 import type { MobileEvent } from '../../lib/types';

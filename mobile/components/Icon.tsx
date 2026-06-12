@@ -19,6 +19,8 @@ import {
   ChevronRight,
   Phone,
   Mail,
+  Flag,
+  ShieldBan,
 } from 'lucide-react-native';
 
 // Maps our semantic icon names to platform-specific names
@@ -40,6 +42,8 @@ const ICON_MAP = {
   'chevron-right': { Lucide: ChevronRight,    material: 'chevron-right'   },
   phone:           { Lucide: Phone,           material: 'phone'           },
   mail:            { Lucide: Mail,            material: 'email'           },
+  flag:            { Lucide: Flag,            material: 'flag'            },
+  block:           { Lucide: ShieldBan,       material: 'block'           },
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import { THEME } from '../lib/theme';
 import { StarProvider } from '../contexts/StarContext';
+import { BlockProvider } from '../contexts/BlockContext';
 import { WelcomeModal } from '../components/WelcomeModal';
+import { loadTermsAgreed, saveTermsAgreed } from '../lib/moderation';
 
 if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
   Sentry.init({
@@ -15,24 +16,25 @@ if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
   });
 }
 
-const WELCOME_KEY = 'welcome:seen';
-
 function RootLayout() {
   const [showWelcome, setShowWelcome] = useState(false);
 
+  // The welcome screen doubles as the terms-of-use agreement gate: it blocks
+  // the app until the user agrees (App Store Guideline 1.2).
   useEffect(() => {
-    AsyncStorage.getItem(WELCOME_KEY).then((val) => {
-      if (!val) setShowWelcome(true);
+    loadTermsAgreed().then((agreed) => {
+      if (!agreed) setShowWelcome(true);
     });
   }, []);
 
-  const handleDismissWelcome = async () => {
-    await AsyncStorage.setItem(WELCOME_KEY, 'true');
+  const handleAgreeWelcome = async () => {
+    await saveTermsAgreed();
     setShowWelcome(false);
   };
 
   return (
     <StarProvider>
+      <BlockProvider>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: THEME.headerBackground },
@@ -47,7 +49,8 @@ function RootLayout() {
         <Stack.Screen name="calendar-subscribe" options={{ headerShown: false }} />
         <Stack.Screen name="help" options={{ headerShown: false }} />
       </Stack>
-      <WelcomeModal visible={showWelcome} onDismiss={handleDismissWelcome} />
+      <WelcomeModal visible={showWelcome} onDismiss={handleAgreeWelcome} />
+      </BlockProvider>
     </StarProvider>
   );
 }

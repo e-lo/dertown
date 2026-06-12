@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState } from 'react-native';
 import { fetchEvents } from '../lib/api';
 import { getCache, setCache } from '../lib/cache';
 import { filterUpcoming } from '../lib/dateUtils';
+import { useBlocked } from '../contexts/BlockContext';
 import type { MobileEvent } from '../lib/types';
 
 const CACHE_KEY = 'events:all';
@@ -31,6 +32,17 @@ export function useEventList(): {
   const [refreshing, setRefreshing] = useState(false);   // pull-to-refresh indicator
   const [error, setError]           = useState<string | null>(null);
   const fetchingRef                 = useRef(false);      // guard against concurrent fetches
+  const { blockedOrgIds }           = useBlocked();
+
+  // Hide content from blocked organizers instantly (Guideline 1.2) — applied
+  // at render time so blocking/unblocking takes effect without a refetch.
+  const visibleEvents = useMemo(
+    () =>
+      blockedOrgIds.size === 0
+        ? events
+        : events.filter((e) => !e.organization_id || !blockedOrgIds.has(e.organization_id)),
+    [events, blockedOrgIds]
+  );
 
   /** Core fetch — updates state and cache. */
   const doFetch = useCallback(async (opts: { pullToRefresh?: boolean } = {}) => {
@@ -91,5 +103,5 @@ export function useEventList(): {
   const refresh = useCallback(() => doFetch({ pullToRefresh: true }), [doFetch]);
   const reload  = useCallback(() => doFetch(), [doFetch]);
 
-  return { events, loading, refreshing, error, refresh, reload };
+  return { events: visibleEvents, loading, refreshing, error, refresh, reload };
 }
