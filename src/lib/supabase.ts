@@ -34,7 +34,34 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
+
+// supabaseAdmin is created LAZILY via a Proxy: the real client (which requires
+// the service-role key) is only built the first time it's actually used. This
+// prevents a missing/blank SUPABASE_SERVICE_ROLE_KEY from throwing at module
+// import and taking down the entire public site — admin features fail with a
+// clear error instead, while public pages (which only need the anon client)
+// keep working.
+let adminClient: ReturnType<typeof createClient<Database>> | null = null;
+function getSupabaseAdmin() {
+  if (!adminClient) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(
+        'supabaseAdmin is not configured: SUPABASE_SERVICE_ROLE_KEY (or PUBLIC_SUPABASE_URL) ' +
+          'is missing. Set it in Netlify env vars (Functions scope, Production context).'
+      );
+    }
+    adminClient = createClient<Database>(supabaseUrl, supabaseServiceKey);
+  }
+  return adminClient;
+}
+
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
+  get(_target, prop) {
+    const client = getSupabaseAdmin() as Record<string | symbol, unknown>;
+    const value = client[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
 
 // Constants
 const RELATED_EVENTS_LIMIT = 6;
