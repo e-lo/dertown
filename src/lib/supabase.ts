@@ -2,16 +2,36 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 import { localeTimeZone } from './calendar-utils';
 
-// Decide which Supabase credentials to use
-const useLocalDb = import.meta.env.USE_LOCAL_DB === 'true';
+// Decide which Supabase credentials to use.
+// Read build-inlined (import.meta.env, literal access so Vite can inline) with a
+// runtime fallback (process.env). A missing build-time var was 500-ing the whole
+// site, because createClient throws on undefined and that throw happens at module
+// import — taking down every SSR route. The runtime fallback makes the function
+// work as long as the vars are present in Netlify's Functions environment.
+const runtimeEnv = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
 
-const supabaseUrl = useLocalDb ? 'http://127.0.0.1:54321' : import.meta.env.PUBLIC_SUPABASE_URL;
+const useLocalDb = (import.meta.env.USE_LOCAL_DB || runtimeEnv.USE_LOCAL_DB) === 'true';
+
+const supabaseUrl = useLocalDb
+  ? 'http://127.0.0.1:54321'
+  : import.meta.env.PUBLIC_SUPABASE_URL || runtimeEnv.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = useLocalDb
   ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-  : import.meta.env.PUBLIC_SUPABASE_KEY;
+  : import.meta.env.PUBLIC_SUPABASE_KEY || runtimeEnv.PUBLIC_SUPABASE_KEY;
 const supabaseServiceKey = useLocalDb
   ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
-  : import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+  : import.meta.env.SUPABASE_SERVICE_ROLE_KEY || runtimeEnv.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  // Surface a clear, actionable error instead of a cryptic createClient throw.
+  console.error(
+    '[supabase] Missing credentials — PUBLIC_SUPABASE_URL set:',
+    Boolean(supabaseUrl),
+    '· PUBLIC_SUPABASE_KEY set:',
+    Boolean(supabaseAnonKey),
+    '— check Netlify env vars (Builds + Functions scopes).'
+  );
+}
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
