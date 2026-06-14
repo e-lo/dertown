@@ -1,0 +1,42 @@
+name: CI
+
+# Runs on every PR (including Dependabot's) and pushes to main. The goal is to
+# catch dependency upgrades that pass type-check but break the production runtime
+# — e.g. a @supabase/supabase-js bump that throws at createClient on our Node
+# version, or an adapter peer that breaks install/build.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Use the SAME Node version production runs (Netlify reads .nvmrc too).
+      # This is what makes the runtime canary meaningful.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      # Catches peer/version conflicts (e.g. an adapter requiring a different
+      # Astro major) at install time.
+      - name: Install dependencies
+        run: npm ci
+
+      # Catches dependency upgrades that break runtime client construction
+      # (the @supabase/supabase-js / Node-WebSocket class of outage).
+      - name: Dependency health canary
+        run: npx tsx src/lib/__tests__/dependency-health.test.ts
+
+      # Catches build-time breakage. Dummy Supabase creds let any build-time
+      # module init succeed without real secrets.
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_SUPABASE_URL: https://example.supabase.co
+          PUBLIC_SUPABASE_KEY: test-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: test-service-key
