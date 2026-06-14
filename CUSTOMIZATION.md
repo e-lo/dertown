@@ -436,6 +436,35 @@ After modifying `config.ts`, check these areas to ensure your changes look corre
 
 ---
 
+## External Services & Accounts (per-deployment)
+
+Standing up Der Town for a new town/organization means creating accounts for these
+services and putting their keys into env vars — `.env` locally, **Netlify → Site
+config → Environment variables** in production (scope each to **Builds + Functions**).
+The complete, commented list is in [`.env.example`](.env.example).
+
+| Service | Used for | Env var(s) | Needed? |
+|---------|----------|-----------|---------|
+| **Supabase** | database, auth, RLS | `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Required |
+| **Netlify** | hosting, SSR, deploys | (set the above as env vars; `NODE_VERSION` in `netlify.toml`/`.nvmrc`) | Required |
+| **Mapbox** | map views | `PUBLIC_MAPBOX_TOKEN` | Required for maps |
+| **Sentry** | error tracking (web + mobile) | `PUBLIC_SENTRY_DSN` (+ optional `SENTRY_AUTH_TOKEN`) | Recommended |
+| **UptimeRobot** | uptime/health alerts | — (points at `/api/health`) | Recommended |
+| **Resend** | transactional email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RECIPIENT_EMAIL` | Optional |
+| **Mailgun** | inbound email ingest | `MAILGUN_WEBHOOK_SIGNING_KEY` | Optional |
+| **Anthropic** | AI activity import (admin) | `ANTHROPIC_API_KEY` | Optional |
+
+### Monitoring setup
+
+A new deployment should wire up alerting so you hear about outages before your users
+do. Quick version — full steps and rationale in **[docs/MONITORING.md](docs/MONITORING.md)**:
+
+1. **Sentry** — create a project (platform: Astro), set `PUBLIC_SENTRY_DSN` in Netlify, redeploy.
+2. **UptimeRobot** — add a keyword HTTP monitor on `https://<your-domain>/api/health`, alerting when the response doesn't contain `"eventsQuery": "ok"`.
+3. **CI** — already included (`.github/workflows/ci.yml`); make it a required check on `main` so dependency upgrades that break the build/runtime can't merge.
+
+---
+
 ## Files Related to Customization
 
 | File | Purpose |

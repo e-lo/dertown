@@ -55,6 +55,8 @@ See [DEVELOPING.md](./DEVELOPING.md) for full setup, admin, and troubleshooting 
 ## 📚 Documentation
 
 - [DEVELOPING.md](./DEVELOPING.md): Developer/admin workflow, project organization, setup, Makefile/Python usage, troubleshooting
+- [docs/MONITORING.md](./docs/MONITORING.md): Monitoring & alerting — Sentry, uptime (`/api/health`), CI dependency canary, and the runtime gotchas behind past outages
+- [CUSTOMIZATION.md](./CUSTOMIZATION.md): Per-deployment setup — theme/colors/location plus the external services & accounts a new deployment needs
 - [PROJECT_REQUIREMENTS.md](./PROJECT_REQUIREMENTS.md): Canonical requirements, system design, schema, implementation record, and future features
 - [EMAIL_SETUP.md](./EMAIL_SETUP.md): Email configuration guide (Resend/Inbucket)
 - [ADULT_ACTIVITIES_GUIDE.md](./ADULT_ACTIVITIES_GUIDE.md): Guide for adding adult activities to the "Things to Do" page

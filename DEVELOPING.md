@@ -81,7 +81,9 @@ dertown/
 
 ### Environment Variables
 
-- See `.env.example` for required variables (Supabase, Auth, API keys, etc.)
+- Copy `.env.example` → `.env` for local dev; it documents every variable (Supabase, Mapbox, Sentry, Resend, AI, etc.) and which are required vs. optional.
+- In production, set these in **Netlify → Site config → Environment variables**, scoped to **both "Builds" and "Functions"** so they're available at build time (`import.meta.env`) *and* runtime (`process.env`). A var missing from the build context inlines as `undefined` and has caused site-wide 500s — see [docs/MONITORING.md](docs/MONITORING.md#critical-runtime-gotchas-lessons-learned).
+- `NODE_VERSION` lives in `netlify.toml` and `.nvmrc` (keep them in sync) — currently **22** (required by `@supabase/*` for native WebSocket).
 
 ---
 
@@ -304,11 +306,17 @@ Go to **GitHub repo → Actions → Database Backup → Run workflow**.
 
 ## 🔒 Security & Monitoring
 
+**Security**
 - RLS policies enforced in Supabase
 - Private fields (emails, comments) only visible to admins
 - Public APIs use field-level security via DB views
 - Spam protection: honeypot fields and rate limiting on forms
-- Monitor error rates and performance via analytics
+
+**Monitoring & alerting** — full reference in **[docs/MONITORING.md](docs/MONITORING.md)**. In short, four layers:
+- **Sentry** — runtime exceptions on web (`@sentry/astro`) and mobile (`@sentry/react-native`); alerts on new issues. Needs `PUBLIC_SENTRY_DSN`.
+- **Uptime** — UptimeRobot pings **`/api/health`** (`src/pages/api/health.ts`); a keyword monitor on `"eventsQuery": "ok"` also catches DB-layer failures.
+- **CI canary** — `.github/workflows/ci.yml` runs on every PR + push to `main` on the production Node version; `npm ci` + the `test:deps` dependency canary + `npm run build` catch dependency/build breaks *before* they deploy.
+- **Deploy failures** — surfaced via the CI run on `main` (GitHub emails on failed runs); Netlify email alerts are Pro-only.
 
 ---
 
@@ -328,6 +336,8 @@ Dependabot (`.github/dependabot.yml`) automatically opens PRs every Monday for o
 - **SaaS services** (Supabase, Netlify, Resend, Mapbox): these self-update; just watch for API deprecation notices in their changelog or emails
 
 Batch-review Dependabot PRs at your convenience — there's no pressure to merge immediately. Nothing auto-merges.
+
+**CI guards every dependency PR.** `.github/workflows/ci.yml` runs `npm ci` + the `test:deps` runtime canary + `npm run build` on the production Node version, so an upgrade that breaks install/build/client-construction shows a **red check** instead of reaching production. Two past outages came from bumps that passed type-check but broke the runtime (`@astrojs/netlify` v7 peer conflict; `@supabase/supabase-js` requiring Node 22 WebSocket) — the canary exists to catch that class. Don't merge a Dependabot PR with a failing CI check. See [docs/MONITORING.md](docs/MONITORING.md).
 
 ---
 
