@@ -105,3 +105,21 @@ failures that never go through GitHub.
   routes fail.
 - **Keep `NODE_VERSION` (netlify.toml) and `.nvmrc` in sync** and current — newer
   `@supabase/*` requires Node 22+ for native WebSocket.
+- **The `bare-*` / `streamx` family is pinned in `package.json` `overrides` — don't
+  remove it.** That subtree (`bare-fs`→`bare-stream`→`streamx`, plus `b4a`,
+  `bare-events`, `bare-os`, `bare-path`, `bare-url`, `fast-fifo`, `text-decoder`)
+  is dragged in transitively by `@astrojs/netlify` → `@netlify/zip-it-and-ship-it`
+  (the function bundler) → `archiver` → `tar-stream`. These are the Holepunch
+  "Bare runtime" packages — **unused on Node**, but they publish several times a
+  day, and Netlify's npm registry mirror lags the canonical registry by hours.
+  When the lockfile is regenerated, npm grabs a just-published version that
+  Netlify's mirror can't serve yet, and the build dies at install with
+  `npm error code ETARGET / No matching version found for <pkg>@<ver>`. The
+  `overrides` freeze every member to a version aged ≥3 weeks (on every mirror),
+  so installs are deterministic. **CI doesn't catch this** — GitHub's npm mirror
+  is fresher than Netlify's, so a too-new version installs fine in CI and only
+  fails on Netlify; the aged-pin freeze is what makes it safe everywhere.
+  - *If it ever recurs* with a new sibling: `npm why <pkg>` to confirm it's in this
+    subtree, then add it to `overrides` pinned to a version published ≥3 weeks ago
+    (use `npm view <pkg> time --json` to pick one), and `rm -rf node_modules
+    package-lock.json && npm install` to regenerate cleanly.
