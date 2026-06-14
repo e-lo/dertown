@@ -23,7 +23,7 @@
     "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.103.0",
+    "@anthropic-ai/sdk": "^0.104.1",
     "@astrojs/netlify": "^5.5.4",
     "@astrojs/solid-js": "^5.1.0",
     "@astrojs/tailwind": "^6.0.2",
@@ -35,7 +35,7 @@
     "date-fns": "^4.4.0",
     "embla-carousel": "^8.6.0",
     "js-yaml": "^4.2.0",
-    "mapbox-gl": "^3.24.0",
+    "mapbox-gl": "^3.24.1",
     "marked": "^18.0.5",
     "node-ical": "^0.26.1",
     "resend": "^6.12.4",
