@@ -3,7 +3,10 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  # Node 22 for native WebSocket — newer @supabase/supabase-js (realtime-js)
+  # throws at createClient on Node 18 ("no native WebSocket support"), which
+  # 500s the whole site. Node 22 satisfies Astro 4's engines (>=21).
+  NODE_VERSION = "22"
 
 [functions]
   directory = "netlify/functions"
