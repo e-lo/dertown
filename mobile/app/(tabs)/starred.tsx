@@ -21,7 +21,6 @@ import { fetchFollowedEvents } from '../../lib/api';
 import { EventRow } from '../../components/EventRow';
 import { DayHeader } from '../../components/DayHeader';
 import { useStars } from '../../contexts/StarContext';
-import { useBlocked } from '../../contexts/BlockContext';
 import { openMaps } from '../../lib/mapUtils';
 import type { MobileEvent } from '../../lib/types';
 import type { StarredEntity } from '../../lib/stars';
@@ -102,7 +101,6 @@ export default function StarredScreen() {
     starredLocations, toggleStarLocation,
   } = useStars();
   const { events, loading, error } = useEventList();
-  const { blockedOrgIds } = useBlocked();
   const router = useRouter();
 
   // ── Followed org/series events ─────────────────────────────────────────────
@@ -135,15 +133,11 @@ export default function StarredScreen() {
   const allDisplayEvents = useMemo(() => {
     const individuallyStarred = events.filter((e) => starredIds.has(e.id));
     const starredSet = new Set(individuallyStarred.map((e) => e.id));
-    const followedExtra = followedEvents.filter(
-      (e) =>
-        !starredSet.has(e.id) &&
-        (!e.organization_id || !blockedOrgIds.has(e.organization_id))
-    );
+    const followedExtra = followedEvents.filter((e) => !starredSet.has(e.id));
     return [...individuallyStarred, ...followedExtra].sort((a, b) =>
       a.start_date.localeCompare(b.start_date)
     );
-  }, [events, starredIds, followedEvents, blockedOrgIds]);
+  }, [events, starredIds, followedEvents]);
 
   const listItems: EventListItem[] = useMemo(() => {
     const groups = groupEventsByDate(allDisplayEvents);

@@ -19,7 +19,6 @@ import { APP_CONFIG } from '../../lib/app-config';
 import { fetchAnnouncements } from '../../lib/api';
 import { setupPushNotifications } from '../../lib/notifications';
 import { getCache, setCache } from '../../lib/cache';
-import { ReportModal } from '../../components/ReportModal';
 import type { MobileAnnouncement } from '../../lib/types';
 
 const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
@@ -44,13 +43,7 @@ function isNew(item: MobileAnnouncement): boolean {
   return (showAt != null && showAt >= cutoff) || (createdAt != null && createdAt >= cutoff);
 }
 
-function AnnouncementCard({
-  item,
-  onReport,
-}: {
-  item: MobileAnnouncement;
-  onReport: (item: MobileAnnouncement) => void;
-}) {
+function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
   const fresh = isNew(item);
   const bgColor = fresh ? THEME.canary : THEME.cardBackground;
   // On canary yellow use near-black text (matches Arts+Culture cards); on dark card use white text
@@ -69,8 +62,8 @@ function AnnouncementCard({
     <TouchableOpacity
       style={[styles.row, { backgroundColor: bgColor }]}
       onPress={handlePress}
-      onLongPress={() => onReport(item)}
       activeOpacity={hasLink ? 0.75 : 1}
+      disabled={!hasLink}
     >
       {/* Content */}
       <View style={styles.content}>
@@ -89,14 +82,7 @@ function AnnouncementCard({
         </Text>
       </View>
 
-      {/* Right: flag + external-link indicators */}
-      <TouchableOpacity
-        style={styles.flagIcon}
-        onPress={() => onReport(item)}
-        hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-      >
-        <Icon name="flag" size={14} color={textColorMuted} />
-      </TouchableOpacity>
+      {/* Right: external-link indicator */}
       {hasLink && (
         <View style={styles.linkIcon}>
           <Icon name="external-link" size={18} color={textColorMuted} />
@@ -114,7 +100,6 @@ export default function AnnouncementsScreen() {
   const [loading, setLoading]             = useState(true);
   const [refreshing, setRefreshing]       = useState(false);
   const [error, setError]                 = useState<string | null>(null);
-  const [reportTarget, setReportTarget]   = useState<MobileAnnouncement | null>(null);
   const fetchingRef                       = useRef(false);
 
   // Request push permission here so users understand the value before being asked
@@ -175,7 +160,7 @@ export default function AnnouncementsScreen() {
   }, [doFetch]);
 
   const renderItem: ListRenderItem<MobileAnnouncement> = ({ item }) => (
-    <AnnouncementCard item={item} onReport={setReportTarget} />
+    <AnnouncementCard item={item} />
   );
 
   return (
@@ -207,14 +192,6 @@ export default function AnnouncementsScreen() {
           ListFooterComponent={<SubmitBanner />}
         />
       )}
-
-      <ReportModal
-        visible={reportTarget != null}
-        onClose={() => setReportTarget(null)}
-        contentType="announcement"
-        contentId={reportTarget?.id ?? ''}
-        contentTitle={reportTarget?.title ?? ''}
-      />
     </SafeAreaView>
   );
 }
@@ -287,10 +264,6 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 13,
     lineHeight: 18,
-  },
-  flagIcon: {
-    paddingLeft: 12,
-    alignSelf: 'center',
   },
   linkIcon: {
     paddingLeft: 12,
