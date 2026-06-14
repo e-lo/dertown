@@ -80,7 +80,7 @@ const userEmail = session.user?.email || 'Admin';
     const div = document.createElement('div');
     div.textContent = message;
     div.className =
-      'fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ' +
+      'fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-1000 max-w-xs wrap-break-word ' +
       (type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-600');
     document.body.appendChild(div);
     setTimeout(() => div.parentNode?.removeChild(div), 5000);

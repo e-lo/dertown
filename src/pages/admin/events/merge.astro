@@ -202,8 +202,8 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
             <dl class="space-y-1 text-sm">
               {summaryMeta(primaryEvent!).map(({ label, value }) => (
                 <div class="flex gap-2">
-                  <dt class="w-24 flex-shrink-0 font-medium text-gray-600">{label}</dt>
-                  <dd class="text-gray-900 break-words">{value}</dd>
+                  <dt class="w-24 shrink-0 font-medium text-gray-600">{label}</dt>
+                  <dd class="text-gray-900 wrap-break-word">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -220,8 +220,8 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
             <dl class="space-y-1 text-sm">
               {summaryMeta(secondaryEvent!).map(({ label, value }) => (
                 <div class="flex gap-2">
-                  <dt class="w-24 flex-shrink-0 font-medium text-gray-600">{label}</dt>
-                  <dd class="text-gray-900 break-words">{value}</dd>
+                  <dt class="w-24 shrink-0 font-medium text-gray-600">{label}</dt>
+                  <dd class="text-gray-900 wrap-break-word">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -286,7 +286,7 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
                             class="mt-0.5 accent-indigo-600"
                             aria-label={`Use primary value for ${label}`}
                           />
-                          <span class={`break-words ${primaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                          <span class={`wrap-break-word ${primaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
                             {primaryVal}
                           </span>
                         </label>
@@ -301,7 +301,7 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
                             class="mt-0.5 accent-amber-600"
                             aria-label={`Use secondary value for ${label}`}
                           />
-                          <span class={`break-words ${secondaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                          <span class={`wrap-break-word ${secondaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
                             {secondaryVal}
                           </span>
                         </label>
@@ -350,7 +350,7 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
   function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
     messageDiv.textContent = message;
-    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-1000 max-w-xs wrap-break-word ${
       type === 'error' ? 'bg-red-600' :
       type === 'success' ? 'bg-green-600' :
       'bg-blue-600'

@@ -94,11 +94,19 @@ export const COLOR_PALETTE = {
 export const COLORS = {
   // Theme assignments
   primary: COLOR_PALETTE.palatinateBlue,
+  primaryLight: '#eef2ff',
+  primaryDark: '#312e81',
   secondary: COLOR_PALETTE.canary,
   background: COLOR_PALETTE.palatinateBlue,
   surface: '#f9fafb',
+  surfaceLight: '#f3f4f6',
   text: '#111827',
+  textSecondary: '#374151',
+  textDark: '#1f2937',
   muted: '#6b7280',
+  mutedDark: '#4b5563',
+  border: '#d1d5db',
+  link: '#1d4ed8',
 
   // Event category colors (must match tag names in database)
   eventCategories: {

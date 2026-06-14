@@ -46,7 +46,7 @@ const userEmail = session.user?.email || 'Admin';
   function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
     messageDiv.textContent = message;
-    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-[1000] max-w-xs break-words ${
+    messageDiv.className = `fixed top-5 right-5 px-5 py-3 rounded text-white font-medium z-1000 max-w-xs wrap-break-word ${
       type === 'error' ? 'bg-red-600' :
       type === 'success' ? 'bg-green-600' :
       'bg-blue-600'

@@ -128,7 +128,7 @@ const organizationPageUrl = Astro.url.href;
                   <div class="flex items-start gap-2">
                     <span class="material-symbols-outlined text-blue-600 shrink-0">location_on</span>
                     <div>
-                      <a class="text-blue-600 hover:underline break-words font-medium" href={`/locations/${organization.location.id}`}>{organization.location.name}</a>
+                      <a class="text-blue-600 hover:underline wrap-break-word font-medium" href={`/locations/${organization.location.id}`}>{organization.location.name}</a>
                       {organization.location.address && (
                         <span class="text-gray-500 block text-sm">{organization.location.address}</span>
                       )}

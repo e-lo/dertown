@@ -1,5 +1,13 @@
+@import 'tailwindcss';
+@import './theme.generated.css';
 @import './theme.css';
 @import './components.css';
+
+/* Typography plugin (was loaded via the old JS config) */
+@plugin '@tailwindcss/typography';
+
+/* Classes applied dynamically (former tailwind.config safelist) — force-generate */
+@source inline("bg-category-{arts-culture,civic,family,give-back,nature,recreation,outdoors,school,seniors,sports,town,featured} text-category opacity-60 hover:opacity-100 bg-gray-{100,200,800} text-gray-{700,800} text-white hover:bg-gray-200");
 
 /* Material Symbols Outlined - used for icon ligatures (e.g. calendar_today, location_on) */
 .material-symbols-outlined {

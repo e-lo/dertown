@@ -49,7 +49,7 @@ Add this entire block to the end of `src/styles/components.css`:
   padding: 0 20px;
   height: 52px;
   background: var(--palette-palatinate-blue);
-  flex-shrink: 0;
+  shrink: 0;
 }
 .cal-toolbar-left { display: flex; align-items: center; gap: 2px; }
 .cal-toolbar-right { display: flex; align-items: center; }
@@ -131,7 +131,7 @@ Add this entire block to the end of `src/styles/components.css`:
   background: white;
   border-bottom: 1px solid #e5e7eb;
   position: relative;
-  flex-shrink: 0;
+  shrink: 0;
 }
 
 /* Search */
@@ -179,7 +179,7 @@ Add this entire block to the end of `src/styles/components.css`:
 }
 .cal-ac-item:last-child { border-bottom: none; }
 .cal-ac-item:hover { background: #f9fafb; }
-.cal-ac-bar { width: 3px; height: 32px; border-radius: 2px; flex-shrink: 0; }
+.cal-ac-bar { width: 3px; height: 32px; border-radius: 2px; shrink: 0; }
 .cal-ac-title { font-size: 13px; font-weight: 600; color: #111827; }
 .cal-ac-title mark {
   background: none; color: var(--palette-palatinate-blue); font-weight: 700;
@@ -225,11 +225,11 @@ Add this entire block to the end of `src/styles/components.css`:
 }
 .cal-filter-item:last-child { border-bottom: none; }
 .cal-filter-item:hover { background: #f9fafb; }
-.cal-filter-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cal-filter-dot { width: 10px; height: 10px; border-radius: 50%; shrink: 0; }
 .cal-filter-name { flex: 1; font-size: 13px; color: #374151; }
 .cal-filter-cb {
   width: 16px; height: 16px; border: 2px solid #d1d5db;
-  border-radius: 4px; flex-shrink: 0; display: flex;
+  border-radius: 4px; shrink: 0; display: flex;
   align-items: center; justify-content: center;
   transition: all 0.1s;
 }

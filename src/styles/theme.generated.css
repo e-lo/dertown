@@ -1,0 +1,75 @@
+/* AUTO-GENERATED from src/lib/config.ts by scripts/generate-theme.ts.
+   Do not edit by hand — run `npm run theme:generate` after changing config.ts. */
+
+@theme {
+  /* Base palette */
+  --color-palatinate-blue: #4740cbff;
+  --color-canary: #ffe600ff;
+  --color-pigment-green: #4daa57ff;
+  --color-blue-green: #219ebcff;
+  --color-fandango: #c0268cff;
+  --color-cal-poly-green: #14532dff;
+  --color-dark-slate-gray: #2f4445ff;
+
+  /* Semantic colors */
+  --color-primary: #4740cbff;
+  --color-primary-light: #eef2ff;
+  --color-primary-dark: #312e81;
+  --color-secondary: #ffe600ff;
+  --color-surface: #f9fafb;
+  --color-surface-light: #f3f4f6;
+  --color-text: #111827;
+  --color-text-secondary: #374151;
+  --color-text-dark: #1f2937;
+  --color-muted: #6b7280;
+  --color-muted-dark: #4b5563;
+  --color-border: #d1d5db;
+  --color-link: #1d4ed8;
+
+  /* Event category colors */
+  --color-category-arts-culture: #ffe600ff;
+  --color-category-civic: #2f4445ff;
+  --color-category-family: #c0268cff;
+  --color-category-give-back: #4daa57ff;
+  --color-category-nature: #14532dff;
+  --color-category-recreation: #219ebcff;
+  --color-category-outdoors: #219ebcff;
+  --color-category-school: #2f4445ff;
+  --color-category-seniors: #c0268cff;
+  --color-category-sports: #ffe600ff;
+  --color-category-town: #4740cbff;
+  --color-category-featured: #ffe600ff;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Georgia', serif;
+  --font-mono: 'Menlo', 'Monaco', monospace;
+}
+
+:root {
+  /* Palette aliases for stylesheets/components that use var(--palette-*) */
+  --palette-palatinate-blue: var(--color-palatinate-blue);
+  --palette-canary: var(--color-canary);
+  --palette-pigment-green: var(--color-pigment-green);
+  --palette-blue-green: var(--color-blue-green);
+  --palette-fandango: var(--color-fandango);
+  --palette-cal-poly-green: var(--color-cal-poly-green);
+  --palette-dark-slate-gray: var(--color-dark-slate-gray);
+
+  /* Notification / alert colors (used via var(), not as utilities) */
+  --color-error-text: #d32f2f;
+  --color-error-bg: #ffeaea;
+  --color-success-text: #388e3c;
+  --color-success-bg: #e8f5e9;
+  --color-warning-text: #f57c00;
+  --color-warning-bg: #fef3c7;
+  --color-info-text: #1976d2;
+  --color-info-bg: #e3f2fd;
+
+  /* Event text color for light category backgrounds */
+  --color-event-text-dark: #111111;
+
+  /* Gradients derived from the primary color */
+  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%);
+  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%);
+}
