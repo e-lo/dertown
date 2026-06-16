@@ -63,7 +63,8 @@ export async function getSessionFromCookies(cookies: any) {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: data.session.expires_in || ACCESS_TOKEN_DEFAULT_TTL,
+      // cookie@1.x rejects non-integer maxAge; Supabase's expires_in is fractional after setSession()
+      maxAge: Math.floor(data.session.expires_in || ACCESS_TOKEN_DEFAULT_TTL),
       secure: isProduction,
     });
 
