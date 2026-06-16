@@ -22,6 +22,8 @@
     "setup-env": "echo 'Create .env.local with: SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_ANON_KEY=your-key'",
     "test:email-ingest": "tsx src/lib/__tests__/email-ingest.test.ts",
     "test:activity-fields": "tsx src/lib/__tests__/activity-fields.test.ts",
+    "test:url-normalization": "tsx src/lib/__tests__/url-normalization.test.ts",
+    "test:announcement-staging": "tsx src/lib/__tests__/announcement-staging.test.ts",
     "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts"
   },
   "dependencies": {

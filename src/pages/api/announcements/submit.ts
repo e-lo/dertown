@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/supabase';
-import type { TablesInsert } from '../../../lib/supabase';
 import { validateAnnouncementForm } from '../../../lib/validation';
+import { buildStagedAnnouncement } from '../../../lib/announcement-staging';
 import { jsonResponse, jsonError } from '@/lib/api-utils';
-import { SPAM_RATE_LIMIT_MS, ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS } from '@/lib/constants';
+import { SPAM_RATE_LIMIT_MS } from '@/lib/constants';
 
 export const prerender = false;
 
@@ -39,56 +39,21 @@ export const POST: APIRoute = async ({ request }) => {
     }
     const formData = validation.data;
 
-    // Handle show_at - if not provided, use current time
-    const showAt = formData.show_at ? new Date(formData.show_at) : new Date();
-
-    // Handle expires_at - if not provided, default to 2 weeks after show_at
-    let expiresAt = null;
-    if (formData.expires_at) {
-      expiresAt = new Date(formData.expires_at);
-    } else {
-      expiresAt = new Date(showAt);
-      expiresAt.setDate(expiresAt.getDate() + ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS);
+    // Staged announcements key an existing organization by NAME (it's re-resolved
+    // by name on approval), but the public form sends it as a UUID. Resolve the
+    // id to a name, degrading gracefully so a submission is never lost over an
+    // organization lookup failure.
+    let organizationName: string | null = null;
+    if (formData.organization_id) {
+      try {
+        const { data: org } = await db.organizations.getById(formData.organization_id);
+        organizationName = org?.name ?? null;
+      } catch (lookupErr) {
+        console.error('Error resolving organization for staged announcement:', lookupErr);
+      }
     }
 
-    const announcementData: Record<string, unknown> = {
-      title: formData.title,
-      message: formData.message,
-      show_at: showAt.toISOString(),
-      expires_at: expiresAt.toISOString(),
-      link: formData.link || null,
-      email: formData.email || null,
-      comments: formData.comments || null,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-    };
-
-    // Handle organization (either existing ID or store for admin review)
-    if (formData.organization_id && formData.organization_id !== '') {
-      announcementData.organization_id = formData.organization_id;
-    } else if (formData.organization_added && formData.organization_added !== '') {
-      announcementData.organization_added = formData.organization_added;
-    }
-
-    // Add logic to handle cases where announcementData is just a generic object
-    const { message, title, author, email } = announcementData as {
-      message: string;
-      title: string;
-      author?: string;
-      email?: string;
-    };
-
-    if (!message || !title) {
-      return jsonError('Title and message are required', 400);
-    }
-
-    const insertData: TablesInsert<'announcements_staged'> = {
-      message,
-      title,
-      author,
-      email,
-      status: 'pending',
-    };
+    const insertData = buildStagedAnnouncement(formData, organizationName);
 
     const { error } = await db.announcementsStaged.create(insertData);
 

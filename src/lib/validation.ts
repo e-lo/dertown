@@ -13,6 +13,25 @@ import {
 // Simple form validation schemas for user input
 // These match the database constraints but are kept simple for forms
 
+// Normalize a user-entered URL before validation: prepend https:// when no
+// scheme is present, and leave scheme-prefixed values (https:, mailto:, tel:, …)
+// untouched. This mirrors the admin forms (and src/lib/scraper/normalize.ts) so
+// public submissions accept "google.com" instead of rejecting it. Empty/omitted
+// values pass straight through so the field stays optional.
+const normalizeUrlInput = (value: unknown): unknown => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (trimmed === '') return '';
+  if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
+const urlField = () =>
+  z.preprocess(
+    normalizeUrlInput,
+    z.string().url('Invalid URL format').optional().or(z.literal(''))
+  );
+
 export const eventFormSchema = z.object({
   title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
   description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
@@ -34,11 +53,11 @@ export const eventFormSchema = z.object({
     .optional()
     .or(z.literal('')),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
-  website: z.string().url('Invalid URL format').optional().or(z.literal('')),
-  registration_link: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  website: urlField(),
+  registration_link: urlField(),
   primary_tag_id: z.string().uuid().optional().or(z.literal('')),
   secondary_tag_id: z.string().uuid().optional().or(z.literal('')),
-  external_image_url: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  external_image_url: urlField(),
   image_alt_text: z
     .string()
     .max(MAX_ALT_TEXT, `Alt text must be less than ${MAX_ALT_TEXT} characters`)
@@ -62,7 +81,7 @@ export const eventFormSchema = z.object({
 export const locationFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
   address: z.string().max(MAX_ADDRESS, `Address must be less than ${MAX_ADDRESS} characters`).optional(),
-  website: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  website: urlField(),
   phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -72,7 +91,7 @@ export const locationFormSchema = z.object({
 export const organizationFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
   description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
-  website: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  website: urlField(),
   phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
   location_id: z.string().uuid().optional(),
@@ -87,8 +106,13 @@ export const announcementFormSchema = z.object({
     .max(MAX_DESCRIPTION, `Message must be less than ${MAX_DESCRIPTION} characters`),
   show_at: z.string().optional(),
   expires_at: z.string().optional(),
-  link: z.string().url('Invalid URL format').optional().or(z.literal('')),
+  link: urlField(),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
+  author: z
+    .string()
+    .max(MAX_NAME, `Author must be less than ${MAX_NAME} characters`)
+    .optional()
+    .or(z.literal('')),
   organization_id: z.string().uuid().optional().or(z.literal('')),
   organization_name: z
     .string()
