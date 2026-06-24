@@ -111,19 +111,52 @@ type Session = {
 const campIds: string[] = (filtered ?? []).map((c: Program) => c.id);
 const sessionsByCamp: Record<string, Session[]> = {};
 
-if (campIds.length) {
-  const { data: sessions } = await (supabase as any)
-    .from('activities')
-    .select('id, name, parent_activity_id, start_datetime, end_datetime, status')
-    .in('parent_activity_id', campIds)
-    .eq('activity_hierarchy_type', 'SESSION')
-    .order('start_datetime', { ascending: true });
+// A camp's "weeks" can be modeled two ways:
+//   - legacy: SESSION rows that are DIRECT children of the camp PROGRAM
+//   - current: CLASS_INSTANCE rows nested under a CLASS_TYPE (grandchildren of the camp)
+// Fetch both and key every week back to its camp id.
+type SessionRow = Session & { activity_hierarchy_type?: string | null };
 
-  for (const s of (sessions ?? []) as Session[]) {
-    if (s.status !== 'approved') continue; // skip pending/archived
-    const pid = s.parent_activity_id;
-    if (!pid) continue;
-    (sessionsByCamp[pid] ??= []).push(s);
+if (campIds.length) {
+  const { data: childData } = await (supabase as any)
+    .from('activities')
+    .select('id, name, parent_activity_id, activity_hierarchy_type, start_datetime, end_datetime, status')
+    .in('parent_activity_id', campIds);
+  const children = (childData ?? []) as SessionRow[];
+
+  // Legacy SESSION direct children → weeks of their camp.
+  for (const c of children) {
+    if (c.activity_hierarchy_type === 'SESSION' && c.status === 'approved' && c.parent_activity_id) {
+      (sessionsByCamp[c.parent_activity_id] ??= []).push(c);
+    }
+  }
+
+  // CLASS_TYPE direct children → fetch their CLASS_INSTANCE grandchildren (the weeks).
+  const classTypeToCamp: Record<string, string> = {};
+  for (const c of children) {
+    if (c.activity_hierarchy_type === 'CLASS_TYPE' && c.parent_activity_id) {
+      classTypeToCamp[c.id] = c.parent_activity_id;
+    }
+  }
+  const classTypeIds = Object.keys(classTypeToCamp);
+  if (classTypeIds.length) {
+    const { data: grandData } = await (supabase as any)
+      .from('activities')
+      .select('id, name, parent_activity_id, activity_hierarchy_type, start_datetime, end_datetime, status')
+      .in('parent_activity_id', classTypeIds)
+      .eq('activity_hierarchy_type', 'CLASS_INSTANCE');
+    for (const g of (grandData ?? []) as SessionRow[]) {
+      if (g.status !== 'approved') continue;
+      const campId = g.parent_activity_id ? classTypeToCamp[g.parent_activity_id] : null;
+      if (!campId) continue;
+      // Re-key to the camp so downstream display/filter treats it as a camp week.
+      (sessionsByCamp[campId] ??= []).push({ ...g, parent_activity_id: campId });
+    }
+  }
+
+  // Sort each camp's weeks by start date (we merged two sources).
+  for (const id of Object.keys(sessionsByCamp)) {
+    sessionsByCamp[id].sort((a, b) => (a.start_datetime ?? '').localeCompare(b.start_datetime ?? ''));
   }
 }
 

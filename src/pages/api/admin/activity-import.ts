@@ -1,12 +1,44 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
-import { extractActivitiesWithAI } from '@/lib/ai/extract-activity';
+import { extractActivitiesWithAI, type ExtractedNode } from '@/lib/ai/extract-activity';
 import { fetchPage } from '@/lib/scraper/fetch';
 import { htmlToCleanText } from '@/lib/scraper/parse-ai';
 
 export const prerender = false;
 
 const URL_RE = /^https?:\/\/\S+/i;
+
+/** Escape LIKE/ILIKE wildcards so a name is matched literally (case-insensitively). */
+function likeLiteral(name: string): string {
+  return name.replace(/[\\%_]/g, '\\$&');
+}
+
+/** Reduce an ISO datetime to its YYYY-MM-DD date portion (for instance dedup). */
+function datePortion(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  return dt.slice(0, 10);
+}
+
+function startDatetimeOf(node: ExtractedNode): string | null {
+  if (node.start_date && node.start_time) return `${node.start_date}T${node.start_time}:00`;
+  if (node.start_date) return `${node.start_date}T00:00:00`;
+  return null;
+}
+
+function endDatetimeOf(node: ExtractedNode): string | null {
+  if (node.end_date && node.end_time) return `${node.end_date}T${node.end_time}:00`;
+  if (node.end_date) return `${node.end_date}T23:59:59`;
+  return null;
+}
+
+/** Collect every distinct location/org name across the whole tree. */
+function collectNames(nodes: ExtractedNode[], locs: Set<string>, orgs: Set<string>): void {
+  for (const n of nodes) {
+    if (n.location_name) locs.add(n.location_name);
+    if (n.organization_name) orgs.add(n.organization_name);
+    if (n.children.length) collectNames(n.children, locs, orgs);
+  }
+}
 
 export const POST = withAdminAuth(async ({ request }) => {
   let text: string;
@@ -41,148 +73,178 @@ export const POST = withAdminAuth(async ({ request }) => {
     }
   }
 
-  // ── AI extraction ────────────────────────────────────────────────────────
-  let extracted;
+  // ── AI extraction (returns a tree of PROGRAM roots) ──────────────────────
+  let roots: ExtractedNode[];
   try {
-    extracted = await extractActivitiesWithAI(contentText);
+    roots = await extractActivitiesWithAI(contentText);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[activity-import] AI extraction failed:', msg);
     return jsonResponse({ ok: false, error: msg }, 422);
   }
 
-  if (extracted.length === 0) {
+  if (roots.length === 0) {
     return jsonResponse({
       ok: false,
       error: 'No activities could be extracted. Try adding more detail: name, dates, age group, cost.',
     }, 422);
   }
 
-  // ── Resolve location & organization names against DB ─────────────────────
-  const locationNames = [...new Set(extracted.map((a) => a.location_name).filter(Boolean))] as string[];
-  const orgNames = [...new Set(extracted.map((a) => a.organization_name).filter(Boolean))] as string[];
+  // ── Resolve location & organization names against DB (whole tree) ────────
+  const locSet = new Set<string>();
+  const orgSet = new Set<string>();
+  collectNames(roots, locSet, orgSet);
 
   const locationMap: Record<string, string> = {};
-  if (locationNames.length) {
+  if (locSet.size) {
     const { data: locs } = await supabaseAdmin
       .from('locations')
       .select('id, name')
-      .in('name', locationNames);
+      .in('name', [...locSet]);
     for (const loc of locs ?? []) locationMap[loc.name] = loc.id;
   }
 
   const orgMap: Record<string, string> = {};
-  if (orgNames.length) {
+  if (orgSet.size) {
     const { data: orgs } = await supabaseAdmin
       .from('organizations')
       .select('id, name')
-      .in('name', orgNames)
+      .in('name', [...orgSet])
       .eq('status', 'approved');
     for (const org of orgs ?? []) orgMap[org.name] = org.id;
   }
 
-  // ── Create draft activities ──────────────────────────────────────────────
-  const created = [];
-  const errors = [];
+  const today = new Date().toISOString().split('T')[0];
+  const errors: Array<{ name: string; error: string }> = [];
+  const counts = {
+    created: { PROGRAM: 0, SESSION: 0, CLASS_TYPE: 0, CLASS_INSTANCE: 0 } as Record<string, number>,
+    reused: { PROGRAM: 0, SESSION: 0, CLASS_TYPE: 0, CLASS_INSTANCE: 0 } as Record<string, number>,
+  };
 
-  for (const act of extracted) {
-    const locationId = act.location_name ? locationMap[act.location_name] ?? null : null;
-    const orgId = act.organization_name ? orgMap[act.organization_name] ?? null : null;
+  /**
+   * Insert a node (and its subtree) depth-first. Reuses an existing matching row
+   * instead of inserting a duplicate so re-imports merge rather than fork.
+   * Returns the row id to use as the parent for children, or null on failure.
+   */
+  async function insertNode(node: ExtractedNode, parentId: string | null): Promise<string | null> {
+    const level = node.suggested_level;
+    const locationId = node.location_name ? locationMap[node.location_name] ?? null : null;
+    const orgId = node.organization_name ? orgMap[node.organization_name] ?? null : null;
 
-    const notes: string[] = [`Imported via admin paste on ${new Date().toISOString().split('T')[0]}`];
-    if (act.location_name && !locationId) notes.push(`Location not matched: "${act.location_name}" — add it manually`);
-    if (act.organization_name && !orgId) notes.push(`Organization not matched: "${act.organization_name}" — add it manually`);
+    // ── Dedup: reuse an existing matching row where possible ───────────────
+    if (level === 'PROGRAM') {
+      let q = supabaseAdmin
+        .from('activities')
+        .select('id')
+        .eq('activity_hierarchy_type', 'PROGRAM')
+        .ilike('name', likeLiteral(node.name));
+      q = orgId ? q.eq('sponsoring_organization_id', orgId) : q.is('sponsoring_organization_id', null);
+      const { data: existing } = await q.limit(1);
+      if (existing && existing.length) {
+        counts.reused.PROGRAM++;
+        return existing[0].id;
+      }
+    } else if (level === 'CLASS_TYPE' && parentId) {
+      const { data: existing } = await supabaseAdmin
+        .from('activities')
+        .select('id')
+        .eq('parent_activity_id', parentId)
+        .eq('activity_hierarchy_type', 'CLASS_TYPE')
+        .ilike('name', likeLiteral(node.name))
+        .limit(1);
+      if (existing && existing.length) {
+        counts.reused.CLASS_TYPE++;
+        return existing[0].id;
+      }
+    } else if ((level === 'CLASS_INSTANCE' || level === 'SESSION') && parentId) {
+      // Leaf dedup: same parent + name + start date → already imported, skip.
+      const { data: existing } = await supabaseAdmin
+        .from('activities')
+        .select('id, start_datetime')
+        .eq('parent_activity_id', parentId)
+        .ilike('name', likeLiteral(node.name));
+      const nodeStart = node.start_date;
+      const dup = (existing ?? []).find((e) => datePortion(e.start_datetime) === nodeStart);
+      if (dup) {
+        counts.reused[level]++;
+        return dup.id;
+      }
+    }
 
-    const startDatetime = act.start_date && act.start_time
-      ? `${act.start_date}T${act.start_time}:00`
-      : act.start_date
-      ? `${act.start_date}T00:00:00`
-      : null;
-
-    const endDatetime = act.end_date && act.end_time
-      ? `${act.end_date}T${act.end_time}:00`
-      : act.end_date
-      ? `${act.end_date}T23:59:59`
-      : null;
+    // ── Insert ─────────────────────────────────────────────────────────────
+    const notes: string[] = [`Imported via admin paste on ${today}`];
+    if (node.location_name && !locationId) notes.push(`Location not matched: "${node.location_name}" — add it manually`);
+    if (node.organization_name && !orgId) notes.push(`Organization not matched: "${node.organization_name}" — add it manually`);
 
     const { data: row, error } = await supabaseAdmin
       .from('activities')
       .insert({
-        name: act.name,
-        description: act.description,
-        activity_hierarchy_type: 'PROGRAM',
-        program_format: act.program_format,
-        activity_type: act.activity_type,
-        min_grade: act.min_grade,
-        max_grade: act.max_grade,
-        min_age: act.min_age,
-        max_age: act.max_age,
-        cost: act.cost,
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        is_summer: act.is_summer,
-        is_fall: act.is_fall,
-        is_winter: act.is_winter,
-        is_spring: act.is_spring,
+        name: node.name,
+        description: node.description,
+        activity_hierarchy_type: level,
+        parent_activity_id: parentId,
+        // Structural template lives on the top-level PROGRAM only.
+        program_format: level === 'PROGRAM' ? node.program_format : null,
+        activity_type: node.activity_type,
+        min_grade: node.min_grade,
+        max_grade: node.max_grade,
+        min_age: node.min_age,
+        max_age: node.max_age,
+        cost: node.cost,
+        start_datetime: startDatetimeOf(node),
+        end_datetime: endDatetimeOf(node),
+        is_summer: node.is_summer,
+        is_fall: node.is_fall,
+        is_winter: node.is_winter,
+        is_spring: node.is_spring,
         location_id: locationId,
-        location_details: !locationId && act.location_name ? act.location_name : null,
+        location_details: !locationId && node.location_name ? node.location_name : null,
         sponsoring_organization_id: orgId,
-        registration_link: act.registration_link,
-        website: act.website,
-        max_capacity: act.max_capacity,
+        registration_link: node.registration_link,
+        registration_opens: node.registration_opens,
+        registration_closes: node.registration_closes,
+        website: node.website,
+        max_capacity: node.max_capacity,
         status: 'pending',
         notes: notes.join('\n'),
       })
-      .select('id, name')
+      .select('id')
       .single();
 
-    if (error) {
-      console.error('[activity-import] Insert error:', error.message);
-      errors.push({ name: act.name, error: error.message });
-    } else {
-      let sessionCount = 0;
+    if (error || !row) {
+      console.error('[activity-import] Insert error:', error?.message);
+      errors.push({ name: node.name, error: error?.message ?? 'insert failed' });
+      return null;
+    }
 
-      // ── Nest weekly SESSION children under the PROGRAM ─────────────────────
-      if (Array.isArray(act.sessions) && act.sessions.length > 0) {
-        const sessionRows = act.sessions.map((session) => ({
-          name: session.name,
-          activity_hierarchy_type: 'SESSION',
-          parent_activity_id: row.id,
-          program_format: null, // format lives on the PROGRAM
-          start_datetime: session.start_date ? `${session.start_date}T00:00:00` : null,
-          end_datetime: session.end_date ? `${session.end_date}T23:59:59` : null,
-          cost: session.cost, // null inherits via effective resolvers
-          registration_opens: session.registration_opens,
-          registration_closes: session.registration_closes,
-          location_id: locationId,
-          location_details: !locationId && act.location_name ? act.location_name : null,
-          sponsoring_organization_id: orgId,
-          status: 'pending' as const,
-          notes: `Imported session under "${act.name}"`,
-        }));
+    counts.created[level]++;
+    return row.id;
+  }
 
-        const { data: insertedSessions, error: sessionError } = await supabaseAdmin
-          .from('activities')
-          .insert(sessionRows)
-          .select('id');
-
-        if (sessionError) {
-          console.error('[activity-import] Session insert error:', sessionError.message);
-          for (const session of act.sessions) {
-            errors.push({ name: `${act.name} — ${session.name}`, error: sessionError.message });
-          }
-        } else {
-          sessionCount = insertedSessions?.length ?? sessionRows.length;
-        }
-      }
-
-      created.push({ id: row.id, name: row.name, sessions: sessionCount });
+  /** Walk the tree depth-first, inserting each node under its parent. */
+  async function insertSubtree(node: ExtractedNode, parentId: string | null): Promise<void> {
+    const id = await insertNode(node, parentId);
+    if (!id) return; // parent failed → skip its children (they'd be orphaned)
+    for (const child of node.children) {
+      await insertSubtree(child, id);
     }
   }
 
-  if (created.length === 0) {
+  const created: Array<{ name: string }> = [];
+  for (const root of roots) {
+    await insertSubtree(root, null);
+    created.push({ name: root.name });
+  }
+
+  const totalCreated = Object.values(counts.created).reduce((a, b) => a + b, 0);
+  if (totalCreated === 0 && errors.length) {
     return jsonResponse({ ok: false, error: 'All extractions failed to save', errors }, 500);
   }
 
-  return jsonResponse({ ok: true, created, errors: errors.length ? errors : undefined });
+  return jsonResponse({
+    ok: true,
+    created,
+    summary: counts,
+    errors: errors.length ? errors : undefined,
+  });
 });

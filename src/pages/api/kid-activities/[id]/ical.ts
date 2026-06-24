@@ -222,9 +222,9 @@ export const GET: APIRoute = async ({ params }) => {
     }
   }
 
-  // SESSION children that have a start_datetime → all-day (or multi-day) events
+  // Dated descendants (SESSION weeks or CLASS_INSTANCE weeks) → all-day (or multi-day) events
   for (const child of descendants) {
-    if (child.activity_hierarchy_type !== 'SESSION' || !child.start_datetime) continue;
+    if (!['SESSION', 'CLASS_INSTANCE'].includes(child.activity_hierarchy_type ?? '') || !child.start_datetime) continue;
     try {
       const start = new Date(child.start_datetime);
       if (isNaN(start.getTime())) continue;

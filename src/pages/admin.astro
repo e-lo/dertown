@@ -84,7 +84,7 @@ const userEmail = session.user?.email || 'Admin';
           Paste a <strong>URL</strong> to scrape events, or paste an <strong>email / description</strong> — AI extracts date, time, location and stages it for review.
         </p>
         <p id="pi-hint-activity" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;display:none;">
-          Paste a camp or class description — AI extracts name, grade range, dates, cost, location and creates a <strong>pending draft</strong> in Kid Activities for you to review and publish.
+          Paste a <strong>listing page</strong> to import a whole org → camp → weeks tree at once, or a single camp/week page — AI builds a <strong>pending draft</strong> hierarchy in Kid Activities. Re-imports merge into the same program instead of duplicating.
         </p>
         <p id="pi-hint-announcement" style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;display:none;">
           Paste announcement text — AI extracts the title, message, and link, then <strong>publishes it immediately</strong>.
@@ -3530,7 +3530,20 @@ const userEmail = session.user?.email || 'Admin';
             msg = '✗ ' + (data.error || 'Import failed');
           } else {
             const names = data.created.map(a => `"${a.name}"`).join(', ');
-            msg = `✓ Created ${data.created.length} draft activit${data.created.length === 1 ? 'y' : 'ies'}: ${names}. Review in Kid Activities →`;
+            const s = data.summary;
+            let detail = '';
+            if (s) {
+              const c = s.created, r = s.reused;
+              const parts = [];
+              if (c.PROGRAM) parts.push(`${c.PROGRAM} program${c.PROGRAM === 1 ? '' : 's'}`);
+              if (c.CLASS_TYPE) parts.push(`${c.CLASS_TYPE} class type${c.CLASS_TYPE === 1 ? '' : 's'}`);
+              if (c.CLASS_INSTANCE) parts.push(`${c.CLASS_INSTANCE} instance${c.CLASS_INSTANCE === 1 ? '' : 's'}`);
+              if (c.SESSION) parts.push(`${c.SESSION} session${c.SESSION === 1 ? '' : 's'}`);
+              detail = parts.length ? `created ${parts.join(', ')}` : 'no new rows';
+              const reused = r.PROGRAM + r.CLASS_TYPE + r.CLASS_INSTANCE + r.SESSION;
+              if (reused) detail += `, merged into ${reused} existing`;
+            }
+            msg = `✓ Imported ${names}${detail ? ` — ${detail}` : ''}. Review in Kid Activities →`;
             if (data.errors?.length) msg += ` (${data.errors.length} failed to save)`;
             textarea.value = '';
           }
