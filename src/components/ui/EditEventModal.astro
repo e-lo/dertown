@@ -53,8 +53,20 @@
         <input type="text" id="editEventRegistrationLink" placeholder="www.example.com or https://..." class="form-input-base">
       </div>
       <div class="form-field">
-        <label class="form-label">External Image URL:</label>
-        <input type="url" id="editEventExternalImageUrl" placeholder="https://example.com/image.jpg" class="form-input-base">
+        <label class="form-label">Event Image:</label>
+        <div
+          id="editEventImageDropZone"
+          class="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-300 rounded-md p-4 text-center text-sm text-gray-500 cursor-pointer hover:border-indigo-400 transition-colors"
+        >
+          <span class="material-symbols-outlined text-2xl">upload</span>
+          <span>Drag &amp; drop an image here, or click to browse</span>
+          <span class="text-xs text-gray-400">JPEG, PNG, or WebP · up to 5 MB</span>
+        </div>
+        <input type="file" id="editEventImageFile" accept="image/jpeg,image/png,image/webp" class="hidden" />
+        <p id="editEventImageStatus" class="mt-1 text-xs text-gray-500" aria-live="polite"></p>
+        <img id="editEventImagePreview" alt="Event image preview" class="hidden mt-2 max-h-40 rounded-md border border-gray-200" />
+        <label class="form-label mt-2">Or paste an image URL:</label>
+        <input type="url" id="editEventExternalImageUrl" placeholder="https://example.com/image.jpg" class="form-input-base" />
       </div>
       <div class="form-field">
         <label class="form-label">Cost:</label>
@@ -163,3 +175,15 @@
     </div>
   </div>
 </div>
+
+<script>
+  import { initImageDropZone } from '@/scripts/image-upload-field';
+
+  initImageDropZone({
+    urlInputId: 'editEventExternalImageUrl',
+    dropZoneId: 'editEventImageDropZone',
+    fileInputId: 'editEventImageFile',
+    previewId: 'editEventImagePreview',
+    statusId: 'editEventImageStatus',
+  });
+</script>

@@ -24,7 +24,8 @@
     "test:activity-fields": "tsx src/lib/__tests__/activity-fields.test.ts",
     "test:url-normalization": "tsx src/lib/__tests__/url-normalization.test.ts",
     "test:announcement-staging": "tsx src/lib/__tests__/announcement-staging.test.ts",
-    "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts"
+    "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts",
+    "test:image-upload": "tsx src/lib/__tests__/event-image-upload.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.103.0",
