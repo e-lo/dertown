@@ -9,22 +9,15 @@ export const prerender = false;
 
 const URL_RE = /^https?:\/\/\S+/i;
 
-// How similar a name must be to count as the same activity on re-import.
-// PROGRAM is looser (org names vary: "Icicle Creek" vs "Icicle Creek Center for
-// the Arts"); children are stricter to avoid merging distinct offerings.
-const PROGRAM_MERGE_THRESHOLD = 0.8;
+// How similar a NAME must be to auto-merge on import. Matching is name-only
+// (NOT org/website) on purpose: that lets you deliberately keep separate
+// programs under one organization — only near-identical names merge. PROGRAM
+// catches AI name variants ("Icicle Creek" vs "Icicle Creek Center for the Arts"
+// ~0.95 and re-imports) while leaving distinctly named programs ("…Music Camp"
+// vs "…Theater Camp" ~0.82) separate. Use the admin Merge action to combine
+// programs by hand when you do want them joined.
+const PROGRAM_MERGE_THRESHOLD = 0.9;
 const CHILD_MERGE_THRESHOLD = 0.85;
-
-/** Bare hostname of a URL (no scheme, no www, lowercased) — an org-identity signal. */
-function hostOf(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url.includes('://') ? url : `https://${url}`);
-    return u.host.replace(/^www\./, '').toLowerCase() || null;
-  } catch {
-    return null;
-  }
-}
 
 /** Reduce an ISO datetime to its YYYY-MM-DD date portion (for instance dedup). */
 function datePortion(dt: string | null | undefined): string | null {
@@ -148,28 +141,15 @@ export const POST = withAdminAuth(async ({ request }) => {
     if (level === 'PROGRAM') {
       const { data: progs } = await supabaseAdmin
         .from('activities')
-        .select('id, name, sponsoring_organization_id, website')
+        .select('id, name')
         .eq('activity_hierarchy_type', 'PROGRAM');
-      const candidates = (progs ?? []) as Array<{
-        id: string;
-        name: string;
-        sponsoring_organization_id: string | null;
-        website: string | null;
-      }>;
-      const host = hostOf(node.website);
-      // Strong identity signals first: same resolved org, or same website domain.
-      let matchId: string | null = null;
-      for (const p of candidates) {
-        if (orgId && p.sponsoring_organization_id === orgId) { matchId = p.id; break; }
-        if (host && hostOf(p.website) === host) { matchId = p.id; break; }
+      // Name-only match: re-imports and AI name variants merge; deliberately
+      // distinct program names stay separate (combine later via Merge if wanted).
+      const best = findBestNameMatch(node.name, (progs ?? []).map((p) => ({ id: p.id, name: p.name })));
+      if (best && best.score >= PROGRAM_MERGE_THRESHOLD) {
+        counts.reused.PROGRAM++;
+        return best.id;
       }
-      // Otherwise a fuzzy name match (handles "Icicle Creek" vs
-      // "Icicle Creek Center for the Arts").
-      if (!matchId) {
-        const best = findBestNameMatch(node.name, candidates.map((p) => ({ id: p.id, name: p.name })));
-        if (best && best.score >= PROGRAM_MERGE_THRESHOLD) matchId = best.id;
-      }
-      if (matchId) { counts.reused.PROGRAM++; return matchId; }
     } else if (level === 'CLASS_TYPE' && parentId) {
       const { data: kids } = await supabaseAdmin
         .from('activities')
