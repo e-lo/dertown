@@ -92,6 +92,7 @@ Each node is a JSON object with these exact fields:
 Rules:
 - Build the tree to match what the page describes. A page for one camp week → PROGRAM (the org) → CLASS_TYPE (the camp) → CLASS_INSTANCE (that week). A page listing many camps → one PROGRAM with several CLASS_TYPE children, each with CLASS_INSTANCE children for its weeks.
 - The top (root) node is ALWAYS the organization/portfolio, with suggested_level "PROGRAM". Set its program_format ("camp" for summer/break camps, "class" for recurring lessons, "league" for sports leagues, "workshop" for one-offs).
+- Return EXACTLY ONE root PROGRAM per organization. Use the organization's canonical/common name and do NOT emit separate roots for name variants (e.g. never both "Icicle Creek" and "Icicle Creek Center for the Arts" — pick one and put everything under it). Set the PROGRAM's "website" to the organization's main site so re-imports can be matched to it.
 - A multi-week CAMP's weeks are CLASS_INSTANCE leaves — NOT "SESSION". Only use "SESSION" for a league season or a school-year term.
 - Put concrete dates (start_date/end_date, start_time/end_time), per-instance cost, and registration_opens/closes on the CLASS_INSTANCE leaves. PROGRAM/CLASS_TYPE carry name, description, ages/grades, format, season flags.
 - program_format is meaningful only on the PROGRAM (root). Leave it null on children.

@@ -136,6 +136,12 @@ const hierarchyTree = buildHierarchy(activities || []);
         >
           Create New Program
         </button>
+        <button
+          onclick="openQuickImport()"
+          class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700"
+        >
+          ✨ AI Quick Import
+        </button>
         <button 
           onclick="bulkMigrateCalendarData()"
           class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
@@ -689,6 +695,30 @@ const hierarchyTree = buildHierarchy(activities || []);
   </div>
 
   <!-- Activity Modal -->
+  <!-- AI Quick Import modal -->
+  <div id="quickImportModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2">
+      <div class="flex justify-between items-start mb-2">
+        <h2 class="text-2xl font-bold">✨ AI Quick Import</h2>
+        <button type="button" onclick="closeModal('quickImportModal')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-gray-600 mb-3">
+        Paste a <strong>URL</strong> (a listing page imports the whole org → camp → weeks tree at once) or a
+        camp/class description. AI builds a <strong>pending draft</strong> hierarchy. Re-imports merge into the
+        existing program instead of duplicating.
+      </p>
+      <textarea id="quickImportText" rows="5" class="w-full px-3 py-2 border border-gray-300 rounded-md"
+        placeholder="https://example.org/summer-camps  — or paste a camp description…"></textarea>
+      <div id="quickImportResult" class="hidden mt-3 p-3 rounded-md text-sm"></div>
+      <div class="flex gap-3 mt-4">
+        <button type="button" id="quickImportSubmit" onclick="submitQuickImport()"
+          class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700">Import</button>
+        <button type="button" onclick="closeModal('quickImportModal')"
+          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="activityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
       <h2 id="modalTitle" class="text-2xl font-bold mb-4">Create Activity</h2>
@@ -1141,6 +1171,64 @@ const hierarchyTree = buildHierarchy(activities || []);
         throw error;
       }
     }
+
+    // ── AI Quick Import ────────────────────────────────────────────────────
+    function openQuickImport() {
+      const ta = document.getElementById('quickImportText') as HTMLTextAreaElement | null;
+      if (ta) ta.value = '';
+      const result = document.getElementById('quickImportResult');
+      if (result) { result.className = 'hidden mt-3 p-3 rounded-md text-sm'; result.textContent = ''; }
+      showModal('quickImportModal');
+    }
+    (window as any).openQuickImport = openQuickImport;
+
+    async function submitQuickImport() {
+      const ta = document.getElementById('quickImportText') as HTMLTextAreaElement | null;
+      const result = document.getElementById('quickImportResult') as HTMLDivElement | null;
+      const btn = document.getElementById('quickImportSubmit') as HTMLButtonElement | null;
+      const text = (ta?.value || '').trim();
+      const setResult = (msg: string, kind: 'info' | 'ok' | 'err') => {
+        if (!result) return;
+        const color = kind === 'ok' ? 'bg-green-50 text-green-800' : kind === 'err' ? 'bg-red-50 text-red-800' : 'bg-gray-50 text-gray-700';
+        result.className = `mt-3 p-3 rounded-md text-sm ${color}`;
+        result.textContent = msg;
+      };
+      if (!text) { setResult('Paste a URL or a camp/class description first.', 'err'); return; }
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
+      setResult('Working… fetching the page and extracting the hierarchy (can take ~10s).', 'info');
+      try {
+        const resp = await makeApiCall('/api/admin/activity-import', {
+          method: 'POST',
+          body: JSON.stringify({ text }),
+        });
+        if (!resp) return; // redirected to login
+        const data = await resp.json();
+        if (!data.ok) { setResult('✗ ' + (data.error || 'Import failed'), 'err'); return; }
+
+        const names = (data.created || []).map((a: any) => `"${a.name}"`).join(', ');
+        let detail = '';
+        const s = data.summary;
+        if (s) {
+          const c = s.created, r = s.reused;
+          const parts: string[] = [];
+          if (c.PROGRAM) parts.push(`${c.PROGRAM} program${c.PROGRAM === 1 ? '' : 's'}`);
+          if (c.CLASS_TYPE) parts.push(`${c.CLASS_TYPE} class type${c.CLASS_TYPE === 1 ? '' : 's'}`);
+          if (c.CLASS_INSTANCE) parts.push(`${c.CLASS_INSTANCE} instance${c.CLASS_INSTANCE === 1 ? '' : 's'}`);
+          if (c.SESSION) parts.push(`${c.SESSION} session${c.SESSION === 1 ? '' : 's'}`);
+          detail = parts.length ? `created ${parts.join(', ')}` : 'no new rows';
+          const reused = r.PROGRAM + r.CLASS_TYPE + r.CLASS_INSTANCE + r.SESSION;
+          if (reused) detail += `, merged into ${reused} existing`;
+        }
+        setResult(`✓ Imported ${names}${detail ? ` — ${detail}` : ''}. Reloading…`, 'ok');
+        setTimeout(() => window.location.reload(), 1400);
+      } catch (err) {
+        setResult('✗ ' + ((err as Error).message || 'Import failed'), 'err');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Import'; }
+      }
+    }
+    (window as any).submitQuickImport = submitQuickImport;
 
     // Initialize the page when DOM is loaded
     document.addEventListener('DOMContentLoaded', async () => {

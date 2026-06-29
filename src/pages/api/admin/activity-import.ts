@@ -3,14 +3,27 @@ import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import { extractActivitiesWithAI, type ExtractedNode } from '@/lib/ai/extract-activity';
 import { fetchPage } from '@/lib/scraper/fetch';
 import { htmlToCleanText } from '@/lib/scraper/parse-ai';
+import { findBestNameMatch, nameMatchScore } from '@/lib/entity-matching';
 
 export const prerender = false;
 
 const URL_RE = /^https?:\/\/\S+/i;
 
-/** Escape LIKE/ILIKE wildcards so a name is matched literally (case-insensitively). */
-function likeLiteral(name: string): string {
-  return name.replace(/[\\%_]/g, '\\$&');
+// How similar a name must be to count as the same activity on re-import.
+// PROGRAM is looser (org names vary: "Icicle Creek" vs "Icicle Creek Center for
+// the Arts"); children are stricter to avoid merging distinct offerings.
+const PROGRAM_MERGE_THRESHOLD = 0.8;
+const CHILD_MERGE_THRESHOLD = 0.85;
+
+/** Bare hostname of a URL (no scheme, no www, lowercased) — an org-identity signal. */
+function hostOf(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url.includes('://') ? url : `https://${url}`);
+    return u.host.replace(/^www\./, '').toLowerCase() || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Reduce an ISO datetime to its YYYY-MM-DD date portion (for instance dedup). */
@@ -131,40 +144,53 @@ export const POST = withAdminAuth(async ({ request }) => {
     const locationId = node.location_name ? locationMap[node.location_name] ?? null : null;
     const orgId = node.organization_name ? orgMap[node.organization_name] ?? null : null;
 
-    // ── Dedup: reuse an existing matching row where possible ───────────────
+    // ── Dedup: reuse an existing matching row so re-imports merge, not fork ──
     if (level === 'PROGRAM') {
-      let q = supabaseAdmin
+      const { data: progs } = await supabaseAdmin
         .from('activities')
-        .select('id')
-        .eq('activity_hierarchy_type', 'PROGRAM')
-        .ilike('name', likeLiteral(node.name));
-      q = orgId ? q.eq('sponsoring_organization_id', orgId) : q.is('sponsoring_organization_id', null);
-      const { data: existing } = await q.limit(1);
-      if (existing && existing.length) {
-        counts.reused.PROGRAM++;
-        return existing[0].id;
+        .select('id, name, sponsoring_organization_id, website')
+        .eq('activity_hierarchy_type', 'PROGRAM');
+      const candidates = (progs ?? []) as Array<{
+        id: string;
+        name: string;
+        sponsoring_organization_id: string | null;
+        website: string | null;
+      }>;
+      const host = hostOf(node.website);
+      // Strong identity signals first: same resolved org, or same website domain.
+      let matchId: string | null = null;
+      for (const p of candidates) {
+        if (orgId && p.sponsoring_organization_id === orgId) { matchId = p.id; break; }
+        if (host && hostOf(p.website) === host) { matchId = p.id; break; }
       }
+      // Otherwise a fuzzy name match (handles "Icicle Creek" vs
+      // "Icicle Creek Center for the Arts").
+      if (!matchId) {
+        const best = findBestNameMatch(node.name, candidates.map((p) => ({ id: p.id, name: p.name })));
+        if (best && best.score >= PROGRAM_MERGE_THRESHOLD) matchId = best.id;
+      }
+      if (matchId) { counts.reused.PROGRAM++; return matchId; }
     } else if (level === 'CLASS_TYPE' && parentId) {
-      const { data: existing } = await supabaseAdmin
+      const { data: kids } = await supabaseAdmin
         .from('activities')
-        .select('id')
+        .select('id, name')
         .eq('parent_activity_id', parentId)
-        .eq('activity_hierarchy_type', 'CLASS_TYPE')
-        .ilike('name', likeLiteral(node.name))
-        .limit(1);
-      if (existing && existing.length) {
+        .eq('activity_hierarchy_type', 'CLASS_TYPE');
+      const best = findBestNameMatch(node.name, (kids ?? []).map((k) => ({ id: k.id, name: k.name })));
+      if (best && best.score >= CHILD_MERGE_THRESHOLD) {
         counts.reused.CLASS_TYPE++;
-        return existing[0].id;
+        return best.id;
       }
     } else if ((level === 'CLASS_INSTANCE' || level === 'SESSION') && parentId) {
-      // Leaf dedup: same parent + name + start date → already imported, skip.
-      const { data: existing } = await supabaseAdmin
+      // Leaf dedup: same parent + same start date + similar name → already imported.
+      const { data: kids } = await supabaseAdmin
         .from('activities')
-        .select('id, start_datetime')
-        .eq('parent_activity_id', parentId)
-        .ilike('name', likeLiteral(node.name));
+        .select('id, name, start_datetime')
+        .eq('parent_activity_id', parentId);
       const nodeStart = node.start_date;
-      const dup = (existing ?? []).find((e) => datePortion(e.start_datetime) === nodeStart);
+      const dup = (kids ?? []).find(
+        (e) => datePortion(e.start_datetime) === nodeStart && nameMatchScore(node.name, e.name ?? '') >= CHILD_MERGE_THRESHOLD
+      );
       if (dup) {
         counts.reused[level]++;
         return dup.id;
