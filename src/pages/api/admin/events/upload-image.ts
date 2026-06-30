@@ -9,29 +9,29 @@ import {
 export const prerender = false;
 
 export const POST = withAdminAuth(async ({ request }) => {
-  let form: FormData;
+  // The image is sent as a raw binary body (Content-Type = the image's MIME
+  // type), NOT multipart/form-data. Astro's checkOrigin CSRF guard only applies
+  // to form content-types, and multipart parsing is unreliable in the Netlify
+  // SSR runtime; a raw body sidesteps both.
+  const contentType = (request.headers.get('content-type') || '').split(';')[0].trim();
+
+  let bytes: Uint8Array;
   try {
-    form = await request.formData();
+    bytes = new Uint8Array(await request.arrayBuffer());
   } catch {
-    return jsonError('Expected multipart form data', 400);
+    return jsonError('Could not read request body', 400);
   }
 
-  const file = form.get('file');
-  if (!(file instanceof File)) {
-    return jsonError('No file provided', 400);
-  }
-
-  const validation = validateImageUpload({ type: file.type, size: file.size });
+  const validation = validateImageUpload({ type: contentType, size: bytes.byteLength });
   if (!validation.ok) {
     return jsonError(validation.error, 400);
   }
 
   const objectPath = buildImageObjectPath(crypto.randomUUID(), validation.extension);
-  const bytes = new Uint8Array(await file.arrayBuffer());
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(EVENT_IMAGES_BUCKET)
-    .upload(objectPath, bytes, { contentType: file.type, upsert: false });
+    .upload(objectPath, bytes, { contentType, upsert: false });
 
   if (uploadError) {
     console.error('[UPLOAD EVENT IMAGE] Storage error:', uploadError);

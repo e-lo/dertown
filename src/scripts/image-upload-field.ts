@@ -57,9 +57,14 @@ export function initImageDropZone(opts: ImageDropZoneOptions): void {
     }
     setStatus('Uploading…', false);
     try {
-      const body = new FormData();
-      body.append('file', file);
-      const res = await fetch(endpoint, { method: 'POST', body });
+      // Send the file as a raw binary body (not multipart/form-data). This
+      // avoids Astro's form-POST CSRF guard and unreliable multipart parsing in
+      // the Netlify SSR runtime. The server reads the MIME type from this header.
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
       const data = await res.json();
       if (!res.ok) {
         setStatus(data.error || 'Upload failed.', true);
