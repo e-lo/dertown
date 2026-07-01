@@ -17,7 +17,7 @@ jobs:
 
       # Use the SAME Node version production runs (Netlify reads .nvmrc too).
       # This is what makes the runtime canary meaningful.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
