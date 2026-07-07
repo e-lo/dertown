@@ -20,7 +20,61 @@ export interface ImageDropZoneOptions {
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_BYTES = 5 * 1024 * 1024;
+// Netlify's SSR function rejects request bodies over ~4.5 MB (it base64-encodes
+// the binary body, ~33% overhead, hitting the function payload ceiling). Keep
+// uploads safely under that; larger images are downscaled/re-encoded first.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Refuse to even decode absurdly large originals.
+const MAX_SOURCE_BYTES = 40 * 1024 * 1024;
+// Longest-edge cap for downscaled images — plenty for web display; the Netlify
+// Image CDN resizes further at render time.
+const MAX_DIMENSION = 2000;
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
+}
+
+/**
+ * Return an upload-ready image Blob under MAX_UPLOAD_BYTES. Images already within
+ * the size and dimension limits pass through untouched (no re-encode, no quality
+ * loss); larger ones are scaled to MAX_DIMENSION and re-encoded as WebP with
+ * decreasing quality until they fit.
+ */
+async function prepareImageForUpload(file: File): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    return file; // undecodable here — let the server validate/reject
+  }
+  const { width, height } = bitmap;
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
+
+  // Small enough and within dimensions → upload the original, no quality loss.
+  if (scale === 1 && file.size <= MAX_UPLOAD_BYTES) {
+    bitmap.close();
+    return file;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  let quality = 0.85;
+  let blob = await canvasToBlob(canvas, 'image/webp', quality);
+  while (blob && blob.size > MAX_UPLOAD_BYTES && quality > 0.4) {
+    quality -= 0.15;
+    blob = await canvasToBlob(canvas, 'image/webp', quality);
+  }
+  return blob ?? file;
+}
 
 export function initImageDropZone(opts: ImageDropZoneOptions): void {
   const endpoint = opts.endpoint ?? '/api/admin/events/upload-image';
@@ -51,19 +105,28 @@ export function initImageDropZone(opts: ImageDropZoneOptions): void {
       setStatus('Unsupported file type. Use JPEG, PNG, or WebP.', true);
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setStatus('Image is too large. Maximum size is 5 MB.', true);
+    if (file.size > MAX_SOURCE_BYTES) {
+      setStatus('Image is too large. Please use a file under 40 MB.', true);
       return;
     }
-    setStatus('Uploading…', false);
     try {
-      // Send the file as a raw binary body (not multipart/form-data). This
-      // avoids Astro's form-POST CSRF guard and unreliable multipart parsing in
-      // the Netlify SSR runtime. The server reads the MIME type from this header.
+      // Large photos exceed Netlify's SSR function upload limit, so downscale/
+      // re-encode in the browser first (also speeds up page loads).
+      setStatus('Preparing image…', false);
+      const blob = await prepareImageForUpload(file);
+      if (blob.size > MAX_UPLOAD_BYTES) {
+        setStatus('Could not shrink this image enough to upload. Try a smaller image.', true);
+        return;
+      }
+      // Send the prepared image as a raw binary body (not multipart/form-data).
+      // This avoids Astro's form-POST CSRF guard and unreliable multipart parsing
+      // in the Netlify SSR runtime. The server reads the MIME type from this header.
+      const contentType = blob.type || file.type;
+      setStatus('Uploading…', false);
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
+        headers: { 'Content-Type': contentType },
+        body: blob,
       });
       const data = await res.json();
       if (!res.ok) {
