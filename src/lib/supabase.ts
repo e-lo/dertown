@@ -137,6 +137,29 @@ export const db = {
         )
         .eq('id', id)
         .single(),
+    // Fetch a parent event's inheritable display fields from the base `events`
+    // table. Uses the base table (not public_events) because parent events are
+    // usually excluded from the calendar and so absent from that view. Public
+    // read RLS allows anon to read this. Returns null if not found.
+    getInheritableParentFields: async (parentId: string) => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(
+          `
+      description, external_image_url, image_alt_text, cost,
+      registration_link, website, registration, location_id, organization_id,
+      location:locations!events_location_id_fkey(id, name, address, latitude, longitude),
+      organization:organizations!events_organization_id_fkey(name)
+    `
+        )
+        .eq('id', parentId)
+        .maybeSingle();
+      if (error) {
+        console.error('[Event Details] Error fetching parent for inheritance:', error);
+        return null;
+      }
+      return data;
+    },
     getByParentEventId: async (parentEventId: string) => {
       // Query public_events view - it should include parent_event_id after migration is applied
       // If the view doesn't have parent_event_id yet, this will fail gracefully

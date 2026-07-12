@@ -128,6 +128,37 @@ const related = (relatedEvents || []).filter((e: any) => !seriesEventIds.has(e.i
   location?: { name: string };
 }>;
 
+// Inherit display fields from the parent event when this child leaves them empty.
+// Display-time only (nothing stored), so parent edits propagate automatically.
+// Runs after related-events (which intentionally uses the child's own org/location)
+// and before the image/map vars below (which should reflect inherited values).
+if (parentEventId) {
+  const parent = (await db.events.getInheritableParentFields(parentEventId)) as any;
+  if (parent) {
+    const isBlank = (v: any) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+    if (isBlank(event.description)) event.description = parent.description;
+    if (isBlank(event.external_image_url)) {
+      // Image is a unit: url + alt text move together.
+      event.external_image_url = parent.external_image_url;
+      event.image_alt_text = parent.image_alt_text;
+    }
+    if (isBlank(event.cost)) event.cost = parent.cost;
+    if (isBlank(event.registration_link)) event.registration_link = parent.registration_link;
+    if (isBlank(event.website)) event.website = parent.website;
+    // Location/organization each cascade as a unit (id + joined display data).
+    if (!event.location_id) {
+      event.location_id = parent.location_id;
+      event.location = parent.location;
+    }
+    if (!event.organization_id) {
+      event.organization_id = parent.organization_id;
+      event.organization = parent.organization;
+    }
+    // "Registration required" is a boolean with no blank state: child OR parent.
+    event.registration = Boolean(event.registration) || Boolean(parent.registration);
+  }
+}
+
 // Optimized image URLs for the detail hero
 const detailImageUrl = event.external_image_url
   ? optimizedImageUrl(event.external_image_url, { width: 1200 })
