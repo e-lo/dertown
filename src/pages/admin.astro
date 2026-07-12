@@ -281,6 +281,11 @@ const userEmail = session.user?.email || 'Admin';
     const liveNote = document.getElementById('editEventLiveCalendarNote');
     if (stagedNote) stagedNote.classList.toggle('hidden', !isStaged);
     if (liveNote) liveNote.classList.toggle('hidden', !!isStaged);
+    // Create Series / Duplicate / Merge operate on the approved `events` table only.
+    // Hide them for staged events (approve first, then use these tools). Uses inline
+    // display because the container's inline style would override a `.hidden` class.
+    const approvedOnlyActions = document.getElementById('editEventApprovedOnlyActions');
+    if (approvedOnlyActions) approvedOnlyActions.style.display = isStaged ? 'none' : 'flex';
   }
 
   function hideEditEventModalHelpNotes() {
@@ -358,6 +363,8 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   function getAllowedParentSource() {
+    // Staged events link to an approved top-level parent (stored via the
+    // SCRAPER_APPROVED_PARENT_ID comment marker) — approve the parent first, then link.
     if (currentEditType === 'staged-event') return 'events';
     if (currentEditType === 'existing-event' || currentEditType === 'new-event') return 'events';
     return null;
