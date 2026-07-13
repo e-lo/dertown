@@ -773,6 +773,62 @@ const locationMapMarkers =
       (window as any).duplicateCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/events/${id}`; };
       (window as any).createSeriesFromCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/series?parent=${id}`; };
 
+      // Merge: find a duplicate event and jump to the merge tool. Mirrors the
+      // admin dashboard handler; reads the current edit id from the form at call
+      // time so it always targets the event being edited.
+      const getCurrentEditId = () => (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id') || '';
+      let mergeSearchTimeout: ReturnType<typeof setTimeout> | null = null;
+      function setupMergeSearch() {
+        const input = document.getElementById('mergeSearchInput') as HTMLInputElement | null;
+        const dropdown = document.getElementById('mergeSearchDropdown');
+        if (!input || !dropdown || input.dataset.mergeSetup) return;
+        input.dataset.mergeSetup = 'true';
+        input.addEventListener('input', () => {
+          const q = input.value.trim();
+          if (q.length < 2) { dropdown.innerHTML = ''; dropdown.classList.add('hidden'); dropdown.classList.remove('block'); return; }
+          if (mergeSearchTimeout !== null) clearTimeout(mergeSearchTimeout);
+          mergeSearchTimeout = window.setTimeout(async () => {
+            try {
+              const res = await fetch('/api/admin/events/search?q=' + encodeURIComponent(q), { credentials: 'include' });
+              if (!res.ok) return;
+              const list = await res.json();
+              const currentEditId = getCurrentEditId();
+              if (!Array.isArray(list) || list.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-dropdown-item">No events found</div>';
+              } else {
+                dropdown.innerHTML = list
+                  .filter((ev: any) => ev.id !== currentEditId)
+                  .map((ev: any) => {
+                    const dateStr = ev.start_date ? new Date(ev.start_date).toLocaleDateString() : '';
+                    const escaped = (ev.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+                    const stagedSuffix = ev.table === 'events_staged' ? ' <span class="text-gray-400 italic">(staged)</span>' : '';
+                    return '<div class="autocomplete-dropdown-item" data-id="' + ev.id + '">' + escaped + stagedSuffix + (dateStr ? ' <span class="text-gray-500">' + dateStr + '</span>' : '') + '</div>';
+                  }).join('');
+              }
+              dropdown.classList.remove('hidden'); dropdown.classList.add('block');
+              dropdown.querySelectorAll('.autocomplete-dropdown-item[data-id]').forEach(item => {
+                item.addEventListener('click', () => {
+                  const foundId = item.getAttribute('data-id');
+                  const currentId = getCurrentEditId();
+                  if (foundId && currentId) {
+                    window.location.href = '/admin/events/merge?primary=' + encodeURIComponent(foundId) + '&secondary=' + encodeURIComponent(currentId);
+                  }
+                });
+              });
+            } catch { dropdown.innerHTML = ''; dropdown.classList.add('hidden'); dropdown.classList.remove('block'); }
+          }, 200);
+        });
+      }
+      (window as any).toggleMergeSearchPanel = function() {
+        if (!getCurrentEditId()) return;
+        const panel = document.getElementById('mergeSearchPanel');
+        if (!panel) return;
+        setupMergeSearch();
+        const isHidden = panel.style.display === 'none' || panel.style.display === '';
+        panel.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) (document.getElementById('mergeSearchInput') as HTMLInputElement | null)?.focus();
+      };
+
       const form = document.getElementById('editEventForm');
       if (form) {
         form.addEventListener('submit', async (e) => {
