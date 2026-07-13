@@ -438,6 +438,10 @@ const userEmail = session.user?.email || 'Admin';
     await loadReferenceData();
     setupAutocompletes();
 
+    // Merge finds an existing duplicate to fold into — meaningless while creating
+    // a brand-new event, so hide it here.
+    document.getElementById('editEventMergeBtn')?.style.setProperty('display', 'none');
+
     window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
     window.addEventListener('admin:organization-created', (e) => applyCreatedOrganization(e.detail?.organization));
 
