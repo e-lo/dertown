@@ -256,7 +256,6 @@ const userEmail = session.user?.email || 'Admin';
   let allTags: any[] = [];
   let allLocations: any[] = [];
   let allOrganizations: any[] = [];
-  let originalFormValues: any = {}; // Store original values to detect changes
 
   // Calendar state for "Add Occurrences" modal
   let addOccCalendarCurrentMonth = new Date().getMonth();
@@ -352,60 +351,66 @@ const userEmail = session.user?.email || 'Admin';
         featured: firstEvent.featured || false,
       };
 
-      // Build form HTML (similar to EditEventModal but without dates)
-      let formHtml = `
+      // Build form HTML (similar to EditEventModal but without dates).
+      // Each field has an "Apply" checkbox: only ticked fields are written to the
+      // selected events, so untouched fields keep each event's existing value
+      // (differing times/titles are preserved). Editing a field ticks its box.
+      const applyBox = (field: string) =>
+        `<input type="checkbox" class="apply-toggle w-4 h-4" data-field="${field}" title="Apply this field to the selected events">`;
+      const formHtml = `
+        <p class="text-sm text-gray-600 mb-3">Tick <strong>Apply</strong> next to a field to write it to the selected events. Unchecked fields keep each event's current value. Editing a field ticks its box automatically.</p>
         <div class="form-field">
-          <label class="form-label">Title:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('title')}<span>Title</span></label>
           <input type="text" id="editSeriesTitle" class="form-input-base" value="${commonValues.title || ''}" maxlength="200">
         </div>
         <div class="form-field">
-          <label class="form-label">Description:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('description')}<span>Description</span></label>
           <textarea id="editSeriesDescription" rows="3" class="form-input-base">${commonValues.description || ''}</textarea>
         </div>
         <div class="form-grid-2">
           <div>
-            <label class="form-label">Start Time:</label>
+            <label class="form-label flex items-center gap-2">${applyBox('start_time')}<span>Start Time</span></label>
             <input type="time" id="editSeriesStartTime" class="form-input-base" value="${commonValues.start_time || ''}">
           </div>
           <div>
-            <label class="form-label">End Time:</label>
+            <label class="form-label flex items-center gap-2">${applyBox('end_time')}<span>End Time</span></label>
             <input type="time" id="editSeriesEndTime" class="form-input-base" value="${commonValues.end_time || ''}">
           </div>
         </div>
         <div class="form-field">
-          <label class="form-label">Email:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('email')}<span>Email</span></label>
           <input type="email" id="editSeriesEmail" class="form-input-base" value="${commonValues.email || ''}">
         </div>
         <div class="form-field">
-          <label class="form-label">Website:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('website')}<span>Website</span></label>
           <input type="text" id="editSeriesWebsite" class="form-input-base" value="${commonValues.website || ''}">
         </div>
         <div class="form-field">
-          <label class="form-label">Registration Link:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('registration_link')}<span>Registration Link</span></label>
           <input type="text" id="editSeriesRegistrationLink" class="form-input-base" value="${commonValues.registration_link || ''}">
         </div>
         <div class="form-field">
-          <label class="form-label">External Image URL:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('external_image_url')}<span>External Image URL</span></label>
           <input type="url" id="editSeriesExternalImageUrl" class="form-input-base" value="${commonValues.external_image_url || ''}">
         </div>
         <div class="form-field">
-          <label class="form-label">Cost:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('cost')}<span>Cost</span></label>
           <input type="text" id="editSeriesCost" class="form-input-base" value="${commonValues.cost || ''}">
         </div>
         <div class="form-field">
-          <label class="form-label">Primary Tag:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('primary_tag_id')}<span>Primary Tag</span></label>
           <select id="editSeriesPrimaryTag" class="form-input-base">
             <option value="">Select a primary tag...</option>
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label">Secondary Tag:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('secondary_tag_id')}<span>Secondary Tag</span></label>
           <select id="editSeriesSecondaryTag" class="form-input-base">
             <option value="">None</option>
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label">Location:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('location_id')}<span>Location</span></label>
           <div class="autocomplete-container">
             <input type="text" id="editSeriesLocationSearch" placeholder="Type to search existing locations..." autocomplete="off" class="form-input-base">
             <input type="hidden" id="editSeriesLocationId">
@@ -417,7 +422,7 @@ const userEmail = session.user?.email || 'Admin';
           </div>
         </div>
         <div class="form-field">
-          <label class="form-label">Organization:</label>
+          <label class="form-label flex items-center gap-2">${applyBox('organization_id')}<span>Organization</span></label>
           <div class="autocomplete-container">
             <input type="text" id="editSeriesOrganizationSearch" placeholder="Type to search existing organizations..." autocomplete="off" class="form-input-base">
             <input type="hidden" id="editSeriesOrganizationId">
@@ -430,23 +435,37 @@ const userEmail = session.user?.email || 'Admin';
         </div>
         <div class="form-field">
           <div class="flex flex-col gap-2">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="editSeriesRegistration" class="w-4 h-4" ${commonValues.registration ? 'checked' : ''}>
-              <span class="form-label">Registration Required</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="editSeriesExcludeFromCalendar" class="w-4 h-4" ${commonValues.exclude_from_calendar ? 'checked' : ''}>
-              <span class="form-label">Exclude from Calendar</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="editSeriesFeatured" class="w-4 h-4" ${commonValues.featured ? 'checked' : ''}>
-              <span class="form-label">Featured Event</span>
-            </label>
+            <div class="flex items-center gap-2">
+              ${applyBox('registration')}
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="editSeriesRegistration" class="w-4 h-4" ${commonValues.registration ? 'checked' : ''}>
+                <span class="form-label">Registration Required</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              ${applyBox('exclude_from_calendar')}
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="editSeriesExcludeFromCalendar" class="w-4 h-4" ${commonValues.exclude_from_calendar ? 'checked' : ''}>
+                <span class="form-label">Exclude from Calendar</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              ${applyBox('featured')}
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="editSeriesFeatured" class="w-4 h-4" ${commonValues.featured ? 'checked' : ''}>
+                <span class="form-label">Featured Event</span>
+              </label>
+            </div>
           </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="closeEditSeriesModal()" class="btn-cancel">Cancel</button>
+          <button type="submit" class="btn-save">Update Selected Events</button>
         </div>
       `;
 
-      form.innerHTML = formHtml + form.innerHTML; // Keep the submit button
+      // Replace (not prepend) so reopening the modal never stacks duplicate fields.
+      form.innerHTML = formHtml;
 
       // Populate tag dropdowns
       const primaryTagSelect = document.getElementById('editSeriesPrimaryTag');
@@ -477,25 +496,34 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editSeriesOrganizationId').value = commonValues.organization_id;
       }
 
-      // Store original values to detect changes
-      originalFormValues = {
-        title: commonValues.title || '',
-        description: commonValues.description || '',
-        start_time: commonValues.start_time || '',
-        end_time: commonValues.end_time || '',
-        email: commonValues.email || '',
-        website: commonValues.website || '',
-        registration_link: commonValues.registration_link || '',
-        external_image_url: commonValues.external_image_url || '',
-        cost: commonValues.cost || '',
-        primary_tag_id: commonValues.primary_tag_id || '',
-        secondary_tag_id: commonValues.secondary_tag_id || '',
-        location_id: commonValues.location_id || '',
-        organization_id: commonValues.organization_id || '',
-        registration: commonValues.registration || false,
-        exclude_from_calendar: commonValues.exclude_from_calendar || false,
-        featured: commonValues.featured || false,
+      // Editing a field auto-ticks its Apply box. (You can also tick Apply without
+      // editing, to force the shown value onto every selected event.)
+      const wireApply = (elId: string, field: string) => {
+        const el = document.getElementById(elId);
+        const toggle = document.querySelector(`.apply-toggle[data-field="${field}"]`) as HTMLInputElement | null;
+        if (!el || !toggle) return;
+        const mark = () => { toggle.checked = true; };
+        el.addEventListener('input', mark);
+        el.addEventListener('change', mark);
       };
+      wireApply('editSeriesTitle', 'title');
+      wireApply('editSeriesDescription', 'description');
+      wireApply('editSeriesStartTime', 'start_time');
+      wireApply('editSeriesEndTime', 'end_time');
+      wireApply('editSeriesEmail', 'email');
+      wireApply('editSeriesWebsite', 'website');
+      wireApply('editSeriesRegistrationLink', 'registration_link');
+      wireApply('editSeriesExternalImageUrl', 'external_image_url');
+      wireApply('editSeriesCost', 'cost');
+      wireApply('editSeriesPrimaryTag', 'primary_tag_id');
+      wireApply('editSeriesSecondaryTag', 'secondary_tag_id');
+      wireApply('editSeriesRegistration', 'registration');
+      wireApply('editSeriesExcludeFromCalendar', 'exclude_from_calendar');
+      wireApply('editSeriesFeatured', 'featured');
+      wireApply('editSeriesLocationSearch', 'location_id');
+      wireApply('editSeriesLocationAdded', 'location_id');
+      wireApply('editSeriesOrganizationSearch', 'organization_id');
+      wireApply('editSeriesOrganizationAdded', 'organization_id');
 
       // Setup autocomplete with retry mechanism
       setTimeout(() => {
@@ -658,111 +686,60 @@ const userEmail = session.user?.email || 'Admin';
         return;
       }
 
-      // Collect form data - only include fields that have changed
-      const updateData: any = {
-        event_ids: eventIds,
+      // Apply only the fields whose "Apply" box is ticked. Untouched fields are
+      // left alone on each selected event, so differing per-event values (times,
+      // titles, etc.) are preserved.
+      const updateData: any = { event_ids: eventIds };
+      const isApplied = (field: string) =>
+        (document.querySelector(`.apply-toggle[data-field="${field}"]`) as HTMLInputElement | null)?.checked === true;
+      const applyValue = (field: string, elId: string) => {
+        if (!isApplied(field)) return;
+        const el = document.getElementById(elId) as HTMLInputElement | HTMLSelectElement | null;
+        if (el) updateData[field] = (el.value || '').trim() || null;
+      };
+      const applyChecked = (field: string, elId: string) => {
+        if (!isApplied(field)) return;
+        const el = document.getElementById(elId) as HTMLInputElement | null;
+        if (el) updateData[field] = el.checked;
       };
 
-      // Helper to check if value changed
-      function hasChanged(fieldName: string, currentValue: any, originalValue: any): boolean {
-        // For strings, compare trimmed values
-        if (typeof currentValue === 'string' && typeof originalValue === 'string') {
-          return currentValue.trim() !== (originalValue || '').trim();
-        }
-        // For booleans, direct comparison
-        if (typeof currentValue === 'boolean' && typeof originalValue === 'boolean') {
-          return currentValue !== originalValue;
-        }
-        // For other types, direct comparison
-        return currentValue !== originalValue;
+      applyValue('title', 'editSeriesTitle');
+      applyValue('description', 'editSeriesDescription');
+      applyValue('start_time', 'editSeriesStartTime');
+      applyValue('end_time', 'editSeriesEndTime');
+      applyValue('email', 'editSeriesEmail');
+      applyValue('website', 'editSeriesWebsite');
+      applyValue('registration_link', 'editSeriesRegistrationLink');
+      applyValue('external_image_url', 'editSeriesExternalImageUrl');
+      applyValue('cost', 'editSeriesCost');
+      applyValue('primary_tag_id', 'editSeriesPrimaryTag');
+      applyValue('secondary_tag_id', 'editSeriesSecondaryTag');
+      applyChecked('registration', 'editSeriesRegistration');
+      applyChecked('exclude_from_calendar', 'editSeriesExcludeFromCalendar');
+      applyChecked('featured', 'editSeriesFeatured');
+
+      // Location / organization: an existing selection, or a newly typed name.
+      if (isApplied('location_id')) {
+        const added = (document.getElementById('editSeriesLocationAdded') as HTMLInputElement | null)?.value.trim();
+        if (added) updateData.location_added = added;
+        else updateData.location_id = (document.getElementById('editSeriesLocationId') as HTMLInputElement | null)?.value || null;
+      }
+      if (isApplied('organization_id')) {
+        const added = (document.getElementById('editSeriesOrganizationAdded') as HTMLInputElement | null)?.value.trim();
+        if (added) updateData.organization_added = added;
+        else updateData.organization_id = (document.getElementById('editSeriesOrganizationId') as HTMLInputElement | null)?.value || null;
       }
 
-      // Get current form values
-      const currentTitle = document.getElementById('editSeriesTitle').value;
-      const currentDescription = document.getElementById('editSeriesDescription').value;
-      const currentStartTime = document.getElementById('editSeriesStartTime').value;
-      const currentEndTime = document.getElementById('editSeriesEndTime').value;
-      const currentEmail = document.getElementById('editSeriesEmail').value;
-      const currentWebsite = document.getElementById('editSeriesWebsite').value;
-      const currentRegistrationLink = document.getElementById('editSeriesRegistrationLink').value;
-      const currentExternalImageUrl = document.getElementById('editSeriesExternalImageUrl').value;
-      const currentCost = document.getElementById('editSeriesCost').value;
-      const currentPrimaryTagId = document.getElementById('editSeriesPrimaryTag').value;
-      const currentSecondaryTagId = document.getElementById('editSeriesSecondaryTag').value;
-      const currentLocationId = document.getElementById('editSeriesLocationId').value;
-      const currentOrganizationId = document.getElementById('editSeriesOrganizationId').value;
-      const currentLocationAdded = document.getElementById('editSeriesLocationAdded')?.value.trim() || '';
-      const currentOrganizationAdded = document.getElementById('editSeriesOrganizationAdded')?.value.trim() || '';
-      const currentRegistration = document.getElementById('editSeriesRegistration').checked;
-      const currentExcludeFromCalendar = document.getElementById('editSeriesExcludeFromCalendar').checked;
-      const currentFeatured = document.getElementById('editSeriesFeatured').checked;
-
-      // Validate time consistency before proceeding
-      if (currentStartTime && currentEndTime && currentEndTime <= currentStartTime) {
+      // Time consistency, only when both times are being applied.
+      if (updateData.start_time && updateData.end_time && updateData.end_time <= updateData.start_time) {
         showMessage('End time must be after start time', 'error');
         return;
       }
 
-      // Only include fields that have changed
-      if (hasChanged('title', currentTitle, originalFormValues.title)) {
-        updateData.title = currentTitle.trim() || null;
-      }
-      if (hasChanged('description', currentDescription, originalFormValues.description)) {
-        updateData.description = currentDescription.trim() || null;
-      }
-      if (hasChanged('start_time', currentStartTime, originalFormValues.start_time)) {
-        updateData.start_time = currentStartTime || null;
-      }
-      if (hasChanged('end_time', currentEndTime, originalFormValues.end_time)) {
-        updateData.end_time = currentEndTime || null;
-      }
-      if (hasChanged('email', currentEmail, originalFormValues.email)) {
-        updateData.email = currentEmail.trim() || null;
-      }
-      if (hasChanged('website', currentWebsite, originalFormValues.website)) {
-        updateData.website = currentWebsite.trim() || null;
-      }
-      if (hasChanged('registration_link', currentRegistrationLink, originalFormValues.registration_link)) {
-        updateData.registration_link = currentRegistrationLink.trim() || null;
-      }
-      if (hasChanged('external_image_url', currentExternalImageUrl, originalFormValues.external_image_url)) {
-        updateData.external_image_url = currentExternalImageUrl.trim() || null;
-      }
-      if (hasChanged('cost', currentCost, originalFormValues.cost)) {
-        updateData.cost = currentCost.trim() || null;
-      }
-      if (hasChanged('primary_tag_id', currentPrimaryTagId, originalFormValues.primary_tag_id)) {
-        updateData.primary_tag_id = currentPrimaryTagId || null;
-      }
-      if (hasChanged('secondary_tag_id', currentSecondaryTagId, originalFormValues.secondary_tag_id)) {
-        updateData.secondary_tag_id = currentSecondaryTagId || null;
-      }
-      if (hasChanged('location_id', currentLocationId, originalFormValues.location_id)) {
-        updateData.location_id = currentLocationId || null;
-      }
-      if (hasChanged('organization_id', currentOrganizationId, originalFormValues.organization_id)) {
-        updateData.organization_id = currentOrganizationId || null;
-      }
-      if (currentLocationAdded) {
-        updateData.location_added = currentLocationAdded;
-      }
-      if (currentOrganizationAdded) {
-        updateData.organization_added = currentOrganizationAdded;
-      }
-      if (hasChanged('registration', currentRegistration, originalFormValues.registration)) {
-        updateData.registration = currentRegistration;
-      }
-      if (hasChanged('exclude_from_calendar', currentExcludeFromCalendar, originalFormValues.exclude_from_calendar)) {
-        updateData.exclude_from_calendar = currentExcludeFromCalendar;
-      }
-      if (hasChanged('featured', currentFeatured, originalFormValues.featured)) {
-        updateData.featured = currentFeatured;
-      }
-
-      // Check if any fields were changed
-      const changedFields = Object.keys(updateData).filter(key => key !== 'event_ids' && key !== 'location_added' && key !== 'organization_added');
-      if (changedFields.length === 0 && !currentLocationAdded && !currentOrganizationAdded) {
-        showMessage('No fields were changed', 'info');
+      // Require at least one applied field.
+      const appliedKeys = Object.keys(updateData).filter((key) => key !== 'event_ids');
+      if (appliedKeys.length === 0) {
+        showMessage('Tick the “Apply” box next to each field you want to update, then try again.', 'info');
         return;
       }
 
