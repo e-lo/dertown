@@ -40,7 +40,10 @@ function normalizeTextForContainment(input: string): string {
 }
 
 /** Infer location by exact normalized containment of known location names in title/description text. */
-function inferLocationNameFromEventText(event: ScrapedEvent, locations: LocationRow[]): string | null {
+function inferLocationNameFromEventText(
+  event: ScrapedEvent,
+  locations: LocationRow[]
+): string | null {
   const haystack = normalizeTextForContainment(`${event.title} ${event.description || ''}`);
   if (!haystack) return null;
 
@@ -110,38 +113,53 @@ export interface ReferenceData {
   existingStaged: ExistingEvent[];
 }
 
+const EXISTING_EVENT_COLUMNS =
+  'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id, external_image_url';
+
+/** Page size for paginated fetches. PostgREST caps a single response at 1000 rows,
+ *  so any table that can exceed that must be read in ranges or the deduper goes blind
+ *  to overflow rows and re-creates them as duplicates. */
+const FETCH_PAGE_SIZE = 1000;
+
+/** Fetch every row from a table+column select, paging past PostgREST's 1000-row cap. */
+async function fetchAllExistingEvents(
+  db: SupabaseClient<Database>,
+  table: 'events' | 'events_staged'
+): Promise<Omit<ExistingEvent, 'table'>[]> {
+  const rows: Omit<ExistingEvent, 'table'>[] = [];
+  for (let from = 0; ; from += FETCH_PAGE_SIZE) {
+    const { data, error } = await db
+      .from(table)
+      .select(EXISTING_EVENT_COLUMNS)
+      .range(from, from + FETCH_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data || []) as Omit<ExistingEvent, 'table'>[];
+    rows.push(...page);
+    if (page.length < FETCH_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 /** Load reference data from the database for matching. */
 export async function loadReferenceData(db: SupabaseClient<Database>): Promise<ReferenceData> {
-  const [locRes, orgRes, tagRes, srcRes, evtRes, stagedRes] = await Promise.all([
-    db.from('locations').select('id, name, address'),
-    db.from('organizations').select('id, name'),
-    db.from('tags').select('id, name'),
-    db.from('source_sites').select('id, name, url'),
-    db
-      .from('events')
-      .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id, external_image_url'
-      ),
-    db
-      .from('events_staged')
-      .select(
-        'id, title, source_title, source_id, status, start_date, start_time, end_time, description, cost, website, registration_link, location_id, external_image_url'
-      ),
-  ]);
+  const [locRes, orgRes, tagRes, srcRes, existingEventRows, existingStagedRows] = await Promise.all(
+    [
+      db.from('locations').select('id, name, address'),
+      db.from('organizations').select('id, name'),
+      db.from('tags').select('id, name'),
+      db.from('source_sites').select('id, name, url'),
+      fetchAllExistingEvents(db, 'events'),
+      fetchAllExistingEvents(db, 'events_staged'),
+    ]
+  );
 
   return {
     locations: (locRes.data || []) as LocationRow[],
     organizations: (orgRes.data || []) as OrgRow[],
     tags: (tagRes.data || []) as TagRow[],
     sourceSites: (srcRes.data || []) as SourceSiteRow[],
-    existingEvents: ((evtRes.data || []) as Omit<ExistingEvent, 'table'>[]).map((e) => ({
-      ...e,
-      table: 'events',
-    })),
-    existingStaged: ((stagedRes.data || []) as Omit<ExistingEvent, 'table'>[]).map((e) => ({
-      ...e,
-      table: 'events_staged',
-    })),
+    existingEvents: existingEventRows.map((e) => ({ ...e, table: 'events' as const })),
+    existingStaged: existingStagedRows.map((e) => ({ ...e, table: 'events_staged' as const })),
   };
 }
 
@@ -518,11 +536,18 @@ export function matchEvents(
       !!event.registration_url && event.registration_url.includes('#/instances/');
 
     // Only fall back to source default when the scrape did not provide a specific venue.
-    if (!location_id && !locationName && !hasInstanceSpecificLink && source.default_location && ref) {
+    if (
+      !location_id &&
+      !locationName &&
+      !hasInstanceSpecificLink &&
+      source.default_location &&
+      ref
+    ) {
       location_id = matchLocation(source.default_location, ref.locations);
     }
     if (!location_id) {
-      location_added = locationName || (!hasInstanceSpecificLink ? source.default_location : null) || null;
+      location_added =
+        locationName || (!hasInstanceSpecificLink ? source.default_location : null) || null;
     }
 
     // Organization matching cascade: DB fuzzy → source default → flag unknown

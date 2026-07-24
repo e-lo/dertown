@@ -25,7 +25,8 @@
     "test:url-normalization": "tsx src/lib/__tests__/url-normalization.test.ts",
     "test:announcement-staging": "tsx src/lib/__tests__/announcement-staging.test.ts",
     "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts",
-    "test:image-upload": "tsx src/lib/__tests__/event-image-upload.test.ts"
+    "test:image-upload": "tsx src/lib/__tests__/event-image-upload.test.ts",
+    "test:scraper-pagination": "tsx src/lib/__tests__/scraper-reference-pagination.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.103.0",
