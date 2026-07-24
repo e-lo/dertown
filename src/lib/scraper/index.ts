@@ -33,6 +33,7 @@ import {
   type ReferenceData,
 } from './match';
 import { writeProcessedEvents } from './staged';
+import { cleanupPastPendingEvents } from './cleanup';
 import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent, VenueTagRule } from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
@@ -745,6 +746,11 @@ async function main() {
 
   if (writeDb && ref) {
     await ensureSourceSitesExist(writeDb, sourcesToScrape, ref, args.verbose);
+  }
+
+  // Remove past events still sitting unapproved before scraping new ones.
+  if (writeDb) {
+    await cleanupPastPendingEvents(writeDb, args.verbose);
   }
 
   // Scrape each source
