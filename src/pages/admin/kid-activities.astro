@@ -1567,6 +1567,9 @@ const hierarchyTree = buildHierarchy(activities || []);
         (document.getElementById('registrationLink') as HTMLInputElement).value = activity.registration_link ?? '';
         (document.getElementById('registrationInfo') as HTMLTextAreaElement).value = activity.registration_info ?? '';
         (document.getElementById('registrationRequired') as HTMLInputElement).checked = !!activity.registration_required;
+        (document.getElementById('requiredGear') as HTMLTextAreaElement).value = activity.required_gear ?? '';
+        (document.getElementById('gearAssistanceAvailable') as HTMLInputElement).checked = !!activity.gear_assistance_available;
+        (document.getElementById('gearAssistanceDetails') as HTMLTextAreaElement).value = activity.gear_assistance_details ?? '';
 
         showSectionsForType(activity.activity_hierarchy_type);
         (document.getElementById('programFormat') as HTMLSelectElement).value = activity.program_format ?? '';
@@ -1667,16 +1670,20 @@ const hierarchyTree = buildHierarchy(activities || []);
         // Collect multi-value weekdays before building the single-value body map.
         const weekdays = formData.getAll('weekdays').map((v) => String(v)).filter(Boolean);
 
+        // Boolean checkboxes: FormData only includes them when checked, and with
+        // the string value "on" — coerce to real booleans (and false when absent).
+        const BOOLEAN_CHECKBOXES = ['registration_required', 'gear_assistance_available'];
         const body: Record<string, unknown> = {};
         for (const [key, value] of formData.entries()) {
-          if (key === 'registration_required') {
-            body[key] = true; // checkbox — only present if checked
+          if (BOOLEAN_CHECKBOXES.includes(key)) {
+            body[key] = true; // present only when checked
           } else {
             body[key] = value === '' ? null : value;
           }
         }
-        // registration_required defaults to false if checkbox absent
-        if (!body.registration_required) body.registration_required = false;
+        for (const cb of BOOLEAN_CHECKBOXES) {
+          if (!body[cb]) body[cb] = false;
+        }
 
         // Separate schedule-only fields (not columns on the activities table).
         const schedule = {
