@@ -99,13 +99,59 @@ export function parseCascadeDate(raw: string): string | null {
   return `${m[3]}-${String(month + 1).padStart(2, '0')}-${day}`;
 }
 
-/** Strip school-name suffixes from an opponent name. */
+/** Strip school-name suffixes/decoration from an opponent name. */
 export function cleanOpponent(name: string): string {
   return name
-    .replace(/\b(High School|Secondary School|Middle School|Junior High)\b/gi, '')
-    .replace(/\bH\.?S\.?\b/g, '')
+    .replace(/\s*\.\.\.\s*$/, '') // trailing ellipsis from a truncated name
+    .replace(
+      /\b(High School|Secondary School|Middle School|Junior\/High School|Junior High|School District)\b/gi,
+      ''
+    )
+    .replace(/\bH\.?S\.?\b/gi, '')
+    .replace(/\([^)]*\)/g, '') // parentheticals like "(Leavenworth)"
+    .replace(/\b(High|Secondary|Junior|Sr|Jr)\.?\s*$/i, '') // leftover fragment from truncation
+    .replace(/^[^A-Za-z0-9]+/, '')
+    .replace(/[^A-Za-z0-9)]+$/, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Determine home/away per event index from the "Home"/"Away" badge in the card.
+ * The badge has no data-testid, so attribute each badge to the event index of
+ * its nearest preceding `event-N-*` testid (first badge per index wins, which
+ * ignores the mobile/desktop duplicate render and any footer "Home" nav link).
+ * The badge is authoritative — the opponent name's format/order is not reliable.
+ */
+function homeAwayByIndex(html: string): Map<number, boolean> {
+  const result = new Map<number, boolean>();
+  const badgeRe = />(Home|Away)</g;
+  let m: RegExpExecArray | null;
+  while ((m = badgeRe.exec(html)) !== null) {
+    const prev = html.lastIndexOf('data-testid="event-', m.index);
+    if (prev < 0) continue;
+    const idxMatch = html.slice(prev, prev + 40).match(/^data-testid="event-(\d+)-/);
+    if (!idxMatch) continue;
+    const index = Number(idxMatch[1]);
+    if (!result.has(index)) result.set(index, m[1] === 'Home');
+  }
+  return result;
+}
+
+/**
+ * Extract the opponent from a card's event-name, which appears in several
+ * formats: "Cascade High School, Opponent" (comma), "Opponent" (opponent only),
+ * or "Cascade High School (Leavenworth) vs. Opponent" (vs). Splits on comma or
+ * "vs", drops the Cascade side, and cleans the remaining name.
+ */
+export function extractOpponent(eventName: string): string | null {
+  const parts = eventName
+    .split(/,|\s+vs\.?\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((p) => !/cascade/i.test(p));
+  if (parts.length === 0) return null;
+  return cleanOpponent(parts[0]) || null;
 }
 
 export function teamScheduleUrl(team: VarsityTeam, year: string): string {
@@ -140,20 +186,15 @@ export function extractCascadeCards(
     if (!(field in rec)) rec[field] = $(el).text().replace(/\s+/g, ' ').trim();
   });
 
+  const homeAway = homeAwayByIndex(html);
+
   const events: ScrapedEvent[] = [];
-  for (const rec of byIndex.values()) {
-    const parts = (rec['event-name'] || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts.length < 2) continue;
+  for (const [index, rec] of byIndex) {
+    // Keep home games only, per the authoritative "Home"/"Away" badge.
+    if (homeAway.get(index) !== true) continue;
 
-    // Home games list Cascade first (matches the "Home" badge).
-    if (!/cascade/i.test(parts[0])) continue;
-
-    const opponentRaw = parts.find((p) => !/cascade/i.test(p));
-    if (!opponentRaw) continue;
-    const opponent = cleanOpponent(opponentRaw);
+    const opponent = extractOpponent(rec['event-name'] || '');
+    if (!opponent) continue;
 
     const start_date = parseCascadeDate(rec['month-and-day'] || '');
     if (!start_date) continue;
