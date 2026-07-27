@@ -89,6 +89,7 @@ export interface SourceConfig {
   default_organization?: string | null;
   default_location?: string | null;
   default_tag?: string | null;
+  default_image?: string | null; // fallback image_url for events that have none
   exclude?: ExcludeRules | null;
   location_map?: Record<string, string> | null;
   organization_map?: Record<string, string> | null;
