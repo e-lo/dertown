@@ -279,4 +279,16 @@ sources:
     series_parent_rules:
       - title_keywords: ['red barn']
         parent_title: 'Red Barn Events'
-  
+
+  - id: 'cascade-athletics'
+    name: 'Cascade High School Athletics'
+    url: 'https://www.cascadekodiakathletics.com'
+    type: 'html'
+    default_organization: 'Cascade High School'
+    default_location: 'Cascade High School'
+    default_tag: 'sports'
+    default_image: 'https://sportshub2-uploads.vnn-prod.zone/files/sites/2623/2020/10/09135212/Cascade.png'
+    location_map:
+      'Cascade Upper (Bus Garage)': 'Kodiak Field'
+    geo_filter: null
+

@@ -18,6 +18,7 @@ import { fetchPage } from './fetch';
 import { writeScrapeLog } from './log';
 import { parseIcalFeed } from './parse-ical';
 import { parseHtml } from './parse-html';
+import { fetchCascadeAthletics } from './parse-cascade';
 import { fetchLibCalEvents } from './parse-json';
 import { clampDescription } from './description';
 import { enrichDescriptionsFromDetailPages } from './enrich';
@@ -34,7 +35,13 @@ import {
 } from './match';
 import { writeProcessedEvents } from './staged';
 import { cleanupPastPendingEvents } from './cleanup';
-import type { SourceConfig, ScrapeResult, ScrapedEvent, ProcessedEvent, VenueTagRule } from './types';
+import type {
+  SourceConfig,
+  ScrapeResult,
+  ScrapedEvent,
+  ProcessedEvent,
+  VenueTagRule,
+} from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 
@@ -110,6 +117,13 @@ function resolveDbMode(args: CliArgs): DbMode {
   return 'dry-run';
 }
 
+// Sources that fetch their own pages (multi-page crawl) rather than a single URL.
+// Keyed by source id, mirroring the EXTRACTORS dispatch in parse-html.ts.
+type SelfFetcher = (source: SourceConfig, verbose: boolean) => Promise<ScrapedEvent[]>;
+const SELF_FETCHERS: Record<string, SelfFetcher> = {
+  'cascade-athletics': fetchCascadeAthletics,
+};
+
 // ── Source scraping pipeline ──────────────────────────────────────────
 
 async function scrapeSource(
@@ -136,7 +150,11 @@ async function scrapeSource(
   try {
     // Step 1-2: Fetch and Parse
     let rawEvents: ScrapedEvent[];
-    if (source.type === 'json-api') {
+    const selfFetcher = SELF_FETCHERS[source.id];
+    if (selfFetcher) {
+      if (verbose) console.log(`  Self-fetching ${source.name}...`);
+      rawEvents = await selfFetcher(source, verbose);
+    } else if (source.type === 'json-api') {
       // JSON API sources handle their own fetching (e.g. multi-day pagination)
       if (verbose) console.log(`  Fetching ${source.name} via JSON API...`);
       rawEvents = await fetchLibCalEvents(source, verbose);
@@ -218,14 +236,7 @@ async function scrapeSource(
     result.total_extracted = events.length;
 
     // Steps 4-5: Match to existing records and deduplicate
-    const processed = matchEvents(
-      events,
-      source,
-      ref,
-      tagKeywords,
-      venueTags,
-      verbose
-    );
+    const processed = matchEvents(events, source, ref, tagKeywords, venueTags, verbose);
     result.events = processed;
 
     // Update source_id to the resolved DB UUID (for log writing)
@@ -446,9 +457,7 @@ async function promptForMissingFields(
 
   try {
     // Organization
-    const orgPrompt = currentOrg
-      ? `Organization [${currentOrg}]: `
-      : 'Organization: ';
+    const orgPrompt = currentOrg ? `Organization [${currentOrg}]: ` : 'Organization: ';
     const orgInput = await ask(rl, orgPrompt);
     if (orgInput) {
       const orgId = ref ? matchOrganization(orgInput, ref.organizations) : null;
@@ -470,9 +479,7 @@ async function promptForMissingFields(
     }
 
     // Location
-    const locPrompt = currentLoc
-      ? `Location [${currentLoc}]: `
-      : 'Location: ';
+    const locPrompt = currentLoc ? `Location [${currentLoc}]: ` : 'Location: ';
     const locInput = await ask(rl, locPrompt);
     if (locInput) {
       const locId = ref ? matchLocation(locInput, ref.locations) : null;
@@ -496,9 +503,7 @@ async function promptForMissingFields(
     // Tag
     const tagList = ref?.tags.map((t) => t.name).join(', ') || '';
     if (tagList) console.log(`  Tags: ${tagList}`);
-    const tagPrompt = currentTag
-      ? `Tag [${currentTag}]: `
-      : 'Tag: ';
+    const tagPrompt = currentTag ? `Tag [${currentTag}]: ` : 'Tag: ';
     const tagInput = await ask(rl, tagPrompt);
     if (tagInput) {
       const tagId = ref ? matchTag(tagInput, ref.tags) : null;
