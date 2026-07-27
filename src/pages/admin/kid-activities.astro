@@ -1349,10 +1349,12 @@ const hierarchyTree = buildHierarchy(activities || []);
         if (!response) return;
         
         const data = await response.json();
+        // /api/admin/locations returns a bare array (not { locations: [...] }).
+        const locations = Array.isArray(data) ? data : (data?.locations ?? []);
         const locationSelect = document.getElementById('locationId');
         if (locationSelect) {
           locationSelect.innerHTML = '<option value="">Select Location</option>';
-          data.locations.forEach((location: any) => {
+          locations.forEach((location: any) => {
             const option = document.createElement('option');
             option.value = location.id;
             option.textContent = location.name;
