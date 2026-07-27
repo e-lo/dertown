@@ -37,10 +37,16 @@ export const POST = withAdminAuth(async ({ request }) => {
     return jsonError('name and activity_hierarchy_type are required', 400);
   }
 
+  // Never let the client set the primary key or audit columns. The create form
+  // posts an empty hidden `id` field, which would otherwise insert `id: null`
+  // and bypass the column's uuid default (not-null violation). Let the DB
+  // generate id/created_at/updated_at.
+  const { id: _id, created_at: _createdAt, updated_at: _updatedAt, ...rest } = body;
+
   // Clean empty strings to null, then drop schedule-only fields (not columns
   // on `activities`) so the form's hidden schedule inputs can't break the write.
   const cleaned: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(body)) {
+  for (const [k, v] of Object.entries(rest)) {
     cleaned[k] = v === '' ? null : v;
   }
   cleaned.status = cleaned.status ?? 'pending';
