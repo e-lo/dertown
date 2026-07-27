@@ -43,7 +43,14 @@ export function parseIcalFeed(icalText: string): ScrapedEvent[] {
 function extractDate(val: unknown): string | null {
   if (!val) return null;
   if (val instanceof Date) {
-    return val.toISOString().split('T')[0];
+    // Read local components (not toISOString/UTC) so the date stays on the same
+    // timezone basis as extractTime's getHours(). A 7pm Pacific event is 02:00Z
+    // the next day — using UTC here would roll the date forward while the time
+    // stayed at 19:00, splitting one event across two days and defeating dedup.
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
   const str = String(val);
   // YYYYMMDD or YYYYMMDDTHHMMSS
@@ -88,10 +95,12 @@ function extractLocationName(location: string | null | undefined): string | null
 /** Clean iCal text: unescape commas, semicolons, strip excessive whitespace. */
 function cleanIcalText(text: string | null | undefined): string | null {
   if (!text) return null;
-  return text
-    .replace(/\\,/g, ',')
-    .replace(/\\;/g, ';')
-    .replace(/\\n/g, '\n')
-    .replace(/\s+/g, ' ')
-    .trim() || null;
+  return (
+    text
+      .replace(/\\,/g, ',')
+      .replace(/\\;/g, ';')
+      .replace(/\\n/g, '\n')
+      .replace(/\s+/g, ' ')
+      .trim() || null
+  );
 }

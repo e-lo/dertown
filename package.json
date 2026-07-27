@@ -26,7 +26,8 @@
     "test:announcement-staging": "tsx src/lib/__tests__/announcement-staging.test.ts",
     "test:deps": "tsx src/lib/__tests__/dependency-health.test.ts",
     "test:image-upload": "tsx src/lib/__tests__/event-image-upload.test.ts",
-    "test:scraper-pagination": "tsx src/lib/__tests__/scraper-reference-pagination.test.ts"
+    "test:scraper-pagination": "tsx src/lib/__tests__/scraper-reference-pagination.test.ts",
+    "test:scraper-ical-timezone": "TZ=America/Los_Angeles tsx src/lib/__tests__/scraper-ical-timezone.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.103.0",
