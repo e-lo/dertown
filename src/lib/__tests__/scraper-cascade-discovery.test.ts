@@ -38,6 +38,22 @@ function run() {
   assert.equal(fb!.sportLabel, 'Football', 'football sportLabel');
   assert.equal(fb!.slug, 'boys-football', 'football slug uses payload gender');
 
+  // Regression: a long homeDescription must not push the team's level/gender/sport
+  // out of the parse window (a fixed 600-char window previously dropped these,
+  // silently losing real teams like Girls Soccer and Football).
+  const longDesc = 'x'.repeat(800);
+  const withLongDesc = [
+    '<script>self.__next_f.push([1,"9:[',
+    `{"id":"7866314","displayName":"Varsity Football","homeDescription":"${longDesc}",`,
+    '"gender":{"id":"1","name":"Boys"},"sport":{"id":"30","name":"Football"},',
+    '"level":{"id":"1","name":"Varsity"},"season":{"id":"1","name":"Fall"}}',
+    ']"])</script>',
+  ].join('');
+  const longTeams = parseVarsityTeams(withLongDesc);
+  assert.equal(longTeams.length, 1, 'team with long homeDescription still discovered');
+  assert.equal(longTeams[0].slug, 'boys-football', 'slug still derived after long desc');
+  assert.equal(longTeams[0].sportLabel, 'Football', 'sportLabel still derived after long desc');
+
   console.log('scraper-cascade-discovery tests passed');
 }
 

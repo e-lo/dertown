@@ -36,12 +36,18 @@ export function parseVarsityTeams(html: string): VarsityTeam[] {
   const teams: VarsityTeam[] = [];
   const seen = new Set<string>();
   const teamRe = /\\?"id\\?":\\?"(\d{6,})\\?",\\?"displayName\\?":\\?"([^"\\]+)/g;
+  const matches = [...html.matchAll(teamRe)];
 
-  let m: RegExpExecArray | null;
-  while ((m = teamRe.exec(html)) !== null) {
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
     const id = m[1];
     const displayName = m[2];
-    const window = html.slice(m.index, m.index + 600);
+    // Bound the window to this team object (from its id up to the next team's
+    // id). A team's gender/sport/level sit after a homeDescription that can be
+    // long (escaped HTML), so a fixed-size window is unreliable.
+    const start = m.index ?? 0;
+    const end = i + 1 < matches.length ? (matches[i + 1].index ?? html.length) : html.length;
+    const window = html.slice(start, end);
 
     const level = nestedName(window, 'level');
     if (level !== 'Varsity') continue;
