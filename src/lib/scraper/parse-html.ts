@@ -469,7 +469,7 @@ function extractWRI(html: string, source: SourceConfig): ScrapedEvent[] {
 }
 
 /** Parse "7:00 pm" → "19:00" */
-function parseTime12h(raw: string): string | null {
+export function parseTime12h(raw: string): string | null {
   const match = raw
     .trim()
     .toLowerCase()
