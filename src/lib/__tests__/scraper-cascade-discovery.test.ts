@@ -5,7 +5,11 @@ function run() {
   // July (month 6) and later belong to the upcoming school year.
   assert.equal(currentSchoolYear(new Date(2026, 6, 27)), '2026-2027', 'late July → new year');
   assert.equal(currentSchoolYear(new Date(2026, 8, 8)), '2026-2027', 'September → same year');
-  assert.equal(currentSchoolYear(new Date(2027, 0, 16)), '2026-2027', 'January → prior calendar year');
+  assert.equal(
+    currentSchoolYear(new Date(2027, 0, 16)),
+    '2026-2027',
+    'January → prior calendar year'
+  );
   // Before July belongs to the year that started the previous August.
   assert.equal(currentSchoolYear(new Date(2026, 2, 1)), '2025-2026', 'March → prior school year');
 
@@ -53,6 +57,21 @@ function run() {
   assert.equal(longTeams.length, 1, 'team with long homeDescription still discovered');
   assert.equal(longTeams[0].slug, 'boys-football', 'slug still derived after long desc');
   assert.equal(longTeams[0].sportLabel, 'Football', 'sportLabel still derived after long desc');
+
+  // The real homepage payload backslash-escapes its quotes (\"id\":\"...\").
+  // The parser's optional-backslash tolerance must handle that shape; the
+  // fixtures above use plain quotes, so this asserts the escaped case directly.
+  const escaped =
+    '<script>self.__next_f.push([1,"7:[' +
+    '{\\"id\\":\\"7866340\\",\\"displayName\\":\\"Girls Varsity Track\\",\\"homeDescription\\":null,' +
+    '\\"gender\\":{\\"id\\":\\"2\\",\\"name\\":\\"Girls\\"},\\"sport\\":{\\"id\\":\\"63\\",\\"name\\":\\"Track\\"},' +
+    '\\"level\\":{\\"id\\":\\"1\\",\\"name\\":\\"Varsity\\"}}' +
+    ']"])</script>';
+  const escapedTeams = parseVarsityTeams(escaped);
+  assert.equal(escapedTeams.length, 1, 'parses backslash-escaped payload (real HTML shape)');
+  assert.equal(escapedTeams[0].id, '7866340', 'id parsed from escaped payload');
+  assert.equal(escapedTeams[0].slug, 'girls-track', 'slug parsed from escaped payload');
+  assert.equal(escapedTeams[0].sportLabel, 'Girls Track', 'sportLabel from escaped payload');
 
   console.log('scraper-cascade-discovery tests passed');
 }
