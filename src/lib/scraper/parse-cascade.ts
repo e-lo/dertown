@@ -8,6 +8,7 @@
 import * as cheerio from 'cheerio';
 import type { ScrapedEvent, SourceConfig } from './types';
 import { parseTime12h } from './parse-html';
+import { fetchPage } from './fetch';
 
 /** School year runs Aug–Jul; July onward maps to the upcoming year. */
 export function currentSchoolYear(now: Date): string {
@@ -171,4 +172,35 @@ export function extractCascadeCards(
   }
 
   return events;
+}
+
+/**
+ * Self-fetching entry point: discover varsity teams from the homepage, then
+ * fetch each team's schedule page and collect home games. One failing team
+ * page is logged and skipped rather than aborting the whole run.
+ */
+export async function fetchCascadeAthletics(
+  source: SourceConfig,
+  verbose: boolean
+): Promise<ScrapedEvent[]> {
+  const year = currentSchoolYear(new Date());
+  const homepage = await fetchPage(source.url);
+  const teams = parseVarsityTeams(homepage);
+  if (verbose) console.log(`  Discovered ${teams.length} varsity teams (year ${year})`);
+
+  const all: ScrapedEvent[] = [];
+  for (const team of teams) {
+    const url = teamScheduleUrl(team, year);
+    try {
+      const html = await fetchPage(url);
+      const cards = extractCascadeCards(html, team, url, source);
+      if (verbose) console.log(`  ${team.sportLabel}: ${cards.length} home game(s)`);
+      all.push(...cards);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (verbose) console.log(`  WARN: ${team.sportLabel} (${url}) failed: ${msg}`);
+    }
+  }
+
+  return all;
 }
