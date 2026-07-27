@@ -64,8 +64,11 @@ These are only needed when using `--remote`. Dry-run mode does not connect to th
 | `ski-leavenworth` | [Ski Leavenworth](https://skileavenworth.com/events) | HTML | Ski races, winter sports |
 | `wenatchee-river-institute` | [WRI](https://wenatcheeriverinstitute.org/event-calendar.html) | HTML | Nature programs, hikes |
 | `ncw-libraries` | [NCW Libraries](https://ncwlibraries.libcal.com/calendar/leavenworth) | JSON API | Leavenworth + Peshastin library events |
+| `cascade-athletics` | [Cascade Kodiak Athletics](https://www.cascadekodiakathletics.com/schedule) | HTML (self-fetching) | Home varsity high school sports |
 
 Source configurations live in [`scrape/sources.yaml`](sources.yaml).
+
+**Note on `cascade-athletics`:** This is a self-fetching source (PlayOn/VNN platform). Rather than scraping one URL, it discovers the season's varsity teams from the homepage and fetches each team's schedule page, keeping only **home** games (tagged `sports`, with the Kodiak logo as the default image). Each schedule page hard-caps at **10 events with no pagination**, so sports with long seasons (soccer, basketball) surface their later games only as earlier ones pass — run the scraper regularly during the season for full coverage. Self-fetching sources are registered in the `SELF_FETCHERS` map in [`src/lib/scraper/index.ts`](../src/lib/scraper/index.ts); the crawl/extraction logic lives in [`src/lib/scraper/parse-cascade.ts`](../src/lib/scraper/parse-cascade.ts).
 
 ## Adding a New Source
 
