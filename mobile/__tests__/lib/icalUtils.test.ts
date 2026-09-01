@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { toDate, buildEndDate } from '../../lib/icalUtils';
+import { toDate, buildEndDate, pickCalendar, isDeviceOnlyCalendar } from '../../lib/icalUtils';
 import type { ICSEventData } from '../../lib/icalUtils';
 
 jest.mock('expo-calendar', () => ({
@@ -108,5 +108,88 @@ describe('buildEndDate', () => {
     Object.defineProperty(Platform, 'OS', { value: 'android' });
     const event = makeEvent({ start_time: null, end_date: '2026-06-14' });
     expect(buildEndDate(event).toISOString()).toBe('2026-06-15T00:00:00.000Z');
+  });
+});
+
+describe('pickCalendar — Android destination selection', () => {
+  const googlePrimary = {
+    id: '2',
+    title: 'town@gmail.com',
+    allowsModifications: true,
+    isPrimary: true,
+    isSynced: true,
+    ownerAccount: 'town@gmail.com',
+    source: { name: 'town@gmail.com', type: 'com.google' },
+  };
+  // CalendarProvider returns calendars in _id order, so the pre-installed
+  // local calendar comes back before any Google account calendar.
+  const deviceLocal = {
+    id: '1',
+    title: 'My calendar',
+    allowsModifications: true,
+    isPrimary: true,
+    isSynced: true,
+    ownerAccount: 'My calendar',
+    source: { name: 'My calendar', type: 'LOCAL', isLocalAccount: true },
+  };
+  const holidays = {
+    id: '3',
+    title: 'Holidays in United States',
+    allowsModifications: false,
+    isPrimary: false,
+    isSynced: true,
+    ownerAccount: 'en.usa#holiday@group.v.calendar.google.com',
+    source: { name: 'town@gmail.com', type: 'com.google' },
+  };
+
+  it('prefers the Google account calendar over a device-local one', () => {
+    expect(pickCalendar([deviceLocal, googlePrimary, holidays], 'android')?.id).toBe('2');
+  });
+
+  it('skips a Google calendar that is not set to sync', () => {
+    const unsynced = { ...googlePrimary, id: '4', isSynced: false };
+    const synced = { ...googlePrimary, id: '5', isPrimary: false, ownerAccount: 'town@gmail.com' };
+    expect(pickCalendar([unsynced, synced], 'android')?.id).toBe('5');
+  });
+
+  it('prefers the account owner\'s own calendar over a subscribed one', () => {
+    const subscribed = {
+      ...googlePrimary,
+      id: '6',
+      isPrimary: false,
+      title: 'Team events',
+      ownerAccount: 'team@group.calendar.google.com',
+    };
+    expect(pickCalendar([subscribed, googlePrimary], 'android')?.id).toBe('2');
+  });
+
+  it('falls back to a local calendar when no account calendar exists', () => {
+    expect(pickCalendar([deviceLocal, holidays], 'android')?.id).toBe('1');
+  });
+
+  it('returns null when nothing is writable', () => {
+    expect(pickCalendar([holidays], 'android')).toBeNull();
+  });
+
+  it('flags a device-local calendar as not syncing', () => {
+    expect(isDeviceOnlyCalendar(deviceLocal)).toBe(true);
+    expect(isDeviceOnlyCalendar(googlePrimary)).toBe(false);
+    expect(isDeviceOnlyCalendar({ ...googlePrimary, isSynced: false })).toBe(true);
+  });
+
+  it('iOS: still prefers the Default source', () => {
+    const other = {
+      id: '7',
+      title: 'Work',
+      allowsModifications: true,
+      source: { name: 'iCloud', type: 'caldav' },
+    };
+    const def = {
+      id: '8',
+      title: 'Calendar',
+      allowsModifications: true,
+      source: { name: 'Default', type: 'local' },
+    };
+    expect(pickCalendar([other, def], 'ios')?.id).toBe('8');
   });
 });

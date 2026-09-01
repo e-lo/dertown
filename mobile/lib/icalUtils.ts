@@ -122,18 +122,63 @@ async function requestCalendarAccess(): Promise<boolean> {
   return false;
 }
 
-/** Returns the best writable iOS calendar ID without user interaction. */
-async function getWritableCalendarId(): Promise<string | null> {
-  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+/** The fields of a calendar record we need in order to choose a destination. */
+export type SelectableCalendar = Pick<Calendar.Calendar, 'id' | 'title' | 'allowsModifications'> &
+  Partial<Pick<Calendar.Calendar, 'isPrimary' | 'isSynced' | 'ownerAccount'>> & {
+    source?: { name?: string; type?: string; isLocalAccount?: boolean } | null;
+  };
+
+/** Android ACCOUNT_TYPE for calendars backed by a Google account. */
+const GOOGLE_ACCOUNT_TYPE = 'com.google';
+
+/**
+ * True when events written to this calendar stay on the phone. Android's
+ * CalendarProvider happily accepts writes to a device-local calendar, but a
+ * sync adapter never picks them up, so they never reach Google's servers.
+ */
+export function isDeviceOnlyCalendar(calendar: SelectableCalendar): boolean {
+  return calendar.source?.isLocalAccount === true || calendar.isSynced === false;
+}
+
+/** True for the account holder's own calendar, as opposed to a shared or subscribed one. */
+function isOwnCalendar(calendar: SelectableCalendar): boolean {
+  return (
+    calendar.isPrimary === true ||
+    (!!calendar.ownerAccount && calendar.ownerAccount === calendar.source?.name)
+  );
+}
+
+/**
+ * Choose which calendar a new event should be written to.
+ *
+ * Android needs its own rules. CalendarProvider returns calendars in row-ID
+ * order, which puts the pre-installed device-local calendar ahead of any
+ * Google one, and `isPrimary` (IS_PRIMARY, which the provider derives from
+ * ACCOUNT_NAME == OWNER_ACCOUNT when unset) is true for that local calendar
+ * too — so neither position nor isPrimary distinguishes a syncing calendar
+ * from one that only exists on the phone. Match on the account type instead.
+ */
+export function pickCalendar(
+  calendars: SelectableCalendar[],
+  os: typeof Platform.OS
+): SelectableCalendar | null {
   const writable = calendars.filter((c) => c.allowsModifications);
   if (writable.length === 0) return null;
 
-  // Prefer the primary/default calendar; fall back to the first writable one.
-  const preferred =
-    writable.find((c) => (c as any).isPrimary) ??
-    writable.find((c) => c.source?.name === 'Default') ??
-    writable[0];
-  return preferred.id;
+  if (os !== 'android') {
+    // iOS: EventKit names the on-device source "Default".
+    return writable.find((c) => c.source?.name === 'Default') ?? writable[0];
+  }
+
+  const syncing = writable.filter((c) => !isDeviceOnlyCalendar(c));
+  const google = syncing.filter((c) => c.source?.type === GOOGLE_ACCOUNT_TYPE);
+  return (
+    google.find(isOwnCalendar) ??
+    google[0] ??
+    syncing.find(isOwnCalendar) ??
+    syncing[0] ??
+    writable[0] // Device-local only; the caller says so rather than implying a sync.
+  );
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -149,15 +194,16 @@ export async function addEventsToCalendar(
   const granted = await requestCalendarAccess();
   if (!granted) return null;
 
-  const calendarId = await getWritableCalendarId();
-  if (!calendarId) {
+  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  const calendar = pickCalendar(calendars, Platform.OS);
+  if (!calendar) {
     Alert.alert('No Calendar Found', 'Could not find a writable calendar on this device.');
     return null;
   }
 
   let firstEventId: string | null = null;
   for (const event of events) {
-    const eventId = await Calendar.createEventAsync(calendarId, {
+    const eventId = await Calendar.createEventAsync(calendar.id, {
       title: event.title,
       startDate: toDate(event.start_date, event.start_time),
       endDate: buildEndDate(event),
@@ -170,9 +216,13 @@ export async function addEventsToCalendar(
   }
 
   const label = events.length === 1 ? `"${events[0].title}"` : `${events.length} events`;
+  const destination = calendar.title || calendar.source?.name || 'your calendar';
+  const deviceOnly = isDeviceOnlyCalendar(calendar)
+    ? '\n\nThis calendar is stored on this device only, so the event will not appear in Google Calendar or on your other devices.'
+    : '';
   Alert.alert(
     'Added to Calendar',
-    `${label} ${events.length === 1 ? 'has' : 'have'} been added to your calendar.`
+    `${label} ${events.length === 1 ? 'has' : 'have'} been added to "${destination}".${deviceOnly}`
   );
 
   return firstEventId;
