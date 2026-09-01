@@ -43,6 +43,16 @@ const { title, showBack = true, userEmail = 'Admin' } = Astro.props;
         </a>
       )}
       <slot name="actions" />
+      <button
+        id="purge-cache-btn"
+        type="button"
+        class="icon-btn btn-edit"
+        onclick="refreshPublicSite()"
+        aria-label="Refresh public site"
+      >
+        <span class="material-symbols-outlined text-2xl">cloud_sync</span>
+        <span class="tooltip">Refresh public site</span>
+      </button>
       <button class="icon-btn logout-btn" onclick="logout()" aria-label="Logout">
         <span class="material-symbols-outlined text-2xl">exit_to_app</span>
         <span class="tooltip">Logout</span>
@@ -59,6 +69,45 @@ const { title, showBack = true, userEmail = 'Admin' } = Astro.props;
 </div>
 
 <script is:inline>
+  // The public site is CDN-cached so ordinary traffic doesn't cost a function
+  // invocation per view. Edits land in the database immediately and show here
+  // right away, but the public pages keep serving their cached copy until this
+  // clears it. Press once after finishing a batch of edits.
+  async function refreshPublicSite() {
+    const btn = document.getElementById('purge-cache-btn');
+    const icon = btn?.querySelector('.material-symbols-outlined');
+    const tooltip = btn?.querySelector('.tooltip');
+    const restore = () => {
+      if (icon) icon.textContent = 'cloud_sync';
+      if (tooltip) tooltip.textContent = 'Refresh public site';
+      if (btn) btn.disabled = false;
+    };
+
+    if (btn) btn.disabled = true;
+    if (icon) icon.textContent = 'hourglass_top';
+
+    try {
+      const response = await fetch('/api/admin/purge-cache', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        if (icon) icon.textContent = 'cloud_done';
+        if (tooltip) tooltip.textContent = 'Public site refreshed';
+      } else {
+        if (icon) icon.textContent = 'cloud_off';
+        if (tooltip) tooltip.textContent = result.error || 'Refresh failed';
+      }
+    } catch {
+      if (icon) icon.textContent = 'cloud_off';
+      if (tooltip) tooltip.textContent = 'Refresh failed — check your connection';
+    }
+
+    setTimeout(restore, 4000);
+  }
+
   async function logout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });

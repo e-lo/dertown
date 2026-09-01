@@ -4,6 +4,7 @@ import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
+import { setPublicCache } from '@/lib/cache';
 
 // --- URL params ---
 const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|class|workshop
@@ -217,6 +218,10 @@ const seasonBadges = [
   { key: 'is_summer',  label: 'Summer',     color: 'orange' },
   { key: 'is_ongoing', label: 'Year-round', color: 'gray'   },
 ] as const;
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout title="Programs - Families | Der Town" description="Find leagues, classes, and workshops for kids of all ages in the Leavenworth area.">

@@ -12,6 +12,8 @@ import {
   formatDateForICal,
   formatDateForICalUTC,
 } from '@/lib/calendar-utils';
+import { cdnCacheHeaders } from '@/lib/cache';
+import { ICAL_UID_DOMAIN } from '@/lib/config';
 
 export const prerender = false;
 
@@ -46,7 +48,7 @@ function buildVEvent(event: any, dtstamp: string): string {
     `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(startDate)}`,
     `DTEND;TZID=America/Los_Angeles:${formatDateForICal(eventEnd)}`,
     `DTSTAMP:${dtstamp}`,
-    `UID:${event.id}@dertown.com`,
+    `UID:${event.id}@${ICAL_UID_DOMAIN}`,
     event.location?.name ? `LOCATION:${event.location.name}` : null,
     event.description   ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,
     event.website       ? `URL:${event.website}` : null,
@@ -117,6 +119,9 @@ export const GET: APIRoute = async ({ params }) => {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
+      // Feed readers poll on their own schedule; let the CDN absorb those
+      // polls instead of invoking a function for each one.
+      ...cdnCacheHeaders(['ical']),
       'Content-Disposition': `attachment; filename="${safeName}.ics"`,
       'Cache-Control': 'no-cache',
     },

@@ -2,7 +2,7 @@ import type { MobileEvent, MobileAnnouncement, MobileRelatedEvents, MobileOrgani
 
 // Set EXPO_PUBLIC_API_BASE_URL in .env:
 //   Dev:  http://localhost:4321
-//   Prod: https://dertown.com
+//   Prod: https://dertown.org
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4321';
 

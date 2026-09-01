@@ -12,6 +12,9 @@ import {
   formatDateForICal,
   formatDateForICalUTC,
 } from '@/lib/calendar-utils';
+import { cdnCacheHeaders } from '@/lib/cache';
+import { ICAL_UID_DOMAIN } from '@/lib/config';
+import { SITE_URL } from '@/lib/site';
 
 export const prerender = false;
 
@@ -50,7 +53,7 @@ function buildVEvent(event: any, dtstamp: string, siteUrl: string): string {
     `DTSTART;TZID=America/Los_Angeles:${formatDateForICal(startDate)}`,
     `DTEND;TZID=America/Los_Angeles:${formatDateForICal(eventEnd)}`,
     `DTSTAMP:${dtstamp}`,
-    `UID:${event.id}@dertown.com`,
+    `UID:${event.id}@${ICAL_UID_DOMAIN}`,
     `URL:${siteUrl}/events/${event.id}`,
     location ? `LOCATION:${location}` : null,
     event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,
@@ -61,8 +64,8 @@ function buildVEvent(event: any, dtstamp: string, siteUrl: string): string {
 export const GET: APIRoute = async ({ params, url: reqUrl }) => {
   const { id } = params;
   if (!id) return new Response('Organization ID required', { status: 400 });
+  const siteUrl = SITE_URL;
 
-  const siteUrl = import.meta.env.SITE || 'https://dertown.com';
 
   // Fetch org name for the calendar title
   const { data: org, error: orgError } = await supabase
@@ -114,6 +117,9 @@ export const GET: APIRoute = async ({ params, url: reqUrl }) => {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
+      // Feed readers poll on their own schedule; let the CDN absorb those
+      // polls instead of invoking a function for each one.
+      ...cdnCacheHeaders(['ical']),
       'Content-Disposition': `attachment; filename="${safeName}.ics"`,
       'Cache-Control': 'no-cache',
     },

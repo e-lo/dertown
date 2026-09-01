@@ -8,6 +8,7 @@ import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro
 import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
 import '../../styles/admin.css';
+import { setPublicCache } from '@/lib/cache';
 
 const { id } = Astro.params;
 const cookieHeader = Astro.request.headers.get('cookie') || '';
@@ -88,6 +89,10 @@ const organizationDescription = organization.description || `Events from ${organ
 const hasOrganizationDetails = !!(organization.email || organization.phone || organization.website || organization.location);
 const hasRelatedOrgs = !!(parentOrganization || ((siblingOrganizations?.length ?? 0) > 0) || ((childOrganizations?.length ?? 0) > 0));
 const organizationPageUrl = Astro.url.href;
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout title={`${organizationTitle} - Organization`} description={organizationDescription}>

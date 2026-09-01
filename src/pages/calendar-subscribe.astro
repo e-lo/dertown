@@ -1,6 +1,7 @@
 ---
 import Layout from '../components/Layout.astro';
 import { db } from '../lib/supabase';
+import { setPublicCache } from '@/lib/cache';
 
 // Get all tags for the form
 const { data: tags, error } = await db.tags.getAll();
@@ -8,6 +9,10 @@ const { data: tags, error } = await db.tags.getAll();
 if (error) {
   console.error('Error fetching tags:', error);
 }
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout 

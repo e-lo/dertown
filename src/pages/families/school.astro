@@ -1,10 +1,19 @@
 ---
+// Static content, but prerendering is blocked by an upstream
+// @tailwindcss/vite + rolldown bug that breaks Astro's static build stage
+// (vitejs/vite#22322). CDN caching gets nearly the same saving without it.
+export const prerender = false;
 import Layout from '../../components/Layout.astro';
 import LinkBox from '../../components/ui/LinkBox.astro';
 import LinkListItem from '../../components/ui/LinkListItem.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
 import QuickNavItem from '../../components/ui/QuickNavItem.astro';
+import { setPublicCache } from '@/lib/cache';
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout title="School - Families | Der Town" description="School resources and information for families in Der Town">

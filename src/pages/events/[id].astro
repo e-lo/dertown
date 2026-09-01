@@ -18,6 +18,7 @@ import MapboxMap from '../../components/MapboxMap.astro';
 import { checkAdminAccess } from '../../lib/session';
 import { optimizedImageUrl } from '../../lib/image';
 import '../../styles/admin.css';
+import { setPublicCache } from '@/lib/cache';
 
 // Check if user is logged in
 // Use request.headers.get('cookie') instead of Astro.cookies to ensure we get the actual browser cookies
@@ -172,6 +173,10 @@ const locationMapMarkers =
   typeof loc?.latitude === 'number' && typeof loc?.longitude === 'number'
     ? [{ lat: loc.latitude, lon: loc.longitude, label: loc.name || 'Location', type: 'event' as const, href: event.location_id ? `/locations/${event.location_id}` : undefined }]
     : [];
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout 

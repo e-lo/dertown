@@ -8,6 +8,24 @@
  */
 
 // ============================================================================
+// SITE IDENTITY
+// ============================================================================
+
+// The canonical site URL lives in src/lib/site.ts, not here: resolving it needs
+// `import.meta.env`, and this file is also type-checked by the React Native app
+// (see mobile/tsconfig.json), where that syntax does not exist.
+
+/**
+ * Domain used in iCal UIDs (`UID:<id>@<domain>`).
+ *
+ * Deliberately a literal rather than derived from SITE_URL: RFC 5545 UIDs must
+ * stay stable for the life of an event, and subscribers' calendar clients treat
+ * a changed UID as a different event. Changing this re-syncs every subscribed
+ * feed, so leave it alone even if the site moves domains.
+ */
+export const ICAL_UID_DOMAIN = 'dertown.org';
+
+// ============================================================================
 // LOCATION SETTINGS
 // ============================================================================
 

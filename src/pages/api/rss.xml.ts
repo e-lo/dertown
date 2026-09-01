@@ -3,6 +3,8 @@ import { db } from '../../lib/supabase.ts';
 import { type EventData, parseEventTimesUTC } from '../../lib/calendar-utils.ts';
 import { format } from 'date-fns';
 import { tz } from '@date-fns/tz';
+import { cdnCacheHeaders } from '@/lib/cache';
+import { SITE_URL } from '@/lib/site';
 
 export const prerender = false;
 
@@ -22,6 +24,9 @@ export const GET: APIRoute = async () => {
       status: 200,
       headers: {
         'Content-Type': 'application/xml; charset=utf-8',
+        // Feed readers poll on their own schedule; let the CDN absorb those
+        // polls instead of invoking a function for each one.
+        ...cdnCacheHeaders(['rss']),
       },
     });
   } catch (error) {
@@ -33,7 +38,7 @@ export const GET: APIRoute = async () => {
 
 function generateRSSContent(events: EventData[]): string {
   const now = new Date();
-  const siteUrl = import.meta.env.SITE || 'http://www.dertown.org';
+  const siteUrl = SITE_URL;
 
   let rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">

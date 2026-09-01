@@ -1,4 +1,8 @@
 ---
+// Static content, but prerendering is blocked by an upstream
+// @tailwindcss/vite + rolldown bug that breaks Astro's static build stage
+// (vitejs/vite#22322). CDN caching gets nearly the same saving without it.
+export const prerender = false;
 import ErrorPage from '../components/ErrorPage.astro';
 ---
 

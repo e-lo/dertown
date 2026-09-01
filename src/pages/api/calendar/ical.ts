@@ -6,6 +6,8 @@ import {
   formatDateForICal,
   formatDateForICalUTC,
 } from '../../../lib/calendar-utils.ts';
+import { cdnCacheHeaders } from '@/lib/cache';
+import { SITE_URL } from '@/lib/site';
 
 export const prerender = false;
 
@@ -44,6 +46,9 @@ export const GET: APIRoute = async ({ url }) => {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
+        // Feed readers poll on their own schedule; let the CDN absorb those
+        // polls instead of invoking a function for each one.
+        ...cdnCacheHeaders(['ical']),
         'Content-Disposition': `attachment; filename="der-town-events${tagNames.length > 0 ? `-${tagNames.join('-')}` : ''}.ics"`,
       },
     });
@@ -56,7 +61,7 @@ export const GET: APIRoute = async ({ url }) => {
 
 function generateICalContent(events: EventData[], tagName?: string | null): string {
   const now = new Date();
-  const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+  const siteUrl = SITE_URL;
   const calendarId = `der-town-events-${now.getTime()}`;
   const calendarName =
     tagName && tagName !== 'all' ? `Der Town ${tagName} Events` : 'Der Town Community Events';

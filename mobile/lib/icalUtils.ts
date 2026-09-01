@@ -290,7 +290,7 @@ function buildVEvent(event: ICSEventData, dtstamp: string): string | null {
       dtstart,
       dtend,
       `DTSTAMP:${dtstamp}`,
-      `UID:${event.id}@dertown.com`,
+      `UID:${event.id}@${APP_CONFIG.icalUidDomain}`,
       `SUMMARY:${(event.title ?? 'Event').replace(/[,;]/g, (c) => `\\${c}`)}`,
       locationStr ? `LOCATION:${locationStr.replace(/[,;]/g, (c) => `\\${c}`)}` : null,
       event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,

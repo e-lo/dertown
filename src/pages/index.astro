@@ -5,6 +5,7 @@ import Layout from '../components/Layout.astro';
 import EventHeroCarousel from '../components/EventHeroCarousel.astro';
 import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
 import { db, filterCurrentAndFutureEvents } from '../lib/supabase';
+import { setPublicCache } from '@/lib/cache';
 
 // Fetch all approved events and filter to current/future for carousel
 const { data: allEvents, error } = await db.events.getAll();
@@ -32,6 +33,10 @@ if (announcementsError) {
     );
   }
 }
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout 

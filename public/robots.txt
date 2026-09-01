@@ -1,0 +1,39 @@
+# Der Town crawler policy.
+#
+# Every crawled URL that isn't a static file costs a Netlify function
+# invocation, so this file exists as much for the hosting bill as for SEO.
+
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /update-password
+Disallow: /submit/thank-you
+
+# SEO and marketing crawlers. No upside for a local community calendar, and
+# they crawl hard.
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: DotBot
+User-agent: MJ12bot
+User-agent: DataForSeoBot
+User-agent: Barkrowler
+User-agent: PetalBot
+User-agent: Bytespider
+User-agent: ImagesiftBot
+Disallow: /
+
+# AI crawlers are allowed — being answerable in AI assistants helps people find
+# local events. Uncomment to opt out.
+# User-agent: GPTBot
+# User-agent: ClaudeBot
+# User-agent: anthropic-ai
+# User-agent: CCBot
+# User-agent: PerplexityBot
+# User-agent: Google-Extended
+# User-agent: Applebot-Extended
+# User-agent: meta-externalagent
+# User-agent: Amazonbot
+# Disallow: /
