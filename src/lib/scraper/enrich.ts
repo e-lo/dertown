@@ -15,9 +15,19 @@ export async function enrichDescriptionsFromDetailPages(
 
   const selectors = source.detail_description_selectors;
   const imageSelector = source.detail_image_selector || null;
+  const startDateSelector = source.detail_start_date_selector || null;
+  const startTimeSelector = source.detail_start_time_selector || null;
   const endTimeSelector = source.detail_end_time_selector || null;
   const locationSelector = source.detail_location_selector || null;
-  if (!selectors?.length && !imageSelector && !endTimeSelector && !locationSelector) return enrichedEvents;
+  if (
+    !selectors?.length &&
+    !imageSelector &&
+    !startDateSelector &&
+    !startTimeSelector &&
+    !endTimeSelector &&
+    !locationSelector
+  )
+    return enrichedEvents;
 
   const detailHtmlCache = new Map<string, string>();
 
@@ -32,10 +42,13 @@ export async function enrichDescriptionsFromDetailPages(
         event.description.length < 500 ||
         looksTruncated(event.description));
     const needsImage = imageSelector && !event.image_url;
+    const needsStartDate = startDateSelector && !event.start_date;
+    const needsStartTime = startTimeSelector && !event.start_time;
     const needsEndTime = endTimeSelector && !event.end_time;
     const needsLocation = locationSelector && !event.location_name;
 
-    if (!needsDescription && !needsImage && !needsEndTime && !needsLocation) continue;
+    if (!needsDescription && !needsImage && !needsStartDate && !needsStartTime && !needsEndTime && !needsLocation)
+      continue;
 
     try {
       let html = detailHtmlCache.get(website);
@@ -54,6 +67,30 @@ export async function enrichDescriptionsFromDetailPages(
       if (needsImage && imageSelector) {
         const imageUrl = extractImageFromHtml(html, imageSelector);
         if (imageUrl) event.image_url = imageUrl;
+      }
+
+      if (needsStartDate && startDateSelector) {
+        const $ = cheerio.load(html);
+        const datetimeAttr = $(startDateSelector).first().attr('datetime');
+        if (datetimeAttr) {
+          const date = datetimeAttr.split('T')[0];
+          if (date && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            event.start_date = date;
+            if (!event.start_time) {
+              const time = datetimeAttr.split('T')[1]?.slice(0, 5);
+              if (time && time.match(/^\d{2}:\d{2}$/)) {
+                event.start_time = time;
+              }
+            }
+          }
+        }
+      }
+
+      if (needsStartTime && startTimeSelector) {
+        const $ = cheerio.load(html);
+        const startTimeText = $(startTimeSelector).first().text().trim();
+        const parsed = parseTime12hLocal(startTimeText);
+        if (parsed) event.start_time = parsed;
       }
 
       if (needsEndTime && endTimeSelector) {

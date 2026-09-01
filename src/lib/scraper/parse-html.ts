@@ -303,33 +303,45 @@ function extractSkiLeavenworth(html: string, source: SourceConfig): ScrapedEvent
   const $ = cheerio.load(html);
   const events: ScrapedEvent[] = [];
 
-  // Each event row contains an eventdate div and an eventspecifics div
-  const dateBlocks = $('div.eventdate');
+  // Extract events from eventspecifics blocks (may or may not have paired eventdate blocks)
   const specBlocks = $('div.eventspecifics');
+  const dateBlocks = $('div.eventdate');
+  const dateBlocksList = dateBlocks.toArray();
 
-  const count = Math.min(dateBlocks.length, specBlocks.length);
+  specBlocks.each((specIdx, specEl) => {
+    const specBlock = $(specEl);
 
-  for (let i = 0; i < count; i++) {
-    const dateBlock = $(dateBlocks[i]);
-    const specBlock = $(specBlocks[i]);
+    // Try to find paired eventdate block (usually precedes eventspecifics)
+    let dateBlock: cheerio.Cheerio<cheerio.Element> | null = null;
+    let startDate: string | null = null;
+    let startTime: string | null = null;
+    let endTime: string | null = null;
 
-    // Extract date and time from <time datetime="..."> elements
-    const timeEls = dateBlock.find('time[datetime]');
-    if (timeEls.length === 0) continue;
+    if (specIdx < dateBlocksList.length) {
+      dateBlock = $(dateBlocksList[specIdx]);
+      const timeEls = dateBlock.find('time[datetime]');
+      if (timeEls.length > 0) {
+        const startDatetime = timeEls.first().attr('datetime') || '';
+        const endDatetime = timeEls.length > 1 ? $(timeEls[1]).attr('datetime') || '' : null;
 
-    const startDatetime = timeEls.first().attr('datetime') || '';
-    const endDatetime = timeEls.length > 1 ? $(timeEls[1]).attr('datetime') || '' : null;
+        const { date: sd, time: st } = extractDateTimeFromIso(startDatetime);
+        if (sd) {
+          startDate = sd;
+          startTime = st;
+        }
+        if (endDatetime) {
+          const endParts = extractDateTimeFromIso(endDatetime);
+          endTime = endParts.time;
+        }
+      }
+    }
 
-    // Datetimes are UTC — convert to Pacific for both date and time
-    const { date: startDate, time: startTime } = extractDateTimeFromIso(startDatetime);
-    if (!startDate) continue;
-    const endParts = endDatetime ? extractDateTimeFromIso(endDatetime) : null;
-    const endTime = endParts?.time || null;
-
-    // Title and link
+    // Title and link (required)
     const titleLink = specBlock.find('strong a');
-    if (titleLink.length === 0) continue;
+    if (titleLink.length === 0) return;
     const title = titleLink.text().trim();
+    if (!title) return;
+
     const href = titleLink.attr('href') || '';
     const website = resolveUrl(href, source.url);
 
@@ -357,7 +369,7 @@ function extractSkiLeavenworth(html: string, source: SourceConfig): ScrapedEvent
       website,
       image_url: null,
     });
-  }
+  });
 
   return events;
 }

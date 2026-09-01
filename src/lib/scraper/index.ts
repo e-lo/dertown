@@ -226,7 +226,14 @@ async function scrapeSource(
       }
     }
 
-    if (source.type === 'html' && source.detail_description_selectors?.length) {
+    if (
+      source.type === 'html' &&
+      (source.detail_description_selectors?.length ||
+        source.detail_start_date_selector ||
+        source.detail_image_selector ||
+        source.detail_end_time_selector ||
+        source.detail_location_selector)
+    ) {
       rawEvents = await enrichDescriptionsFromDetailPages(rawEvents, source, verbose);
     }
 
@@ -238,8 +245,8 @@ async function scrapeSource(
       const event = normalizeEvent(raw);
       event.description = clampDescription(event.description, descriptionMaxChars);
 
-      // Skip past events
-      if (isPastEvent(event)) continue;
+      // Skip past events (only if we have a start_date)
+      if (event.start_date && isPastEvent(event)) continue;
 
       // Geo filter
       if (!passesGeoFilter(event, source.geo_filter, verbose)) {

@@ -79,6 +79,8 @@ export interface SourceConfig {
   fallback_type?: string;
   detail_description_selectors?: string[];
   detail_image_selector?: string; // CSS selector (or "og:image") to extract image_url from detail pages
+  detail_start_date_selector?: string; // CSS selector with datetime attribute for start date/time
+  detail_start_time_selector?: string; // CSS selector whose text content is the start time
   detail_end_time_selector?: string; // CSS selector whose text content is the end time (e.g. "9:00 pm")
   detail_location_selector?: string; // CSS selector whose text content is the venue name (address is stripped)
   month_url_pattern?: string; // URL template with {year} and {month} placeholders for multi-month crawling

@@ -174,6 +174,7 @@ sources:
       - '.field--name-body'
       - 'article .node__content'
       - 'main article'
+    detail_start_date_selector: 'time[datetime]'
     geo_filter: null
     default_organization: 'Leavenworth Winter Sports Club'
     default_location: 'Leavenworth Ski Hill'
