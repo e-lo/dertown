@@ -739,6 +739,13 @@ const userEmail = session.user?.email || 'Admin';
 
     if (eventId) {
       await loadEvent(eventId);
+      // Arriving with ?duplicate=1 (the Duplicate button on the public event
+      // page) means "start a new event from this one", not "edit this one".
+      // loadEvent leaves the page in edit mode, so flip it after the load.
+      if (new URLSearchParams(window.location.search).get('duplicate') === '1') {
+        duplicateCurrentEvent();
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
 
     const editEventForm = document.getElementById('editEventForm');

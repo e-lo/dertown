@@ -770,7 +770,7 @@ const locationMapMarkers =
         if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       };
 
-      (window as any).duplicateCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/events/${id}`; };
+      (window as any).duplicateCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/events/${id}?duplicate=1`; };
       (window as any).createSeriesFromCurrentEvent = () => { const id = (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id'); if (id) window.location.href = `/admin/series?parent=${id}`; };
 
       // Merge: find a duplicate event and jump to the merge tool. Mirrors the
