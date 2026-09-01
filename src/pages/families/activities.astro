@@ -4,6 +4,7 @@ import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Calendar from '../../components/Calendar.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
+import { setPublicCache } from '@/lib/cache';
 
 // --- Counts for the category blocks (best-effort) ---
 let campCount: number | null = null;
@@ -97,6 +98,10 @@ const blocks = [
     sub: '',
   },
 ];
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout

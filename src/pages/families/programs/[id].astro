@@ -3,6 +3,7 @@ import Layout from '../../../components/Layout.astro';
 import Disclaimer from '../../../components/ui/Disclaimer.astro';
 import Breadcrumb from '../../../components/ui/Breadcrumb.astro';
 import { supabase } from '../../../lib/supabase';
+import { setPublicCache } from '@/lib/cache';
 
 const { id } = Astro.params;
 
@@ -280,6 +281,10 @@ const hasSchedule =
   children.length > 0 || grandchildren.length > 0 || programOccurrences.length > 0;
 
 const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program not found | Der Town';
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout title={pageTitle} description={program?.description ?? 'Program details for Leavenworth-area families.'}>

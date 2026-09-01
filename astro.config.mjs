@@ -6,6 +6,11 @@ import sentry from '@sentry/astro';
 
 // https://astro.build/config
 export default defineConfig({
+  // Canonical origin, matching the SITE env var the feeds already use. Pages are
+  // now CDN-cached and served to many visitors, so absolute URLs in the HTML
+  // (og:image, canonical) must not be derived from whichever request happened to
+  // populate the cache.
+  site: process.env.SITE || 'https://dertown.org',
   output: 'server',
   adapter: netlify(),
   integrations: [

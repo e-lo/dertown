@@ -17,6 +17,14 @@ export const APP_CONFIG = {
   /** Base URL of the web app — used for share links and submit forms. No trailing slash. */
   webBaseUrl: 'https://dertown.org',
 
+  /**
+   * Domain used in iCal UIDs (`UID:<id>@<domain>`). Must match the web app's
+   * ICAL_UID_DOMAIN so an event added from the app and one added from the site
+   * are the same entry rather than duplicates. RFC 5545 UIDs must stay stable
+   * for the life of an event, so leave this alone even if the site moves domains.
+   */
+  icalUidDomain: 'dertown.org',
+
   /** Prefix for AsyncStorage keys. Change if deploying multiple apps on the same device. */
   storageKeyPrefix: 'dertown',
 

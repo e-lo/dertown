@@ -9,6 +9,7 @@ import AddLocationModal from '../../components/ui/AddLocationModal.astro';
 import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
 import '../../styles/admin.css';
+import { setPublicCache } from '@/lib/cache';
 
 const { id } = Astro.params;
 const cookieHeader = Astro.request.headers.get('cookie') || '';
@@ -115,6 +116,10 @@ const mapsAppUrl = (typeof mapLat === 'number' && typeof mapLon === 'number')
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}`
     : null;
 const locationPageUrl = Astro.url.href;
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout title={`${locationTitle} - Location`} description={locationDescription}>

@@ -6,6 +6,7 @@ import GroupedEventList from '../../components/GroupedEventList.astro';
 import { buildEventMapState, normalizeMapEvents } from '../../lib/event-map';
 import { db, getTodayLocale } from '../../lib/supabase';
 import { MAP_CENTER, MAP_INITIAL_BOUNDS, MAP_STYLES } from '../../lib/config';
+import { setPublicCache } from '@/lib/cache';
 
 function formatDateLabel(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -46,6 +47,10 @@ const payload = JSON.stringify({
   mapCenterZoom: MAP_CENTER.zoom,
   mapInitialBounds: MAP_INITIAL_BOUNDS,
 }).replace(/</g, '\\u003c');
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout

@@ -9,6 +9,9 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '@/lib/supabase';
 import { formatDateForICal, formatDateForICalUTC } from '@/lib/calendar-utils';
+import { cdnCacheHeaders } from '@/lib/cache';
+import { ICAL_UID_DOMAIN } from '@/lib/config';
+import { SITE_URL } from '@/lib/site';
 
 export const prerender = false;
 
@@ -122,8 +125,8 @@ function buildTimedVEvent(opts: {
 export const GET: APIRoute = async ({ params }) => {
   const { id } = params;
   if (!id) return new Response('Program ID required', { status: 400 });
+  const siteUrl = SITE_URL;
 
-  const siteUrl = import.meta.env.SITE || 'https://dertown.com';
 
   // 1. Fetch the program
   const { data: program, error: programError } = await (supabase as any)
@@ -190,7 +193,7 @@ export const GET: APIRoute = async ({ params }) => {
       const start = new Date(`${program.registration_opens}T00:00:00`);
       vevents.push(
         buildAllDayVEvent({
-          uid: `reg-open-${id}@dertown.com`,
+          uid: `reg-open-${id}@${ICAL_UID_DOMAIN}`,
           summary: `Registration opens — ${programName}`,
           start,
           dtstamp,
@@ -209,7 +212,7 @@ export const GET: APIRoute = async ({ params }) => {
       const start = new Date(`${program.registration_closes}T00:00:00`);
       vevents.push(
         buildAllDayVEvent({
-          uid: `reg-close-${id}@dertown.com`,
+          uid: `reg-close-${id}@${ICAL_UID_DOMAIN}`,
           summary: `Registration closes — ${programName}`,
           start,
           dtstamp,
@@ -231,7 +234,7 @@ export const GET: APIRoute = async ({ params }) => {
       const end = child.end_datetime ? new Date(child.end_datetime) : null;
       vevents.push(
         buildAllDayVEvent({
-          uid: `session-${child.id}@dertown.com`,
+          uid: `session-${child.id}@${ICAL_UID_DOMAIN}`,
           summary: `${programName} — ${child.name ?? 'Session'}`,
           start,
           end: end && !isNaN(end.getTime()) ? end : null,
@@ -253,7 +256,7 @@ export const GET: APIRoute = async ({ params }) => {
       const end = occ.end_datetime ? new Date(occ.end_datetime) : null;
       vevents.push(
         buildTimedVEvent({
-          uid: `evt-${occ.event_id}@dertown.com`,
+          uid: `evt-${occ.event_id}@${ICAL_UID_DOMAIN}`,
           summary: occ.name || programName,
           start,
           end: end && !isNaN(end.getTime()) ? end : null,
@@ -286,6 +289,9 @@ export const GET: APIRoute = async ({ params }) => {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
+      // Feed readers poll on their own schedule; let the CDN absorb those
+      // polls instead of invoking a function for each one.
+      ...cdnCacheHeaders(['ical']),
       'Content-Disposition': `attachment; filename="${safeName}.ics"`,
       'Cache-Control': 'no-cache',
     },

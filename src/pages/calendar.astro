@@ -3,8 +3,13 @@ export const prerender = false;
 
 import Layout from '../components/Layout.astro';
 import Calendar from '../components/Calendar.astro';
+import { setPublicCache } from '@/lib/cache';
 
 const initialTag = Astro.url.searchParams.get('tag') || undefined;
+
+// Public, anonymous content: let the CDN serve repeat requests so each view
+// doesn't cost a function invocation. Purge from the admin header after edits.
+setPublicCache(Astro.response.headers);
 ---
 
 <Layout
