@@ -197,6 +197,29 @@ async function scrapeSource(
             }
           }
         }
+        // If the source defines a page URL pattern, also fetch additional pages
+        if (source.page_url_pattern) {
+          const pagesToFetch = source.pages_to_fetch ?? 1;
+          const seenTitlesAndDates = new Set(rawEvents.map((e) => `${e.title}|${e.start_date}`));
+          for (let page = 2; page <= pagesToFetch; page++) {
+            const pageUrl = source.page_url_pattern.replace('{page}', String(page));
+            if (verbose) console.log(`  Fetching page ${page}: ${pageUrl}...`);
+            try {
+              const pageContent = await fetchPage(pageUrl);
+              const pageEvents = parseHtml(pageContent, source);
+              for (const ev of pageEvents) {
+                const key = `${ev.title}|${ev.start_date}`;
+                if (!seenTitlesAndDates.has(key)) {
+                  seenTitlesAndDates.add(key);
+                  rawEvents.push(ev);
+                }
+              }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (verbose) console.log(`  WARN: failed to fetch ${pageUrl}: ${msg}`);
+            }
+          }
+        }
       } else {
         if (verbose) console.log(`  No extractor for type "${source.type}". Skipping parse.`);
         return result;

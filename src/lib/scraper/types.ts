@@ -83,6 +83,8 @@ export interface SourceConfig {
   detail_location_selector?: string; // CSS selector whose text content is the venue name (address is stripped)
   month_url_pattern?: string; // URL template with {year} and {month} placeholders for multi-month crawling
   months_ahead?: number; // how many future months to fetch (default 3)
+  page_url_pattern?: string; // URL template with {page} placeholder for pagination (1-indexed)
+  pages_to_fetch?: number; // how many pages to fetch for paginated sources (default 1)
   api_url?: string;
   api_cal_ids?: string;
   geo_filter?: GeoFilter | null;

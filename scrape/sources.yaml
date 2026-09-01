@@ -167,6 +167,8 @@ sources:
     url: 'https://skileavenworth.com/events'
     type: 'html'
     selectors: {}
+    page_url_pattern: 'https://skileavenworth.com/events?page={page}'
+    pages_to_fetch: 5
     detail_description_selectors:
       - '.node-event .field--name-body'
       - '.field--name-body'
