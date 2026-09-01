@@ -9,8 +9,8 @@ global_exclude: null
 
 # ── Tag inference ────────────────────────────────────────────────────
 # Global max characters for event descriptions across all extractors.
-# Keep this large to preserve full detail while preventing runaway payloads.
-description_max_chars: 12000
+# Must match database constraint: events_staged_description_length (2000 chars)
+description_max_chars: 2000
 
 # ── Tag inference ────────────────────────────────────────────────────
 # Keywords matched against event title + description (word-boundary match).
@@ -167,8 +167,10 @@ sources:
     url: 'https://skileavenworth.com/events'
     type: 'html'
     selectors: {}
+    # Drupal pager: /events is page 0, so additional pages start at ?page=1
     page_url_pattern: 'https://skileavenworth.com/events?page={page}'
-    pages_to_fetch: 5
+    page_start: 1
+    pages_to_fetch: 4
     detail_description_selectors:
       - '.node-event .field--name-body'
       - '.field--name-body'

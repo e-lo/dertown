@@ -10,19 +10,11 @@ export async function fetchPage(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Pr
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-      // Add cache-busting query parameter
-      const separator = url.includes('?') ? '&' : '?';
-      const bustUrl = `${url}${separator}_t=${Date.now()}`;
-
-      const res = await fetch(bustUrl, {
+      const res = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'User-Agent': 'DerTown-EventScraper/1.0',
           Accept: 'text/html, application/json, text/calendar, */*',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
         },
       });
       clearTimeout(timer);

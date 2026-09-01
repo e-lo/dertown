@@ -197,16 +197,23 @@ async function scrapeSource(
             }
           }
         }
-        // If the source defines a page URL pattern, also fetch additional pages
+        // If the source defines a page URL pattern, also fetch additional listing pages.
+        // The base url is the first page; page_start is the number of the next one
+        // (2 for 1-indexed pagers, 1 for 0-indexed pagers like Drupal's).
         if (source.page_url_pattern) {
-          const pagesToFetch = source.pages_to_fetch ?? 1;
+          const pageStart = source.page_start ?? 2;
+          const pagesToFetch = source.pages_to_fetch ?? 0;
           const seenTitlesAndDates = new Set(rawEvents.map((e) => `${e.title}|${e.start_date}`));
-          for (let page = 2; page <= pagesToFetch; page++) {
+          for (let page = pageStart; page < pageStart + pagesToFetch; page++) {
             const pageUrl = source.page_url_pattern.replace('{page}', String(page));
             if (verbose) console.log(`  Fetching page ${page}: ${pageUrl}...`);
             try {
               const pageContent = await fetchPage(pageUrl);
               const pageEvents = parseHtml(pageContent, source);
+              if (pageEvents.length === 0) {
+                if (verbose) console.log(`  Page ${page} has no events; stopping pagination.`);
+                break;
+              }
               for (const ev of pageEvents) {
                 const key = `${ev.title}|${ev.start_date}`;
                 if (!seenTitlesAndDates.has(key)) {
