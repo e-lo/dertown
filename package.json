@@ -30,7 +30,9 @@
     "test:scraper-ical-timezone": "TZ=America/Los_Angeles tsx src/lib/__tests__/scraper-ical-timezone.test.ts",
     "test:scraper-cascade-discovery": "tsx src/lib/__tests__/scraper-cascade-discovery.test.ts",
     "test:scraper-cascade-cards": "tsx src/lib/__tests__/scraper-cascade-cards.test.ts",
-    "test:duplicate-event-wiring": "tsx src/lib/__tests__/duplicate-event-wiring.test.ts"
+    "test:duplicate-event-wiring": "tsx src/lib/__tests__/duplicate-event-wiring.test.ts",
+    "test:autocomplete-wiring": "tsx src/lib/__tests__/autocomplete-dropdown-wiring.test.ts",
+    "test:auth-cookies": "tsx src/lib/__tests__/auth-cookie-reading.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.103.0",

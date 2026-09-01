@@ -2086,7 +2086,7 @@ const userEmail = session.user?.email || 'Admin';
         const mergeInput = document.getElementById('mergeSearchInput');
         if (mergeInput) mergeInput.value = '';
         const mergeDropdown = document.getElementById('mergeSearchDropdown');
-        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); }
+        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); mergeDropdown.classList.remove('block'); }
         const modal = document.getElementById('editEventModal');
         if (modal) {
           modal.classList.remove('hidden');
@@ -2202,7 +2202,7 @@ const userEmail = session.user?.email || 'Admin';
         const mergeInput = document.getElementById('mergeSearchInput');
         if (mergeInput) mergeInput.value = '';
         const mergeDropdown = document.getElementById('mergeSearchDropdown');
-        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); }
+        if (mergeDropdown) { mergeDropdown.innerHTML = ''; mergeDropdown.classList.add('hidden'); mergeDropdown.classList.remove('block'); }
         const modal = document.getElementById('editEventModal');
         if (modal) {
           modal.classList.remove('hidden');
@@ -2807,6 +2807,7 @@ const userEmail = session.user?.email || 'Admin';
       const query = e.target.value.toLowerCase().trim();
       if (query.length === 0) {
         dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
         hiddenInput.value = '';
         return;
       }
@@ -2819,6 +2820,7 @@ const userEmail = session.user?.email || 'Admin';
       
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
         return;
       }
       
@@ -2849,6 +2851,7 @@ const userEmail = session.user?.email || 'Admin';
       const query = e.target.value.toLowerCase().trim();
       if (query.length === 0) {
         dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
         hiddenInput.value = '';
         return;
       }
@@ -2861,6 +2864,7 @@ const userEmail = session.user?.email || 'Admin';
       
       if (matches.length === 0) {
         dropdown.classList.add('hidden');
+        dropdown.classList.remove('block');
         return;
       }
       

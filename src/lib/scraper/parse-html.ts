@@ -303,40 +303,40 @@ function extractSkiLeavenworth(html: string, source: SourceConfig): ScrapedEvent
   const $ = cheerio.load(html);
   const events: ScrapedEvent[] = [];
 
-  // Extract events from eventspecifics blocks (may or may not have paired eventdate blocks)
-  const specBlocks = $('div.eventspecifics');
-  const dateBlocks = $('div.eventdate');
-  const dateBlocksList = dateBlocks.toArray();
+  // Iterate over each views-row (contains eventdate + eventspecifics pair)
+  $('.views-row').each((_rowIdx, rowEl) => {
+    const row = $(rowEl);
+    const dateBlock = row.find('div.eventdate');
+    const specBlock = row.find('div.eventspecifics');
 
-  specBlocks.each((specIdx, specEl) => {
-    const specBlock = $(specEl);
+    if (dateBlock.length === 0 || specBlock.length === 0) return;
 
-    // Try to find paired eventdate block (usually precedes eventspecifics)
-    let dateBlock: cheerio.Cheerio<cheerio.Element> | null = null;
-    let startDate: string | null = null;
-    let startTime: string | null = null;
-    let endTime: string | null = null;
+    // Extract date and time from nested time[datetime] elements in eventdateday
+    // Structure: eventdate > eventdateday > time[datetime] (first=start, second=end)
+    const timeEls = dateBlock.find('time[datetime]');
+    if (timeEls.length === 0) return;
 
-    if (specIdx < dateBlocksList.length) {
-      dateBlock = $(dateBlocksList[specIdx]);
-      const timeEls = dateBlock.find('time[datetime]');
-      if (timeEls.length > 0) {
-        const startDatetime = timeEls.first().attr('datetime') || '';
-        const endDatetime = timeEls.length > 1 ? $(timeEls[1]).attr('datetime') || '' : null;
+    // First time element is start, second (if exists) is end
+    const startDatetime = timeEls.first().attr('datetime') || '';
+    let endDatetime: string | null = null;
 
-        const { date: sd, time: st } = extractDateTimeFromIso(startDatetime);
-        if (sd) {
-          startDate = sd;
-          startTime = st;
-        }
-        if (endDatetime) {
-          const endParts = extractDateTimeFromIso(endDatetime);
-          endTime = endParts.time;
-        }
+    // Find the end time: usually the second time in eventdateday
+    const eventDateDay = dateBlock.find('div.eventdateday');
+    if (eventDateDay.length > 0) {
+      const dayTimes = eventDateDay.find('time[datetime]');
+      if (dayTimes.length > 1) {
+        endDatetime = $(dayTimes[1]).attr('datetime') || null;
       }
     }
 
-    // Title and link (required)
+    // Datetimes are UTC — convert to Pacific for both date and time
+    const { date: startDate, time: startTime } = extractDateTimeFromIso(startDatetime);
+    if (!startDate) return;
+
+    const endParts = endDatetime ? extractDateTimeFromIso(endDatetime) : null;
+    const endTime = endParts?.time || null;
+
+    // Title and link
     const titleLink = specBlock.find('strong a');
     if (titleLink.length === 0) return;
     const title = titleLink.text().trim();

@@ -103,6 +103,7 @@
         locationIdHidden.value = '';
         if (!q) {
           locationDropdown.classList.add('hidden');
+          locationDropdown.classList.remove('block');
           locationDropdown.innerHTML = '';
           return;
         }
@@ -111,6 +112,7 @@
         ).slice(0, 10);
         if (matches.length === 0) {
           locationDropdown.classList.add('hidden');
+          locationDropdown.classList.remove('block');
           locationDropdown.innerHTML = '';
           return;
         }
@@ -126,6 +128,7 @@
             locationIdHidden.value = el.getAttribute('data-id') || '';
             locationSearch.value = el.getAttribute('data-label') || '';
             locationDropdown.classList.add('hidden');
+            locationDropdown.classList.remove('block');
             locationDropdown.innerHTML = '';
           });
         });
@@ -137,6 +140,7 @@
           (!locationSearch.contains(e.target) && !locationDropdown.contains(e.target))
         ) {
           locationDropdown.classList.add('hidden');
+          locationDropdown.classList.remove('block');
         }
       });
     }
@@ -148,6 +152,7 @@
         parentIdHidden.value = '';
         if (!q) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
           parentDropdown.innerHTML = '';
           return;
         }
@@ -156,6 +161,7 @@
         ).slice(0, 10);
         if (matches.length === 0) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
           parentDropdown.innerHTML = '';
           return;
         }
@@ -171,6 +177,7 @@
             parentIdHidden.value = el.getAttribute('data-id') || '';
             parentSearch.value = el.getAttribute('data-label') || '';
             parentDropdown.classList.add('hidden');
+            parentDropdown.classList.remove('block');
             parentDropdown.innerHTML = '';
           });
         });
@@ -182,6 +189,7 @@
           (!parentSearch.contains(e.target) && !parentDropdown.contains(e.target))
         ) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
         }
       });
     }

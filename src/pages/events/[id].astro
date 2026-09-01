@@ -708,7 +708,9 @@ setPublicCache(Astro.response.headers);
         const dropdown = document.getElementById(dropdownId);
         const hidden = document.getElementById(hiddenId) as HTMLInputElement;
         if (!input || !dropdown || !hidden) return;
-        const close = () => { dropdown.classList.add('hidden'); dropdown.innerHTML = ''; };
+        // admin.css keeps .autocomplete-dropdown at display:none and only
+        // .autocomplete-dropdown.block reveals it, so both classes must move.
+        const close = () => { dropdown.classList.add('hidden'); dropdown.classList.remove('block'); dropdown.innerHTML = ''; };
         input.addEventListener('input', () => {
           const q = input.value.toLowerCase().trim();
           hidden.value = '';
@@ -721,7 +723,7 @@ setPublicCache(Astro.response.headers);
             div.addEventListener('click', () => { input.value = display(item); hidden.value = item.id; close(); });
             dropdown.appendChild(div);
           });
-          dropdown.classList.remove('hidden');
+          dropdown.classList.remove('hidden'); dropdown.classList.add('block');
         });
         input.addEventListener('focus', () => { if (input.value.trim()) input.dispatchEvent(new Event('input')); });
         document.addEventListener('click', (e) => { if (!dropdown.contains(e.target as Node) && e.target !== input) close(); });

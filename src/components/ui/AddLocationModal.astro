@@ -114,6 +114,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
         parentIdHidden.value = '';
         if (!q) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
           parentDropdown.innerHTML = '';
           return;
         }
@@ -122,6 +123,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
         ).slice(0, 10);
         if (matches.length === 0) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
           parentDropdown.innerHTML = '';
           return;
         }
@@ -137,6 +139,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
             parentIdHidden.value = el.getAttribute('data-id') || '';
             parentSearch.value = el.getAttribute('data-label') || '';
             parentDropdown.classList.add('hidden');
+            parentDropdown.classList.remove('block');
             parentDropdown.innerHTML = '';
           });
         });
@@ -145,6 +148,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
       document.addEventListener('click', (e) => {
         if (!(e.target instanceof Node) || (!parentSearch.contains(e.target) && !parentDropdown.contains(e.target))) {
           parentDropdown.classList.add('hidden');
+          parentDropdown.classList.remove('block');
         }
       });
     }
