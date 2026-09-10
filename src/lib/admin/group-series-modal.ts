@@ -80,10 +80,12 @@ function renderBar(): void {
   const count = selection.size;
   if (count === 0) {
     bar.classList.add('hidden');
+    bar.style.display = '';
     bar.innerHTML = '';
     return;
   }
   bar.classList.remove('hidden');
+  bar.style.display = 'flex';
   bar.innerHTML =
     `<span>${count} selected</span>` +
     '<button type="button" id="groupSeriesOpen" class="btn-save" style="margin-left:0.75rem;">Group as series</button>' +

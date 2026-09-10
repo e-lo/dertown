@@ -6,6 +6,7 @@ import AddLocationModal from '../components/ui/AddLocationModal.astro';
 import AddOrganizationModal from '../components/ui/AddOrganizationModal.astro';
 import EditAnnouncementModal from '../components/ui/EditAnnouncementModal.astro';
 import SeriesModal from '../components/ui/SeriesModal.astro';
+import GroupSeriesModal from '../components/ui/GroupSeriesModal.astro';
 import { getSessionFromCookies } from '../lib/session';
 
 const { session } = await getSessionFromCookies(Astro.cookies);
@@ -54,6 +55,7 @@ const userEmail = session.user?.email || 'Admin';
     <AddOrganizationModal />
     <EditAnnouncementModal />
     <SeriesModal />
+    <GroupSeriesModal />
 
     <!-- ── Quick Import modal ──────────────────────────────────────────── -->
     <div id="paste-import-modal" class="modal-overlay" onclick="if(event.target===this)closePasteImportModal()">
@@ -182,6 +184,7 @@ const userEmail = session.user?.email || 'Admin';
       </button>
     </div>
     <div id="loading" class="loading">Loading events...</div>
+    <div id="group-series-bar" class="hidden" style="align-items:center;gap:0.25rem;padding:0.5rem 0.75rem;margin-bottom:0.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.375rem;font-size:0.875rem;"></div>
     <div id="events-container" class="dashboard-table-container"></div>
   </div>
 
@@ -968,6 +971,7 @@ const userEmail = session.user?.email || 'Admin';
 
       _cachedEvents = allEvents;
       displayEvents(allEvents);
+      document.dispatchEvent(new CustomEvent('group-series:queue-rendered'));
       if (loading) loading.classList.add('hidden');
       } catch (error) {
       const loading = document.getElementById('loading');
@@ -975,6 +979,15 @@ const userEmail = session.user?.email || 'Admin';
       showMessage('Error loading events: ' + error.message, 'error');
     }
   }
+
+  window.addEventListener('group-series:done', (event) => {
+    const { parentTitle, linked } = event.detail || {};
+    showMessage(
+      `Grouped ${linked} event${linked === 1 ? '' : 's'} under "${parentTitle}". Approve the children when ready.`,
+      'success'
+    );
+    loadEventsToApprove();
+  });
 
   /**
    * Loads and displays announcements that need approval (both staged and existing)
@@ -1326,10 +1339,17 @@ const userEmail = session.user?.email || 'Admin';
         container.innerHTML = '<p style="text-align:center;color:#888;">No events to review.</p>';
         return;
       }
+      const selectable = containerId === 'events-container';
+      const escapeAttr = (value) =>
+        String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;');
       const table =
       '<table class="data-table">' +
         '<thead>' +
         '<tr>' +
+        (selectable ? '<th style="width:2rem;"></th>' : '') +
         '<th>Title</th>' +
         '<th>Date</th>' +
         '<th>Time</th>' +
@@ -1391,6 +1411,18 @@ const userEmail = session.user?.email || 'Admin';
               : '';
             return (
               '<tr>' +
+              (selectable
+                ? '<td style="text-align:center;">' +
+                  (event.is_series_parent
+                    ? '<input type="checkbox" disabled title="Already a series parent">'
+                    : '<input type="checkbox" class="group-series-checkbox"' +
+                      ' data-group-id="' + event.id + '"' +
+                      ' data-group-table="' + (eventIsStaged ? 'events_staged' : 'events') + '"' +
+                      ' data-group-title="' + escapeAttr(event.title) + '"' +
+                      ' data-group-date="' + escapeAttr(event.start_date) + '"' +
+                      ' aria-label="Select for grouping">') +
+                  '</td>'
+                : '') +
               '<td>' + (event.title || 'N/A') + titleBadge + calendarHiddenBadge + '</td>' +
               '<td>' + (event.start_date || 'N/A') + '</td>' +
               '<td>' + (event.start_time || 'N/A') + '</td>' +
