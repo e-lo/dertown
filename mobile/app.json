@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dertown.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSCalendarsUsageDescription": "Dertown adds events you choose directly to your Calendar.",
         "NSUserNotificationsUsageDescription": "Receive announcements and updates about events in Dertown.",
@@ -25,7 +25,7 @@
     },
     "android": {
       "package": "com.dertown.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4740cb"
