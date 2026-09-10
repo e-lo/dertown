@@ -31,7 +31,7 @@ if (role === 'org_editor') {
     .eq('id', id)
     .single();
 
-  if (!eventRow || !organizationIds.includes(eventRow.organization_id)) {
+  if (!eventRow?.organization_id || !organizationIds.includes(eventRow.organization_id)) {
     accessDenied = true;
     const org = eventRow?.organization as { name?: string } | null;
     eventOrgName = org?.name ?? null;
@@ -96,7 +96,9 @@ const userEmail = session.user?.email || 'Admin';
           return refUrl.pathname + refUrl.search;
         }
       }
-    } catch (_) {}
+    } catch {
+      /* malformed referrer: fall through to /admin */
+    }
     return '/admin';
   })();
 
@@ -388,7 +390,7 @@ const userEmail = session.user?.email || 'Admin';
       return;
     }
 
-    let formData = {
+    const formData = {
       id: currentEditId,
       title: document.getElementById('editEventTitle').value,
     };
