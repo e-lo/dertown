@@ -1,0 +1,92 @@
+---
+// Modal for grouping selected pending events under a series parent.
+// Client logic: src/lib/admin/group-series-modal.ts
+---
+
+<div id="groupSeriesModal" class="modal-overlay hidden">
+  <div class="modal-container" style="max-width: 640px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Group as Series</h3>
+      <button type="button" id="groupSeriesClose" class="modal-close-btn" aria-label="Close modal">
+        <span class="material-symbols-outlined text-2xl">close</span>
+      </button>
+    </div>
+    <form id="groupSeriesForm">
+      <div class="form-field">
+        <label class="form-label">Series parent</label>
+        <div style="display: flex; gap: 1rem;">
+          <label><input type="radio" name="groupSeriesParentMode" id="groupSeriesModeNew" value="new" checked /> Create new parent</label>
+          <label><input type="radio" name="groupSeriesParentMode" id="groupSeriesModeExisting" value="existing" /> Use existing parent</label>
+        </div>
+      </div>
+
+      <div id="groupSeriesExistingFields" class="hidden">
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesExistingParent">Existing parent: <span class="form-label-required">*</span></label>
+          <input type="text" id="groupSeriesExistingParent" list="groupSeriesParentOptions" class="form-input-base" placeholder="Start typing a series title…" autocomplete="off" />
+          <datalist id="groupSeriesParentOptions"></datalist>
+        </div>
+      </div>
+
+      <div id="groupSeriesNewFields">
+        <p class="text-sm text-gray-500 mb-2">Prefilled from the earliest selected event. The parent is created approved and hidden from the calendar; its dates span the selected events.</p>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesTitle">Title: <span class="form-label-required">*</span></label>
+          <input type="text" id="groupSeriesTitle" class="form-input-base" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesDescription">Description:</label>
+          <textarea id="groupSeriesDescription" rows="3" class="form-input-base"></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesPrimaryTag">Primary tag: <span class="form-label-required">*</span></label>
+          <select id="groupSeriesPrimaryTag" class="form-input-base"></select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesSecondaryTag">Secondary tag:</label>
+          <select id="groupSeriesSecondaryTag" class="form-input-base"></select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesLocation">Location:</label>
+          <input type="text" id="groupSeriesLocation" list="groupSeriesLocationOptions" class="form-input-base" autocomplete="off" />
+          <datalist id="groupSeriesLocationOptions"></datalist>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesOrganization">Organization:</label>
+          <input type="text" id="groupSeriesOrganization" list="groupSeriesOrganizationOptions" class="form-input-base" autocomplete="off" />
+          <datalist id="groupSeriesOrganizationOptions"></datalist>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesWebsite">Website:</label>
+          <input type="text" id="groupSeriesWebsite" class="form-input-base" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesImageUrl">External image URL:</label>
+          <input type="text" id="groupSeriesImageUrl" class="form-input-base" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="groupSeriesCost">Cost:</label>
+          <input type="text" id="groupSeriesCost" class="form-input-base" />
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Events to group</label>
+        <ul id="groupSeriesChildren" class="text-sm" style="margin: 0; padding-left: 1.25rem;"></ul>
+        <p class="text-sm text-gray-500 mt-1">Children stay in the queue. Edit and approve each one as usual after grouping.</p>
+      </div>
+
+      <p id="groupSeriesError" class="text-red-600 text-sm hidden"></p>
+
+      <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" id="groupSeriesCancel" class="btn-cancel">Cancel</button>
+        <button type="submit" id="groupSeriesSubmit" class="btn-save">Group events</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { initGroupSeries } from '../../lib/admin/group-series-modal';
+  initGroupSeries();
+</script>
