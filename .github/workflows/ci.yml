@@ -40,3 +40,29 @@ jobs:
           PUBLIC_SUPABASE_URL: https://example.supabase.co
           PUBLIC_SUPABASE_KEY: test-anon-key
           SUPABASE_SERVICE_ROLE_KEY: test-service-key
+
+  # Mobile app: type-check and unit tests. Runs on dependabot PRs too, so a
+  # bump past what the pinned Expo SDK supports (PR #22) fails here instead
+  # of at EAS build time.
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test

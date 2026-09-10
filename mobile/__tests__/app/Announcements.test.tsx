@@ -15,6 +15,12 @@ jest.mock('../../lib/cache', () => ({
   invalidateCache: jest.fn(),
 }));
 
+// news.tsx registers for push on mount; the real module pulls in
+// expo-notifications, which logs an Expo Go warning under jest.
+jest.mock('../../lib/notifications', () => ({
+  setupPushNotifications: jest.fn(() => Promise.resolve()),
+}));
+
 // useFocusEffect calls its callback after render in tests
 jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => unknown) => {

@@ -80,6 +80,11 @@ npm test           # single run
 npm run test:watch # watch mode
 ```
 
+Both commands first run `npm run check-deps`, which compares `node_modules`
+against `package-lock.json`. If it reports a mismatch, run `npm ci` — a stale
+install (for example after a reverted dependency bump) otherwise fails inside
+Jest with an unrelated-looking "React Native Jest preset has moved" error.
+
 ---
 
 ## Project Structure

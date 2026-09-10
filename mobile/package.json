@@ -6,7 +6,10 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "check-deps": "node scripts/check-deps-in-sync.js",
+    "pretest": "npm run check-deps",
     "test": "jest --watchAll=false",
+    "pretest:watch": "npm run check-deps",
     "test:watch": "jest"
   },
   "dependencies": {
