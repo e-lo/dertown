@@ -116,18 +116,20 @@ function formatAge(min: number | null | undefined, max: number | null | undefine
   return 'All ages';
 }
 
-function getRegStatus(p: Program): { label: string; color: string } | null {
-  const now = new Date();
-  const opens  = p.registration_opens  ? new Date(p.registration_opens)  : null;
-  const closes = p.registration_closes ? new Date(p.registration_closes) : null;
-  if (opens && now < opens) {
-    const d = opens.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { label: `Registration opens ${d}`, color: 'yellow' };
-  }
-  if (closes && now > closes) return { label: 'Registration closed', color: 'gray' };
-  if (p.waitlist_status)      return { label: 'Waitlist open', color: 'orange' };
-  return null;
+// registration_* are DATE columns. Parse date-only strings as local midnight so
+// they don't shift to the previous evening (UTC parse) in Pacific time.
+function parseDate(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso);
 }
+function endOfDay(iso: string): Date {
+  const d = parseDate(iso);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+const shortDate = (iso: string) =>
+  parseDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const longDate = (iso: string) =>
+  parseDate(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
 function getCategoryIcon(type: string | null | undefined): string {
   const map: Record<string, string> = {
@@ -142,10 +144,10 @@ function getCategoryIcon(type: string | null | undefined): string {
 
 function buildUrl(overrides: Record<string, string>): string {
   const p = new URLSearchParams();
-  const f = overrides.hasOwnProperty('format') ? overrides.format : formatParam;
-  const s = overrides.hasOwnProperty('season') ? overrides.season : seasonParam;
-  const t = overrides.hasOwnProperty('type')   ? overrides.type   : typeParam;
-  const a = overrides.hasOwnProperty('age')    ? overrides.age    : ageParam;
+  const f = 'format' in overrides ? overrides.format : formatParam;
+  const s = 'season' in overrides ? overrides.season : seasonParam;
+  const t = 'type' in overrides   ? overrides.type   : typeParam;
+  const a = 'age' in overrides    ? overrides.age    : ageParam;
   if (f) p.set('format', f);
   if (s) p.set('season', s);
   if (t) p.set('type',   t);
@@ -155,14 +157,100 @@ function buildUrl(overrides: Record<string, string>): string {
 
 const hasFilters = !!(formatParam || seasonParam || typeParam || ageParam);
 
-// Programs opening for registration within the next 60 days
+// --- Sessions ---
+// Registration info almost always lives on a program's SESSION children, not
+// on the program row itself. RLS limits anon reads to approved sessions.
+type Session = {
+  id: string;
+  name: string;
+  parent_activity_id: string;
+  registration_opens?: string | null;
+  registration_closes?: string | null;
+  registration_link?: string | null;
+  waitlist_status?: string | null;
+};
+type Registrable = Pick<Session, 'registration_opens' | 'registration_closes' | 'registration_link' | 'waitlist_status'>;
+
+const programIds = (allPrograms ?? []).map((p: Program) => p.id);
+const sessionsByProgram: Record<string, Session[]> = {};
+if (programIds.length > 0) {
+  const { data: sessionData } = await (supabase as any)
+    .from('activities')
+    .select('id, name, parent_activity_id, registration_opens, registration_closes, registration_link, waitlist_status')
+    .eq('activity_hierarchy_type', 'SESSION')
+    .in('parent_activity_id', programIds)
+    .order('registration_opens', { ascending: true });
+  for (const sess of (sessionData ?? []) as Session[]) {
+    (sessionsByProgram[sess.parent_activity_id] ??= []).push(sess);
+  }
+}
+
+// --- Signup state ---
+// "Open now" without a close date is only trusted for 90 days after it opened,
+// so a stale open date from a past season doesn't sit in the callout forever.
+const DAY_MS = 24 * 60 * 60 * 1000;
 const now = new Date();
-const soon = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-const upcomingSignups: Program[] = (allPrograms ?? []).filter((p: Program) => {
-  if (!p.registration_opens) return false;
-  const d = new Date(p.registration_opens);
-  return d >= now && d <= soon;
-});
+const soon = new Date(now.getTime() + 60 * DAY_MS);
+const staleAfter = new Date(now.getTime() - 90 * DAY_MS);
+
+type SignupState = 'open' | 'upcoming';
+function hasRegDates(r: Registrable): boolean {
+  return !!(r.registration_opens || r.registration_closes || r.waitlist_status);
+}
+function getSignupState(r: Registrable): SignupState | null {
+  const opens  = r.registration_opens  ? parseDate(r.registration_opens)  : null;
+  const closes = r.registration_closes ? endOfDay(r.registration_closes) : null;
+  if (closes && closes < now) return null;
+  if (opens && opens > now) return opens <= soon ? 'upcoming' : null;
+  if (r.waitlist_status) return 'open';
+  if (closes) return 'open';
+  if (opens && opens >= staleAfter) return 'open';
+  return null;
+}
+
+type SignupEntry = { program: Program; session: Session | null; reg: Registrable; state: SignupState };
+const signupsByProgram: Record<string, SignupEntry[]> = {};
+for (const program of (allPrograms ?? []) as Program[]) {
+  const sessions = (sessionsByProgram[program.id] ?? []).filter(hasRegDates);
+  // Program-level dates are only a fallback for programs with no dated sessions
+  const candidates: { session: Session | null; reg: Registrable }[] = sessions.length > 0
+    ? sessions.map(sess => ({ session: sess, reg: sess }))
+    : [{ session: null, reg: program }];
+  for (const c of candidates) {
+    const state = getSignupState(c.reg);
+    if (state) (signupsByProgram[program.id] ??= []).push({ program, ...c, state });
+  }
+}
+const allSignups: SignupEntry[] = Object.values(signupsByProgram).flat();
+const byDate = (key: 'registration_opens' | 'registration_closes') => (a: SignupEntry, b: SignupEntry) =>
+  (a.reg[key] ?? '9999').localeCompare(b.reg[key] ?? '9999');
+// Open now: soonest deadline first. Opening soon: soonest opening first.
+const openSignups     = allSignups.filter(e => e.state === 'open').sort(byDate('registration_closes'));
+const upcomingSignups = allSignups.filter(e => e.state === 'upcoming').sort(byDate('registration_opens'));
+
+function signupLink(e: SignupEntry): string | null {
+  return e.reg.registration_link ?? e.program.registration_link ?? null;
+}
+function signupLabel(e: SignupEntry): string {
+  const sessionName = e.session?.name;
+  return sessionName && sessionName !== e.program.name ? `${e.program.name} · ${sessionName}` : e.program.name;
+}
+
+// Card badge: best signup state across the program's sessions
+function getRegStatus(p: Program): { label: string; color: string } | null {
+  const entries = signupsByProgram[p.id] ?? [];
+  const open = entries.find(e => e.state === 'open');
+  if (open) {
+    if (open.reg.waitlist_status) return { label: 'Waitlist open', color: 'orange' };
+    const closes = open.reg.registration_closes;
+    return { label: closes ? `Registration open · closes ${shortDate(closes)}` : 'Registration open', color: 'green' };
+  }
+  const upcoming = entries.find(e => e.state === 'upcoming');
+  if (upcoming?.reg.registration_opens) {
+    return { label: `Registration opens ${shortDate(upcoming.reg.registration_opens)}`, color: 'yellow' };
+  }
+  return null;
+}
 
 // Featured programs (only shown when no filters are active)
 const featuredPrograms: Program[] = (allPrograms ?? []).filter((p: Program) => p.featured);
@@ -241,30 +329,53 @@ setPublicCache(Astro.response.headers);
       </p>
     </div>
 
-    <!-- Upcoming signups callout -->
-    {upcomingSignups.length > 0 && (
+    <!-- Open & upcoming signups callout -->
+    {(openSignups.length > 0 || upcomingSignups.length > 0) && (
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
           <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-3">
             <span class="material-symbols-outlined">calendar_month</span>
-            Registration Opening Soon
+            Open &amp; Upcoming Signups
           </h3>
-          <ul class="space-y-1.5 text-sm text-amber-800">
-            {upcomingSignups.map((p: Program) => (
-              <li class="flex items-start gap-2">
-                <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(p.activity_type)}</span>
-                <span>
-                  <strong>{p.name}</strong>
-                  {p.registration_opens && (
-                    <> — opens {new Date(p.registration_opens).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</>
-                  )}
-                  {p.registration_link && (
-                    <> · <a href={p.registration_link} target="_blank" class="underline">Register</a></>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {openSignups.length > 0 && (
+            <div class="mb-3 last:mb-0">
+              <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Open now</p>
+              <ul class="space-y-1.5 text-sm text-amber-800">
+                {openSignups.map((e: SignupEntry) => (
+                  <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(e.program.activity_type)}</span>
+                    <span>
+                      <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
+                      {e.reg.waitlist_status && !e.reg.registration_closes && <> — waitlist open</>}
+                      {e.reg.registration_closes && <> — closes {longDate(e.reg.registration_closes)}</>}
+                      {signupLink(e) && (
+                        <> · <a href={signupLink(e)} target="_blank" class="underline">{e.reg.waitlist_status ? 'Join waitlist' : 'Register'}</a></>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {upcomingSignups.length > 0 && (
+            <div>
+              <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Opening soon</p>
+              <ul class="space-y-1.5 text-sm text-amber-800">
+                {upcomingSignups.map((e: SignupEntry) => (
+                  <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(e.program.activity_type)}</span>
+                    <span>
+                      <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
+                      {e.reg.registration_opens && <> — opens {longDate(e.reg.registration_opens)}</>}
+                      {signupLink(e) && (
+                        <> · <a href={signupLink(e)} target="_blank" class="underline">Register</a></>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     )}
@@ -477,7 +588,6 @@ setPublicCache(Astro.response.headers);
           })}
         </div>
       ) : !error && (
-        <!-- Empty state -->
         <div class="text-center py-16 text-gray-400">
           <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
           <p class="text-lg font-medium text-gray-600 mb-1">No programs found</p>

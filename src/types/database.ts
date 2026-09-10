@@ -96,6 +96,7 @@ export type Database = {
           updated_at: string | null;
           waitlist_available: boolean | null;
           waitlist_status: string | null;
+          available_class_type_ids: string[] | null;
           website: string | null;
         };
         Insert: {
@@ -160,6 +161,7 @@ export type Database = {
           updated_at?: string | null;
           waitlist_available?: boolean | null;
           waitlist_status?: string | null;
+          available_class_type_ids?: string[] | null;
           website?: string | null;
         };
         Update: {
@@ -224,6 +226,7 @@ export type Database = {
           updated_at?: string | null;
           waitlist_available?: boolean | null;
           waitlist_status?: string | null;
+          available_class_type_ids?: string[] | null;
           website?: string | null;
         };
         Relationships: [

@@ -127,7 +127,6 @@ export const GET: APIRoute = async ({ params }) => {
   if (!id) return new Response('Program ID required', { status: 400 });
   const siteUrl = SITE_URL;
 
-
   // 1. Fetch the program
   const { data: program, error: programError } = await (supabase as any)
     .from('public_activities')
@@ -144,7 +143,9 @@ export const GET: APIRoute = async ({ params }) => {
   // 2. Fetch descendants (direct children + children of CLASS_TYPE children)
   const { data: childData } = await (supabase as any)
     .from('activities')
-    .select('id, name, activity_hierarchy_type, start_datetime, end_datetime')
+    .select(
+      'id, name, activity_hierarchy_type, start_datetime, end_datetime, registration_opens, registration_closes'
+    )
     .eq('parent_activity_id', id);
   const children = (childData ?? []) as Array<{
     id: string;
@@ -152,6 +153,8 @@ export const GET: APIRoute = async ({ params }) => {
     activity_hierarchy_type: string | null;
     start_datetime: string | null;
     end_datetime: string | null;
+    registration_opens: string | null;
+    registration_closes: string | null;
   }>;
 
   let grandchildren: typeof children = [];
@@ -159,7 +162,9 @@ export const GET: APIRoute = async ({ params }) => {
   if (childIds.length > 0) {
     const { data: grandData } = await (supabase as any)
       .from('activities')
-      .select('id, name, activity_hierarchy_type, start_datetime, end_datetime')
+      .select(
+        'id, name, activity_hierarchy_type, start_datetime, end_datetime, registration_opens, registration_closes'
+      )
       .in('parent_activity_id', childIds);
     grandchildren = (grandData ?? []) as typeof children;
   }
@@ -225,9 +230,50 @@ export const GET: APIRoute = async ({ params }) => {
     }
   }
 
+  // Session-level registration windows (registration info usually lives on sessions)
+  for (const child of descendants) {
+    const label = child.name ? `${programName} — ${child.name}` : programName;
+    if (child.registration_opens) {
+      try {
+        vevents.push(
+          buildAllDayVEvent({
+            uid: `reg-open-${child.id}@${ICAL_UID_DOMAIN}`,
+            summary: `Registration opens — ${label}`,
+            start: new Date(`${child.registration_opens}T00:00:00`),
+            dtstamp,
+            url: programUrl,
+            alarm: { description: 'Registration opens', trigger: '-P1D' },
+          })
+        );
+      } catch {
+        /* skip malformed date */
+      }
+    }
+    if (child.registration_closes) {
+      try {
+        vevents.push(
+          buildAllDayVEvent({
+            uid: `reg-close-${child.id}@${ICAL_UID_DOMAIN}`,
+            summary: `Registration closes — ${label}`,
+            start: new Date(`${child.registration_closes}T00:00:00`),
+            dtstamp,
+            url: programUrl,
+            alarm: { description: 'Registration closing soon', trigger: '-P2D' },
+          })
+        );
+      } catch {
+        /* skip malformed date */
+      }
+    }
+  }
+
   // Dated descendants (SESSION weeks or CLASS_INSTANCE weeks) → all-day (or multi-day) events
   for (const child of descendants) {
-    if (!['SESSION', 'CLASS_INSTANCE'].includes(child.activity_hierarchy_type ?? '') || !child.start_datetime) continue;
+    if (
+      !['SESSION', 'CLASS_INSTANCE'].includes(child.activity_hierarchy_type ?? '') ||
+      !child.start_datetime
+    )
+      continue;
     try {
       const start = new Date(child.start_datetime);
       if (isNaN(start.getTime())) continue;

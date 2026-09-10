@@ -51,6 +51,7 @@ type Activity = {
   cost_assistance_details?: string | null;
   registration_link?: string | null;
   registration_required?: boolean | null;
+  available_class_type_ids?: string[] | null;
   registration_opens?: string | null;
   registration_closes?: string | null;
   registration_info?: string | null;
@@ -77,8 +78,12 @@ type Occurrence = {
 const childSelect = `
   id, name, description, activity_hierarchy_type, parent_activity_id,
   start_datetime, end_datetime, location_details,
-  min_age, max_age, min_grade, max_grade, cost
+  min_age, max_age, min_grade, max_grade, cost,
+  registration_opens, registration_closes, registration_link, registration_info, waitlist_status
 `;
+// Sessions also carry which sibling class types they offer. Fall back without
+// the column (42703) so a deploy that lands before the migration still renders.
+const sessionSelect = `${childSelect}, available_class_type_ids`;
 
 let children: Activity[] = [];
 let grandchildren: Activity[] = [];
@@ -86,13 +91,16 @@ let occurrencesByActivity: Record<string, Occurrence[]> = {};
 
 if (program) {
   // Direct children of the program
-  const { data: childData } = await (supabase as any)
-    .from('activities')
-    .select(childSelect)
-    .eq('parent_activity_id', id)
-    .order('start_datetime', { ascending: true })
-    .order('name', { ascending: true });
-  children = (childData ?? []) as Activity[];
+  const fetchChildren = (select: string) =>
+    (supabase as any)
+      .from('activities')
+      .select(select)
+      .eq('parent_activity_id', id)
+      .order('start_datetime', { ascending: true })
+      .order('name', { ascending: true });
+  let childResult = await fetchChildren(sessionSelect);
+  if (childResult.error?.code === '42703') childResult = await fetchChildren(childSelect);
+  children = (childResult.data ?? []) as Activity[];
 
   // Grandchildren: children of any CLASS_TYPE child (CLASS_INSTANCEs)
   const classTypeIds = children
@@ -190,16 +198,35 @@ function weekdaySummary(occs: Occurrence[]): string {
   return days.join(', ');
 }
 
+// registration_* are DATE columns. Parse date-only strings as local midnight so
+// they don't shift to the previous evening (UTC parse) in Pacific time.
+function parseDate(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso);
+}
+function endOfDay(iso: string): Date {
+  const d = parseDate(iso);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function hasRegInfo(a: Activity): boolean {
+  return !!(a.registration_opens || a.registration_closes || a.registration_link || a.registration_info || a.waitlist_status);
+}
+
 function getRegStatus(p: Activity): { label: string; color: string } | null {
   const now = new Date();
-  const opens  = p.registration_opens  ? new Date(p.registration_opens)  : null;
-  const closes = p.registration_closes ? new Date(p.registration_closes) : null;
+  const opens  = p.registration_opens  ? parseDate(p.registration_opens)  : null;
+  const closes = p.registration_closes ? endOfDay(p.registration_closes) : null;
   if (opens && now < opens) {
     const d = opens.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return { label: `Registration opens ${d}`, color: 'yellow' };
   }
   if (closes && now > closes) return { label: 'Registration closed', color: 'gray' };
   if (p.waitlist_status)      return { label: 'Waitlist open', color: 'orange' };
+  if (opens || closes) {
+    const d = closes?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label: d ? `Registration open · closes ${d}` : 'Registration open', color: 'green' };
+  }
   return null;
 }
 
@@ -235,6 +262,15 @@ const sessions = children.filter((c) => c.activity_hierarchy_type === 'SESSION')
 const otherChildren = children.filter(
   (c) => c.activity_hierarchy_type !== 'CLASS_TYPE' && c.activity_hierarchy_type !== 'SESSION'
 );
+
+// Class types a session offers: the listed siblings, or all of them when unset.
+function classTypesForSession(sess: Activity): Activity[] {
+  const ids = sess.available_class_type_ids ?? [];
+  return ids.length > 0 ? classTypes.filter((ct) => ids.includes(ct.id)) : classTypes;
+}
+function sessionRestrictsClassTypes(sess: Activity): boolean {
+  return (sess.available_class_type_ids?.length ?? 0) > 0;
+}
 
 const instancesByClassType: Record<string, Activity[]> = {};
 for (const g of grandchildren) {
@@ -277,8 +313,27 @@ const showProgramDates =
 
 const programOccurrences = program ? (occurrencesByActivity[program.id] ?? []) : [];
 
+// Registration info usually lives on the sessions, not the program row.
+// Only current/upcoming sessions matter for signing up.
+const sessionRegistrations = upcomingSessions.filter(hasRegInfo);
+const hasAnyRegistration =
+  !!regLink || !!siteLink || !!program?.registration_info || !!regStatus || sessionRegistrations.length > 0;
+
 const hasSchedule =
   children.length > 0 || grandchildren.length > 0 || programOccurrences.length > 0;
+
+// The iCal feed only carries registration dates, dated sessions/class
+// instances, and occurrences. Skip the calendar buttons when it would be empty.
+const hasCalendarContent =
+  !!program?.registration_opens ||
+  !!program?.registration_closes ||
+  [...children, ...grandchildren].some(
+    (a) =>
+      !!a.registration_opens ||
+      !!a.registration_closes ||
+      (['SESSION', 'CLASS_INSTANCE'].includes(a.activity_hierarchy_type ?? '') && !!a.start_datetime)
+  ) ||
+  Object.values(occurrencesByActivity).some((occs) => occs.length > 0);
 
 const pageTitle = program ? `${program.name} - Programs | Der Town` : 'Program not found | Der Town';
 
@@ -419,26 +474,68 @@ setPublicCache(Astro.response.headers);
                 Visit website
               </a>
             )}
-            {!regLink && !siteLink && (
-              <p class="text-sm text-gray-500">No registration link provided.</p>
-            )}
           </div>
 
-          <!-- Add to calendar / Subscribe -->
-          <div class="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-200">
-            <a
-              href={`webcal://${Astro.url.host}/api/kid-activities/${program.id}/ical`}
-              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              📅 Subscribe (calendar)
-            </a>
-            <a
-              href={`/api/kid-activities/${program.id}/ical`}
-              class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              ⬇️ Download .ics
-            </a>
-          </div>
+          {sessionRegistrations.length > 0 && (
+            <ul class={`space-y-3 ${regLink || siteLink ? 'mt-4 pt-4 border-t border-gray-200' : ''}`}>
+              {sessionRegistrations.map((sess: Activity) => {
+                const st = getRegStatus(sess);
+                return (
+                  <li class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                    <span class="font-medium text-gray-900">{sess.name}</span>
+                    {st && <span class={`status-badge status-badge--${st.color} status-badge--sm`}>{st.label}</span>}
+                    {(sess.registration_opens || sess.registration_closes) && (
+                      <span class="text-gray-600">
+                        {sess.registration_opens && <>Opens {formatDate(sess.registration_opens)}</>}
+                        {sess.registration_opens && sess.registration_closes && <> · </>}
+                        {sess.registration_closes && <>Closes {formatDate(sess.registration_closes)}</>}
+                      </span>
+                    )}
+                    {sessionRestrictsClassTypes(sess) && (
+                      <span class="text-gray-600">
+                        {classTypesForSession(sess).map((ct) => ct.name).join(', ')} only
+                      </span>
+                    )}
+                    {sess.registration_info && (
+                      <span class="basis-full text-gray-600 whitespace-pre-line">{sess.registration_info}</span>
+                    )}
+                    {sess.registration_link && (
+                      <a
+                        href={sess.registration_link}
+                        target="_blank"
+                        class="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                        {sess.waitlist_status ? 'Join waitlist' : 'Register'}
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {!hasAnyRegistration && (
+            <p class="text-sm text-gray-500">Registration details not yet posted.</p>
+          )}
+
+          <!-- Add to calendar / Subscribe (only when the feed has events) -->
+          {hasCalendarContent && (
+            <div class="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-200">
+              <a
+                href={`webcal://${Astro.url.host}/api/kid-activities/${program.id}/ical`}
+                class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                📅 Subscribe (calendar)
+              </a>
+              <a
+                href={`/api/kid-activities/${program.id}/ical`}
+                class="inline-flex items-center gap-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                ⬇️ Download .ics
+              </a>
+            </div>
+          )}
         </div>
 
         <!-- Sessions & Schedule -->
@@ -479,12 +576,22 @@ setPublicCache(Astro.response.headers);
               {upcomingSessions.map((s: Activity) => {
                 const occs = occurrencesByActivity[s.id] ?? [];
                 const range = formatDateRange(s.start_datetime, s.end_datetime);
+                const st = getRegStatus(s);
                 return (
                   <div class="border border-gray-200 rounded-lg p-4">
                     <div class="flex items-start justify-between gap-2">
                       <div class="min-w-0">
                         <h3 class="font-medium text-gray-900">{s.name}</h3>
+                        {st && <p class="mt-1"><span class={`status-badge status-badge--${st.color} status-badge--sm`}>{st.label}</span></p>}
                         {range && <p class="text-sm text-gray-500">{range}</p>}
+                        {classTypes.length > 0 && (
+                          <p class="flex flex-wrap items-center gap-1 mt-1.5">
+                            <span class="text-xs text-gray-500 mr-1">{sessionRestrictsClassTypes(s) ? 'Offered:' : 'All class types:'}</span>
+                            {classTypesForSession(s).map((ct) => (
+                              <span class="status-badge status-badge--gray status-badge--sm">{ct.name}</span>
+                            ))}
+                          </p>
+                        )}
                         {occs.length > 0 && (
                           <p class="text-sm text-gray-500">Meets {weekdaySummary(occs)}</p>
                         )}
@@ -623,5 +730,3 @@ setPublicCache(Astro.response.headers);
     <Disclaimer />
   </div>
 </Layout>
-</content>
-</invoke>
