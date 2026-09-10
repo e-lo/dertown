@@ -15,6 +15,8 @@ interface SelectedChild {
   table: ChildTable;
   title: string;
   date: string;
+  /** Title of the parent this row is already linked to, if any. */
+  currentParent: string;
 }
 
 interface NamedRef {
@@ -51,6 +53,8 @@ interface QueueEventDetails {
 
 const selection = new Map<string, SelectedChild>();
 let referenceData: ReferenceData | null = null;
+/** Set after a partial failure so a retry reuses the parent that was already created. */
+let retryParent: ParentOption | null = null;
 
 function keyFor(table: string, id: string): string {
   return `${table}:${id}`;
@@ -106,7 +110,7 @@ function onCheckboxChange(event: Event): void {
   const box = event.target;
   if (!(box instanceof HTMLInputElement) || !box.classList.contains('group-series-checkbox'))
     return;
-  const { groupId, groupTable, groupTitle, groupDate } = box.dataset;
+  const { groupId, groupTable, groupTitle, groupDate, groupParent } = box.dataset;
   if (!groupId || (groupTable !== 'events' && groupTable !== 'events_staged')) return;
   const key = keyFor(groupTable, groupId);
   if (box.checked) {
@@ -115,6 +119,7 @@ function onCheckboxChange(event: Event): void {
       table: groupTable,
       title: groupTitle || '',
       date: groupDate || '',
+      currentParent: groupParent || '',
     });
   } else {
     selection.delete(key);
@@ -249,12 +254,24 @@ function showError(message: string | null): void {
 function renderChildrenList(): void {
   const items = [...selection.values()].sort((a, b) => a.date.localeCompare(b.date));
   byId('groupSeriesChildren').innerHTML = items
-    .map(
-      (c) =>
+    .map((c) => {
+      const moveNote = c.currentParent
+        ? ` <span class="text-amber-700">— currently child of “${escapeHtml(c.currentParent)}”; will be moved</span>`
+        : '';
+      return (
         `<li>${escapeHtml(c.title)} <span class="text-gray-500">${escapeHtml(c.date)}</span>` +
-        ` <span class="text-gray-400 italic">(${c.table === 'events_staged' ? 'staged' : 'pending'})</span></li>`
-    )
+        ` <span class="text-gray-400 italic">(${c.table === 'events_staged' ? 'staged' : 'pending'})</span>` +
+        moveNote +
+        '</li>'
+      );
+    })
     .join('');
+}
+
+/** Make sure a prefilled name resolves on submit even if the row's location/org is not in the approved list. */
+function ensureKnown(items: NamedRef[], id: string | null | undefined, name: string): void {
+  if (!id || !name) return;
+  if (!items.some((item) => item.id === id)) items.push({ id, name });
 }
 
 async function prefillFromEarliest(data: ReferenceData): Promise<void> {
@@ -279,6 +296,8 @@ async function prefillFromEarliest(data: ReferenceData): Promise<void> {
     details.organization?.name ||
     data.organizations.find((o) => o.id === details.organization_id)?.name ||
     '';
+  ensureKnown(data.locations, details.location_id, locationName);
+  ensureKnown(data.organizations, details.organization_id, orgName);
   byId<HTMLInputElement>('groupSeriesLocation').value = locationName;
   byId<HTMLInputElement>('groupSeriesOrganization').value = orgName;
 }
@@ -286,6 +305,7 @@ async function prefillFromEarliest(data: ReferenceData): Promise<void> {
 async function openModal(): Promise<void> {
   if (selection.size === 0) return;
   const modal = byId('groupSeriesModal');
+  retryParent = null;
   showError(null);
   byId<HTMLFormElement>('groupSeriesForm').reset();
   byId<HTMLInputElement>('groupSeriesModeNew').checked = true;
@@ -373,10 +393,14 @@ async function onSubmit(event: Event): Promise<void> {
     });
     const result = (await res.json().catch(() => ({}))) as {
       error?: string;
-      parent?: { title: string };
+      parent?: { id: string; title: string };
       linked?: number;
+      failed?: string[];
     };
     if (!res.ok) {
+      if (result.parent && result.linked && result.failed?.length) {
+        prepareRetry(result.parent, result.failed, result.linked, data);
+      }
       showError(result.error || `Request failed (${res.status})`);
       return;
     }
@@ -392,6 +416,38 @@ async function onSubmit(event: Event): Promise<void> {
   } finally {
     submit.disabled = false;
   }
+}
+
+/**
+ * Some children were linked before the route hit an error. Drop the linked ones from the
+ * selection, refresh the queue so their badges update, and switch the modal to "existing parent"
+ * pointing at the parent that already exists, so resubmitting does not create a second parent.
+ */
+function prepareRetry(
+  parent: { id: string; title: string },
+  failedIds: string[],
+  linkedCount: number,
+  data: ReferenceData
+): void {
+  const failed = new Set(failedIds);
+  for (const [key, child] of [...selection.entries()]) {
+    if (!failed.has(child.id)) selection.delete(key);
+  }
+  retryParent = { id: parent.id, title: parent.title, parent_source: 'events' };
+  if (!data.parents.some((p) => p.id === parent.id)) data.parents.unshift(retryParent);
+  fillDatalist(
+    byId<HTMLDataListElement>('groupSeriesParentOptions'),
+    data.parents.map(parentLabel)
+  );
+  byId<HTMLInputElement>('groupSeriesModeExisting').checked = true;
+  setParentMode('existing');
+  byId<HTMLInputElement>('groupSeriesExistingParent').value = parentLabel(retryParent);
+  renderChildrenList();
+  window.dispatchEvent(
+    new CustomEvent('group-series:done', {
+      detail: { parentTitle: parent.title, linked: linkedCount },
+    })
+  );
 }
 
 // ---------------------------------------------------------------------------

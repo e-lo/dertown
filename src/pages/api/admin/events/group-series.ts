@@ -108,7 +108,7 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
     parentId = existing.id;
     parentTitle = existing.title;
   } else {
-    if (!inOrgScope(auth, parent.organization_id)) {
+    if (parent.organization_id && !inOrgScope(auth, parent.organization_id)) {
       return jsonError('Forbidden: cannot create a parent for this organization', 403);
     }
     const range = deriveParentDateRange(rows.map((r) => r.start_date));
@@ -134,18 +134,26 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   const failed: string[] = [];
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const { error } =
+    const { data: updated, error } =
       row.table === 'events'
-        ? await supabaseAdmin.from('events').update({ parent_event_id: parentId }).eq('id', row.id)
+        ? await supabaseAdmin
+            .from('events')
+            .update({ parent_event_id: parentId })
+            .eq('id', row.id)
+            .select('id')
         : await supabaseAdmin
             .from('events_staged')
             .update({
               parent_event_id: null,
               comments: applyApprovedParentMarker(row.comments, parentId),
             })
-            .eq('id', row.id);
-    if (error) {
-      console.error(`[GROUP SERIES] Failed to link ${row.table} ${row.id}:`, error);
+            .eq('id', row.id)
+            .select('id');
+    if (error || !updated || updated.length === 0) {
+      console.error(
+        `[GROUP SERIES] Failed to link ${row.table} ${row.id}:`,
+        error ?? 'row no longer exists'
+      );
       failed.push(...rows.slice(i).map((r) => r.id));
       break;
     }

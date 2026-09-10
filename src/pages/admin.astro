@@ -1420,6 +1420,7 @@ const userEmail = session.user?.email || 'Admin';
                       ' data-group-table="' + (eventIsStaged ? 'events_staged' : 'events') + '"' +
                       ' data-group-title="' + escapeAttr(event.title) + '"' +
                       ' data-group-date="' + escapeAttr(event.start_date) + '"' +
+                      ' data-group-parent="' + escapeAttr(hasParent ? event.parent_title : '') + '"' +
                       ' aria-label="Select for grouping">') +
                   '</td>'
                 : '') +
