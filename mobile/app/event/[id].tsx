@@ -16,6 +16,7 @@ import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } f
 import { fetchEventById, fetchRelatedEvents } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { openMaps } from '../../lib/mapUtils';
+import { openMailto } from '../../lib/linkingUtils';
 import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
@@ -464,11 +465,7 @@ export default function EventDetailScreen() {
           {/* Report / suggest update */}
           <TouchableOpacity
             style={styles.reportBtn}
-            onPress={() =>
-              Linking.openURL(
-                `mailto:${APP_CONFIG.contactEmail}?subject=${encodeURIComponent(`Event update: ${event?.title ?? ''}`)}`
-              )
-            }
+            onPress={() => openMailto(APP_CONFIG.contactEmail, `Event update: ${event?.title ?? ''}`)}
             activeOpacity={0.7}
           >
             <Text style={styles.reportBtnText}>Something wrong? Suggest an update →</Text>

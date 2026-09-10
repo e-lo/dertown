@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Linking,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +14,7 @@ import { THEME } from '../../lib/theme';
 import { APP_CONFIG } from '../../lib/app-config';
 import { fetchOrganization } from '../../lib/api';
 import { openMaps } from '../../lib/mapUtils';
+import { openMailto, openTel } from '../../lib/linkingUtils';
 import { Icon } from '../../components/Icon';
 import { EventRow } from '../../components/EventRow';
 import { useStars } from '../../contexts/StarContext';
@@ -144,7 +144,7 @@ export default function OrganizationScreen() {
             {org.phone ? (
               <TouchableOpacity
                 style={styles.detailRow}
-                onPress={() => Linking.openURL(`tel:${org.phone!.replace(/\D/g, '')}`)}
+                onPress={() => openTel(org.phone!)}
                 activeOpacity={0.7}
               >
                 <Icon name="phone" size={18} color={THEME.canary} />
@@ -156,7 +156,7 @@ export default function OrganizationScreen() {
             {org.email ? (
               <TouchableOpacity
                 style={styles.detailRow}
-                onPress={() => Linking.openURL(`mailto:${org.email}`)}
+                onPress={() => openMailto(org.email!)}
                 activeOpacity={0.7}
               >
                 <Icon name="mail" size={18} color={THEME.canary} />

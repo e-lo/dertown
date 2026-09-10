@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../lib/theme';
 import { Icon } from '../components/Icon';
+import { openMailto } from '../lib/linkingUtils';
 
 import { APP_CONFIG } from '../lib/app-config';
 
@@ -40,11 +41,11 @@ function Bullet({ text }: { text: string }) {
 }
 
 function ActionBtn({ label, url, subject }: { label: string; url?: string; subject?: string }) {
-  const href = url ?? `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject ?? '')}`;
+  const open = () => (url ? Linking.openURL(url) : openMailto(CONTACT_EMAIL, subject));
   return (
     <TouchableOpacity
       style={styles.actionBtn}
-      onPress={() => Linking.openURL(href)}
+      onPress={open}
       activeOpacity={0.7}
     >
       <Text style={styles.actionBtnText}>{label}</Text>
@@ -117,11 +118,7 @@ export default function HelpScreen() {
             organization in the {APP_CONFIG.townName} area and are interested,{' '}
             <Text
               style={styles.link}
-              onPress={() =>
-                Linking.openURL(
-                  `mailto:${APP_CONFIG.contactEmail}?subject=Organization admin account interest`
-                )
-              }
+              onPress={() => openMailto(APP_CONFIG.contactEmail, 'Organization admin account interest')}
             >
               email us
             </Text>
@@ -231,9 +228,7 @@ export default function HelpScreen() {
             Corrections and updates are gladly accepted —{' '}
             <Text
               style={styles.link}
-              onPress={() =>
-                Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Dertown inaccuracy report`)
-              }
+              onPress={() => openMailto(CONTACT_EMAIL, 'Dertown inaccuracy report')}
             >
               let us know
             </Text>
