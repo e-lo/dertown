@@ -7,9 +7,8 @@ export const prerender = false;
 export const GET: APIRoute = async () => {
   try {
     const now = new Date().toISOString();
-    // Query announcements table directly (public_announcements view incorrectly excludes
-    // rows where show_at IS NULL because NULL <= now() evaluates to NULL in PostgreSQL).
-    // The announcements table has RLS: "Enable read access for all users" FOR SELECT USING (true).
+    // Query the announcements table directly. Its published-only RLS policy
+    // treats a null show_at as "show now", so the filters below mirror it.
     const { data: announcements, error } = await supabase
       .from('announcements')
       .select('*')
