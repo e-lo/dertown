@@ -23,10 +23,14 @@ function runTests(): boolean {
   let allTestsPassed = true;
 
   allTestsPassed =
-    check('build', buildApprovedParentMarker(PARENT_A), `[SCRAPER_APPROVED_PARENT_ID:${PARENT_A}]`) &&
-    allTestsPassed;
+    check(
+      'build',
+      buildApprovedParentMarker(PARENT_A),
+      `[SCRAPER_APPROVED_PARENT_ID:${PARENT_A}]`
+    ) && allTestsPassed;
 
-  allTestsPassed = check('extract from null', extractApprovedParentId(null), null) && allTestsPassed;
+  allTestsPassed =
+    check('extract from null', extractApprovedParentId(null), null) && allTestsPassed;
   allTestsPassed =
     check('extract from plain comments', extractApprovedParentId('Source: library'), null) &&
     allTestsPassed;
@@ -43,7 +47,8 @@ function runTests(): boolean {
       PARENT_A.toUpperCase()
     ) && allTestsPassed;
 
-  allTestsPassed = check('strip null → null', stripApprovedParentMarker(null), null) && allTestsPassed;
+  allTestsPassed =
+    check('strip null → null', stripApprovedParentMarker(null), null) && allTestsPassed;
   allTestsPassed =
     check(
       'strip removes marker and trims',
@@ -72,7 +77,10 @@ function runTests(): boolean {
   allTestsPassed =
     check(
       'apply replaces an existing marker',
-      applyApprovedParentMarker(`Source: library\n[SCRAPER_APPROVED_PARENT_ID:${PARENT_A}]`, PARENT_B),
+      applyApprovedParentMarker(
+        `Source: library\n[SCRAPER_APPROVED_PARENT_ID:${PARENT_A}]`,
+        PARENT_B
+      ),
       `Source: library\n[SCRAPER_APPROVED_PARENT_ID:${PARENT_B}]`
     ) && allTestsPassed;
 

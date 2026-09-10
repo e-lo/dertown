@@ -1,26 +1,12 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import {
+  applyApprovedParentMarker,
+  extractApprovedParentId,
+  stripApprovedParentMarker,
+} from '@/lib/series-parent-marker';
 
 export const prerender = false;
-
-const SCRAPER_APPROVED_PARENT_ID_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/gi;
-
-function extractScraperApprovedParentId(comments: string | null): string | null {
-  if (!comments) return null;
-  const match = comments.match(SCRAPER_APPROVED_PARENT_ID_REGEX);
-  if (!match?.[0]) return null;
-  const idMatch = match[0].match(/[0-9a-f-]{36}/i);
-  return idMatch?.[0] || null;
-}
-
-function applyApprovedParentMarker(
-  comments: string | null | undefined,
-  approvedParentId: string
-): string {
-  const cleaned = (comments || '').replace(SCRAPER_APPROVED_PARENT_ID_REGEX, '').trim();
-  const marker = `[SCRAPER_APPROVED_PARENT_ID:${approvedParentId}]`;
-  return cleaned ? `${cleaned}\n${marker}` : marker;
-}
 
 export const POST = withAdminAuth(async ({ request, auth }) => {
   const { eventId } = await request.json();
@@ -59,7 +45,7 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   // If scraper staged comments include an approved parent marker, apply it at approval time.
   if (!parentEventId) {
-    const markedApprovedParentId = extractScraperApprovedParentId(stagedEvent.comments);
+    const markedApprovedParentId = extractApprovedParentId(stagedEvent.comments);
     if (markedApprovedParentId) {
       const { data: approvedParent } = await supabaseAdmin
         .from('events')
@@ -132,9 +118,7 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   }
 
   // Strip any SCRAPER_APPROVED_PARENT_ID markers from comments before saving to events
-  const cleanedComments = (stagedEvent.comments || '')
-    .replace(SCRAPER_APPROVED_PARENT_ID_REGEX, '')
-    .trim() || null;
+  const cleanedComments = stripApprovedParentMarker(stagedEvent.comments);
 
   // Create the approved event using admin client
   const { data: createdEvent, error: createError } = await supabaseAdmin

@@ -1,22 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { applyApprovedParentMarker, stripApprovedParentMarker } from '@/lib/series-parent-marker';
 
 export const prerender = false;
-const APPROVED_PARENT_MARKER_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:[0-9a-f-]{36}\]/gi;
-
-function applyApprovedParentMarker(
-  comments: string | null | undefined,
-  approvedParentId: string
-): string {
-  const cleaned = (comments || '').replace(APPROVED_PARENT_MARKER_REGEX, '').trim();
-  const marker = `[SCRAPER_APPROVED_PARENT_ID:${approvedParentId}]`;
-  return cleaned ? `${cleaned}\n${marker}` : marker;
-}
-
-function stripApprovedParentMarker(comments: string | null | undefined): string | null {
-  const cleaned = (comments || '').replace(APPROVED_PARENT_MARKER_REGEX, '').trim();
-  return cleaned || null;
-}
 
 export const PUT = withAdminAuth(async ({ request, auth }) => {
   const { id, ...updateData } = await request.json();

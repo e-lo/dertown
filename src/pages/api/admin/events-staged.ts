@@ -1,16 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import { findEventDuplicateHint } from '@/lib/event-duplicate';
+import { extractApprovedParentId } from '@/lib/series-parent-marker';
 
 export const prerender = false;
-
-const SCRAPER_APPROVED_PARENT_ID_REGEX = /\[SCRAPER_APPROVED_PARENT_ID:([0-9a-f-]{36})\]/i;
-
-function extractApprovedParentId(comments: string | null): string | null {
-  if (!comments) return null;
-  const match = comments.match(SCRAPER_APPROVED_PARENT_ID_REGEX);
-  return match?.[1] || null;
-}
 
 export const GET = withAdminAuth(async ({ auth }) => {
   // Review queue: only pending. Rejected rows use duplicate/archived/cancelled (DB-enforced, not shown here).

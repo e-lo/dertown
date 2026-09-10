@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import type { ProcessedEvent, SourceConfig } from './types';
+import { buildApprovedParentMarker } from '../series-parent-marker';
 
 type StagedInsert = Database['public']['Tables']['events_staged']['Insert'];
 type EventUpdate = Database['public']['Tables']['events']['Update'];
@@ -29,11 +30,6 @@ interface ConfiguredSeriesParentResolution {
 }
 
 const DEBUG_EVENT_ID = 'bc1cf502-396b-46e8-99d1-6e5dce4b6682';
-const SCRAPER_APPROVED_PARENT_ID_PREFIX = '[SCRAPER_APPROVED_PARENT_ID:';
-
-function buildApprovedParentMarker(parentId: string): string {
-  return `${SCRAPER_APPROVED_PARENT_ID_PREFIX}${parentId}]`;
-}
 
 /** Write processed events to the database: insert new staged events, auto-update existing ones. */
 export async function writeProcessedEvents(
