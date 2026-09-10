@@ -1087,13 +1087,6 @@ const hierarchyTree = buildHierarchy(activities || []);
                   <option value="FULL">Full - No Waitlist</option>
                 </select>
               </div>
-              
-              <div>
-                <label class="flex items-center">
-                  <input type="checkbox" id="ignoreExceptions" name="ignore_exceptions" class="mr-2">
-                  <span class="text-sm">🚫 Ignore Parent Exceptions</span>
-                </label>
-              </div>
             </div>
           </div>
         </div>
@@ -1179,7 +1172,7 @@ const hierarchyTree = buildHierarchy(activities || []);
 
   <script>
     // Secure client-side script - no sensitive data or authentication logic
-    let isAuthenticated = true; // Set by server-side authentication
+    const isAuthenticated = true; // Set by server-side authentication
 
     // Helper function to make API calls with automatic error handling
     async function makeApiCall(url: string, options: RequestInit = {}) {
@@ -1273,7 +1266,7 @@ const hierarchyTree = buildHierarchy(activities || []);
 
     function mergeActivity(id: string) {
       mergeSourceId = id;
-      let list: Array<{ id: string; name: string | null; type: string | null }> = [];
+      let list: Array<{ id: string; name: string | null; type: string | null }>;
       try {
         list = JSON.parse(document.getElementById('activities-picker-data')?.textContent || '[]');
       } catch {
@@ -1463,7 +1456,7 @@ const hierarchyTree = buildHierarchy(activities || []);
     function loadParentOptions(excludeId?: string | null) {
       const sel = document.getElementById('parentActivityId') as HTMLSelectElement | null;
       if (!sel) return;
-      let list: Array<{ id: string; name: string | null; type: string | null }> = [];
+      let list: Array<{ id: string; name: string | null; type: string | null }>;
       try {
         list = JSON.parse(document.getElementById('activities-picker-data')?.textContent || '[]');
       } catch {
@@ -1765,7 +1758,6 @@ const hierarchyTree = buildHierarchy(activities || []);
           'until',
           'event_name',
           'event_description',
-          'ignore_exceptions',
         ]) {
           delete body[k];
         }

@@ -33,7 +33,6 @@ const body = {
   until: '2026-08-30',
   event_name: 'Practice',
   event_description: 'Weekly practice',
-  ignore_exceptions: false,
 };
 
 const result = stripScheduleFields(body) as Record<string, unknown>;
@@ -44,8 +43,19 @@ for (const f of SCHEDULE_ONLY_FIELDS) {
 }
 
 // Valid columns must be preserved — guard against silent data loss.
-for (const keep of ['name', 'waitlist_status', 'session_id', 'start_datetime', 'end_datetime', 'cost', 'activity_hierarchy_type']) {
-  check(`preserves activities column '${keep}'`, keep in result && result[keep] === (body as any)[keep]);
+for (const keep of [
+  'name',
+  'waitlist_status',
+  'session_id',
+  'start_datetime',
+  'end_datetime',
+  'cost',
+  'activity_hierarchy_type',
+]) {
+  check(
+    `preserves activities column '${keep}'`,
+    keep in result && result[keep] === (body as any)[keep]
+  );
 }
 
 // Must not mutate the input.

@@ -24,7 +24,6 @@ export const SCHEDULE_ONLY_FIELDS = [
   'until',
   'event_name',
   'event_description',
-  'ignore_exceptions',
 ] as const;
 
 const SCHEDULE_ONLY_SET: ReadonlySet<string> = new Set(SCHEDULE_ONLY_FIELDS);

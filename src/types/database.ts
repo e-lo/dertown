@@ -1,11 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: '12.2.3 (519615d)';
-  };
   graphql_public: {
     Tables: {
       [_ in never]: never;
@@ -41,6 +36,7 @@ export type Database = {
           activity_type: string | null;
           additional_requirements: string | null;
           audience: string | null;
+          available_class_type_ids: string[] | null;
           commitment_level: string | null;
           cost: string | null;
           cost_assistance_available: boolean | null;
@@ -71,6 +67,7 @@ export type Database = {
           parent_activity_id: string | null;
           participation_type: string | null;
           phone: string | null;
+          program_format: string | null;
           registration_closes: string | null;
           registration_info: string | null;
           registration_link: string | null;
@@ -96,7 +93,6 @@ export type Database = {
           updated_at: string | null;
           waitlist_available: boolean | null;
           waitlist_status: string | null;
-          available_class_type_ids: string[] | null;
           website: string | null;
         };
         Insert: {
@@ -106,6 +102,7 @@ export type Database = {
           activity_type?: string | null;
           additional_requirements?: string | null;
           audience?: string | null;
+          available_class_type_ids?: string[] | null;
           commitment_level?: string | null;
           cost?: string | null;
           cost_assistance_available?: boolean | null;
@@ -136,6 +133,7 @@ export type Database = {
           parent_activity_id?: string | null;
           participation_type?: string | null;
           phone?: string | null;
+          program_format?: string | null;
           registration_closes?: string | null;
           registration_info?: string | null;
           registration_link?: string | null;
@@ -161,7 +159,6 @@ export type Database = {
           updated_at?: string | null;
           waitlist_available?: boolean | null;
           waitlist_status?: string | null;
-          available_class_type_ids?: string[] | null;
           website?: string | null;
         };
         Update: {
@@ -171,6 +168,7 @@ export type Database = {
           activity_type?: string | null;
           additional_requirements?: string | null;
           audience?: string | null;
+          available_class_type_ids?: string[] | null;
           commitment_level?: string | null;
           cost?: string | null;
           cost_assistance_available?: boolean | null;
@@ -201,6 +199,7 @@ export type Database = {
           parent_activity_id?: string | null;
           participation_type?: string | null;
           phone?: string | null;
+          program_format?: string | null;
           registration_closes?: string | null;
           registration_info?: string | null;
           registration_link?: string | null;
@@ -226,7 +225,6 @@ export type Database = {
           updated_at?: string | null;
           waitlist_available?: boolean | null;
           waitlist_status?: string | null;
-          available_class_type_ids?: string[] | null;
           website?: string | null;
         };
         Relationships: [
@@ -282,9 +280,7 @@ export type Database = {
           end_datetime: string | null;
           event_id: string;
           event_type: string | null;
-          ignore_exceptions: boolean | null;
           name: string;
-          recurrence_pattern_id: string | null;
           start_datetime: string | null;
           updated_at: string | null;
           waitlist_status: string | null;
@@ -296,9 +292,7 @@ export type Database = {
           end_datetime?: string | null;
           event_id?: string;
           event_type?: string | null;
-          ignore_exceptions?: boolean | null;
           name: string;
-          recurrence_pattern_id?: string | null;
           start_datetime?: string | null;
           updated_at?: string | null;
           waitlist_status?: string | null;
@@ -310,9 +304,7 @@ export type Database = {
           end_datetime?: string | null;
           event_id?: string;
           event_type?: string | null;
-          ignore_exceptions?: boolean | null;
           name?: string;
-          recurrence_pattern_id?: string | null;
           start_datetime?: string | null;
           updated_at?: string | null;
           waitlist_status?: string | null;
@@ -332,65 +324,36 @@ export type Database = {
             referencedRelation: 'public_activities';
             referencedColumns: ['id'];
           },
-          {
-            foreignKeyName: 'activity_events_recurrence_pattern_id_fkey';
-            columns: ['recurrence_pattern_id'];
-            isOneToOne: false;
-            referencedRelation: 'recurrence_patterns';
-            referencedColumns: ['pattern_id'];
-          },
         ];
       };
-      activity_schedule: {
+      allowlisted_org_emails: {
         Row: {
-          active: boolean | null;
-          activity_id: string | null;
           created_at: string | null;
-          end_time: string;
-          max_capacity: number | null;
-          name: string;
-          schedule_id: string;
-          start_time: string;
-          updated_at: string | null;
-          waitlist_available: boolean | null;
+          created_by: string;
+          email: string;
+          id: string;
+          organization_id: string;
         };
         Insert: {
-          active?: boolean | null;
-          activity_id?: string | null;
           created_at?: string | null;
-          end_time: string;
-          max_capacity?: number | null;
-          name: string;
-          schedule_id?: string;
-          start_time: string;
-          updated_at?: string | null;
-          waitlist_available?: boolean | null;
+          created_by: string;
+          email: string;
+          id?: string;
+          organization_id: string;
         };
         Update: {
-          active?: boolean | null;
-          activity_id?: string | null;
           created_at?: string | null;
-          end_time?: string;
-          max_capacity?: number | null;
-          name?: string;
-          schedule_id?: string;
-          start_time?: string;
-          updated_at?: string | null;
-          waitlist_available?: boolean | null;
+          created_by?: string;
+          email?: string;
+          id?: string;
+          organization_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'activity_schedule_activity_id_fkey';
-            columns: ['activity_id'];
+            foreignKeyName: 'allowlisted_org_emails_organization_id_fkey';
+            columns: ['organization_id'];
             isOneToOne: false;
-            referencedRelation: 'activities';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'activity_schedule_activity_id_fkey';
-            columns: ['activity_id'];
-            isOneToOne: false;
-            referencedRelation: 'public_activities';
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];
@@ -499,97 +462,23 @@ export type Database = {
         };
         Relationships: [];
       };
-      calendar_exceptions: {
+      email_allowlist: {
         Row: {
-          activity_id: string | null;
-          created_at: string | null;
-          end_date: string;
-          end_time: string | null;
-          exception_id: string;
-          name: string;
-          notes: string | null;
-          start_date: string;
-          start_time: string | null;
-          updated_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
         };
         Insert: {
-          activity_id?: string | null;
-          created_at?: string | null;
-          end_date: string;
-          end_time?: string | null;
-          exception_id?: string;
-          name: string;
-          notes?: string | null;
-          start_date: string;
-          start_time?: string | null;
-          updated_at?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
         };
         Update: {
-          activity_id?: string | null;
-          created_at?: string | null;
-          end_date?: string;
-          end_time?: string | null;
-          exception_id?: string;
-          name?: string;
-          notes?: string | null;
-          start_date?: string;
-          start_time?: string | null;
-          updated_at?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: 'calendar_exception_activity_id_fkey';
-            columns: ['activity_id'];
-            isOneToOne: false;
-            referencedRelation: 'activities';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'calendar_exception_activity_id_fkey';
-            columns: ['activity_id'];
-            isOneToOne: false;
-            referencedRelation: 'public_activities';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      event_exceptions: {
-        Row: {
-          created_at: string | null;
-          end_datetime: string;
-          event_id: string | null;
-          exception_id: string;
-          name: string;
-          notes: string | null;
-          start_datetime: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          end_datetime: string;
-          event_id?: string | null;
-          exception_id?: string;
-          name: string;
-          notes?: string | null;
-          start_datetime: string;
-        };
-        Update: {
-          created_at?: string | null;
-          end_datetime?: string;
-          event_id?: string | null;
-          exception_id?: string;
-          name?: string;
-          notes?: string | null;
-          start_datetime?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'event_exceptions_event_id_fkey';
-            columns: ['event_id'];
-            isOneToOne: false;
-            referencedRelation: 'activity_events';
-            referencedColumns: ['event_id'];
-          },
-        ];
+        Relationships: [];
       };
       events: {
         Row: {
@@ -935,6 +824,38 @@ export type Database = {
           },
         ];
       };
+      org_users: {
+        Row: {
+          created_at: string | null;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'org_users_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organizations: {
         Row: {
           created_at: string | null;
@@ -992,63 +913,27 @@ export type Database = {
           },
         ];
       };
-      recurrence_patterns: {
-        Row: {
-          created_at: string | null;
-          end_time: string;
-          freq: string | null;
-          interval: number | null;
-          pattern_id: string;
-          start_time: string;
-          until: string | null;
-          updated_at: string | null;
-          weekdays: string[];
-        };
-        Insert: {
-          created_at?: string | null;
-          end_time: string;
-          freq?: string | null;
-          interval?: number | null;
-          pattern_id?: string;
-          start_time: string;
-          until?: string | null;
-          updated_at?: string | null;
-          weekdays: string[];
-        };
-        Update: {
-          created_at?: string | null;
-          end_time?: string;
-          freq?: string | null;
-          interval?: number | null;
-          pattern_id?: string;
-          start_time?: string;
-          until?: string | null;
-          updated_at?: string | null;
-          weekdays?: string[];
-        };
-        Relationships: [];
-      };
       push_tokens: {
         Row: {
-          id: string;
-          token: string;
-          platform: string;
           created_at: string;
+          id: string;
           last_seen_at: string;
+          platform: string;
+          token: string;
         };
         Insert: {
-          id?: string;
-          token: string;
-          platform: string;
           created_at?: string;
+          id?: string;
           last_seen_at?: string;
+          platform: string;
+          token: string;
         };
         Update: {
-          id?: string;
-          token?: string;
-          platform?: string;
           created_at?: string;
+          id?: string;
           last_seen_at?: string;
+          platform?: string;
+          token?: string;
         };
         Relationships: [];
       };
@@ -1171,6 +1056,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_permissions: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          is_admin: boolean | null;
+          org_access_enabled: boolean | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          is_admin?: boolean | null;
+          org_access_enabled?: boolean | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          is_admin?: boolean | null;
+          org_access_enabled?: boolean | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       public_activities: {
@@ -1209,6 +1121,7 @@ export type Database = {
           parent_activity_id: string | null;
           participation_type: string | null;
           phone: string | null;
+          program_format: string | null;
           registration_closes: string | null;
           registration_info: string | null;
           registration_link: string | null;
@@ -1267,33 +1180,53 @@ export type Database = {
       };
       public_announcements: {
         Row: {
+          author: string | null;
           created_at: string | null;
+          email: string | null;
           expires_at: string | null;
           id: string | null;
+          link: string | null;
           message: string | null;
+          organization_id: string | null;
           show_at: string | null;
           status: Database['public']['Enums']['announcement_status'] | null;
           title: string | null;
         };
         Insert: {
+          author?: string | null;
           created_at?: string | null;
+          email?: string | null;
           expires_at?: string | null;
           id?: string | null;
+          link?: string | null;
           message?: string | null;
+          organization_id?: string | null;
           show_at?: string | null;
           status?: Database['public']['Enums']['announcement_status'] | null;
           title?: string | null;
         };
         Update: {
+          author?: string | null;
           created_at?: string | null;
+          email?: string | null;
           expires_at?: string | null;
           id?: string | null;
+          link?: string | null;
           message?: string | null;
+          organization_id?: string | null;
           show_at?: string | null;
           status?: Database['public']['Enums']['announcement_status'] | null;
           title?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'announcements_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       public_events: {
         Row: {
@@ -1370,62 +1303,6 @@ export type Database = {
       };
     };
     Functions: {
-      clone_event_to_series: {
-        Args: {
-          p_dates: string[];
-          p_insert?: boolean;
-          p_source_event_id: string;
-          p_titles: string[];
-        };
-        Returns: {
-          cost: string;
-          end_time: string;
-          external_image_url: string;
-          image_alt_text: string;
-          location_id: string;
-          organization_id: string;
-          parent_event_id: string;
-          primary_tag_id: string;
-          secondary_tag_id: string;
-          start_date: string;
-          start_time: string;
-          title: string;
-          website: string;
-        }[];
-      };
-      get_activity_ancestors: {
-        Args: { activity_uuid: string };
-        Returns: {
-          ancestor_id: string;
-        }[];
-      };
-      get_activity_exceptions: {
-        Args: {
-          activity_uuid: string;
-          query_end_date: string;
-          query_start_date: string;
-        };
-        Returns: {
-          activity_id: string;
-          end_date: string;
-          end_time: string;
-          exception_id: string;
-          name: string;
-          notes: string;
-          start_date: string;
-          start_time: string;
-        }[];
-      };
-      get_effective_location: {
-        Args: { activity_uuid: string };
-        Returns: {
-          location_address: string;
-          location_details: string;
-          location_id: string;
-          location_name: string;
-          source_level: string;
-        }[];
-      };
       get_effective_registration: {
         Args: { activity_uuid: string };
         Returns: {
@@ -1438,34 +1315,8 @@ export type Database = {
           source_level: string;
         }[];
       };
-      is_admin: {
-        Args: Record<PropertyKey, never>;
-        Returns: boolean;
-      };
-      recurring_monthly_events: {
-        Args: {
-          p_day_of_week: string;
-          p_event_title: string;
-          p_months_ahead?: number;
-          p_start_month?: number;
-          p_week_of_month: number;
-        };
-        Returns: {
-          date: string;
-          title: string;
-        }[];
-      };
-      recurring_weekly_events: {
-        Args: {
-          p_event_title: string;
-          p_start_date: string;
-          p_weeks_ahead?: number;
-        };
-        Returns: {
-          date: string;
-          title: string;
-        }[];
-      };
+      has_admin_access: { Args: never; Returns: boolean };
+      has_org_access: { Args: { org_id: string }; Returns: boolean };
     };
     Enums: {
       announcement_status: 'pending' | 'published' | 'archived';
@@ -1523,26 +1374,148 @@ export type Database = {
       buckets_analytics: {
         Row: {
           created_at: string;
+          deleted_at: string | null;
           format: string;
+          id: string;
+          name: string;
+          type: Database['storage']['Enums']['buckettype'];
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          deleted_at?: string | null;
+          format?: string;
+          id?: string;
+          name: string;
+          type?: Database['storage']['Enums']['buckettype'];
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          deleted_at?: string | null;
+          format?: string;
+          id?: string;
+          name?: string;
+          type?: Database['storage']['Enums']['buckettype'];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      buckets_vectors: {
+        Row: {
+          created_at: string;
           id: string;
           type: Database['storage']['Enums']['buckettype'];
           updated_at: string;
         };
         Insert: {
           created_at?: string;
-          format?: string;
           id: string;
           type?: Database['storage']['Enums']['buckettype'];
           updated_at?: string;
         };
         Update: {
           created_at?: string;
-          format?: string;
           id?: string;
           type?: Database['storage']['Enums']['buckettype'];
           updated_at?: string;
         };
         Relationships: [];
+      };
+      iceberg_namespaces: {
+        Row: {
+          bucket_name: string;
+          catalog_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          bucket_name: string;
+          catalog_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          bucket_name?: string;
+          catalog_id?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'iceberg_namespaces_catalog_id_fkey';
+            columns: ['catalog_id'];
+            isOneToOne: false;
+            referencedRelation: 'buckets_analytics';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      iceberg_tables: {
+        Row: {
+          bucket_name: string;
+          catalog_id: string;
+          created_at: string;
+          id: string;
+          location: string;
+          name: string;
+          namespace_id: string;
+          remote_table_id: string | null;
+          shard_id: string | null;
+          shard_key: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          bucket_name: string;
+          catalog_id: string;
+          created_at?: string;
+          id?: string;
+          location: string;
+          name: string;
+          namespace_id: string;
+          remote_table_id?: string | null;
+          shard_id?: string | null;
+          shard_key?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          bucket_name?: string;
+          catalog_id?: string;
+          created_at?: string;
+          id?: string;
+          location?: string;
+          name?: string;
+          namespace_id?: string;
+          remote_table_id?: string | null;
+          shard_id?: string | null;
+          shard_key?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'iceberg_tables_catalog_id_fkey';
+            columns: ['catalog_id'];
+            isOneToOne: false;
+            referencedRelation: 'buckets_analytics';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'iceberg_tables_namespace_id_fkey';
+            columns: ['namespace_id'];
+            isOneToOne: false;
+            referencedRelation: 'iceberg_namespaces';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       migrations: {
         Row: {
@@ -1571,7 +1544,6 @@ export type Database = {
           created_at: string | null;
           id: string;
           last_accessed_at: string | null;
-          level: number | null;
           metadata: Json | null;
           name: string | null;
           owner: string | null;
@@ -1586,7 +1558,6 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           last_accessed_at?: string | null;
-          level?: number | null;
           metadata?: Json | null;
           name?: string | null;
           owner?: string | null;
@@ -1601,7 +1572,6 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           last_accessed_at?: string | null;
-          level?: number | null;
           metadata?: Json | null;
           name?: string | null;
           owner?: string | null;
@@ -1621,38 +1591,6 @@ export type Database = {
           },
         ];
       };
-      prefixes: {
-        Row: {
-          bucket_id: string;
-          created_at: string | null;
-          level: number;
-          name: string;
-          updated_at: string | null;
-        };
-        Insert: {
-          bucket_id: string;
-          created_at?: string | null;
-          level?: number;
-          name: string;
-          updated_at?: string | null;
-        };
-        Update: {
-          bucket_id?: string;
-          created_at?: string | null;
-          level?: number;
-          name?: string;
-          updated_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'prefixes_bucketId_fkey';
-            columns: ['bucket_id'];
-            isOneToOne: false;
-            referencedRelation: 'buckets';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       s3_multipart_uploads: {
         Row: {
           bucket_id: string;
@@ -1660,6 +1598,7 @@ export type Database = {
           id: string;
           in_progress_size: number;
           key: string;
+          metadata: Json | null;
           owner_id: string | null;
           upload_signature: string;
           user_metadata: Json | null;
@@ -1671,6 +1610,7 @@ export type Database = {
           id: string;
           in_progress_size?: number;
           key: string;
+          metadata?: Json | null;
           owner_id?: string | null;
           upload_signature: string;
           user_metadata?: Json | null;
@@ -1682,6 +1622,7 @@ export type Database = {
           id?: string;
           in_progress_size?: number;
           key?: string;
+          metadata?: Json | null;
           owner_id?: string | null;
           upload_signature?: string;
           user_metadata?: Json | null;
@@ -1751,49 +1692,76 @@ export type Database = {
           },
         ];
       };
+      vector_indexes: {
+        Row: {
+          bucket_id: string;
+          created_at: string;
+          data_type: string;
+          dimension: number;
+          distance_metric: string;
+          id: string;
+          metadata_configuration: Json | null;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          bucket_id: string;
+          created_at?: string;
+          data_type: string;
+          dimension: number;
+          distance_metric: string;
+          id?: string;
+          metadata_configuration?: Json | null;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          bucket_id?: string;
+          created_at?: string;
+          data_type?: string;
+          dimension?: number;
+          distance_metric?: string;
+          id?: string;
+          metadata_configuration?: Json | null;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'vector_indexes_bucket_id_fkey';
+            columns: ['bucket_id'];
+            isOneToOne: false;
+            referencedRelation: 'buckets_vectors';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      add_prefixes: {
-        Args: { _bucket_id: string; _name: string };
-        Returns: undefined;
+      allow_any_operation: {
+        Args: { expected_operations: string[] };
+        Returns: boolean;
+      };
+      allow_only_operation: {
+        Args: { expected_operation: string };
+        Returns: boolean;
       };
       can_insert_object: {
         Args: { bucketid: string; metadata: Json; name: string; owner: string };
         Returns: undefined;
       };
-      delete_prefix: {
-        Args: { _bucket_id: string; _name: string };
-        Returns: boolean;
-      };
-      extension: {
-        Args: { name: string };
+      extension: { Args: { name: string }; Returns: string };
+      filename: { Args: { name: string }; Returns: string };
+      foldername: { Args: { name: string }; Returns: string[] };
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string };
         Returns: string;
-      };
-      filename: {
-        Args: { name: string };
-        Returns: string;
-      };
-      foldername: {
-        Args: { name: string };
-        Returns: string[];
-      };
-      get_level: {
-        Args: { name: string };
-        Returns: number;
-      };
-      get_prefix: {
-        Args: { name: string };
-        Returns: string;
-      };
-      get_prefixes: {
-        Args: { name: string };
-        Returns: string[];
       };
       get_size_by_bucket: {
-        Args: Record<PropertyKey, never>;
+        Args: never;
         Returns: {
           bucket_id: string;
           size: number;
@@ -1816,24 +1784,24 @@ export type Database = {
       };
       list_objects_with_delimiter: {
         Args: {
-          bucket_id: string;
+          _bucket_id: string;
           delimiter_param: string;
           max_keys?: number;
           next_token?: string;
           prefix_param: string;
+          sort_order?: string;
           start_after?: string;
         };
         Returns: {
+          created_at: string;
           id: string;
+          last_accessed_at: string;
           metadata: Json;
           name: string;
           updated_at: string;
         }[];
       };
-      operation: {
-        Args: Record<PropertyKey, never>;
-        Returns: string;
-      };
+      operation: { Args: never; Returns: string };
       search: {
         Args: {
           bucketname: string;
@@ -1854,40 +1822,21 @@ export type Database = {
           updated_at: string;
         }[];
       };
-      search_legacy_v1: {
+      search_by_timestamp: {
         Args: {
-          bucketname: string;
-          levels?: number;
-          limits?: number;
-          offsets?: number;
-          prefix: string;
-          search?: string;
-          sortcolumn?: string;
-          sortorder?: string;
+          p_bucket_id: string;
+          p_level: number;
+          p_limit: number;
+          p_prefix: string;
+          p_sort_column: string;
+          p_sort_column_after: string;
+          p_sort_order: string;
+          p_start_after: string;
         };
         Returns: {
           created_at: string;
           id: string;
-          last_accessed_at: string;
-          metadata: Json;
-          name: string;
-          updated_at: string;
-        }[];
-      };
-      search_v1_optimised: {
-        Args: {
-          bucketname: string;
-          levels?: number;
-          limits?: number;
-          offsets?: number;
-          prefix: string;
-          search?: string;
-          sortcolumn?: string;
-          sortorder?: string;
-        };
-        Returns: {
-          created_at: string;
-          id: string;
+          key: string;
           last_accessed_at: string;
           metadata: Json;
           name: string;
@@ -1900,12 +1849,16 @@ export type Database = {
           levels?: number;
           limits?: number;
           prefix: string;
+          sort_column?: string;
+          sort_column_after?: string;
+          sort_order?: string;
           start_after?: string;
         };
         Returns: {
           created_at: string;
           id: string;
           key: string;
+          last_accessed_at: string;
           metadata: Json;
           name: string;
           updated_at: string;
@@ -1913,7 +1866,7 @@ export type Database = {
       };
     };
     Enums: {
-      buckettype: 'STANDARD' | 'ANALYTICS';
+      buckettype: 'STANDARD' | 'ANALYTICS' | 'VECTOR';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -2049,28 +2002,7 @@ export const Constants = {
   },
   storage: {
     Enums: {
-      buckettype: ['STANDARD', 'ANALYTICS'],
+      buckettype: ['STANDARD', 'ANALYTICS', 'VECTOR'],
     },
   },
 } as const;
-
-export interface OrgUsers {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  created_at: string;
-  created_by: string;
-}
-
-export interface AllowlistedOrgEmails {
-  id: string;
-  email: string;
-  organization_id: string;
-  created_at: string;
-  created_by: string;
-}
-
-export interface UserRole {
-  role: 'super_admin' | 'org_editor';
-  organizationIds?: string[];
-}
