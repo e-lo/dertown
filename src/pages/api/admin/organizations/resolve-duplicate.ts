@@ -9,7 +9,7 @@ async function repointOrganizationReferences(fromId: string, toId: string): Prom
     { table: 'events_staged', column: 'organization_id' },
     { table: 'announcements', column: 'organization_id' },
     { table: 'source_sites', column: 'organization_id' },
-    { table: 'kid_activities', column: 'sponsoring_organization_id' },
+    { table: 'activities', column: 'sponsoring_organization_id' },
     { table: 'organizations', column: 'parent_organization_id' },
   ];
 
@@ -73,7 +73,8 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
       throw new Error(`Failed to archive duplicate organization: ${archiveError.message}`);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to resolve duplicate organization';
+    const message =
+      error instanceof Error ? error.message : 'Failed to resolve duplicate organization';
     return jsonError(message, 500);
   }
 

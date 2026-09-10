@@ -9,10 +9,10 @@ const MAX_DEPTH = 10;
 /**
  * Resolve an activity's effective location by walking UP the parent chain to the
  * nearest ancestor that has a location_id (falling back to free-text
- * location_details). Implemented as a bounded app-level walk rather than the
- * recursive `get_effective_location` SQL function, which has no cycle/depth
- * guard and was 500-ing for every row. Degrades to a null location instead of
- * erroring so the admin list never 500-storms.
+ * location_details). Implemented as a bounded app-level walk (the old
+ * recursive SQL function had no cycle/depth guard and has been dropped).
+ * Degrades to a null location instead of erroring so the admin list never
+ * 500-storms.
  */
 export const GET = withAdminAuth(async ({ params }) => {
   const { id } = params;
