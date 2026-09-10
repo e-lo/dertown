@@ -10,7 +10,9 @@
     "pretest": "npm run check-deps",
     "test": "jest --watchAll=false",
     "pretest:watch": "npm run check-deps",
-    "test:watch": "jest"
+    "test:watch": "jest",
+    "update:production": "node scripts/publish-update.js production",
+    "update:preview": "node scripts/publish-update.js preview"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -30,6 +32,7 @@
     "expo-router": "~6.0.24",
     "expo-sharing": "~14.0.8",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.20",
     "expo-web-browser": "~15.0.11",
     "lucide-react-native": "^0.468.0",
     "promise": "^8.3.0",

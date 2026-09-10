@@ -169,13 +169,39 @@ Store these credentials in EAS secrets (the CLI will offer to save them after fi
 
 ## OTA Updates
 
-JavaScript-only changes (no new or updated native modules) can be pushed without going through store review:
+JavaScript-only changes ship over the air with EAS Update, without a store
+submission. The app launches with the bundle it already has, downloads any new
+update in the background, and applies it on the next cold start — so a fix
+reaches a user on their second launch after you publish.
 
 ```bash
-eas update --branch production --message "Fix event date display"
+cd mobile
+export SENTRY_AUTH_TOKEN=...   # once per shell; needed to upload source maps
+npm run update:production -- "Fix mailto links when no mail app is installed"
 ```
 
-Users receive the update silently on next app launch. Use OTA updates for bug fixes and UI changes. Any change that adds, removes, or updates a native dependency requires a full `eas build` + store submission.
+This runs `eas update` against the `production` channel using the EAS
+`production` environment variables, then uploads the bundle's source maps to
+Sentry so stack traces from the update stay readable. Use
+`npm run update:preview` to push to preview builds first.
+
+**What can go over the air:** anything under `app/`, `components/`,
+`contexts/`, `lib/`, and assets loaded from JS.
+
+**What needs a full `eas build` + store submission:** adding, removing, or
+upgrading any package with native code; changing `app.json` outside
+`extra`; upgrading the Expo SDK. The runtime version uses the
+`fingerprint` policy, which hashes the native layer — an update is delivered
+only to builds whose fingerprint matches, so an update built against changed
+native modules can never reach an older binary. If `eas update` warns that no
+build matches the fingerprint, that is the signal a new build is needed.
+
+**Which builds receive updates:** each build profile is tied to a channel of
+the same name in `eas.json`. Only builds that include `expo-updates`
+(iOS build 4 / Android versionCode 7 and later) can receive updates at all.
+
+**Rollback:** `eas update:republish --channel production` re-publishes an
+earlier update from the channel's history. It goes out like any other update.
 
 ---
 

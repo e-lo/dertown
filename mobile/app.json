@@ -78,6 +78,12 @@
         "projectId": "277e0394-6b08-4df7-8740-cf30a4ee4ec6"
       }
     },
-    "owner": "dertown"
+    "owner": "dertown",
+    "updates": {
+      "url": "https://u.expo.dev/277e0394-6b08-4df7-8740-cf30a4ee4ec6"
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    }
   }
 }
