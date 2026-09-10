@@ -62,7 +62,7 @@
         }
       ],
       [
-        "@sentry/react-native",
+        "@sentry/react-native/expo",
         {
           "organization": "der-town",
           "project": "dertown-mobile"
