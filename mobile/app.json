@@ -2,7 +2,7 @@
   "expo": {
     "name": "Dertown",
     "slug": "dertown",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "dertown",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
