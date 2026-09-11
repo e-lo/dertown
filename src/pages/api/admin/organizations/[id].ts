@@ -1,7 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
+
+type OrganizationUpdate = Database['public']['Tables']['organizations']['Update'];
 
 export const GET = withAdminAuth(async ({ params, auth }) => {
   const id = params.id;
@@ -39,7 +42,7 @@ export const PATCH = withAdminAuth(async ({ params, request, auth }) => {
   }
 
   const body = await request.json().catch(() => ({}));
-  const update: Record<string, unknown> = {};
+  const update: OrganizationUpdate = {};
 
   if (typeof body.name === 'string') update.name = body.name.trim();
   if (body.status !== undefined) update.status = body.status;

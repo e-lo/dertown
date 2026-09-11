@@ -21,14 +21,20 @@ export const GET: APIRoute = async ({ url }) => {
       });
     }
 
+    // The joined organization is not part of the select typing; describe it locally.
+    type EventWithOrganization = (typeof events)[number] & {
+      organization?: { name: string | null } | null;
+    };
+
     const results = events
-      .filter(e =>
-        e.title?.toLowerCase().includes(query) ||
-        e.location?.name?.toLowerCase().includes(query) ||
-        e.organization?.name?.toLowerCase().includes(query)
+      .filter(
+        (e) =>
+          e.title?.toLowerCase().includes(query) ||
+          e.location?.name?.toLowerCase().includes(query) ||
+          (e as EventWithOrganization).organization?.name?.toLowerCase().includes(query)
       )
       .slice(0, 8)
-      .map(e => ({
+      .map((e) => ({
         id: e.id,
         title: e.title ?? '',
         start_date: e.start_date ?? '',

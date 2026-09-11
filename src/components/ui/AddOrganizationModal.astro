@@ -69,30 +69,37 @@
 
 <script>
   (function() {
-    let orgLocationList = [];
-    let orgParentList = [];
+    type LocationOption = { id: string; name?: string | null; address?: string | null };
+    type OrgOption = { id: string; name?: string | null };
+
+    let orgLocationList: LocationOption[] = [];
+    let orgParentList: OrgOption[] = [];
+
+    // Form fields are guaranteed by the template above, so the casts are safe.
+    const field = (id: string) =>
+      document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
     const modal = document.getElementById('addOrganizationModal');
-    const form = document.getElementById('addOrganizationForm');
+    const form = document.getElementById('addOrganizationForm') as HTMLFormElement | null;
     const titleEl = document.getElementById('addOrganizationModalTitle');
-    const idInput = document.getElementById('addOrganizationId');
-    const locationSearch = document.getElementById('addOrganizationLocationSearch');
-    const locationIdHidden = document.getElementById('addOrganizationLocationId');
+    const idInput = document.getElementById('addOrganizationId') as HTMLInputElement;
+    const locationSearch = document.getElementById('addOrganizationLocationSearch') as HTMLInputElement;
+    const locationIdHidden = document.getElementById('addOrganizationLocationId') as HTMLInputElement;
     const locationDropdown = document.getElementById('addOrganizationLocationDropdown');
-    const parentSearch = document.getElementById('addOrganizationParentSearch');
-    const parentIdHidden = document.getElementById('addOrganizationParentId');
+    const parentSearch = document.getElementById('addOrganizationParentSearch') as HTMLInputElement;
+    const parentIdHidden = document.getElementById('addOrganizationParentId') as HTMLInputElement;
     const parentDropdown = document.getElementById('addOrganizationParentDropdown');
 
-    async function loadOrgLists(excludeOrgId) {
+    async function loadOrgLists(excludeOrgId?: string) {
       const [locRes, orgRes] = await Promise.all([
         fetch('/api/admin/locations?all=true', { credentials: 'include' }),
         fetch('/api/admin/organizations?all=true', { credentials: 'include' }),
       ]);
       orgLocationList = locRes.ok ? await locRes.json() : [];
-      orgParentList = orgRes.ok ? (await orgRes.json()).filter(o => o.id !== excludeOrgId) : [];
+      orgParentList = orgRes.ok ? (await orgRes.json()).filter((o: OrgOption) => o.id !== excludeOrgId) : [];
     }
 
-    function displayLoc(loc) {
+    function displayLoc(loc: LocationOption) {
       return (loc.name || '') + (loc.address ? ' — ' + loc.address : '');
     }
 
@@ -194,15 +201,15 @@
       });
     }
 
-    function applyCreatedLocation(location) {
+    function applyCreatedLocation(location: Partial<LocationOption> | undefined) {
       if (!location?.id || !modal || !modal.classList.contains('flex')) return;
       orgLocationList = orgLocationList.some(l => l.id === location.id) ? orgLocationList : [...orgLocationList, { id: location.id, name: location.name || '', address: location.address || '' }];
       if (locationIdHidden) locationIdHidden.value = location.id;
       if (locationSearch) locationSearch.value = (location.name || '') + (location.address ? ' — ' + location.address : '');
     }
 
-    window.openAddOrganizationModal = async function(editId) {
-      if (!modal || !form) return;
+    window.openAddOrganizationModal = async function(editId?: string) {
+      if (!modal || !form || !titleEl) return;
       idInput.value = editId || '';
       titleEl.textContent = editId ? 'Edit Organization' : 'Add Organization';
       form.reset();
@@ -217,12 +224,12 @@
         const res = await fetch(`/api/admin/organizations/${editId}`, { credentials: 'include' });
         if (!res.ok) return;
         const org = await res.json();
-        document.getElementById('addOrganizationName').value = org.name || '';
-        document.getElementById('addOrganizationDescription').value = org.description || '';
-        document.getElementById('addOrganizationEmail').value = org.email || '';
-        document.getElementById('addOrganizationPhone').value = org.phone || '';
-        document.getElementById('addOrganizationWebsite').value = org.website || '';
-        document.getElementById('addOrganizationStatus').value = org.status || 'approved';
+        field('addOrganizationName').value = org.name || '';
+        field('addOrganizationDescription').value = org.description || '';
+        field('addOrganizationEmail').value = org.email || '';
+        field('addOrganizationPhone').value = org.phone || '';
+        field('addOrganizationWebsite').value = org.website || '';
+        field('addOrganizationStatus').value = org.status || 'approved';
         if (org.location_id) {
           locationIdHidden.value = org.location_id;
           const loc = orgLocationList.find(l => l.id === org.location_id);
@@ -234,7 +241,7 @@
           parentSearch.value = parent ? parent.name || '' : '';
         }
       } else {
-        document.getElementById('addOrganizationStatus').value = 'approved';
+        field('addOrganizationStatus').value = 'approved';
       }
 
       modal.classList.remove('hidden');
@@ -250,20 +257,20 @@
 
     setupLocationAutocomplete();
     setupParentAutocomplete();
-    window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
+    window.addEventListener('admin:location-created', (e) => applyCreatedLocation((e as CustomEvent).detail?.location));
 
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = idInput.value.trim();
       const payload = {
-        name: document.getElementById('addOrganizationName').value.trim(),
-        description: document.getElementById('addOrganizationDescription').value.trim() || null,
-        email: document.getElementById('addOrganizationEmail').value.trim() || null,
-        phone: document.getElementById('addOrganizationPhone').value.trim() || null,
-        website: document.getElementById('addOrganizationWebsite').value.trim() || null,
+        name: field('addOrganizationName').value.trim(),
+        description: field('addOrganizationDescription').value.trim() || null,
+        email: field('addOrganizationEmail').value.trim() || null,
+        phone: field('addOrganizationPhone').value.trim() || null,
+        website: field('addOrganizationWebsite').value.trim() || null,
         location_id: locationIdHidden?.value || null,
         parent_organization_id: parentIdHidden?.value || null,
-        status: document.getElementById('addOrganizationStatus').value,
+        status: field('addOrganizationStatus').value,
       };
 
       const url = id ? `/api/admin/organizations/${id}` : '/api/admin/organizations';

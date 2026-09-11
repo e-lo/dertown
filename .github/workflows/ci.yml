@@ -32,6 +32,11 @@ jobs:
       - name: Dependency health canary
         run: npx tsx src/lib/__tests__/dependency-health.test.ts
 
+      # Type-checks .astro and .ts sources (astro build does not). Kept at zero
+      # errors since 2026-09; fix new errors rather than letting them accumulate.
+      - name: Type check
+        run: npm run check
+
       # Catches build-time breakage. Dummy Supabase creds let any build-time
       # module init succeed without real secrets.
       - name: Build

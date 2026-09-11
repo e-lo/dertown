@@ -1,4 +1,5 @@
 import ical from 'node-ical';
+import type { ParameterValue } from 'node-ical';
 import type { ScrapedEvent } from './types';
 
 /** Parse an iCal feed string into ScrapedEvent objects. */
@@ -8,7 +9,7 @@ export function parseIcalFeed(icalText: string): ScrapedEvent[] {
 
   for (const key of Object.keys(parsed)) {
     const item = parsed[key];
-    if (item.type !== 'VEVENT') continue;
+    if (!item || item.type !== 'VEVENT') continue;
 
     const startDate = extractDate(item.start);
     if (!startDate) continue; // skip entries without a date
@@ -21,13 +22,13 @@ export function parseIcalFeed(icalText: string): ScrapedEvent[] {
     const effectiveEndDate = endDate && endDate !== startDate ? endDate : null;
 
     events.push({
-      title: cleanIcalText(item.summary || ''),
-      description: cleanIcalText(item.description || null),
+      title: cleanIcalText(unwrapParam(item.summary)) ?? '',
+      description: cleanIcalText(unwrapParam(item.description)),
       start_date: startDate,
       end_date: effectiveEndDate,
       start_time: startTime,
       end_time: endTime,
-      location_name: cleanIcalText(extractLocationName(item.location)),
+      location_name: cleanIcalText(extractLocationName(unwrapParam(item.location))),
       cost: null, // iCal doesn't have a cost field
       registration_required: null,
       registration_url: null,
@@ -37,6 +38,12 @@ export function parseIcalFeed(icalText: string): ScrapedEvent[] {
   }
 
   return events;
+}
+
+/** iCal properties carrying parameters (e.g. LANGUAGE) arrive as { val, params }; unwrap to the plain string. */
+function unwrapParam(value: ParameterValue | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return typeof value === 'string' ? value : value.val;
 }
 
 /** Extract YYYY-MM-DD from an iCal date/datetime value. */

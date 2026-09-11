@@ -8,7 +8,8 @@ import { localeTimeZone } from './calendar-utils';
 // site, because createClient throws on undefined and that throw happens at module
 // import — taking down every SSR route. The runtime fallback makes the function
 // work as long as the vars are present in Netlify's Functions environment.
-const runtimeEnv = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
+const runtimeEnv =
+  typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
 
 const useLocalDb = (import.meta.env.USE_LOCAL_DB || runtimeEnv.USE_LOCAL_DB) === 'true';
 
@@ -61,7 +62,7 @@ function getSupabaseAdmin() {
 
 export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
   get(_target, prop) {
-    const client = getSupabaseAdmin() as Record<string | symbol, unknown>;
+    const client = getSupabaseAdmin() as unknown as Record<string | symbol, unknown>;
     const value = client[prop];
     return typeof value === 'function' ? value.bind(client) : value;
   },

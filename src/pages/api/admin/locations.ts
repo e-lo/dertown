@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import {
   DEFAULT_NAME_MATCH_THRESHOLD,
@@ -7,6 +8,8 @@ import {
 } from '@/lib/entity-matching';
 
 export const prerender = false;
+
+type LocationInsert = Database['public']['Tables']['locations']['Insert'];
 
 export const GET = withAdminAuth(async ({ url }) => {
   const all = url.searchParams.get('all') === 'true';
@@ -66,8 +69,7 @@ export const GET = withAdminAuth(async ({ url }) => {
         name: candidate.name,
         address: candidate.address,
         score: Math.round(bestMatch.score * 100) / 100,
-        match_level:
-          bestMatch.score >= DEFAULT_NAME_MATCH_THRESHOLD ? 'likely' : 'possible',
+        match_level: bestMatch.score >= DEFAULT_NAME_MATCH_THRESHOLD ? 'likely' : 'possible',
       },
     };
   });
@@ -82,7 +84,7 @@ export const POST = withAdminAuth(async ({ request }) => {
     return jsonError('Name is required', 400);
   }
 
-  const insert: Record<string, unknown> = {
+  const insert: LocationInsert = {
     name,
     status: body.status ?? 'approved',
     address: body.address?.trim() || null,

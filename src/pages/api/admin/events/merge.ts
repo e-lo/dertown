@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withSuperAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
-import { MERGEABLE_FIELDS } from '@/lib/merge-fields';
+import { MERGEABLE_FIELDS, type MergeableField } from '@/lib/merge-fields';
 
 export const prerender = false;
 
@@ -8,9 +9,14 @@ type EventTable = 'events' | 'events_staged';
 
 const VALID_TABLES: EventTable[] = ['events', 'events_staged'];
 
+// Columns written by a merge; all exist on both `events` and `events_staged`.
+type MergeUpdate = Pick<
+  Database['public']['Tables']['events']['Update'],
+  MergeableField | 'source_id' | 'source_title' | 'comments'
+>;
 
 export const POST = withSuperAdminAuth(async ({ request }) => {
-  let body: unknown = {};
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -104,7 +110,7 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   // re-running the merge or manually archiving the secondary.
   const { error: primaryUpdateError } = await supabaseAdmin
     .from(primaryTable as EventTable)
-    .update(mergedData)
+    .update(mergedData as MergeUpdate)
     .eq('id', primaryId);
 
   if (primaryUpdateError) {

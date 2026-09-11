@@ -40,8 +40,12 @@ if (filterTags && filterTags.length) {
   );
 }
 
+// public_events is a view, so its columns are typed nullable even though id is
+// always populated; narrow it to the row shape transformEventForCalendar expects.
 const calendarEvents = [
-  ...sourceEvents.map(transformEventForCalendar).filter(Boolean),
+  ...sourceEvents
+    .map((event) => transformEventForCalendar(event as typeof event & { id: string }))
+    .filter(Boolean),
   ...extraEvents,
 ];
 ---

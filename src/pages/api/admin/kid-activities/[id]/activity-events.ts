@@ -1,8 +1,11 @@
 // src/pages/api/admin/kid-activities/[id]/activity-events.ts
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
+
+type ActivityEventUpdate = Database['public']['Tables']['activity_events']['Update'];
 
 // Weekday code -> JS day number (getUTCDay: SU=0, MO=1, ... SA=6).
 const WEEKDAY_TO_NUM: Record<string, number> = {
@@ -31,9 +34,7 @@ function generateRecurringDates(
   weekdays: string[],
   interval: number
 ): string[] {
-  const wanted = new Set(
-    weekdays.map((w) => WEEKDAY_TO_NUM[w]).filter((n) => n !== undefined)
-  );
+  const wanted = new Set(weekdays.map((w) => WEEKDAY_TO_NUM[w]).filter((n) => n !== undefined));
   const result: string[] = [];
   const start = new Date(fromDate + 'T00:00:00Z');
   const end = new Date(untilDate + 'T00:00:00Z');
@@ -41,9 +42,7 @@ function generateRecurringDates(
 
   const cursor = new Date(start.getTime());
   while (cursor.getTime() <= end.getTime()) {
-    const daysSinceStart = Math.floor(
-      (cursor.getTime() - start.getTime()) / 86_400_000
-    );
+    const daysSinceStart = Math.floor((cursor.getTime() - start.getTime()) / 86_400_000);
     const weekIndex = Math.floor(daysSinceStart / 7);
     if (weekIndex % step === 0 && wanted.has(cursor.getUTCDay())) {
       result.push(cursor.toISOString().slice(0, 10));
@@ -100,7 +99,7 @@ export const POST = withAdminAuth(async ({ params, request }) => {
     name: string;
     start_datetime: string;
     end_datetime: string;
-  }> = [];
+  }>;
 
   if (mode === 'recurring') {
     const { name, start_time, end_time, weekdays, from_date, until_date, interval } = body;
@@ -161,10 +160,7 @@ export const POST = withAdminAuth(async ({ params, request }) => {
     return jsonError('No occurrences matched the given criteria', 400);
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('activity_events')
-    .insert(rows)
-    .select();
+  const { data, error } = await supabaseAdmin.from('activity_events').insert(rows).select();
 
   if (error) {
     console.error('[activity-events POST]', error);
@@ -190,8 +186,14 @@ export const PUT = withAdminAuth(async ({ params, request, url }) => {
     return jsonError('Invalid JSON in request body', 400);
   }
 
-  const allowed = ['name', 'start_datetime', 'end_datetime', 'description', 'waitlist_status'];
-  const updates: Record<string, string | null> = {};
+  const allowed = [
+    'name',
+    'start_datetime',
+    'end_datetime',
+    'description',
+    'waitlist_status',
+  ] as const satisfies readonly (keyof ActivityEventUpdate)[];
+  const updates: ActivityEventUpdate = {};
   for (const key of allowed) {
     if (key in body) {
       const value = body[key];
@@ -222,10 +224,7 @@ export const DELETE = withAdminAuth(async ({ params, url }) => {
   const eventId = url.searchParams.get('eventId');
   if (!eventId) return jsonError('eventId query param required', 400);
 
-  const { error } = await supabaseAdmin
-    .from('activity_events')
-    .delete()
-    .eq('event_id', eventId);
+  const { error } = await supabaseAdmin.from('activity_events').delete().eq('event_id', eventId);
 
   if (error) {
     console.error('[activity-events DELETE]', error);

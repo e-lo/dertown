@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   const { id } = params;
   if (!id) return jsonError('Missing event id', 400);
 
-  const seriesLimit  = parseInt(url.searchParams.get('seriesLimit')  ?? '0', 10);
+  const seriesLimit = parseInt(url.searchParams.get('seriesLimit') ?? '0', 10);
   const relatedLimit = parseInt(url.searchParams.get('relatedLimit') ?? '0', 10);
 
   // ── 1. Fetch current event ─────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     parent_title: string;
     is_parent: boolean;
   } | null = null;
-  let seriesEvents: any[] = [];
+  let seriesEvents: any[];
 
   if (parentEventId) {
     // Child event — fetch parent title + siblings concurrently.
@@ -67,9 +67,9 @@ export const GET: APIRoute = async ({ params, url }) => {
     // series section regardless of whether the parent title can be resolved.
     // Match that behaviour: use a fallback title rather than returning series:null.
     seriesMeta = {
-      parent_id:    parentEventId,
+      parent_id: parentEventId,
       parent_title: (parentRes.data?.title ?? '') as string,
-      is_parent:    false,
+      is_parent: false,
     };
   } else {
     // Might be the parent itself — fetch children
@@ -78,9 +78,9 @@ export const GET: APIRoute = async ({ params, url }) => {
 
     if (seriesEvents.length > 0) {
       seriesMeta = {
-        parent_id:    id,
+        parent_id: id,
         parent_title: (event as any).title as string,
-        is_parent:    true,
+        is_parent: true,
       };
     }
   }
@@ -91,21 +91,19 @@ export const GET: APIRoute = async ({ params, url }) => {
   const { data: relatedData } = await db.events.getRelated(
     id,
     (event as any).organization_id ?? null,
-    (event as any).location_id     ?? null
+    (event as any).location_id ?? null
   );
 
   const seriesIds = new Set(seriesEvents.map((e) => e.id));
   let relatedEvents = (relatedData ?? [])
     .filter((e) => !seriesIds.has(e.id))
     // Only today or future events, sorted ascending by date
-    .filter((e) => e.start_date >= today || (e.end_date && e.end_date >= today))
+    .filter((e) => (e.start_date ?? '') >= today || (e.end_date && e.end_date >= today))
     .sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''));
   if (relatedLimit > 0) relatedEvents = relatedEvents.slice(0, relatedLimit);
 
   return jsonResponse({
-    series: seriesMeta
-      ? { ...seriesMeta, events: seriesEvents }
-      : null,
+    series: seriesMeta ? { ...seriesMeta, events: seriesEvents } : null,
     related: relatedEvents,
   });
 };

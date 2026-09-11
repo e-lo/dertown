@@ -54,7 +54,7 @@ const userEmail = session.user?.email || 'Admin';
     actionsColumn<OrganizationRow>(
       'users',
       (org) => `/admin/organizations/${org.id}/users`,
-      (org) => ({ title: 'Manage users' })
+      () => ({})
     ),
     lastEditedColumn<OrganizationRow>('lastEdited', 'Last edited'),
     actionsColumn<OrganizationRow>(
@@ -64,7 +64,7 @@ const userEmail = session.user?.email || 'Admin';
     ),
   ];
 
-  let organizations = [];
+  let organizations: OrganizationRow[] = [];
 
   async function loadOrganizations() {
     const el = document.getElementById('organizations-loading');
@@ -76,7 +76,7 @@ const userEmail = session.user?.email || 'Admin';
       organizations = await res.json();
       renderOrganizations();
     } catch (err) {
-      container.innerHTML = '<p class="text-red-600">' + (err.message || 'Failed to load organizations') + '</p>';
+      container.innerHTML = '<p class="text-red-600">' + (err instanceof Error ? err.message : 'Failed to load organizations') + '</p>';
     } finally {
       el.classList.add('hidden');
     }

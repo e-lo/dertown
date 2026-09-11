@@ -27,10 +27,10 @@ const EVENT_SELECT = `
 `;
 
 export const GET: APIRoute = async ({ url }) => {
-  const orgIdsParam    = url.searchParams.get('orgIds')    ?? '';
+  const orgIdsParam = url.searchParams.get('orgIds') ?? '';
   const seriesIdsParam = url.searchParams.get('seriesIds') ?? '';
 
-  const orgIds    = orgIdsParam    ? orgIdsParam.split(',').filter(Boolean)    : [];
+  const orgIds = orgIdsParam ? orgIdsParam.split(',').filter(Boolean) : [];
   const seriesIds = seriesIdsParam ? seriesIdsParam.split(',').filter(Boolean) : [];
 
   if (orgIds.length === 0 && seriesIds.length === 0) {
@@ -38,7 +38,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   // Fetch org events and series child events in parallel
-  const fetches: Promise<any[]>[] = [];
+  const fetches: PromiseLike<any[]>[] = [];
 
   if (orgIds.length > 0) {
     fetches.push(
@@ -76,8 +76,8 @@ export const GET: APIRoute = async ({ url }) => {
   });
 
   // Filter to today/future and sort by date ascending
-  const events = filterCurrentAndFutureEvents(unique).sort(
-    (a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? '')
+  const events = filterCurrentAndFutureEvents(unique).sort((a, b) =>
+    (a.start_date ?? '').localeCompare(b.start_date ?? '')
   );
 
   return jsonResponse({ events });

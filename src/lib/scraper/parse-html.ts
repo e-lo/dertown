@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import type { AnyNode } from 'domhandler';
 import type { ScrapedEvent } from './types';
 import type { SourceConfig } from './types';
 
@@ -19,7 +20,7 @@ const EXTRACTORS: Record<string, Extractor> = {
   'icicle-creek': extractIcicleCreek,
   'icicle-brewing': extractIcicleBrewing,
   'ski-leavenworth': extractSkiLeavenworth,
-  'wri': extractWRI,
+  wri: extractWRI,
   // leavenworth-org: uses iCal feed instead
 };
 
@@ -92,9 +93,10 @@ function extractIcicleCreek(html: string, source: SourceConfig): ScrapedEvent[] 
       canonicalSeriesLink
     );
     const instanceLinks = [
-      ...new Set(
-        [...uniqueDetailLinks.filter((href) => href.includes('#/instances/')), ...instanceLinksFromHtml]
-      ),
+      ...new Set([
+        ...uniqueDetailLinks.filter((href) => href.includes('#/instances/')),
+        ...instanceLinksFromHtml,
+      ]),
     ];
     const childLinks = instanceLinks.length > 0 ? instanceLinks : uniqueDetailLinks;
     const seriesKey = buildIcicleSeriesKey(canonicalSeriesLink, title);
@@ -142,7 +144,7 @@ function extractIcicleBrewing(html: string, source: SourceConfig): ScrapedEvent[
   const seenWebsites = new Set<string>();
   const fallbackYear = new Date().getFullYear();
 
-  const pushEventFromContainer = (container: cheerio.Cheerio<cheerio.AnyNode>) => {
+  const pushEventFromContainer = (container: cheerio.Cheerio<AnyNode>) => {
     const detailLinks = container
       .find('a[href*="/ibc-events/"]')
       .map((_i, link) => ($(link).attr('href') || '').trim())
@@ -495,7 +497,7 @@ export function parseTime12h(raw: string): string | null {
   return `${String(hour).padStart(2, '0')}:${min}`;
 }
 
-function extractDateFromDatetime(container: cheerio.Cheerio<cheerio.AnyNode>): string | null {
+function extractDateFromDatetime(container: cheerio.Cheerio<AnyNode>): string | null {
   const datetimeEls = container.find('time[datetime], [datetime]');
 
   for (let i = 0; i < datetimeEls.length; i++) {

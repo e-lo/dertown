@@ -60,7 +60,7 @@ const userEmail = session.user?.email || 'Admin';
     ),
   ];
 
-  let locations = [];
+  let locations: LocationRow[] = [];
 
   async function loadLocations() {
     const el = document.getElementById('locations-loading');
@@ -72,7 +72,7 @@ const userEmail = session.user?.email || 'Admin';
       locations = await res.json();
       renderLocations();
     } catch (err) {
-      container.innerHTML = '<p class="text-red-600">' + (err.message || 'Failed to load locations') + '</p>';
+      container.innerHTML = '<p class="text-red-600">' + (err instanceof Error ? err.message : 'Failed to load locations') + '</p>';
     } finally {
       el.classList.add('hidden');
     }

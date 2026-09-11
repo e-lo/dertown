@@ -10,11 +10,10 @@ export async function writeScrapeLog(
   const hasErrors = result.errors.length > 0;
   const status = hasErrors ? 'error' : 'success';
   const errorMessage = hasErrors ? result.errors.join('; ') : null;
+  const sourceId = result.source_id;
   const hasValidSourceId =
-    !!result.source_id &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      result.source_id
-    );
+    !!sourceId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sourceId);
 
   if (!hasValidSourceId) {
     console.warn(
@@ -25,7 +24,7 @@ export async function writeScrapeLog(
 
   // Insert log entry
   const { error: logError } = await db.from('scrape_logs').insert({
-    source_id: result.source_id,
+    source_id: sourceId,
     status,
     error_message: errorMessage,
   });
@@ -42,7 +41,7 @@ export async function writeScrapeLog(
       last_status: status,
       last_error: errorMessage,
     })
-    .eq('id', result.source_id);
+    .eq('id', sourceId);
 
   if (updateError) {
     console.error(

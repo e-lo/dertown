@@ -1,10 +1,13 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withSuperAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
 
 export const prerender = false;
 
+type TableName = keyof Database['public']['Tables'];
+
 async function repointLocationReferences(fromId: string, toId: string): Promise<void> {
-  const updates: Array<{ table: string; column: string }> = [
+  const updates: Array<{ table: TableName; column: string }> = [
     { table: 'events', column: 'location_id' },
     { table: 'events_staged', column: 'location_id' },
     { table: 'organizations', column: 'location_id' },
@@ -15,7 +18,9 @@ async function repointLocationReferences(fromId: string, toId: string): Promise<
   for (const update of updates) {
     const { error } = await supabaseAdmin
       .from(update.table)
-      .update({ [update.column]: toId })
+      // Table and column are chosen at runtime from the list above, so the payload
+      // cannot be checked against a single table's Update type.
+      .update({ [update.column]: toId } as never)
       .eq(update.column, fromId);
 
     if (error) {

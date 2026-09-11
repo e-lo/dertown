@@ -1,7 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
+
+type AnnouncementRow = Database['public']['Tables']['announcements']['Row'];
 
 /**
  * GET /api/admin/announcements/list?days=30
@@ -54,20 +57,15 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
 
   const pending = pendingRes.data || [];
   const published = publishedRes.data || [];
-  const byId = new Map((pending as { id: string }[]).map((a) => [a.id, a]));
+  const byId = new Map<string, AnnouncementRow>(pending.map((a) => [a.id, a]));
   published.forEach((a) => {
     if (!byId.has(a.id)) byId.set(a.id, a);
   });
-  const combined = Array.from(byId.values()).sort(
-    (
-      a: { show_at?: string; created_at?: string },
-      b: { show_at?: string; created_at?: string }
-    ) => {
-      const da = a.show_at || a.created_at || '';
-      const db = b.show_at || b.created_at || '';
-      return db.localeCompare(da);
-    }
-  );
+  const combined = Array.from(byId.values()).sort((a, b) => {
+    const da = a.show_at || a.created_at || '';
+    const db = b.show_at || b.created_at || '';
+    return db.localeCompare(da);
+  });
 
   return jsonResponse({ announcements: combined });
 });

@@ -221,8 +221,27 @@ setPublicCache(Astro.response.headers);
 
   <script id="event-map-data" type="application/json" set:text={payload}></script>
   <script>
-    import mapboxgl from 'mapbox-gl';
+    import mapboxgl, { type Map as MapboxMap, type Marker as MapboxMarker } from 'mapbox-gl';
     import 'mapbox-gl/dist/mapbox-gl.css';
+    import type {
+      EventMapFilters,
+      GroupedMapEvents,
+      MapEventItem,
+      MapOrganization,
+    } from '../../lib/event-map';
+
+    // Shape of the JSON embedded in #event-map-data by the frontmatter above.
+    type MapPayload = {
+      baseDate: string;
+      events: MapEventItem[];
+      organizations: MapOrganization[];
+      initialFilters?: Partial<EventMapFilters>;
+      initialSelectedLocationId?: string;
+      mapboxToken: string;
+      mapCenterCoords: [number, number];
+      mapCenterZoom: number;
+      mapInitialBounds: [number, number, number, number] | null;
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
       const dataElement = document.getElementById('event-map-data');
@@ -240,9 +259,11 @@ setPublicCache(Astro.response.headers);
           .replace(/&gt;/g, '>')
           .replace(/&#39;/g, "'");
 
-        const payload = JSON.parse(unescapedContent);
-      const allEvents = Array.isArray(payload.events) ? payload.events : [];
-      const organizations = Array.isArray(payload.organizations) ? payload.organizations : [];
+        const payload: MapPayload = JSON.parse(unescapedContent);
+      const allEvents: MapEventItem[] = Array.isArray(payload.events) ? payload.events : [];
+      const organizations: MapOrganization[] = Array.isArray(payload.organizations)
+        ? payload.organizations
+        : [];
       const mapCenterCoords = payload.mapCenterCoords;
       const mapCenterZoom = payload.mapCenterZoom;
       const mapInitialBounds = payload.mapInitialBounds;
@@ -278,12 +299,12 @@ setPublicCache(Astro.response.headers);
         selectedLocationId: String(payload.initialSelectedLocationId || ''),
       };
 
-      let currentGroups = [];
-      let currentEvents = [];
-      let mapboxMap = null;
-      const activeMarkers = []; // mapboxgl.Marker instances, cleared on each renderMap
+      let currentGroups: GroupedMapEvents[] = [];
+      let currentEvents: MapEventItem[] = [];
+      let mapboxMap: MapboxMap | null = null;
+      const activeMarkers: MapboxMarker[] = []; // cleared on each renderMap
 
-      function escapeHtml(value) {
+      function escapeHtml(value: unknown) {
         return String(value)
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
@@ -292,20 +313,20 @@ setPublicCache(Astro.response.headers);
           .replace(/'/g, '&#39;');
       }
 
-      function addDays(dateString, days) {
+      function addDays(dateString: string, days: number) {
         const [year, month, day] = dateString.split('-').map(Number);
         const date = new Date(Date.UTC(year, month - 1, day));
         date.setUTCDate(date.getUTCDate() + days);
         return date.toISOString().slice(0, 10);
       }
 
-      function formatDateLabel(dateString) {
+      function formatDateLabel(dateString: string) {
         const [year, month, day] = dateString.split('-').map(Number);
         const date = new Date(Date.UTC(year, month - 1, day));
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
       }
 
-      function matchesOrgInput(value) {
+      function matchesOrgInput(value: string) {
         const normalized = value.trim().toLowerCase();
         return organizations.find((organization) => organization.name.toLowerCase() === normalized) || null;
       }
@@ -350,8 +371,8 @@ setPublicCache(Astro.response.headers);
         });
       }
 
-      function groupEvents(events) {
-        const grouped = new Map();
+      function groupEvents(events: MapEventItem[]): GroupedMapEvents[] {
+        const grouped = new Map<string, GroupedMapEvents>();
 
         events.forEach((event) => {
           const existing = grouped.get(event.location.id);
@@ -410,7 +431,7 @@ setPublicCache(Astro.response.headers);
         if (permalink) permalink.textContent = `${url.pathname}${url.search}`;
       }
 
-      function renderList(groups) {
+      function renderList(groups: GroupedMapEvents[]) {
         if (!listContainer) return;
 
         if (groups.length === 0) {
@@ -466,7 +487,7 @@ setPublicCache(Astro.response.headers);
         });
       }
 
-      function updateSummary(groups, events) {
+      function updateSummary(groups: GroupedMapEvents[], events: MapEventItem[]) {
         if (eventCount) eventCount.textContent = String(events.length);
         if (locationCount) locationCount.textContent = String(groups.length);
       }
@@ -492,12 +513,12 @@ setPublicCache(Astro.response.headers);
         `;
       }
 
-      function ensureSelection(groups) {
+      function ensureSelection(groups: GroupedMapEvents[]) {
         if (groups.some((group) => group.id === state.selectedLocationId)) return;
         state.selectedLocationId = groups[0]?.id || '';
       }
 
-      function fitMapToGroups(groups) {
+      function fitMapToGroups(groups: GroupedMapEvents[]) {
         if (!mapboxMap) return;
 
         const targetGroups = groups.length > 0 ? groups : groupEvents(allEvents);
@@ -517,8 +538,9 @@ setPublicCache(Astro.response.headers);
         mapboxMap.fitBounds(bounds, { padding: 80, maxZoom: 15 });
       }
 
-      function renderMap(groups, shouldFit = false) {
-        if (!mapboxMap) return;
+      function renderMap(groups: GroupedMapEvents[], shouldFit = false) {
+        const map = mapboxMap;
+        if (!map) return;
 
         // Remove existing markers
         activeMarkers.forEach((m) => m.remove());
@@ -534,7 +556,7 @@ setPublicCache(Astro.response.headers);
 
           const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
             .setLngLat([group.longitude, group.latitude])
-            .addTo(mapboxMap);
+            .addTo(map);
 
           activeMarkers.push(marker);
         });
@@ -552,24 +574,25 @@ setPublicCache(Astro.response.headers);
         }
 
         mapboxgl.accessToken = token;
-        mapboxMap = new mapboxgl.Map({
+        const map = new mapboxgl.Map({
           container: mapEl,
           style: 'mapbox://styles/mapbox/light-v11',
           center: mapCenterCoords,
           zoom: mapCenterZoom,
           attributionControl: true,
         });
+        mapboxMap = map;
 
-        zoomInButton?.addEventListener('click', () => mapboxMap?.zoomIn());
-        zoomOutButton?.addEventListener('click', () => mapboxMap?.zoomOut());
+        zoomInButton?.addEventListener('click', () => map.zoomIn());
+        zoomOutButton?.addEventListener('click', () => map.zoomOut());
         fitButton?.addEventListener('click', () => fitMapToGroups(currentGroups));
 
         // On first load, fit to the Leavenworth bounding box rather than
         // fitting all events (which would zoom out to include Wenatchee, Cashmere, etc.)
-        mapboxMap.once('load', () => {
+        map.once('load', () => {
           renderMap(currentGroups, false);
           if (mapInitialBounds) {
-            mapboxMap.fitBounds(mapInitialBounds, { padding: 40, animate: false });
+            map.fitBounds(mapInitialBounds, { padding: 40, animate: false });
           }
         });
       }
@@ -586,7 +609,7 @@ setPublicCache(Astro.response.headers);
         if (mapboxMap) renderMap(currentGroups, true);
       }
 
-      function selectLocation(locationId, panToMarker = false) {
+      function selectLocation(locationId: string | null, panToMarker = false) {
         if (!locationId) return;
         state.selectedLocationId = locationId;
         renderList(currentGroups);

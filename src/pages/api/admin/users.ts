@@ -1,7 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
+
+type UserPermissionUpdate = Database['public']['Tables']['user_permissions']['Update'];
 
 // GET /api/admin/users
 // Returns all users with permissions, enriched with email and org memberships.
@@ -36,23 +39,20 @@ export const GET = withAdminAuth(async ({ auth }) => {
     return jsonError('Failed to fetch user emails');
   }
 
-  const authByUserId = new Map<string, { email: string; status: 'active' | 'invited' | 'pending' }>();
+  const authByUserId = new Map<
+    string,
+    { email: string; status: 'active' | 'invited' | 'pending' }
+  >();
   for (const u of authData?.users ?? []) {
     // active = has confirmed email; invited = invite sent but not confirmed; pending = created but no invite sent
-    const status = u.email_confirmed_at
-      ? 'active'
-      : u.invited_at
-        ? 'invited'
-        : 'pending';
+    const status = u.email_confirmed_at ? 'active' : u.invited_at ? 'invited' : 'pending';
     authByUserId.set(u.id, { email: u.email ?? '', status });
   }
 
   // 3. Fetch org memberships for users who have org_access_enabled
-  const orgAccessUserIds = perms
-    .filter((p) => p.org_access_enabled)
-    .map((p) => p.user_id);
+  const orgAccessUserIds = perms.filter((p) => p.org_access_enabled).map((p) => p.user_id);
 
-  let orgsByUserId = new Map<string, { id: string; name: string }[]>();
+  const orgsByUserId = new Map<string, { id: string; name: string }[]>();
 
   if (orgAccessUserIds.length > 0) {
     const { data: orgUsers, error: orgUsersError } = await supabaseAdmin
@@ -139,10 +139,7 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   // Upsert user_permissions
   const { data, error } = await supabaseAdmin
     .from('user_permissions')
-    .upsert(
-      { user_id: authUser.id, is_admin, org_access_enabled },
-      { onConflict: 'user_id' }
-    )
+    .upsert({ user_id: authUser.id, is_admin, org_access_enabled }, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -183,7 +180,7 @@ export const PUT = withAdminAuth(async ({ request, auth }) => {
     }
   }
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const updates: UserPermissionUpdate = { updated_at: new Date().toISOString() };
   if (is_admin !== undefined) updates.is_admin = is_admin;
   if (org_access_enabled !== undefined) updates.org_access_enabled = org_access_enabled;
 
@@ -220,10 +217,7 @@ export const DELETE = withAdminAuth(async ({ url, auth }) => {
     return jsonError('Cannot remove the primary admin account', 403);
   }
 
-  const { error } = await supabaseAdmin
-    .from('user_permissions')
-    .delete()
-    .eq('user_id', user_id);
+  const { error } = await supabaseAdmin.from('user_permissions').delete().eq('user_id', user_id);
 
   if (error) {
     console.error('[ADMIN USERS] Delete error:', error);

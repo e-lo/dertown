@@ -1,9 +1,12 @@
 // src/pages/api/admin/kid-activities/[id].ts
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import { stripScheduleFields } from '@/lib/activity-fields';
 
 export const prerender = false;
+
+type ActivityUpdate = Database['public']['Tables']['activities']['Update'];
 
 export const GET = withAdminAuth(async ({ params }) => {
   const { id } = params;
@@ -12,11 +15,7 @@ export const GET = withAdminAuth(async ({ params }) => {
     return jsonError('Activity ID is required', 400);
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('activities')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data, error } = await supabaseAdmin.from('activities').select('*').eq('id', id).single();
 
   if (error) {
     console.error('[kid-activities GET]', error);
@@ -52,7 +51,7 @@ export const PUT = withAdminAuth(async ({ request, params }) => {
 
   const { data, error } = await supabaseAdmin
     .from('activities')
-    .update(payload)
+    .update(payload as ActivityUpdate)
     .eq('id', id)
     .select('*')
     .single();
@@ -71,10 +70,7 @@ export const DELETE = withAdminAuth(async ({ params }) => {
     return jsonError('Activity ID is required', 400);
   }
 
-  const { error } = await supabaseAdmin
-    .from('activities')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabaseAdmin.from('activities').delete().eq('id', id);
 
   if (error) {
     console.error('[kid-activities DELETE]', error);

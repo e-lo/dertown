@@ -1,7 +1,13 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 
 export const prerender = false;
+
+type ParentEventRow = Pick<
+  Database['public']['Tables']['events']['Row'],
+  'id' | 'title' | 'start_date' | 'start_time'
+>;
 
 export const GET = withAdminAuth(async ({ auth }) => {
   // Get approved events that can be used as parent events
@@ -52,7 +58,7 @@ export const GET = withAdminAuth(async ({ auth }) => {
     .select('parent_event_id')
     .not('parent_event_id', 'is', null);
 
-  let existingParents: Array<Record<string, unknown>> = [];
+  let existingParents: ParentEventRow[] = [];
   const parentIds = [...new Set((childRows || []).map((row) => row.parent_event_id))];
   if (!childError && parentIds.length > 0) {
     let existingParentsQuery = supabaseAdmin

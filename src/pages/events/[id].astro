@@ -54,7 +54,7 @@ let seriesEvents: Array<{
   location?: { name: string };
   primary_tag?: { name: string };
   secondary_tag?: { name: string };
-}> = [];
+}>;
 
 // Check if event has parent_event_id (is a child)
 // The event object from getById should include parent_event_id since we select '*'
@@ -443,13 +443,13 @@ setPublicCache(Astro.response.headers);
     console.log('goToLogin called');
     
     // Close the suggest edit modal first
-    var suggestModal = document.getElementById('suggestEditEventModal');
+    const suggestModal = document.getElementById('suggestEditEventModal');
     if (suggestModal) {
       suggestModal.style.display = 'none';
     }
     
     // Try to open login modal, with retry in case script hasn't loaded yet
-    var tryOpenModal = function() {
+    const tryOpenModal = function() {
       if (typeof window.openLoginModal === 'function') {
         console.log('Calling openLoginModal');
         window.openLoginModal();
@@ -469,8 +469,8 @@ setPublicCache(Astro.response.headers);
       if (!tryOpenModal()) {
         console.warn('openLoginModal not available after retry, falling back to redirect');
         // Fallback: redirect to login page
-        var currentUrl = window.location.pathname + window.location.search;
-        var eventId = window.location.pathname.split('/').pop();
+        const currentUrl = window.location.pathname + window.location.search;
+        const eventId = window.location.pathname.split('/').pop();
         window.location.href = '/login?redirect=' + encodeURIComponent(`/admin/events/${eventId}`);
       }
     }, 100);
@@ -506,7 +506,9 @@ setPublicCache(Astro.response.headers);
           window.location.href = '/admin/events/' + eventId;
           return;
         }
-      } catch (_) {}
+      } catch {
+        // Network or auth failure: fall through to the login redirect below
+      }
 
       // Definitely not authenticated — redirect to login with return URL
       window.location.href = '/login?redirect=' + encodeURIComponent('/admin/events/' + eventId);
@@ -800,7 +802,9 @@ setPublicCache(Astro.response.headers);
       // admin dashboard handler; reads the current edit id from the form at call
       // time so it always targets the event being edited.
       const getCurrentEditId = () => (document.getElementById('editEventForm') as HTMLFormElement)?.getAttribute('data-current-edit-id') || '';
-      let mergeSearchTimeout: ReturnType<typeof setTimeout> | null = null;
+      // window.setTimeout returns a number in the browser (Node's Timeout type
+      // also leaks into `typeof setTimeout` here, so name the type explicitly).
+      let mergeSearchTimeout: number | null = null;
       function setupMergeSearch() {
         const input = document.getElementById('mergeSearchInput') as HTMLInputElement | null;
         const dropdown = document.getElementById('mergeSearchDropdown');

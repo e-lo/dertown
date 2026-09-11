@@ -90,8 +90,33 @@ const userEmail = session.user?.email || 'Admin';
 </AdminLayout>
 
 <script>
+  // Minimal shapes of the JSON returned by /api/admin/series that this page reads.
+  type SeriesEvent = {
+    id: string;
+    title?: string | null;
+    start_date: string;
+    start_time?: string | null;
+    location?: { name?: string | null } | null;
+    organization?: { name?: string | null } | null;
+  };
+  type SeriesRow = {
+    parent: SeriesEvent;
+    totalCount: number;
+    futureCount: number;
+    dateRange?: { earliest: string; latest: string } | null;
+  };
+
+  // Typed lookup for form controls created from HTML strings in this page.
+  function byId<T extends HTMLElement>(id: string): T | null {
+    return document.getElementById(id) as T | null;
+  }
+
+  function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
+  }
+
   // Helper function to parse date strings from database (YYYY-MM-DD) without timezone conversion
-  function parseDateString(dateStr) {
+  function parseDateString(dateStr: string) {
     const [year, month, day] = dateStr.split('-').map(Number);
     // Create date in local timezone by using components directly
     const date = new Date(year, month - 1, day);
@@ -99,12 +124,12 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   // Format date as local date string
-  function formatLocalDate(dateStr) {
+  function formatLocalDate(dateStr: string) {
     return parseDateString(dateStr).toLocaleDateString();
   }
 
   // Message display function
-  function showMessage(message, type = 'info') {
+  function showMessage(message: string, type: 'info' | 'error' | 'success' = 'info') {
     const messageDiv = document.getElementById('message');
     if (!messageDiv) return;
 
@@ -134,12 +159,12 @@ const userEmail = session.user?.email || 'Admin';
       displayPastSeries(data.pastSeries || []);
     } catch (error) {
       console.error('Error loading series:', error);
-      showMessage('Error loading series: ' + error.message, 'error');
+      showMessage('Error loading series: ' + errorMessage(error), 'error');
     }
   }
 
   // Display active series
-  function displayActiveSeries(series) {
+  function displayActiveSeries(series: SeriesRow[]) {
     const container = document.getElementById('active-series-container');
     const loading = document.getElementById('active-loading');
 
@@ -196,7 +221,7 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   // Display past series
-  function displayPastSeries(series) {
+  function displayPastSeries(series: SeriesRow[]) {
     const container = document.getElementById('past-series-container');
     const loading = document.getElementById('past-loading');
 
@@ -260,7 +285,7 @@ const userEmail = session.user?.email || 'Admin';
   // Calendar state for "Add Occurrences" modal
   let addOccCalendarCurrentMonth = new Date().getMonth();
   let addOccCalendarCurrentYear = new Date().getFullYear();
-  let addOccSelectedDatesSet = new Set<string>();
+  const addOccSelectedDatesSet = new Set<string>();
 
   // Load reference data
   async function loadReferenceData() {
@@ -316,7 +341,7 @@ const userEmail = session.user?.email || 'Admin';
       eventListHtml += '<span class="font-semibold">Select All</span></label></div>';
       eventListHtml += '<div class="space-y-2">';
 
-      series.children.forEach(event => {
+      series.children.forEach((event: SeriesEvent) => {
         const isFuture = event.start_date >= new Date().toISOString().split('T')[0];
         const dateStr = event.start_date ? new Date(event.start_date).toLocaleDateString() : 'N/A';
         const timeStr = event.start_time || 'N/A';
@@ -488,12 +513,12 @@ const userEmail = session.user?.email || 'Admin';
 
       // Set location/organization if available
       if (commonValues.location_id && firstEvent.location) {
-        document.getElementById('editSeriesLocationSearch').value = firstEvent.location.name || '';
-        document.getElementById('editSeriesLocationId').value = commonValues.location_id;
+        (document.getElementById('editSeriesLocationSearch') as HTMLInputElement).value = firstEvent.location.name || '';
+        (document.getElementById('editSeriesLocationId') as HTMLInputElement).value = commonValues.location_id;
       }
       if (commonValues.organization_id && firstEvent.organization) {
-        document.getElementById('editSeriesOrganizationSearch').value = firstEvent.organization.name || '';
-        document.getElementById('editSeriesOrganizationId').value = commonValues.organization_id;
+        (document.getElementById('editSeriesOrganizationSearch') as HTMLInputElement).value = firstEvent.organization.name || '';
+        (document.getElementById('editSeriesOrganizationId') as HTMLInputElement).value = commonValues.organization_id;
       }
 
       // Editing a field auto-ticks its Apply box. (You can also tick Apply without
@@ -534,14 +559,15 @@ const userEmail = session.user?.email || 'Admin';
       modal.classList.add('flex');
     } catch (error) {
       console.error('Error opening edit series modal:', error);
-      showMessage('Error loading series: ' + error.message, 'error');
+      showMessage('Error loading series: ' + errorMessage(error), 'error');
     }
   };
 
   // Toggle all events checkbox
   window.toggleAllEvents = function() {
-    const selectAll = document.getElementById('selectAllEvents');
-    const checkboxes = document.querySelectorAll('.event-checkbox');
+    const selectAll = byId<HTMLInputElement>('selectAllEvents');
+    if (!selectAll) return;
+    const checkboxes = document.querySelectorAll<HTMLInputElement>('.event-checkbox');
     checkboxes.forEach(cb => cb.checked = selectAll.checked);
   };
 
@@ -646,8 +672,8 @@ const userEmail = session.user?.email || 'Admin';
   }
 
   window.selectEditSeriesLocation = function(id, name) {
-    const locIdEl = document.getElementById('editSeriesLocationId');
-    const locSearchEl = document.getElementById('editSeriesLocationSearch');
+    const locIdEl = byId<HTMLInputElement>('editSeriesLocationId');
+    const locSearchEl = byId<HTMLInputElement>('editSeriesLocationSearch');
     const locDropdownEl = document.getElementById('editSeriesLocationDropdown');
 
     if (locIdEl) locIdEl.value = id;
@@ -659,8 +685,8 @@ const userEmail = session.user?.email || 'Admin';
   };
 
   window.selectEditSeriesOrganization = function(id, name) {
-    const orgIdEl = document.getElementById('editSeriesOrganizationId');
-    const orgSearchEl = document.getElementById('editSeriesOrganizationSearch');
+    const orgIdEl = byId<HTMLInputElement>('editSeriesOrganizationId');
+    const orgSearchEl = byId<HTMLInputElement>('editSeriesOrganizationSearch');
     const orgDropdownEl = document.getElementById('editSeriesOrganizationDropdown');
 
     if (orgIdEl) orgIdEl.value = id;
@@ -678,7 +704,7 @@ const userEmail = session.user?.email || 'Admin';
       e.preventDefault();
 
       // Get selected event IDs
-      const selectedCheckboxes = document.querySelectorAll('.event-checkbox:checked');
+      const selectedCheckboxes = document.querySelectorAll<HTMLInputElement>('.event-checkbox:checked');
       const eventIds = Array.from(selectedCheckboxes).map(cb => cb.value);
 
       if (eventIds.length === 0) {
@@ -761,7 +787,7 @@ const userEmail = session.user?.email || 'Admin';
           throw new Error(errorData.error || 'Failed to update events');
         }
       } catch (error) {
-        showMessage('Error updating events: ' + error.message, 'error');
+        showMessage('Error updating events: ' + errorMessage(error), 'error');
       }
     });
   }
@@ -817,7 +843,7 @@ const userEmail = session.user?.email || 'Admin';
       }
 
       // Build simplified form - just date selection and pattern
-      let formHtml = `
+      const formHtml = `
         <p class="text-gray-600 mb-4">Add new dates to this series. New events will use the same details as existing events.</p>
         <div class="form-field">
           <label class="form-label">Pattern: <span class="form-label-required">*</span></label>
@@ -880,7 +906,7 @@ const userEmail = session.user?.email || 'Admin';
 
       // Initialize calendar for custom dates if pattern is custom
       setTimeout(() => {
-        if (document.getElementById('addOccPattern')?.value === 'custom') {
+        if (byId<HTMLSelectElement>('addOccPattern')?.value === 'custom') {
           initAddOccCalendarMultiPicker();
         }
       }, 50);
@@ -889,13 +915,13 @@ const userEmail = session.user?.email || 'Admin';
       modal.classList.add('flex');
     } catch (error) {
       console.error('Error adding occurrences:', error);
-      showMessage('Error: ' + error.message, 'error');
+      showMessage('Error: ' + errorMessage(error), 'error');
     }
   };
 
   // Update pattern options visibility
   window.updateAddOccPatternOptions = function() {
-    const pattern = document.getElementById('addOccPattern')?.value;
+    const pattern = byId<HTMLSelectElement>('addOccPattern')?.value;
     const weekly = document.getElementById('addOccWeeklyOptions');
     const monthly = document.getElementById('addOccMonthlyOptions');
     const custom = document.getElementById('addOccCustomOptions');
@@ -1099,18 +1125,18 @@ const userEmail = session.user?.email || 'Admin';
 
   // Update preview for add occurrences
   window.updateAddOccPreview = function() {
-    const pattern = document.getElementById('addOccPattern')?.value;
+    const pattern = byId<HTMLSelectElement>('addOccPattern')?.value;
     const preview = document.getElementById('addOccPreview');
     const previewList = document.getElementById('addOccPreviewList');
     const previewCount = document.getElementById('addOccPreviewCount');
 
     if (!pattern || !preview || !previewList || !previewCount) return;
 
-    let dates = [];
+    let dates: string[] = [];
 
     if (pattern === 'weekly') {
-      const startDate = document.getElementById('addOccStartDate')?.value;
-      const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
+      const startDate = byId<HTMLInputElement>('addOccStartDate')?.value;
+      const occurrences = parseInt(byId<HTMLInputElement>('addOccOccurrences')?.value || '4');
       if (startDate) {
         const start = new Date(startDate);
         for (let i = 0; i < occurrences; i++) {
@@ -1120,8 +1146,8 @@ const userEmail = session.user?.email || 'Admin';
         }
       }
     } else if (pattern === 'monthly') {
-      const startDate = document.getElementById('addOccStartDateMonthly')?.value;
-      const occurrences = parseInt(document.getElementById('addOccOccurrencesMonthly')?.value || '3');
+      const startDate = byId<HTMLInputElement>('addOccStartDateMonthly')?.value;
+      const occurrences = parseInt(byId<HTMLInputElement>('addOccOccurrencesMonthly')?.value || '3');
       if (startDate) {
         const start = new Date(startDate);
         for (let i = 0; i < occurrences; i++) {
@@ -1166,17 +1192,17 @@ const userEmail = session.user?.email || 'Admin';
         return;
       }
 
-      const pattern = document.getElementById('addOccPattern')?.value;
+      const pattern = byId<HTMLSelectElement>('addOccPattern')?.value;
       if (!pattern) {
         showMessage('Please select a pattern', 'error');
         return;
       }
 
-      let dates = [];
+      let dates: string[] = [];
 
       if (pattern === 'weekly') {
-        const startDate = document.getElementById('addOccStartDate')?.value;
-        const occurrences = parseInt(document.getElementById('addOccOccurrences')?.value || '4');
+        const startDate = byId<HTMLInputElement>('addOccStartDate')?.value;
+        const occurrences = parseInt(byId<HTMLInputElement>('addOccOccurrences')?.value || '4');
         if (startDate) {
           const start = new Date(startDate);
           for (let i = 0; i < occurrences; i++) {
@@ -1186,8 +1212,8 @@ const userEmail = session.user?.email || 'Admin';
           }
         }
       } else if (pattern === 'monthly') {
-        const startDate = document.getElementById('addOccStartDateMonthly')?.value;
-        const occurrences = parseInt(document.getElementById('addOccOccurrencesMonthly')?.value || '3');
+        const startDate = byId<HTMLInputElement>('addOccStartDateMonthly')?.value;
+        const occurrences = parseInt(byId<HTMLInputElement>('addOccOccurrencesMonthly')?.value || '3');
         if (startDate) {
           const start = new Date(startDate);
           for (let i = 0; i < occurrences; i++) {
@@ -1197,7 +1223,7 @@ const userEmail = session.user?.email || 'Admin';
           }
         }
       } else if (pattern === 'custom') {
-        const customDatesText = document.getElementById('addOccCustomDates')?.value;
+        const customDatesText = byId<HTMLInputElement>('addOccCustomDates')?.value;
         if (customDatesText) {
           dates = customDatesText.split('\n')
             .map(line => line.trim())
@@ -1259,7 +1285,7 @@ const userEmail = session.user?.email || 'Admin';
           // Update parent event dates if new occurrences extend beyond current range
           if (currentSeriesData && dates.length > 0) {
             const newDates = dates.map(d => parseDateString(d).getTime());
-            const currentDates = currentSeriesData.children.map(c => parseDateString(c.start_date).getTime());
+            const currentDates = currentSeriesData.children.map((c: { start_date: string }) => parseDateString(c.start_date).getTime());
             const allDates = [...newDates, ...currentDates].sort((a, b) => a - b);
 
             const parentStartDate = new Date(allDates[0]);
@@ -1298,7 +1324,7 @@ const userEmail = session.user?.email || 'Admin';
           throw new Error(errorMsg);
         }
       } catch (error) {
-        showMessage('Error adding occurrences: ' + error.message, 'error');
+        showMessage('Error adding occurrences: ' + errorMessage(error), 'error');
       }
     });
   }

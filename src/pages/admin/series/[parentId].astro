@@ -16,8 +16,20 @@ if (!parentId) {
   return Astro.redirect('/admin/series');
 }
 
-// Fetch series data using Supabase directly
-let seriesData = null;
+// Format a YYYY-MM-DD string as a readable date without timezone conversion.
+// Declared outside the try block: the template below uses it too.
+const formatDateString = (dateStr: string) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+};
+
+// Fetch series data using Supabase directly (the catch below redirects, so
+// seriesData is always assigned past this block).
+let seriesData;
 try {
   // Get parent event
   const { data: parentEvent, error: parentError } = await supabaseAdmin
@@ -58,16 +70,6 @@ try {
   const futureChildren = (childEvents || []).filter((c: any) => c.start_date >= today);
   const pastChildren = (childEvents || []).filter((c: any) => c.start_date < today);
   const allDates = (childEvents || []).map((c: any) => c.start_date).filter(Boolean).sort();
-
-  // Helper to format date string (YYYY-MM-DD) as readable date without timezone conversion
-  const formatDateString = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric'
-    });
-  };
 
   const dateRange = allDates.length > 0
     ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }

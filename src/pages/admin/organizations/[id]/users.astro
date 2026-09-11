@@ -17,6 +17,9 @@ if (role !== 'super_admin') {
 
 const userEmail = session.user?.email || 'Admin';
 const { id: orgId } = Astro.params;
+if (!orgId) {
+  return Astro.redirect('/admin/organizations');
+}
 
 // Fetch organization details
 const { data: org, error: orgError } = await supabase

@@ -14,23 +14,24 @@ if (!isAdmin) {
   return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
 }
 
+type Activity = Database['public']['Tables']['activities']['Row'];
+
 // Fetch activities only after authentication is confirmed
-// Note: Using type assertion due to mismatch between 'activities' table and 'kid_activities' types
-const { data: activities, error } = await (supabase as any).from('activities').select('*').order('name');
+const { data: activities, error } = await supabase.from('activities').select('*').order('name');
 
 if (error) {
   console.error('Error fetching activities:', error);
 }
 
 // Helper function to get parent activity name
-function getParentName(activities: any[], parentId: string | null): string | null {
+function getParentName(activities: Activity[], parentId: string | null): string | null {
   if (!parentId) return null;
   const parent = activities?.find(a => a.id === parentId);
   return parent?.name || null;
 }
 
 // Compact list for the edit-form parent picker (id + name + type only)
-const activitiesForPicker = (activities ?? []).map((a: any) => ({
+const activitiesForPicker = (activities ?? []).map((a) => ({
   id: a.id,
   name: a.name,
   type: a.activity_hierarchy_type,

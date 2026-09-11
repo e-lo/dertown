@@ -60,7 +60,7 @@ const imageUrl = optimized
     {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
     {expirationTime && <meta property="article:expiration_time" content={expirationTime} />}
     {section && <meta property="article:section" content={section} />}
-    {tags.map(tag => <meta property="article:tag" content={tag} />)}
+    {tags.map((tag: string) => <meta property="article:tag" content={tag} />)}
     
     <!-- Additional meta tags -->
     <meta name="robots" content="index, follow" />
@@ -73,7 +73,9 @@ const imageUrl = optimized
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9Z4DYJ75S"></script>
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
+      // Google's verbatim snippet: gtag.js expects the Arguments object, not an array.
       function gtag() {
+        // eslint-disable-next-line prefer-rest-params
         window.dataLayer.push(arguments);
       }
       gtag('js', new Date());
