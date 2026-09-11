@@ -54,14 +54,43 @@ const userEmail = session.user?.email || 'Admin';
 </AdminLayout>
 
 <script>
-  // @ts-nocheck
-  /** @typedef {{ id: string; title?: string; message?: string; show_at?: string; expires_at?: string; status?: string; organization_id?: string; link?: string; email?: string; author?: string; comments?: string }} ListAnnouncement */
+  type ListAnnouncement = {
+    id: string;
+    title?: string;
+    message?: string;
+    show_at?: string;
+    expires_at?: string;
+    status?: string;
+    organization_id?: string;
+    link?: string;
+    email?: string;
+    author?: string;
+    comments?: string;
+  };
 
-  let announcements = /** @type {ListAnnouncement[]} */ ([]);
-  let filtered = /** @type {ListAnnouncement[]} */ ([]);
-  let allOrganizations = [];
-  let currentEditId = null;
-  let currentEditType = null;
+  type Organization = { id: string; name?: string };
+
+  type AnnouncementFormData = {
+    title: string;
+    message: string;
+    link: string | null;
+    email: string | null;
+    author: string | null;
+    comments: string | null;
+    show_at: string | null;
+    expires_at: string | null;
+    organization_id: string | null;
+    organization_added?: string;
+    id?: string;
+  };
+
+  type FieldElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+  let announcements: ListAnnouncement[] = [];
+  let filtered: ListAnnouncement[] = [];
+  let allOrganizations: Organization[] = [];
+  let currentEditId: string | null = null;
+  let currentEditType: 'new-announcement' | 'existing-announcement' | null = null;
 
   let autocompleteSetupComplete = false;
   let autocompleteSetupRetries = 0;
@@ -69,14 +98,19 @@ const userEmail = session.user?.email || 'Admin';
 
   // ── Utilities ─────────────────────────────────────────────────────────────
 
-  function normalizeUrl(url) {
+  /** Typed lookup for a form field; callers rely on the element being present. */
+  function field(id: string): FieldElement {
+    return document.getElementById(id) as FieldElement;
+  }
+
+  function normalizeUrl(url: string | null | undefined): string | null {
     if (!url || url.trim() === '') return null;
     const trimmed = url.trim();
     if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed;
     return 'https://' + trimmed;
   }
 
-  function showMessage(message, type = 'info') {
+  function showMessage(message: string, type: 'info' | 'success' | 'error' = 'info') {
     const div = document.createElement('div');
     div.textContent = message;
     div.className =
@@ -100,10 +134,16 @@ const userEmail = session.user?.email || 'Admin';
   // ── Org autocomplete ────────────────────────────────────────────────────────
 
   function setupAnnouncementOrganizationAutocomplete() {
-    const searchInput = document.getElementById('editAnnouncementOrganizationSearch');
-    const hiddenInput = document.getElementById('editAnnouncementOrganizationId');
+    const searchInput = document.getElementById(
+      'editAnnouncementOrganizationSearch'
+    ) as HTMLInputElement | null;
+    const hiddenInput = document.getElementById(
+      'editAnnouncementOrganizationId'
+    ) as HTMLInputElement | null;
     const dropdown = document.getElementById('editAnnouncementOrganizationDropdown');
-    const newOrgInput = document.getElementById('editAnnouncementOrganizationAdded');
+    const newOrgInput = document.getElementById(
+      'editAnnouncementOrganizationAdded'
+    ) as HTMLInputElement | null;
 
     if (!searchInput || !hiddenInput || !dropdown) {
       if (autocompleteSetupRetries < MAX_RETRIES) {
@@ -115,17 +155,17 @@ const userEmail = session.user?.email || 'Admin';
     if (autocompleteSetupComplete) return;
     autocompleteSetupComplete = true;
 
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase().trim();
       if (!query) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
         hiddenInput.value = '';
         return;
       }
-      const matches = allOrganizations.filter(
-        (o) => o && o.name && o.name.toLowerCase().includes(query)
-      ).slice(0, 10);
+      const matches = allOrganizations
+        .filter((o) => o && o.name && o.name.toLowerCase().includes(query))
+        .slice(0, 10);
       if (!matches.length) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
@@ -153,7 +193,10 @@ const userEmail = session.user?.email || 'Admin';
     });
 
     document.addEventListener('click', (e) => {
-      if (!(e.target instanceof Node) || (!searchInput.contains(e.target) && !dropdown.contains(e.target))) {
+      if (
+        !(e.target instanceof Node) ||
+        (!searchInput.contains(e.target) && !dropdown.contains(e.target))
+      ) {
         dropdown.classList.add('hidden');
         dropdown.classList.remove('block');
       }
@@ -188,7 +231,10 @@ const userEmail = session.user?.email || 'Admin';
       announcements = data.announcements || [];
       applyFilter();
     } catch (err) {
-      container.innerHTML = '<p class="text-red-600">' + (err instanceof Error ? err.message : 'Failed to load announcements') + '</p>';
+      container.innerHTML =
+        '<p class="text-red-600">' +
+        (err instanceof Error ? err.message : 'Failed to load announcements') +
+        '</p>';
     } finally {
       el.classList.add('hidden');
     }
@@ -207,11 +253,18 @@ const userEmail = session.user?.email || 'Admin';
     renderAnnouncements();
   }
 
-  function statusBadge(status) {
-    if (status === 'published') return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Published</span>';
-    if (status === 'pending') return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Pending</span>';
-    if (status === 'archived') return '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Archived</span>';
-    return '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">' + (status || '—') + '</span>';
+  function statusBadge(status?: string): string {
+    if (status === 'published')
+      return '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Published</span>';
+    if (status === 'pending')
+      return '<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Pending</span>';
+    if (status === 'archived')
+      return '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:0.25rem;">Archived</span>';
+    return (
+      '<span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:0.25rem;">' +
+      (status || '—') +
+      '</span>'
+    );
   }
 
   function renderAnnouncements() {
@@ -242,11 +295,22 @@ const userEmail = session.user?.email || 'Admin';
             : '';
           return (
             '<tr>' +
-            '<td>' + (a.title || '—') + '</td>' +
-            '<td>' + (a.message || '').substring(0, 80) + (a.message && a.message.length > 80 ? '...' : '') + '</td>' +
-            '<td>' + (a.show_at ? new Date(a.show_at).toLocaleString() : '—') + '</td>' +
-            '<td>' + (a.expires_at ? new Date(a.expires_at).toLocaleString() : '—') + '</td>' +
-            '<td>' + statusBadge(a.status) + '</td>' +
+            '<td>' +
+            (a.title || '—') +
+            '</td>' +
+            '<td>' +
+            (a.message || '').substring(0, 80) +
+            (a.message && a.message.length > 80 ? '...' : '') +
+            '</td>' +
+            '<td>' +
+            (a.show_at ? new Date(a.show_at).toLocaleString() : '—') +
+            '</td>' +
+            '<td>' +
+            (a.expires_at ? new Date(a.expires_at).toLocaleString() : '—') +
+            '</td>' +
+            '<td>' +
+            statusBadge(a.status) +
+            '</td>' +
             '<td style="white-space:nowrap;">' +
             '<button onclick="editAnnouncement(\'' +
             a.id +
@@ -308,7 +372,7 @@ const userEmail = session.user?.email || 'Admin';
       'editAnnouncementOrganizationAdded',
       'editAnnouncementComments',
     ].forEach((id) => {
-      const el = document.getElementById(id);
+      const el = document.getElementById(id) as FieldElement | null;
       if (el) el.value = '';
     });
   }
@@ -317,7 +381,8 @@ const userEmail = session.user?.email || 'Admin';
     currentEditId = null;
     currentEditType = 'new-announcement';
     clearModalFields();
-    document.getElementById('editAnnouncementModalTitle').textContent = 'Create New Announcement';
+    const titleEl = document.getElementById('editAnnouncementModalTitle');
+    if (titleEl) titleEl.textContent = 'Create New Announcement';
     const orgContainer = document.getElementById('editAnnouncementOrganizationAddedContainer');
     if (orgContainer) orgContainer.classList.remove('hidden');
     openModal();
@@ -325,14 +390,18 @@ const userEmail = session.user?.email || 'Admin';
 
   // ── Edit ────────────────────────────────────────────────────────────────────
 
-  window.editAnnouncement = async function (announcementId) {
+  window.editAnnouncement = async function (announcementId: string) {
     currentEditId = announcementId;
     currentEditType = 'existing-announcement';
 
     // Try the list cache first, then fetch directly
-    let announcement = announcements.find((a) => a.id === announcementId);
+    let announcement: ListAnnouncement | undefined = announcements.find(
+      (a) => a.id === announcementId
+    );
     if (!announcement) {
-      const res = await fetch(`/api/admin/announcements/${announcementId}`, { credentials: 'include' });
+      const res = await fetch(`/api/admin/announcements/${announcementId}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         announcement = data.announcement;
@@ -344,29 +413,31 @@ const userEmail = session.user?.email || 'Admin';
     }
 
     clearModalFields();
-    document.getElementById('editAnnouncementModalTitle').textContent = 'Edit Announcement';
-    document.getElementById('editAnnouncementTitle').value = announcement.title || '';
-    document.getElementById('editAnnouncementMessage').value = announcement.message || '';
-    document.getElementById('editAnnouncementLink').value = announcement.link || '';
-    document.getElementById('editAnnouncementEmail').value = announcement.email || '';
-    document.getElementById('editAnnouncementAuthor').value = announcement.author || '';
-    document.getElementById('editAnnouncementComments').value = announcement.comments || '';
+    const titleEl = document.getElementById('editAnnouncementModalTitle');
+    if (titleEl) titleEl.textContent = 'Edit Announcement';
+    field('editAnnouncementTitle').value = announcement.title || '';
+    field('editAnnouncementMessage').value = announcement.message || '';
+    field('editAnnouncementLink').value = announcement.link || '';
+    field('editAnnouncementEmail').value = announcement.email || '';
+    field('editAnnouncementAuthor').value = announcement.author || '';
+    field('editAnnouncementComments').value = announcement.comments || '';
 
     if (announcement.show_at) {
       const d = new Date(announcement.show_at);
-      document.getElementById('editAnnouncementShowAtDate').value = d.toISOString().split('T')[0];
-      document.getElementById('editAnnouncementShowAtTime').value = d.toTimeString().substring(0, 5);
+      field('editAnnouncementShowAtDate').value = d.toISOString().split('T')[0];
+      field('editAnnouncementShowAtTime').value = d.toTimeString().substring(0, 5);
     }
     if (announcement.expires_at) {
       const d = new Date(announcement.expires_at);
-      document.getElementById('editAnnouncementExpiresAtDate').value = d.toISOString().split('T')[0];
-      document.getElementById('editAnnouncementExpiresAtTime').value = d.toTimeString().substring(0, 5);
+      field('editAnnouncementExpiresAtDate').value = d.toISOString().split('T')[0];
+      field('editAnnouncementExpiresAtTime').value = d.toTimeString().substring(0, 5);
     }
     if (announcement.organization_id) {
-      const org = allOrganizations.find((o) => o.id === announcement.organization_id);
+      const orgId = announcement.organization_id;
+      const org = allOrganizations.find((o) => o.id === orgId);
       if (org) {
-        document.getElementById('editAnnouncementOrganizationSearch').value = org.name;
-        document.getElementById('editAnnouncementOrganizationId').value = org.id;
+        field('editAnnouncementOrganizationSearch').value = org.name || '';
+        field('editAnnouncementOrganizationId').value = org.id;
       }
     }
 
@@ -375,7 +446,7 @@ const userEmail = session.user?.email || 'Admin';
 
   // ── Approve / Archive ───────────────────────────────────────────────────────
 
-  window.approveAnnouncement = async function (announcementId) {
+  window.approveAnnouncement = async function (announcementId: string) {
     try {
       const res = await fetch('/api/admin/announcements/approve', {
         method: 'POST',
@@ -391,7 +462,7 @@ const userEmail = session.user?.email || 'Admin';
     }
   };
 
-  window.archiveAnnouncement = async function (announcementId) {
+  window.archiveAnnouncement = async function (announcementId: string) {
     const reason = prompt('Reason for archiving (optional):');
     if (reason === null) return; // cancelled
     try {
@@ -411,26 +482,22 @@ const userEmail = session.user?.email || 'Admin';
 
   // ── Form submission ─────────────────────────────────────────────────────────
 
-  function buildFormData() {
-    const showAtDate = document.getElementById('editAnnouncementShowAtDate').value;
-    const showAtTime = document.getElementById('editAnnouncementShowAtTime').value;
-    const expiresAtDate = document.getElementById('editAnnouncementExpiresAtDate').value;
-    const expiresAtTime = document.getElementById('editAnnouncementExpiresAtTime').value;
-    const orgId = document.getElementById('editAnnouncementOrganizationId').value;
+  function buildFormData(): AnnouncementFormData {
+    const showAtDate = field('editAnnouncementShowAtDate').value;
+    const showAtTime = field('editAnnouncementShowAtTime').value;
+    const expiresAtDate = field('editAnnouncementExpiresAtDate').value;
+    const expiresAtTime = field('editAnnouncementExpiresAtTime').value;
+    const orgId = field('editAnnouncementOrganizationId').value;
 
     return {
-      title: document.getElementById('editAnnouncementTitle').value,
-      message: document.getElementById('editAnnouncementMessage').value,
-      link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
-      email: document.getElementById('editAnnouncementEmail').value || null,
-      author: document.getElementById('editAnnouncementAuthor').value || null,
-      comments: document.getElementById('editAnnouncementComments').value || null,
-      show_at: showAtDate
-        ? showAtDate + 'T' + (showAtTime || '00:00') + ':00'
-        : null,
-      expires_at: expiresAtDate
-        ? expiresAtDate + 'T' + (expiresAtTime || '23:59') + ':59'
-        : null,
+      title: field('editAnnouncementTitle').value,
+      message: field('editAnnouncementMessage').value,
+      link: normalizeUrl(field('editAnnouncementLink').value),
+      email: field('editAnnouncementEmail').value || null,
+      author: field('editAnnouncementAuthor').value || null,
+      comments: field('editAnnouncementComments').value || null,
+      show_at: showAtDate ? showAtDate + 'T' + (showAtTime || '00:00') + ':00' : null,
+      expires_at: expiresAtDate ? expiresAtDate + 'T' + (expiresAtTime || '23:59') + ':59' : null,
       organization_id: orgId || null,
     };
   }
@@ -443,7 +510,7 @@ const userEmail = session.user?.email || 'Admin';
     const searchInput = document.getElementById('announcement-search');
     if (searchInput) searchInput.addEventListener('input', applyFilter);
 
-    const form = document.getElementById('editAnnouncementForm');
+    const form = document.getElementById('editAnnouncementForm') as HTMLFormElement | null;
     if (!form) return;
 
     form.addEventListener('submit', async (e) => {
@@ -459,7 +526,7 @@ const userEmail = session.user?.email || 'Admin';
 
       if (currentEditType === 'new-announcement') {
         // Add new-org field if provided
-        const orgAdded = document.getElementById('editAnnouncementOrganizationAdded').value.trim();
+        const orgAdded = field('editAnnouncementOrganizationAdded').value.trim();
         if (orgAdded && !formData.organization_id) formData.organization_added = orgAdded;
 
         try {
@@ -477,7 +544,10 @@ const userEmail = session.user?.email || 'Admin';
           showMessage('Announcement created and published.', 'success');
           await loadAnnouncements();
         } catch (err) {
-          showMessage('Error creating: ' + (err instanceof Error ? err.message : String(err)), 'error');
+          showMessage(
+            'Error creating: ' + (err instanceof Error ? err.message : String(err)),
+            'error'
+          );
         }
         return;
       }
@@ -497,7 +567,10 @@ const userEmail = session.user?.email || 'Admin';
         showMessage('Announcement updated!', 'success');
         await loadAnnouncements();
       } catch (err) {
-        showMessage('Error updating: ' + (err instanceof Error ? err.message : String(err)), 'error');
+        showMessage(
+          'Error updating: ' + (err instanceof Error ? err.message : String(err)),
+          'error'
+        );
       }
     });
   });

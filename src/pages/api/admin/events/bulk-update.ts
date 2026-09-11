@@ -119,10 +119,8 @@ export const PUT = withSuperAdminAuth(async ({ request }) => {
   }
 
   // Update all events matching the IDs
-  const { data, error } = await supabaseAdmin
-    .from('events')
-    .update(cleanedData)
-    .in('id', event_ids).select(`
+  const { data, error } = await supabaseAdmin.from('events').update(cleanedData).in('id', event_ids)
+    .select(`
       *,
       primary_tag:tags!events_primary_tag_id_fkey(name),
       secondary_tag:tags!events_secondary_tag_id_fkey(name),

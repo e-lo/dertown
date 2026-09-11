@@ -65,7 +65,11 @@ export const POST = withAdminAuth(async ({ request }) => {
   return jsonResponse({ ok: true, announcement: { id: data.id, title: data.title } });
 });
 
-async function sendPushNotifications(announcement: { title: string; message?: string; id: string }) {
+async function sendPushNotifications(announcement: {
+  title: string;
+  message?: string;
+  id: string;
+}) {
   const { data: tokens } = await supabaseAdmin.from('push_tokens').select('token');
   if (!tokens?.length) return;
 

@@ -8,10 +8,7 @@ export const prerender = false;
 export const GET = withAdminAuth(async ({ url }) => {
   const status = url.searchParams.get('status');
 
-  let query = supabaseAdmin
-    .from('activities')
-    .select('*')
-    .order('name', { ascending: true });
+  let query = supabaseAdmin.from('activities').select('*').order('name', { ascending: true });
 
   if (status && ['pending', 'approved', 'duplicate', 'archived', 'cancelled'].includes(status)) {
     query = query.eq('status', status as any);

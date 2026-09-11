@@ -30,7 +30,10 @@ function dateDistanceDays(a: string | null, b: string | null): number | null {
   return Math.abs(aDate - bDate) / (1000 * 60 * 60 * 24);
 }
 
-function eventDuplicateScore(event: EventDuplicateCandidate, candidate: EventDuplicateCandidate): number {
+function eventDuplicateScore(
+  event: EventDuplicateCandidate,
+  candidate: EventDuplicateCandidate
+): number {
   const titleScore = similarityScore(event.title || '', candidate.title || '');
   let score = titleScore;
 
@@ -76,9 +79,12 @@ export function findEventDuplicateHint(
 
     // Same source + different date = recurring event from same scraper, not a duplicate.
     // The scraper's own dedup handles same-source matches.
-    if (event.source_id && candidate.source_id &&
-        event.source_id === candidate.source_id &&
-        event.start_date !== candidate.start_date) {
+    if (
+      event.source_id &&
+      candidate.source_id &&
+      event.source_id === candidate.source_id &&
+      event.start_date !== candidate.start_date
+    ) {
       continue;
     }
 
@@ -95,8 +101,7 @@ export function findEventDuplicateHint(
         title: candidate.title,
         start_date: candidate.start_date,
         score: roundedScore,
-        match_level:
-          roundedScore >= EVENT_LIKELY_DUPLICATE_THRESHOLD ? 'likely' : 'possible',
+        match_level: roundedScore >= EVENT_LIKELY_DUPLICATE_THRESHOLD ? 'likely' : 'possible',
       };
     }
   }

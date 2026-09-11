@@ -18,10 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const { error } = await supabaseAdmin
       .from('push_tokens')
-      .upsert(
-        { token, platform, last_seen_at: new Date().toISOString() },
-        { onConflict: 'token' }
-      );
+      .upsert({ token, platform, last_seen_at: new Date().toISOString() }, { onConflict: 'token' });
 
     if (error) {
       console.error('Error registering push token:', error);

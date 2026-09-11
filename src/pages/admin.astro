@@ -454,21 +454,21 @@ const userEmail = session.user?.email || 'Admin';
   // ============================================================================
   
   // Track retry attempts to prevent infinite loops
-  let autocompleteSetupRetries = {
-    location: 0,
-    organization: 0,
-    announcementOrganization: 0,
-    parentEvent: 0
-  };
+  const autocompleteSetupRetries = {
+  location: 0,
+  organization: 0,
+  announcementOrganization: 0,
+  parentEvent: 0
+};
   const MAX_RETRIES = 10;
   
   // Track if autocomplete has been set up to avoid duplicate event listeners
-  let autocompleteSetupComplete = {
-    location: false,
-    organization: false,
-    announcementOrganization: false,
-    parentEvent: false
-  };
+  const autocompleteSetupComplete = {
+  location: false,
+  organization: false,
+  announcementOrganization: false,
+  parentEvent: false
+};
   
   /**
    * Re-runs autocomplete setup for event modal (called when modal opens)
@@ -2938,7 +2938,7 @@ const userEmail = session.user?.email || 'Admin';
 
   let calendarCurrentMonth = new Date().getMonth();
   let calendarCurrentYear = new Date().getFullYear();
-  let selectedDatesSet = new Set();
+  const selectedDatesSet = new Set();
 
   /**
    * Initializes the calendar multi-picker
@@ -3868,10 +3868,10 @@ const userEmail = session.user?.email || 'Admin';
         }
       }
       
-      let formData = {
-        id: currentEditId,
-        title: document.getElementById('editEventTitle').value,
-      };
+      const formData = {
+      id: currentEditId,
+      title: document.getElementById('editEventTitle').value,
+    };
       
       // Event-specific fields
       formData.description = document.getElementById('editEventDescription').value;
@@ -3962,7 +3962,9 @@ const userEmail = session.user?.email || 'Admin';
               try {
                 const j = await appr.json();
                 if (j.error) detail = j.error;
-              } catch (_) {}
+              } catch {
+                /* non-JSON error body: keep the generic message */
+              }
               throw new Error(
                 detail + ' — Your edits are saved in the queue; use Approve on the list or fix the error.'
               );
@@ -4118,15 +4120,15 @@ const userEmail = session.user?.email || 'Admin';
       
       if (!currentEditId || !currentEditType || !currentEditType.includes('announcement')) return;
       
-      let formData = {
-        id: currentEditId,
-        title: document.getElementById('editAnnouncementTitle').value,
-        message: document.getElementById('editAnnouncementMessage').value,
-        link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
-        email: document.getElementById('editAnnouncementEmail').value || null,
-        author: document.getElementById('editAnnouncementAuthor').value || null,
-        comments: document.getElementById('editAnnouncementComments').value || null,
-      };
+      const formData = {
+      id: currentEditId,
+      title: document.getElementById('editAnnouncementTitle').value,
+      message: document.getElementById('editAnnouncementMessage').value,
+      link: normalizeUrl(document.getElementById('editAnnouncementLink').value),
+      email: document.getElementById('editAnnouncementEmail').value || null,
+      author: document.getElementById('editAnnouncementAuthor').value || null,
+      comments: document.getElementById('editAnnouncementComments').value || null,
+    };
       
       // Handle show_at
       const showAtDate = document.getElementById('editAnnouncementShowAtDate').value;

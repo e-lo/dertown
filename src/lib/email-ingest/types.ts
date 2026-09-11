@@ -1,9 +1,9 @@
 // src/lib/email-ingest/types.ts
 
 export interface MailgunPayload {
-  sender: string;           // envelope from (bare email)
-  recipient: string;        // envelope to
-  from: string;             // From header (may include display name)
+  sender: string; // envelope from (bare email)
+  recipient: string; // envelope to
+  from: string; // From header (may include display name)
   subject: string;
   'body-plain'?: string;
   'body-html'?: string;

@@ -58,7 +58,6 @@ export const GET: APIRoute = async ({ url }) => {
   }
 };
 
-
 function generateICalContent(events: EventData[], tagName?: string | null): string {
   const now = new Date();
   const siteUrl = SITE_URL;

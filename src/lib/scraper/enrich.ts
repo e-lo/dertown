@@ -38,16 +38,21 @@ export async function enrichDescriptionsFromDetailPages(
 
     const needsDescription =
       selectors?.length &&
-      (!event.description ||
-        event.description.length < 500 ||
-        looksTruncated(event.description));
+      (!event.description || event.description.length < 500 || looksTruncated(event.description));
     const needsImage = imageSelector && !event.image_url;
     const needsStartDate = startDateSelector && !event.start_date;
     const needsStartTime = startTimeSelector && !event.start_time;
     const needsEndTime = endTimeSelector && !event.end_time;
     const needsLocation = locationSelector && !event.location_name;
 
-    if (!needsDescription && !needsImage && !needsStartDate && !needsStartTime && !needsEndTime && !needsLocation)
+    if (
+      !needsDescription &&
+      !needsImage &&
+      !needsStartDate &&
+      !needsStartTime &&
+      !needsEndTime &&
+      !needsLocation
+    )
       continue;
 
     try {
@@ -218,11 +223,7 @@ async function expandIcicleSalesforceInstances(
           instanceDetails.venue =
             instanceDetails.venue ||
             resolveSalesforceVenueOverride(source, instanceUrl, canonicalEventUrl);
-          if (
-            verbose &&
-            /gothard sisters/i.test(event.title) &&
-            !instanceDetails.venue
-          ) {
+          if (verbose && /gothard sisters/i.test(event.title) && !instanceDetails.venue) {
             const hasSnowy = /snowy\s+owl/i.test(instanceHtml);
             console.log(
               `    DEBUG SALESFORCE "${event.title}": no venue parsed for ${instanceUrl}; html_has_snowy_owl=${hasSnowy}`
@@ -431,8 +432,8 @@ function extractSalesforceInstanceUrls(html: string, eventUrl: string): string[]
     if (normalized) urls.add(normalized);
   }
 
-  const fromHashRefs = extractUniqueMatches(html, /#\/instances\/([A-Za-z0-9]+)/g).map(
-    (m) => m.replace(/^#\/instances\//, '')
+  const fromHashRefs = extractUniqueMatches(html, /#\/instances\/([A-Za-z0-9]+)/g).map((m) =>
+    m.replace(/^#\/instances\//, '')
   );
   for (const id of fromHashRefs) {
     const resolved = salesforceHashUrl(eventUrl, 'instances', id);
@@ -483,8 +484,8 @@ async function fetchSalesforceInstanceUrlsFromApi(
   const eventId = extractSalesforceEventId(eventUrl);
   if (!eventId) return [];
 
-  let origin = '';
-  let pathname = '';
+  let origin: string;
+  let pathname: string;
   try {
     const u = new URL(eventUrl);
     origin = u.origin;
@@ -493,13 +494,7 @@ async function fetchSalesforceInstanceUrlsFromApi(
     return [];
   }
 
-  const baseCandidates = Array.from(
-    new Set([
-      `${origin}${pathname}`,
-      `${origin}/ticket`,
-      origin,
-    ])
-  );
+  const baseCandidates = Array.from(new Set([`${origin}${pathname}`, `${origin}/ticket`, origin]));
 
   const endpointTemplates = [
     '/services/apexrest/events/{eventId}/instances',
@@ -692,7 +687,7 @@ function normalize24hTime(raw: string | null): string | null {
 }
 
 function extractVenueFromText(text: string): string | null {
-  const explicit = text.match(/(?:Venue|Location)\s*[:\-]\s*([A-Za-z0-9 '&.,-]{3,80})/i);
+  const explicit = text.match(/(?:Venue|Location)\s*[:-]\s*([A-Za-z0-9 '&.,-]{3,80})/i);
   if (explicit?.[1]) return explicit[1].trim();
 
   const snowyOwl = text.match(/\bSnowy Owl(?:\s+(?:Theater|Theatre))?\b/i);
@@ -702,7 +697,7 @@ function extractVenueFromText(text: string): string | null {
 }
 
 function extractVenueFromHtml(html: string): string | null {
-  const explicit = html.match(/(?:venue|location)\s*[:>\-]\s*([A-Za-z0-9 '&.,-]{3,100})/i);
+  const explicit = html.match(/(?:venue|location)\s*[:>-]\s*([A-Za-z0-9 '&.,-]{3,100})/i);
   if (explicit?.[1]) return explicit[1].trim();
 
   const snowy = html.match(/\bSnowy\s+Owl(?:\s+(?:Theater|Theatre))?\b/i);
@@ -737,8 +732,18 @@ function cleanVenue(raw: string | null): string | null {
 
 function extractPriceRange(html: string, text: string): string | null {
   const numericKeys = {
-    min: firstMatchingJsonNumberValue(html, ['minPrice', 'minimumPrice', 'priceMin', 'lowestPrice']),
-    max: firstMatchingJsonNumberValue(html, ['maxPrice', 'maximumPrice', 'priceMax', 'highestPrice']),
+    min: firstMatchingJsonNumberValue(html, [
+      'minPrice',
+      'minimumPrice',
+      'priceMin',
+      'lowestPrice',
+    ]),
+    max: firstMatchingJsonNumberValue(html, [
+      'maxPrice',
+      'maximumPrice',
+      'priceMax',
+      'highestPrice',
+    ]),
   };
 
   if (numericKeys.min !== null || numericKeys.max !== null) {
@@ -818,7 +823,10 @@ function extractVenueNameFromLocationText(text: string): string | null {
 
 /** Parse "7:00 pm" → "19:00", used for detail-page end time extraction. */
 function parseTime12hLocal(raw: string): string | null {
-  const match = raw.trim().toLowerCase().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
+  const match = raw
+    .trim()
+    .toLowerCase()
+    .match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);
   if (!match) return null;
   let hour = parseInt(match[1], 10);
   const min = match[2];

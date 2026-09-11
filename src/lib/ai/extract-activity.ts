@@ -151,8 +151,10 @@ function coerceNode(item: Record<string, unknown>, depth: number): ExtractedNode
     website: typeof item.website === 'string' ? item.website : null,
     organization_name: typeof item.organization_name === 'string' ? item.organization_name : null,
     max_capacity: typeof item.max_capacity === 'number' ? item.max_capacity : null,
-    registration_opens: typeof item.registration_opens === 'string' ? item.registration_opens : null,
-    registration_closes: typeof item.registration_closes === 'string' ? item.registration_closes : null,
+    registration_opens:
+      typeof item.registration_opens === 'string' ? item.registration_opens : null,
+    registration_closes:
+      typeof item.registration_closes === 'string' ? item.registration_closes : null,
     children: (rawChildren as Record<string, unknown>[])
       .filter((c) => c && typeof c.name === 'string' && c.name.trim())
       .map((c) => coerceNode(c, depth + 1)),
@@ -182,7 +184,10 @@ export async function extractActivitiesWithAI(text: string): Promise<ExtractedNo
     .join('');
 
   // Strip markdown fences if the model added them anyway
-  const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const jsonStr = raw
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
 
   // Accept either a JSON array of roots or a single root object.
   const match = jsonStr.match(/[[{][\s\S]*[\]}]/);

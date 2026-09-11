@@ -53,7 +53,7 @@ const {
   (function() {
     window.openLoginModal = function() {
       // Close the suggest edit modal if it's open
-      var suggestModal = document.getElementById('suggestEditEventModal');
+      const suggestModal = document.getElementById('suggestEditEventModal');
       if (suggestModal) {
         suggestModal.style.display = 'none';
       }

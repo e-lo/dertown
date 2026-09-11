@@ -96,7 +96,8 @@ export function buildExtractionPrompt(
 ): { system: string; user: string } {
   const today = new Date().toISOString().split('T')[0];
 
-  const system = 'You extract structured event data from webpage text. Respond with ONLY valid JSON.';
+  const system =
+    'You extract structured event data from webpage text. Respond with ONLY valid JSON.';
 
   // Build metadata sections
   let metadataSection = '';
@@ -232,9 +233,7 @@ export async function extractEventsWithAI(
 ): Promise<ScrapedEvent[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error(
-      'ANTHROPIC_API_KEY not set. Add it to .env.local for AI extraction.'
-    );
+    throw new Error('ANTHROPIC_API_KEY not set. Add it to .env.local for AI extraction.');
   }
 
   // Extract metadata (images, links) before stripping HTML

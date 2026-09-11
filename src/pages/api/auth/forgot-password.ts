@@ -16,7 +16,11 @@ export async function POST({ request }: any) {
   const origin =
     request.headers.get('origin') ||
     (() => {
-      try { return new URL(request.url).origin; } catch { return ''; }
+      try {
+        return new URL(request.url).origin;
+      } catch {
+        return '';
+      }
     })();
   const redirectTo = origin ? `${origin}/update-password` : undefined;
 

@@ -241,7 +241,7 @@ setPublicCache(Astro.response.headers);
           navigator.share({ title: title || 'Organization', url: url || window.location.href });
         } else {
           navigator.clipboard.writeText(url || window.location.href).then(function() {
-            var n = document.createElement('div');
+            const n = document.createElement('div');
             n.textContent = 'Link copied to clipboard!';
             const successBg = getComputedStyle(document.documentElement).getPropertyValue('--color-success-bg').trim();
             n.style.cssText = 'position:fixed;top:20px;right:20px;background:' + successBg + ';color:white;padding:12px 16px;border-radius:8px;z-index:1000;font-size:14px;';
@@ -252,29 +252,29 @@ setPublicCache(Astro.response.headers);
       };
 
       if (hasMap) {
-        var mapEl = document.getElementById('organization-map');
+        const mapEl = document.getElementById('organization-map');
         if (!mapEl) return;
-        var markersJson = mapEl.getAttribute('data-markers');
-        var zoom = parseInt(mapEl.getAttribute('data-zoom') || '16', 10) || 16;
-        var markers = [];
+        const markersJson = mapEl.getAttribute('data-markers');
+        const zoom = parseInt(mapEl.getAttribute('data-zoom') || '16', 10) || 16;
+        let markers = [];
         try { markers = JSON.parse(markersJson || '[]'); } catch { /* use default [] */ }
         if (markers.length === 0) return;
-        var center = [markers[0].lat, markers[0].lon];
+        const center = [markers[0].lat, markers[0].lon];
         function loadLeaflet(cb) {
           if (typeof globalThis.L !== 'undefined') { cb(); return; }
-          var link = document.createElement('link');
+          const link = document.createElement('link');
           link.rel = 'stylesheet';
           link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
           link.crossOrigin = '';
           document.head.appendChild(link);
-          var script = document.createElement('script');
+          const script = document.createElement('script');
           script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
           script.crossOrigin = '';
           script.onload = cb;
           document.head.appendChild(script);
         }
         loadLeaflet(function() {
-          var L = globalThis.L;
+          const L = globalThis.L;
           if (L && L.Icon && L.Icon.Default) {
             L.Icon.Default.mergeOptions({
               iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -282,13 +282,13 @@ setPublicCache(Astro.response.headers);
               shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
             });
           }
-          var map = L.map('organization-map').setView(center, zoom);
+          const map = L.map('organization-map').setView(center, zoom);
           L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd',
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           }).addTo(map);
           markers.forEach(function(m) {
-            var marker = L.marker([m.lat, m.lon]).addTo(map);
+            const marker = L.marker([m.lat, m.lon]).addTo(map);
             if (m.label) marker.bindTooltip(m.label, { permanent: false, direction: 'top', className: 'location-marker-tooltip' });
           });
         });

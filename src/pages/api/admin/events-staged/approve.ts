@@ -28,7 +28,10 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   // Org editors can only approve staged events belonging to their organizations
   if (!auth.isSuperAdmin) {
-    if (!stagedEvent.organization_id || !auth.organizationIds.includes(stagedEvent.organization_id)) {
+    if (
+      !stagedEvent.organization_id ||
+      !auth.organizationIds.includes(stagedEvent.organization_id)
+    ) {
       return jsonError('Forbidden: staged event does not belong to your organization', 403);
     }
   }

@@ -17,7 +17,8 @@ export const GET: APIRoute = async ({ params }) => {
   try {
     const { data: org, error: orgError } = await supabase
       .from('organizations')
-      .select(`
+      .select(
+        `
         id,
         name,
         description,
@@ -25,7 +26,8 @@ export const GET: APIRoute = async ({ params }) => {
         phone,
         email,
         location:locations(id, name, address, latitude, longitude)
-      `)
+      `
+      )
       .eq('id', id)
       .single();
 
@@ -35,13 +37,15 @@ export const GET: APIRoute = async ({ params }) => {
 
     const { data: eventsData } = await supabase
       .from('public_events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(id, name, address, latitude, longitude),
         organization:organizations!events_organization_id_fkey(name)
-      `)
+      `
+      )
       .eq('organization_id', id)
       .order('start_date', { ascending: true });
 

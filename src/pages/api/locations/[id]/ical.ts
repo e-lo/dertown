@@ -5,11 +5,7 @@
  */
 import type { APIRoute } from 'astro';
 import { supabase, filterCurrentAndFutureEvents } from '@/lib/supabase';
-import {
-  parseEventTimesUTC,
-  formatDateForICal,
-  formatDateForICalUTC,
-} from '@/lib/calendar-utils';
+import { parseEventTimesUTC, formatDateForICal, formatDateForICalUTC } from '@/lib/calendar-utils';
 import { cdnCacheHeaders } from '@/lib/cache';
 import { ICAL_UID_DOMAIN } from '@/lib/config';
 import { SITE_URL } from '@/lib/site';
@@ -56,14 +52,15 @@ function buildVEvent(event: any, dtstamp: string, siteUrl: string): string {
     location ? `LOCATION:${location}` : null,
     event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,
     'END:VEVENT',
-  ].filter(Boolean).join('\r\n');
+  ]
+    .filter(Boolean)
+    .join('\r\n');
 }
 
 export const GET: APIRoute = async ({ params }) => {
   const { id } = params;
   if (!id) return new Response('Location ID required', { status: 400 });
   const siteUrl = SITE_URL;
-
 
   // Fetch location name for the calendar title
   const { data: location, error: locError } = await supabase
@@ -79,10 +76,12 @@ export const GET: APIRoute = async ({ params }) => {
   // Fetch all events at this location
   const { data: eventsData } = await supabase
     .from('public_events')
-    .select(`
+    .select(
+      `
       *,
       location:locations!events_location_id_fkey(name, address)
-    `)
+    `
+    )
     .eq('location_id', id)
     .order('start_date', { ascending: true });
 
@@ -94,22 +93,26 @@ export const GET: APIRoute = async ({ params }) => {
 
   const vevents = events
     .map((e) => {
-      try { return buildVEvent(e, dtstamp, siteUrl); }
-      catch { return null; }
+      try {
+        return buildVEvent(e, dtstamp, siteUrl);
+      } catch {
+        return null;
+      }
     })
     .filter(Boolean);
 
-  const icalContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Der Town//Location Events//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${calName}`,
-    VTIMEZONE,
-    ...vevents,
-    'END:VCALENDAR',
-  ].join('\r\n') + '\r\n';
+  const icalContent =
+    [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Der Town//Location Events//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${calName}`,
+      VTIMEZONE,
+      ...vevents,
+      'END:VCALENDAR',
+    ].join('\r\n') + '\r\n';
 
   return new Response(icalContent, {
     status: 200,

@@ -17,7 +17,10 @@ import { clampDescription } from '../scraper/description';
 import type { MailgunPayload, ProcessResult } from './types';
 import type { SourceConfig, VenueTagRule } from '../scraper/types';
 
-export async function ingestText(text: string, sourceLabel = 'admin-paste'): Promise<ProcessResult> {
+export async function ingestText(
+  text: string,
+  sourceLabel = 'admin-paste'
+): Promise<ProcessResult> {
   // Reuse parseIntent by constructing a synthetic payload.
   // Subject is intentionally empty so announcement-subject detection doesn't fire;
   // URL detection and event extraction work off the body.
@@ -60,7 +63,9 @@ export async function ingestText(text: string, sourceLabel = 'admin-paste'): Pro
   const cleanBody = extractBody(intent.body);
   const events = await parseEventsFromEmail(cleanBody);
   if (events.length === 0) {
-    throw new Error('No events could be extracted from the text. Try adding more detail (date, time, location) or paste a URL instead.');
+    throw new Error(
+      'No events could be extracted from the text. Try adding more detail (date, time, location) or paste a URL instead.'
+    );
   }
 
   const event = events[0];
@@ -109,8 +114,10 @@ export async function ingestText(text: string, sourceLabel = 'admin-paste'): Pro
   const ev = processed[0];
   const today = new Date().toISOString().split('T')[0];
   const notes = [`Imported via admin paste on ${today}`];
-  if (!ev.location_id && ev.location_added) notes.push(`Location not matched: "${ev.location_added}"`);
-  if (!ev.organization_id && ev.organization_added) notes.push(`Organization not matched: "${ev.organization_added}"`);
+  if (!ev.location_id && ev.location_added)
+    notes.push(`Location not matched: "${ev.location_added}"`);
+  if (!ev.organization_id && ev.organization_added)
+    notes.push(`Organization not matched: "${ev.organization_added}"`);
 
   const { data: row, error } = await supabaseAdmin
     .from('events_staged')
@@ -146,7 +153,13 @@ export async function ingestText(text: string, sourceLabel = 'admin-paste'): Pro
     status: 'event_staged',
     id: row.id,
     ...(duplicateHint
-      ? { duplicateHint: { id: duplicateHint.id, title: duplicateHint.title, match_level: duplicateHint.match_level } }
+      ? {
+          duplicateHint: {
+            id: duplicateHint.id,
+            title: duplicateHint.title,
+            match_level: duplicateHint.match_level,
+          },
+        }
       : {}),
   };
 }

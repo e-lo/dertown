@@ -19,7 +19,8 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   if (!user_id) return jsonError('user_id is required', 400);
 
   // Look up the user's email
-  const { data: authUser, error: lookupError } = await supabaseAdmin.auth.admin.getUserById(user_id);
+  const { data: authUser, error: lookupError } =
+    await supabaseAdmin.auth.admin.getUserById(user_id);
   if (lookupError || !authUser?.user?.email) {
     return jsonError('User not found', 404);
   }

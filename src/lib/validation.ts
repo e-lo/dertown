@@ -42,8 +42,14 @@ const checkboxField = () =>
   );
 
 export const eventFormSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
-  description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
+  description: z
+    .string()
+    .max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`)
+    .optional(),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().optional(),
   start_time: z.string().optional(),
@@ -88,8 +94,14 @@ export const eventFormSchema = z.object({
 });
 
 export const locationFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
-  address: z.string().max(MAX_ADDRESS, `Address must be less than ${MAX_ADDRESS} characters`).optional(),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
+  address: z
+    .string()
+    .max(MAX_ADDRESS, `Address must be less than ${MAX_ADDRESS} characters`)
+    .optional(),
   website: urlField(),
   phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -98,8 +110,14 @@ export const locationFormSchema = z.object({
 });
 
 export const organizationFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
-  description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(MAX_NAME, `Name must be less than ${MAX_NAME} characters`),
+  description: z
+    .string()
+    .max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`)
+    .optional(),
   website: urlField(),
   phone: z.string().max(MAX_PHONE, `Phone must be less than ${MAX_PHONE} characters`).optional(),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
@@ -108,7 +126,10 @@ export const organizationFormSchema = z.object({
 });
 
 export const announcementFormSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
   message: z
     .string()
     .min(1, 'Message is required')

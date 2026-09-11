@@ -10,7 +10,9 @@ const escapeHtml = (s: string) => String(s ?? '').replace(/</g, '&lt;');
 export function formatLastEdited(updatedAt: string | null | undefined): string {
   if (!updatedAt) return '—';
   const d = new Date(updatedAt);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export interface SortableTableColumn<T = Record<string, unknown>> {
@@ -91,7 +93,8 @@ export function renderSortableTable<T extends Record<string, unknown>>(
 
   const rows = visibleData
     .map((row, idx) => {
-      const rowId = rowIdPrefix && row.id ? ` id="${rowIdPrefix}${escapeHtml(String(row.id))}"` : '';
+      const rowId =
+        rowIdPrefix && row.id ? ` id="${rowIdPrefix}${escapeHtml(String(row.id))}"` : '';
       const cells = columns
         .map((col) => {
           const { html, sortValue } = col.render(row);
@@ -111,15 +114,17 @@ export function renderSortableTable<T extends Record<string, unknown>>(
 
   if (hasMore) {
     const moreCount = data.length - (maxRows ?? 0);
-    tableHtml +=
-      `<div class="mt-3"><button type="button" class="text-sm text-blue-600 hover:underline" data-sortable-show-more>Show ${moreCount} more</button></div>`;
+    tableHtml += `<div class="mt-3"><button type="button" class="text-sm text-blue-600 hover:underline" data-sortable-show-more>Show ${moreCount} more</button></div>`;
   }
 
   container.innerHTML = tableHtml;
 
   const tableEl = container.querySelector('table');
   if (tableEl instanceof HTMLTableElement) {
-    const TS = Tablesort as unknown as new (el: HTMLTableElement, opts?: { descending?: boolean }) => { refresh: () => void };
+    const TS = Tablesort as unknown as new (
+      el: HTMLTableElement,
+      opts?: { descending?: boolean }
+    ) => { refresh: () => void };
     const sortColIdx = columns.findIndex((c) => c.key === initialSortColumn);
     const defaultSort = sortColIdx >= 0 ? initialSortDesc : false;
     new TS(tableEl, { descending: defaultSort });
@@ -128,15 +133,24 @@ export function renderSortableTable<T extends Record<string, unknown>>(
   const showMoreBtn = container.querySelector('[data-sortable-show-more]');
   if (showMoreBtn && hasMore) {
     showMoreBtn.addEventListener('click', () => {
-      const fullConfig: SortableTableConfig<T> = { ...config, maxRows: undefined, expandable: false };
+      const fullConfig: SortableTableConfig<T> = {
+        ...config,
+        maxRows: undefined,
+        expandable: false,
+      };
       renderSortableTable(container, fullConfig);
     });
   }
 }
 
 /** Helper: text column from a path */
-export function textColumn<T>(key: string, label: string, path: keyof T | ((row: T) => unknown)): SortableTableColumn<T> {
-  const getVal = (row: T) => (typeof path === 'function' ? path(row) : (row as Record<string, unknown>)[path as string]);
+export function textColumn<T>(
+  key: string,
+  label: string,
+  path: keyof T | ((row: T) => unknown)
+): SortableTableColumn<T> {
+  const getVal = (row: T) =>
+    typeof path === 'function' ? path(row) : (row as Record<string, unknown>)[path as string];
   return {
     key,
     label,
@@ -150,8 +164,13 @@ export function textColumn<T>(key: string, label: string, path: keyof T | ((row:
 }
 
 /** Helper: status column with color (approved=green, cancelled=red, else amber) */
-export function statusColumn<T>(key: string, label: string, path: keyof T | ((row: T) => string | undefined)): SortableTableColumn<T> {
-  const getVal = (row: T) => (typeof path === 'function' ? path(row) : (row as Record<string, unknown>)[path as string]);
+export function statusColumn<T>(
+  key: string,
+  label: string,
+  path: keyof T | ((row: T) => string | undefined)
+): SortableTableColumn<T> {
+  const getVal = (row: T) =>
+    typeof path === 'function' ? path(row) : (row as Record<string, unknown>)[path as string];
   return {
     key,
     label,
@@ -159,14 +178,18 @@ export function statusColumn<T>(key: string, label: string, path: keyof T | ((ro
     render: (row) => {
       const val = getVal(row);
       const s = val != null ? String(val) : '—';
-      const cls = s === 'approved' ? 'text-green-600' : s === 'cancelled' ? 'text-red-600' : 'text-amber-600';
+      const cls =
+        s === 'approved' ? 'text-green-600' : s === 'cancelled' ? 'text-red-600' : 'text-amber-600';
       return { html: `<span class="text-sm ${cls}">${escapeHtml(s)}</span>`, sortValue: s };
     },
   };
 }
 
 /** Helper: last-edited column using updated_at */
-export function lastEditedColumn<T extends { updated_at?: string | null }>(key: string, label: string): SortableTableColumn<T> {
+export function lastEditedColumn<T extends { updated_at?: string | null }>(
+  key: string,
+  label: string
+): SortableTableColumn<T> {
   return {
     key,
     label,

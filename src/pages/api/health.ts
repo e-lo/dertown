@@ -21,7 +21,7 @@ export const GET: APIRoute = async () => {
   const present = (name: string) =>
     Boolean(
       (import.meta.env as Record<string, unknown>)[name] ||
-        (typeof process !== 'undefined' ? process.env?.[name] : undefined)
+      (typeof process !== 'undefined' ? process.env?.[name] : undefined)
     );
 
   return new Response(

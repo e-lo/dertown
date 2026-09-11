@@ -65,7 +65,11 @@ async function run() {
   const ref = await loadReferenceData(stub as any);
 
   assert.equal(ref.existingEvents.length, 1043, 'must page past the 1000-row cap for events');
-  assert.equal(ref.existingStaged.length, 1200, 'must page past the 1000-row cap for events_staged');
+  assert.equal(
+    ref.existingStaged.length,
+    1200,
+    'must page past the 1000-row cap for events_staged'
+  );
   // The overflow rows (beyond the first 1000) must be present.
   assert.ok(
     ref.existingEvents.some((e) => e.id === 'evt-1042'),

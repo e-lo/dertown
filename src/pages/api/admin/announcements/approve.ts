@@ -23,9 +23,7 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   }
 
   // Fire-and-forget: send push notifications to all registered devices
-  sendPushNotifications(data).catch((err) =>
-    console.error('Push notification send error:', err)
-  );
+  sendPushNotifications(data).catch((err) => console.error('Push notification send error:', err));
 
   return jsonResponse({ announcement: data });
 });
@@ -35,9 +33,7 @@ async function sendPushNotifications(announcement: {
   message: string;
   id: string;
 }): Promise<void> {
-  const { data: tokens } = await supabaseAdmin
-    .from('push_tokens')
-    .select('token');
+  const { data: tokens } = await supabaseAdmin.from('push_tokens').select('token');
 
   if (!tokens || tokens.length === 0) return;
 

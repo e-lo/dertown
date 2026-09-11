@@ -207,7 +207,9 @@ const siteOrigin = Astro.url.origin;
       if (!res.ok) return;
       allOrgs = await res.json();
       populateOrgSelect();
-    } catch (_) {}
+    } catch {
+      /* org list is optional; leave the select empty */
+    }
   }
 
   function populateOrgSelect(exclude = []) {

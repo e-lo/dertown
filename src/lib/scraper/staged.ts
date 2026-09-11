@@ -114,7 +114,11 @@ export async function writeProcessedEvents(
           break;
         case 'skip':
           // Even for skipped events, ensure parent_event_id is set if a series parent exists
-          if (seriesParentId && ev.existing_event_id && ev.existing_event_table === 'events_staged') {
+          if (
+            seriesParentId &&
+            ev.existing_event_id &&
+            ev.existing_event_table === 'events_staged'
+          ) {
             await db
               .from('events_staged')
               .update({ parent_event_id: seriesParentId })

@@ -1,8 +1,4 @@
-import {
-  validateImageUpload,
-  buildImageObjectPath,
-  MAX_IMAGE_BYTES,
-} from '../event-image-upload';
+import { validateImageUpload, buildImageObjectPath, MAX_IMAGE_BYTES } from '../event-image-upload';
 
 let failures = 0;
 function check(label: string, cond: boolean) {
@@ -38,10 +34,7 @@ check('oversize rejected', tooBig.ok === false);
 const atLimit = validateImageUpload({ type: 'image/png', size: MAX_IMAGE_BYTES });
 check('exactly-at-limit accepted', atLimit.ok === true);
 
-check(
-  'object path is uuid.ext',
-  buildImageObjectPath('abc-123', 'jpg') === 'abc-123.jpg'
-);
+check('object path is uuid.ext', buildImageObjectPath('abc-123', 'jpg') === 'abc-123.jpg');
 
 console.log(`\n${failures === 0 ? '✅ All tests passed' : `❌ ${failures} test(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

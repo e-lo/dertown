@@ -12,13 +12,17 @@ export const GET = withAdminAuth(async ({ auth }) => {
     return jsonResponse({ events: [] });
   }
 
-  let stagedQuery = supabaseAdmin.from('events_staged').select(`
+  let stagedQuery = supabaseAdmin
+    .from('events_staged')
+    .select(
+      `
       *,
       primary_tag:tags!events_staged_primary_tag_id_fkey(name),
       secondary_tag:tags!events_staged_secondary_tag_id_fkey(name),
       location:locations!events_staged_location_id_fkey(name, address),
       organization:organizations!events_staged_organization_id_fkey(name)
-    `)
+    `
+    )
     .eq('status', 'pending');
 
   if (!auth.isSuperAdmin) {
@@ -34,7 +38,9 @@ export const GET = withAdminAuth(async ({ auth }) => {
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
     .from('events')
-    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id, source_id')
+    .select(
+      'id, title, start_date, start_time, location_id, organization_id, parent_event_id, source_id'
+    )
     .eq('status', 'approved');
 
   if (approvedError) {

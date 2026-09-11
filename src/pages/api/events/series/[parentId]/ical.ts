@@ -7,11 +7,7 @@
  */
 import type { APIRoute } from 'astro';
 import { supabase, db } from '@/lib/supabase';
-import {
-  parseEventTimesUTC,
-  formatDateForICal,
-  formatDateForICalUTC,
-} from '@/lib/calendar-utils';
+import { parseEventTimesUTC, formatDateForICal, formatDateForICalUTC } from '@/lib/calendar-utils';
 import { cdnCacheHeaders } from '@/lib/cache';
 import { ICAL_UID_DOMAIN } from '@/lib/config';
 
@@ -50,10 +46,12 @@ function buildVEvent(event: any, dtstamp: string): string {
     `DTSTAMP:${dtstamp}`,
     `UID:${event.id}@${ICAL_UID_DOMAIN}`,
     event.location?.name ? `LOCATION:${event.location.name}` : null,
-    event.description   ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,
-    event.website       ? `URL:${event.website}` : null,
+    event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : null,
+    event.website ? `URL:${event.website}` : null,
     'END:VEVENT',
-  ].filter(Boolean).join('\r\n');
+  ]
+    .filter(Boolean)
+    .join('\r\n');
 }
 
 export const GET: APIRoute = async ({ params }) => {
@@ -64,12 +62,14 @@ export const GET: APIRoute = async ({ params }) => {
   const [parentRes, childrenRes] = await Promise.all([
     supabase
       .from('public_events')
-      .select(`
+      .select(
+        `
         *,
         primary_tag:tags!events_primary_tag_id_fkey(name),
         secondary_tag:tags!events_secondary_tag_id_fkey(name),
         location:locations!events_location_id_fkey(name, address)
-      `)
+      `
+      )
       .eq('id', parentId)
       .single(),
     db.events.getByParentEventId(parentId),
@@ -79,7 +79,7 @@ export const GET: APIRoute = async ({ params }) => {
     return new Response('Series not found', { status: 404 });
   }
 
-  const parent   = parentRes.data;
+  const parent = parentRes.data;
   const children = (childrenRes.data ?? []).sort((a: any, b: any) =>
     (a.start_date ?? '').localeCompare(b.start_date ?? '')
   );
@@ -89,29 +89,32 @@ export const GET: APIRoute = async ({ params }) => {
 
   const dtstamp = formatDateForICalUTC(new Date());
 
-  const vevents = allEvents.map((e) => {
-    try {
-      return buildVEvent(e, dtstamp);
-    } catch {
-      return null; // skip events with missing required dates
-    }
-  }).filter(Boolean);
+  const vevents = allEvents
+    .map((e) => {
+      try {
+        return buildVEvent(e, dtstamp);
+      } catch {
+        return null; // skip events with missing required dates
+      }
+    })
+    .filter(Boolean);
 
   if (vevents.length === 0) {
     return new Response('No events found in series', { status: 404 });
   }
 
-  const icalContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Der Town//Event Calendar//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${parent.title ?? 'Event Series'}`,
-    VTIMEZONE,
-    ...vevents,
-    'END:VCALENDAR',
-  ].join('\r\n') + '\r\n';
+  const icalContent =
+    [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Der Town//Event Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${parent.title ?? 'Event Series'}`,
+      VTIMEZONE,
+      ...vevents,
+      'END:VCALENDAR',
+    ].join('\r\n') + '\r\n';
 
   const safeName = (parent.title ?? 'series').replace(/[^a-z0-9]/gi, '_');
 

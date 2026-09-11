@@ -66,8 +66,7 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
         id: candidate.id,
         name: candidate.name,
         score: Math.round(bestMatch.score * 100) / 100,
-        match_level:
-          bestMatch.score >= DEFAULT_NAME_MATCH_THRESHOLD ? 'likely' : 'possible',
+        match_level: bestMatch.score >= DEFAULT_NAME_MATCH_THRESHOLD ? 'likely' : 'possible',
       },
     };
   });

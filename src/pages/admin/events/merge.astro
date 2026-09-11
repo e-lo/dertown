@@ -344,7 +344,9 @@ function summaryMeta(event: Record<string, unknown>): Array<{ label: string; val
       if (refUrl.origin === window.location.origin && refUrl.pathname.startsWith('/admin')) {
         cancelLink.setAttribute('href', refUrl.pathname + refUrl.search);
       }
-    } catch (_) {}
+    } catch {
+      /* malformed referrer: keep the default cancel link */
+    }
   }
 
   function showMessage(message, type = 'info') {

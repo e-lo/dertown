@@ -55,7 +55,9 @@ const siteUrl = Astro.site || Astro.url.origin;
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9Z4DYJ75S"></script>
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
+      // Google's verbatim snippet: gtag.js expects the Arguments object, not an array.
       function gtag() {
+        // eslint-disable-next-line prefer-rest-params
         window.dataLayer.push(arguments);
       }
       gtag('js', new Date());

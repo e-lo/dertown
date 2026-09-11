@@ -41,15 +41,17 @@ export const GET = withAdminAuth(async ({ auth }) => {
     organization:organizations!events_organization_id_fkey(name)
   `;
 
-  const [{ data: parentEvents, error: parentError }, { data: allChildEvents, error: allChildError }] =
-    await Promise.all([
-      supabaseAdmin.from('events').select(eventSelect).in('id', parentEventIds),
-      supabaseAdmin
-        .from('events')
-        .select(eventSelect)
-        .in('parent_event_id', parentEventIds)
-        .order('start_date', { ascending: true }),
-    ]);
+  const [
+    { data: parentEvents, error: parentError },
+    { data: allChildEvents, error: allChildError },
+  ] = await Promise.all([
+    supabaseAdmin.from('events').select(eventSelect).in('id', parentEventIds),
+    supabaseAdmin
+      .from('events')
+      .select(eventSelect)
+      .in('parent_event_id', parentEventIds)
+      .order('start_date', { ascending: true }),
+  ]);
 
   if (parentError || allChildError) {
     console.error('Error fetching series data:', parentError || allChildError);
@@ -73,11 +75,12 @@ export const GET = withAdminAuth(async ({ auth }) => {
     const children = childrenByParent.get(parent.id) || [];
     const futureChildren = children.filter((c) => c.start_date >= today);
     const pastChildren = children.filter((c) => c.start_date < today);
-    const allDates = children.map((c) => c.start_date).filter(Boolean).sort();
+    const allDates = children
+      .map((c) => c.start_date)
+      .filter(Boolean)
+      .sort();
     const dateRange =
-      allDates.length > 0
-        ? { earliest: allDates[0], latest: allDates[allDates.length - 1] }
-        : null;
+      allDates.length > 0 ? { earliest: allDates[0], latest: allDates[allDates.length - 1] } : null;
 
     const seriesData = {
       parent,
@@ -97,7 +100,9 @@ export const GET = withAdminAuth(async ({ auth }) => {
     }
   });
 
-  activeSeries.sort((a, b) => (a.futureChildren[0]?.start_date || '').localeCompare(b.futureChildren[0]?.start_date || ''));
+  activeSeries.sort((a, b) =>
+    (a.futureChildren[0]?.start_date || '').localeCompare(b.futureChildren[0]?.start_date || '')
+  );
   pastSeries.sort((a, b) => (b.dateRange?.latest || '').localeCompare(a.dateRange?.latest || ''));
 
   return jsonResponse({ activeSeries, pastSeries });

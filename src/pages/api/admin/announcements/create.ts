@@ -69,14 +69,15 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   if (error) {
     console.error('[CREATE ANNOUNCEMENT] Error creating announcement:', error);
-    console.error('[CREATE ANNOUNCEMENT] Announcement data:', JSON.stringify(announcementData, null, 2));
+    console.error(
+      '[CREATE ANNOUNCEMENT] Announcement data:',
+      JSON.stringify(announcementData, null, 2)
+    );
     return jsonResponse({ error: 'Failed to create announcement', details: error.message }, 500);
   }
 
   // Fire-and-forget: send push notifications to all registered devices
-  sendPushNotifications(data).catch((err) =>
-    console.error('Push notification send error:', err)
-  );
+  sendPushNotifications(data).catch((err) => console.error('Push notification send error:', err));
 
   return jsonResponse({ announcement: data }, 201);
 });
@@ -86,9 +87,7 @@ async function sendPushNotifications(announcement: {
   message: string;
   id: string;
 }): Promise<void> {
-  const { data: tokens } = await supabaseAdmin
-    .from('push_tokens')
-    .select('token');
+  const { data: tokens } = await supabaseAdmin.from('push_tokens').select('token');
 
   if (!tokens || tokens.length === 0) return;
 

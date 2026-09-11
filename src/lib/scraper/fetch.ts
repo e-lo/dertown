@@ -33,5 +33,7 @@ export async function fetchPage(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Pr
     }
   }
 
-  throw new Error(`Failed to fetch ${url} after ${MAX_RETRIES + 1} attempts: ${lastError?.message}`);
+  throw new Error(
+    `Failed to fetch ${url} after ${MAX_RETRIES + 1} attempts: ${lastError?.message}`
+  );
 }

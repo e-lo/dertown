@@ -16,8 +16,18 @@ export function normalizeDate(raw: string | null | undefined): string | null {
 
   // "DD Mon" or "Mon DD" relative to current year (e.g. "09 Mar", "Mar 09")
   const monthNames: Record<string, number> = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
   };
   const mdMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3,})/);
   const dmMatch = trimmed.match(/^([A-Za-z]{3,})\s+(\d{1,2})/);

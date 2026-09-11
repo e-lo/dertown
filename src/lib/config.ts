@@ -52,9 +52,9 @@ export const MAP_CENTER = {
  */
 export const MAP_INITIAL_BOUNDS: [number, number, number, number] = [
   -120.76, // west
-  47.53,   // south
+  47.53, // south
   -120.57, // east
-  47.66,   // north
+  47.66, // north
 ];
 
 // ============================================================================
@@ -145,7 +145,7 @@ export const COLORS = {
   // Text colors for events (dark for light backgrounds, white for dark)
   eventTextColors: {
     'arts-culture': '#111111',
-    'featured': '#111827',
+    featured: '#111827',
     sports: '#111111',
     default: '#ffffff',
   },

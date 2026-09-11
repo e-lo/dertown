@@ -59,7 +59,8 @@ export const POST = withAdminAuth(async ({ request, params }) => {
 
   // Delete the now-empty source shell.
   const { error: delErr } = await supabaseAdmin.from('activities').delete().eq('id', id);
-  if (delErr) return jsonError(`Failed to delete source after moving children: ${delErr.message}`, 500);
+  if (delErr)
+    return jsonError(`Failed to delete source after moving children: ${delErr.message}`, 500);
 
   return jsonResponse({ ok: true, movedChildren: moved?.length ?? 0, target_id: targetId });
 });

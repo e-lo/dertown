@@ -38,9 +38,10 @@ export function parseLibCalJson(jsonText: string): ScrapedEvent[] {
     const imageUrl = item.featured_image || null;
 
     // Registration
-    const registrationEnabled = item.registration_enabled === true
-      || item.online_registration === true
-      || item.in_person_registration === true;
+    const registrationEnabled =
+      item.registration_enabled === true ||
+      item.online_registration === true ||
+      item.in_person_registration === true;
 
     events.push({
       title,
@@ -86,7 +87,7 @@ export async function fetchLibCalEvents(
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; DerTown-EventScraper/1.0)',
-          'Referer': source.url,
+          Referer: source.url,
           'X-Requested-With': 'XMLHttpRequest',
         },
       });

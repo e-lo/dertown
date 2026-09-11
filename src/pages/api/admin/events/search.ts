@@ -56,15 +56,18 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
     return jsonError('Failed to search events');
   }
 
-  const eventsRows = (eventsResult.data || []).map(row => ({ ...row, table: 'events' as const }));
-  const stagedRows = (stagedResult.data || []).map(row => ({ ...row, table: 'events_staged' as const }));
+  const eventsRows = (eventsResult.data || []).map((row) => ({ ...row, table: 'events' as const }));
+  const stagedRows = (stagedResult.data || []).map((row) => ({
+    ...row,
+    table: 'events_staged' as const,
+  }));
 
   // Merge and sort by start_date descending, then take top 10.
   // UUIDs are unique across tables so no true ID collision is possible,
   // but deduplicate by ID just in case.
   const seen = new Set<string>();
   const merged = [...eventsRows, ...stagedRows]
-    .filter(row => {
+    .filter((row) => {
       if (seen.has(row.id)) return false;
       seen.add(row.id);
       return true;

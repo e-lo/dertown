@@ -61,7 +61,10 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   // Insert into org_users (upsert so duplicate is harmless)
   const { error: orgUserErr } = await supabaseAdmin
     .from('org_users')
-    .upsert({ user_id, organization_id, created_by: 'admin' }, { onConflict: 'user_id,organization_id' });
+    .upsert(
+      { user_id, organization_id, created_by: 'admin' },
+      { onConflict: 'user_id,organization_id' }
+    );
 
   if (orgUserErr) {
     console.error('[USER-ORGS] POST org_users error:', orgUserErr);
@@ -70,16 +73,14 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
 
   // Also upsert allowlisted_org_emails so access persists if they re-register
   if (email) {
-    await supabaseAdmin
-      .from('allowlisted_org_emails')
-      .upsert(
-        {
-          email: email.toLowerCase(),
-          organization_id,
-          created_by: auth.userId,
-        },
-        { onConflict: 'email,organization_id' }
-      );
+    await supabaseAdmin.from('allowlisted_org_emails').upsert(
+      {
+        email: email.toLowerCase(),
+        organization_id,
+        created_by: auth.userId,
+      },
+      { onConflict: 'email,organization_id' }
+    );
   }
 
   return jsonResponse({ success: true }, 201);

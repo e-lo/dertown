@@ -17,7 +17,7 @@ export async function processInboundEmail(payload: MailgunPayload): Promise<Proc
   const senderEmail = payload.sender;
 
   // Step 1: Validate sender is a super_admin
-  let isAuthorized = false;
+  let isAuthorized: boolean;
   try {
     isAuthorized = await isSuperAdminEmail(senderEmail);
   } catch {
@@ -70,7 +70,9 @@ export async function processInboundEmail(payload: MailgunPayload): Promise<Proc
   }
 
   if (events.length > 1) {
-    console.warn(`[email-ingest] Extracted ${events.length} events from email; using only the first`);
+    console.warn(
+      `[email-ingest] Extracted ${events.length} events from email; using only the first`
+    );
   }
 
   // Load config once — used for screening and matching (graceful fallback if file unavailable)
@@ -112,8 +114,10 @@ export async function processInboundEmail(payload: MailgunPayload): Promise<Proc
   const ev = processed[0];
   const today = new Date().toISOString().split('T')[0];
   const notes = [`Received via email ingest from ${senderEmail} on ${today}`];
-  if (!ev.location_id && ev.location_added) notes.push(`Location not matched: "${ev.location_added}"`);
-  if (!ev.organization_id && ev.organization_added) notes.push(`Organization not matched: "${ev.organization_added}"`);
+  if (!ev.location_id && ev.location_added)
+    notes.push(`Location not matched: "${ev.location_added}"`);
+  if (!ev.organization_id && ev.organization_added)
+    notes.push(`Organization not matched: "${ev.organization_added}"`);
 
   const { data: row, error } = await supabaseAdmin
     .from('events_staged')
@@ -149,7 +153,13 @@ export async function processInboundEmail(payload: MailgunPayload): Promise<Proc
     status: 'event_staged',
     id: row.id,
     ...(duplicateHint
-      ? { duplicateHint: { id: duplicateHint.id, title: duplicateHint.title, match_level: duplicateHint.match_level } }
+      ? {
+          duplicateHint: {
+            id: duplicateHint.id,
+            title: duplicateHint.title,
+            match_level: duplicateHint.match_level,
+          },
+        }
       : {}),
   };
 }

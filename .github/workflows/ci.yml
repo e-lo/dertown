@@ -37,6 +37,10 @@ jobs:
       - name: Type check
         run: npm run check
 
+      # ESLint errors only (warnings are tolerated). Zero errors since 2026-09.
+      - name: Lint
+        run: npx eslint --quiet "src/**/*.{js,ts,astro}"
+
       # Catches build-time breakage. Dummy Supabase creds let any build-time
       # module init succeed without real secrets.
       - name: Build

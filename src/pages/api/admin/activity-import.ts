@@ -64,18 +64,25 @@ export const POST = withAdminAuth(async ({ request }) => {
       const html = await fetchPage(text);
       contentText = htmlToCleanText(html, 10_000);
       if (contentText.length < 50) {
-        return jsonResponse({
-          ok: false,
-          error: 'Page fetched but content was too short to extract from. The site may require JavaScript to render. Try copying and pasting the page text directly.',
-        }, 422);
+        return jsonResponse(
+          {
+            ok: false,
+            error:
+              'Page fetched but content was too short to extract from. The site may require JavaScript to render. Try copying and pasting the page text directly.',
+          },
+          422
+        );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       console.error('[activity-import] URL fetch failed:', msg);
-      return jsonResponse({
-        ok: false,
-        error: `Could not fetch that URL (${msg}). The page may be private or block automated access. Try copying and pasting the text directly instead.`,
-      }, 422);
+      return jsonResponse(
+        {
+          ok: false,
+          error: `Could not fetch that URL (${msg}). The page may be private or block automated access. Try copying and pasting the text directly instead.`,
+        },
+        422
+      );
     }
   }
 
@@ -90,10 +97,14 @@ export const POST = withAdminAuth(async ({ request }) => {
   }
 
   if (roots.length === 0) {
-    return jsonResponse({
-      ok: false,
-      error: 'No activities could be extracted. Try adding more detail: name, dates, age group, cost.',
-    }, 422);
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          'No activities could be extracted. Try adding more detail: name, dates, age group, cost.',
+      },
+      422
+    );
   }
 
   // ── Resolve location & organization names against DB (whole tree) ────────
@@ -134,8 +145,8 @@ export const POST = withAdminAuth(async ({ request }) => {
    */
   async function insertNode(node: ExtractedNode, parentId: string | null): Promise<string | null> {
     const level = node.suggested_level;
-    const locationId = node.location_name ? locationMap[node.location_name] ?? null : null;
-    const orgId = node.organization_name ? orgMap[node.organization_name] ?? null : null;
+    const locationId = node.location_name ? (locationMap[node.location_name] ?? null) : null;
+    const orgId = node.organization_name ? (orgMap[node.organization_name] ?? null) : null;
 
     // ── Dedup: reuse an existing matching row so re-imports merge, not fork ──
     if (level === 'PROGRAM') {
@@ -145,7 +156,10 @@ export const POST = withAdminAuth(async ({ request }) => {
         .eq('activity_hierarchy_type', 'PROGRAM');
       // Name-only match: re-imports and AI name variants merge; deliberately
       // distinct program names stay separate (combine later via Merge if wanted).
-      const best = findBestNameMatch(node.name, (progs ?? []).map((p) => ({ id: p.id, name: p.name })));
+      const best = findBestNameMatch(
+        node.name,
+        (progs ?? []).map((p) => ({ id: p.id, name: p.name }))
+      );
       if (best && best.score >= PROGRAM_MERGE_THRESHOLD) {
         counts.reused.PROGRAM++;
         return best.id;
@@ -156,7 +170,10 @@ export const POST = withAdminAuth(async ({ request }) => {
         .select('id, name')
         .eq('parent_activity_id', parentId)
         .eq('activity_hierarchy_type', 'CLASS_TYPE');
-      const best = findBestNameMatch(node.name, (kids ?? []).map((k) => ({ id: k.id, name: k.name })));
+      const best = findBestNameMatch(
+        node.name,
+        (kids ?? []).map((k) => ({ id: k.id, name: k.name }))
+      );
       if (best && best.score >= CHILD_MERGE_THRESHOLD) {
         counts.reused.CLASS_TYPE++;
         return best.id;
@@ -169,7 +186,9 @@ export const POST = withAdminAuth(async ({ request }) => {
         .eq('parent_activity_id', parentId);
       const nodeStart = node.start_date;
       const dup = (kids ?? []).find(
-        (e) => datePortion(e.start_datetime) === nodeStart && nameMatchScore(node.name, e.name ?? '') >= CHILD_MERGE_THRESHOLD
+        (e) =>
+          datePortion(e.start_datetime) === nodeStart &&
+          nameMatchScore(node.name, e.name ?? '') >= CHILD_MERGE_THRESHOLD
       );
       if (dup) {
         counts.reused[level]++;
@@ -179,8 +198,10 @@ export const POST = withAdminAuth(async ({ request }) => {
 
     // ── Insert ─────────────────────────────────────────────────────────────
     const notes: string[] = [`Imported via admin paste on ${today}`];
-    if (node.location_name && !locationId) notes.push(`Location not matched: "${node.location_name}" — add it manually`);
-    if (node.organization_name && !orgId) notes.push(`Organization not matched: "${node.organization_name}" — add it manually`);
+    if (node.location_name && !locationId)
+      notes.push(`Location not matched: "${node.location_name}" — add it manually`);
+    if (node.organization_name && !orgId)
+      notes.push(`Organization not matched: "${node.organization_name}" — add it manually`);
 
     const { data: row, error } = await supabaseAdmin
       .from('activities')

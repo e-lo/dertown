@@ -35,7 +35,6 @@ export const GET: APIRoute = async () => {
   }
 };
 
-
 function generateRSSContent(events: EventData[]): string {
   const now = new Date();
   const siteUrl = SITE_URL;

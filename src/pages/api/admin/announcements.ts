@@ -64,7 +64,7 @@ export const PUT = withAdminAuth(async ({ request, auth }) => {
 
   const cleanedData: any = {};
   for (const [key, value] of Object.entries(updateData)) {
-    cleanedData[key] = (value === '' || value === null || value === undefined) ? null : value;
+    cleanedData[key] = value === '' || value === null || value === undefined ? null : value;
   }
 
   const { data, error } = await supabaseAdmin

@@ -25,8 +25,7 @@ export function shouldExclude(
   if (rules.location_keywords) {
     for (const keyword of rules.location_keywords) {
       if (locationLower.includes(keyword.toLowerCase())) {
-        if (verbose)
-          console.log(`    EXCLUDED "${event.title}" (location keyword: "${keyword}")`);
+        if (verbose) console.log(`    EXCLUDED "${event.title}" (location keyword: "${keyword}")`);
         return true;
       }
     }
@@ -37,8 +36,7 @@ export function shouldExclude(
     for (const pattern of rules.title_patterns) {
       try {
         if (new RegExp(pattern, 'i').test(event.title)) {
-          if (verbose)
-            console.log(`    EXCLUDED "${event.title}" (title pattern: "${pattern}")`);
+          if (verbose) console.log(`    EXCLUDED "${event.title}" (title pattern: "${pattern}")`);
           return true;
         }
       } catch {
@@ -71,6 +69,8 @@ export function passesGeoFilter(
   }
 
   if (verbose)
-    console.log(`    FILTERED "${event.title}" (geo: no match for ${filter.location_keywords.join(', ')})`);
+    console.log(
+      `    FILTERED "${event.title}" (geo: no match for ${filter.location_keywords.join(', ')})`
+    );
   return false;
 }

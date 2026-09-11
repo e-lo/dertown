@@ -4,12 +4,12 @@ export const DEFAULT_NAME_MATCH_THRESHOLD = ENTITY_MATCHING_SETTINGS.defaultName
 export const POSSIBLE_NAME_MATCH_THRESHOLD = ENTITY_MATCHING_SETTINGS.possibleNameMatchThreshold;
 
 // Geographic/common context words should not dominate duplicate scoring.
-const WEAK_MATCH_TOKENS = new Set([
-  ...ENTITY_MATCHING_SETTINGS.weakMatchTokens,
-]);
+const WEAK_MATCH_TOKENS = new Set([...ENTITY_MATCHING_SETTINGS.weakMatchTokens]);
 
 function tokenizeForMatch(value: string): string[] {
-  return normalizeMatchText(value).split(/\s+/).filter((token) => token.length > 1);
+  return normalizeMatchText(value)
+    .split(/\s+/)
+    .filter((token) => token.length > 1);
 }
 
 function tokenWeight(token: string): number {
@@ -94,9 +94,15 @@ export function nameMatchScore(scraped: string, dbName: string): number {
     const setA = new Set(tokensA);
     const setB = new Set(tokensB);
 
-    const overlapWeightA = tokensA.reduce((acc, token) => acc + (setB.has(token) ? tokenWeight(token) : 0), 0);
+    const overlapWeightA = tokensA.reduce(
+      (acc, token) => acc + (setB.has(token) ? tokenWeight(token) : 0),
+      0
+    );
     const totalWeightA = tokensA.reduce((acc, token) => acc + tokenWeight(token), 0);
-    const overlapWeightB = tokensB.reduce((acc, token) => acc + (setA.has(token) ? tokenWeight(token) : 0), 0);
+    const overlapWeightB = tokensB.reduce(
+      (acc, token) => acc + (setA.has(token) ? tokenWeight(token) : 0),
+      0
+    );
     const totalWeightB = tokensB.reduce((acc, token) => acc + tokenWeight(token), 0);
 
     const weightedCoverageA = totalWeightA > 0 ? overlapWeightA / totalWeightA : 0;
@@ -112,11 +118,13 @@ export function nameMatchScore(scraped: string, dbName: string): number {
       0
     );
     const strongOverlapA = tokensA.reduce(
-      (acc, token) => acc + (setB.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      (acc, token) =>
+        acc + (setB.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
       0
     );
     const strongOverlapB = tokensB.reduce(
-      (acc, token) => acc + (setA.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
+      (acc, token) =>
+        acc + (setA.has(token) && tokenWeight(token) > weakTokenFloor ? tokenWeight(token) : 0),
       0
     );
     const strongCoverageA = strongWeightA > 0 ? strongOverlapA / strongWeightA : 0;

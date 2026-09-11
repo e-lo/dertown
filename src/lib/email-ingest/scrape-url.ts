@@ -14,7 +14,13 @@ export async function scrapeUrlForEmail(url: string): Promise<number> {
     config = loadConfig();
   } catch {
     // scrape/sources.yaml unavailable in this Lambda environment
-    config = { descriptionMaxChars: 2000, tagKeywords: {}, venueTags: [], sources: [], globalExclude: null } as ReturnType<typeof loadConfig>;
+    config = {
+      descriptionMaxChars: 2000,
+      tagKeywords: {},
+      venueTags: [],
+      sources: [],
+      globalExclude: null,
+    } as ReturnType<typeof loadConfig>;
   }
 
   // Fetch and AI-extract events from the URL

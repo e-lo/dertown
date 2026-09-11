@@ -13,9 +13,7 @@ const EXTENSION_BY_TYPE: Record<string, string> = {
   'image/webp': 'webp',
 };
 
-export type ImageValidation =
-  | { ok: true; extension: string }
-  | { ok: false; error: string };
+export type ImageValidation = { ok: true; extension: string } | { ok: false; error: string };
 
 /** Validate an uploaded image's MIME type and size. Pure — no I/O. */
 export function validateImageUpload(input: { type: string; size: number }): ImageValidation {

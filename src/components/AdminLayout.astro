@@ -111,7 +111,9 @@ const { title, showBack = true, userEmail = 'Admin' } = Astro.props;
   async function logout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch (e) {}
+    } catch {
+      /* best effort; redirect regardless */
+    }
     window.location.href = '/';
   }
 </script>

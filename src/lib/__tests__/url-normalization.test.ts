@@ -24,10 +24,7 @@ const eventResult = validateEventForm({
 
 check('event: bare website accepted', eventResult.success);
 if (eventResult.success) {
-  check(
-    'event: website prefaced with https://',
-    eventResult.data.website === 'https://google.com'
-  );
+  check('event: website prefaced with https://', eventResult.data.website === 'https://google.com');
   check(
     'event: registration_link prefaced with https://',
     eventResult.data.registration_link === 'https://www.example.com/register'
@@ -46,10 +43,7 @@ const mailtoResult = validateEventForm({
 });
 check('event: mailto: scheme accepted', mailtoResult.success);
 if (mailtoResult.success) {
-  check(
-    'event: mailto: left untouched',
-    mailtoResult.data.website === 'mailto:hello@example.com'
-  );
+  check('event: mailto: left untouched', mailtoResult.data.website === 'mailto:hello@example.com');
 }
 
 // Empty/omitted URL fields stay optional.
@@ -68,10 +62,7 @@ const annResult = validateAnnouncementForm({
 });
 check('announcement: bare link accepted', annResult.success);
 if (annResult.success) {
-  check(
-    'announcement: link prefaced with https://',
-    annResult.data.link === 'https://example.org'
-  );
+  check('announcement: link prefaced with https://', annResult.data.link === 'https://example.org');
 }
 
 const annMailto = validateAnnouncementForm({

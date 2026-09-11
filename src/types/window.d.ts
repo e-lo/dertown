@@ -38,6 +38,13 @@ declare global {
     updateAddOccCustomDatesFromManual: GlobalHandler;
     changeAddOccCalendarMonth: GlobalHandler;
     removeAddOccDate: GlobalHandler;
+
+    // admin: announcements
+    openCreateAnnouncementModal: GlobalHandler;
+    closeEditAnnouncementModal: GlobalHandler;
+    editAnnouncement: GlobalHandler;
+    approveAnnouncement: GlobalHandler;
+    archiveAnnouncement: GlobalHandler;
   }
 
   // Called by bare name from a different <script> block than the one that

@@ -21,9 +21,7 @@ export type AuthContext = APIContext & {
   };
 };
 
-export function withAdminAuth(
-  handler: (context: AuthContext) => Promise<Response>
-): APIRoute {
+export function withAdminAuth(handler: (context: AuthContext) => Promise<Response>): APIRoute {
   return async (context) => {
     try {
       const { role, userId, organizationIds } = await checkAdminAccess(context.cookies);
@@ -46,9 +44,7 @@ export function withAdminAuth(
 }
 
 /** Wraps withAdminAuth and additionally requires super_admin role. */
-export function withSuperAdminAuth(
-  handler: (context: AuthContext) => Promise<Response>
-): APIRoute {
+export function withSuperAdminAuth(handler: (context: AuthContext) => Promise<Response>): APIRoute {
   return withAdminAuth(async (context) => {
     if (!context.auth.isSuperAdmin) return jsonError('Forbidden', 403);
     return handler(context);

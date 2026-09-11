@@ -66,7 +66,8 @@ export async function extractAnnouncementWithAI(text: string): Promise<Extracted
     title: String(parsed.title).slice(0, 100),
     message: String(parsed.message),
     link: typeof parsed.link === 'string' && parsed.link.startsWith('http') ? parsed.link : null,
-    organization_name: typeof parsed.organization_name === 'string' ? parsed.organization_name : null,
+    organization_name:
+      typeof parsed.organization_name === 'string' ? parsed.organization_name : null,
     show_at: typeof parsed.show_at === 'string' ? parsed.show_at : null,
     expires_at: typeof parsed.expires_at === 'string' ? parsed.expires_at : null,
   };

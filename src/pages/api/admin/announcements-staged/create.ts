@@ -44,10 +44,7 @@ export const POST = withAdminAuth(async ({ request }) => {
 
   if (error) {
     console.error('Error creating staged announcement:', error);
-    return jsonResponse(
-      { error: 'Failed to create announcement', details: error.message },
-      500
-    );
+    return jsonResponse({ error: 'Failed to create announcement', details: error.message }, 500);
   }
 
   return jsonResponse({ announcement: data }, 201);
