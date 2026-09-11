@@ -412,7 +412,7 @@ Connects to the local Supabase instance (`http://127.0.0.1:54321` with the defau
 - Developing new extractors without polluting the production staged events queue
 - Running the full pipeline end-to-end in an isolated environment
 
-Requires `supabase start` (Docker) to be running locally.
+Requires `supabase start` to be running locally (see [DEVELOPING.md](../DEVELOPING.md#container-runtime-for-supabase-start) for the Podman setup).
 
 ### Flag combinations
 

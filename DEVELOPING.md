@@ -75,9 +75,39 @@ dertown/
 2. Install Node.js deps: `npm install`
 3. Install Python deps: `pip install -r requirements.txt`
 4. Copy env: `cp .env.example .env` and fill in secrets
-5. Start Supabase: `supabase start` (or use hosted project)
+5. Start Supabase: `supabase start` (needs a container runtime, see [Container runtime](#container-runtime-for-supabase-start) below; or use a hosted project)
 6. Reset/seed DB: `make db-reset && make db-seed`
 7. Start dev server: `npm run dev`
+
+### Container runtime for `supabase start`
+
+`supabase start` talks to any Docker-compatible API. This project runs it on **Podman** (Apache-2.0, no Docker Desktop, no licensing questions) instead of Docker Desktop. Any other runtime (Docker Desktop, Colima, OrbStack) also works; just leave `DOCKER_HOST` unset for Docker Desktop.
+
+One-time setup on macOS (Apple Silicon):
+
+```bash
+brew install podman supabase
+# 2 GB is enough for the services this project enables (~0.9 GB used, see supabase/config.toml).
+# Use 4096 if you re-enable analytics.
+CONTAINERS_MACHINE_PROVIDER=applehv podman machine init --cpus 4 --memory 2048
+podman machine start
+```
+
+Then point the Supabase CLI (and the `docker` CLI, if installed) at Podman's socket. Add this to your shell profile:
+
+```bash
+export DOCKER_HOST="unix://$HOME/.local/share/containers/podman/machine/podman.sock"
+```
+
+Day to day: `podman machine start` once after a reboot, then `supabase start` / `supabase stop` as usual. `podman machine stop` shuts the VM down and frees its memory.
+
+Notes:
+
+- Use Supabase CLI **≥ 2.112** (`brew upgrade supabase`). Older versions have Podman-specific bugs, and 2.105 fails on every runtime with a `FeatureNotEnabled` vector-buckets error.
+- The first `supabase start` pulls ~4 GB of images and can take 10+ minutes; later starts take under a minute.
+- `supabase stop --no-backup` prints `"all" is an invalid volume filter` on Podman. The containers are still removed; delete the data volume yourself with `podman volume rm supabase_db_dertown`.
+- Podman 6 changed the default macOS VM provider to `libkrun`, which has bind-mount permission problems with the CLI. The `CONTAINERS_MACHINE_PROVIDER=applehv` above keeps the working provider. Resize an existing machine with `podman machine stop && podman machine set --memory 2048`.
+- Realtime, edge runtime, and analytics (Logflare + Vector) are disabled in `supabase/config.toml` because the app does not use them. Analytics alone cost ~2 GB of RAM. Flip `enabled = true` temporarily if you need the Logs tab in Studio.
 
 ### Environment Variables
 
