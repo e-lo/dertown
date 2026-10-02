@@ -30,7 +30,11 @@ const MAX_SOURCE_BYTES = 40 * 1024 * 1024;
 // Image CDN resizes further at render time.
 const MAX_DIMENSION = 2000;
 
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number
+): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
 }
 
@@ -134,7 +138,8 @@ export function initImageDropZone(opts: ImageDropZoneOptions): void {
         return;
       }
       urlInput!.value = data.url;
-      showPreview(data.url);
+      // Fires the existing input listener (preview) and the framing panel.
+      urlInput!.dispatchEvent(new Event('input', { bubbles: true }));
       setStatus('Uploaded.', false);
     } catch (err) {
       console.error('[image upload] failed', err);
