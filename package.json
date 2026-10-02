@@ -29,6 +29,7 @@
     "test:scraper-pagination": "tsx src/lib/__tests__/scraper-reference-pagination.test.ts",
     "test:scraper-ical-timezone": "TZ=America/Los_Angeles tsx src/lib/__tests__/scraper-ical-timezone.test.ts",
     "test:series-marker": "tsx src/lib/__tests__/series-parent-marker.test.ts",
+    "test:markdown-preview": "tsx src/lib/__tests__/markdown-preview.test.ts",
     "test:group-series": "tsx src/lib/__tests__/group-series.test.ts",
     "test:scraper-cascade-discovery": "tsx src/lib/__tests__/scraper-cascade-discovery.test.ts",
     "test:scraper-cascade-cards": "tsx src/lib/__tests__/scraper-cascade-cards.test.ts",
