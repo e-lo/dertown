@@ -17,7 +17,17 @@ interface Props {
   class?: string;
 }
 
-const { rawSrc, width, alt, framing, loading = 'lazy', class: className = '' } = Astro.props;
+// `rest` carries the parent's scoped-style attribute (data-astro-cid-*) so the
+// parent's `class` rules apply to the root.
+const {
+  rawSrc,
+  width,
+  alt,
+  framing,
+  loading = 'lazy',
+  class: className = '',
+  ...rest
+} = Astro.props;
 
 const src = optimizedImageUrl(rawSrc, { width });
 const backdropSrc = optimizedImageUrl(rawSrc, { width: 40, quality: 40 });
@@ -37,6 +47,7 @@ const measureScript =
 <div
   class:list={['event-image', { 'event-image--side': isSide }, className]}
   data-frame={initialFrame}
+  {...rest}
 >
   {
     !isSide && (
