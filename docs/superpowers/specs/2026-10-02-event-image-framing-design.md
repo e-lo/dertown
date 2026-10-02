@@ -124,11 +124,14 @@ URL/drop zone, wired like `initImageDropZone`.
 - Hidden until there is an image URL; re-initialises when the URL changes
   (paste or upload).
 - On image load records `naturalWidth`/`naturalHeight` and the current URL.
-- Two previews at true window shapes: **Card (3:2)** and **Detail**, each
-  rendered with the same CSS as the public site.
-- Per preview: mode segmented control **Auto / Crop / Full + blur**; clicking
-  the preview sets the focal point (crosshair marker) and switches that view
-  to Crop if it was Auto.
+- One row per view, **Card (3:2)** and **Detail**. Each row has a picker (the
+  whole image, uncropped, with a crosshair) and a preview at the true window
+  shape, rendered with the same CSS as the public site. Clicking the picker
+  sets that view's focal point (accurate because the whole image is visible)
+  and switches the view to Crop if it was Auto.
+- Per row: mode segmented control **Auto / Crop / Full + blur**.
+- Staged-event edits can't store framing (no column on `events_staged`), so
+  the panel is disabled for them.
 - Detail only: layout control **Auto / Banner / Side by side**; the preview
   switches shape accordingly.
 - **Reset** returns everything to Auto (focus 50/50).
