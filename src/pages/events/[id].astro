@@ -750,6 +750,7 @@ setPublicCache(Astro.response.headers);
         set('editEventTitle', event.title); set('editEventDescription', event.description); set('editEventStartDate', event.start_date); set('editEventEndDate', event.end_date);
         set('editEventStartTime', event.start_time); set('editEventEndTime', event.end_time); set('editEventEmail', event.email); set('editEventWebsite', event.website);
         set('editEventRegistrationLink', event.registration_link); set('editEventExternalImageUrl', event.external_image_url); set('editEventCost', event.cost);
+        window.eventImageFraming?.setValue(event.image_display);
         set('editEventPrimaryTag', event.primary_tag_id); set('editEventSecondaryTag', event.secondary_tag_id); set('editEventComments', event.comments);
         setCheck('editEventRegistration', event.registration); setCheck('editEventExcludeFromCalendar', event.exclude_from_calendar); setCheck('editEventFeatured', event.featured);
         const isCancelled = event.status === 'cancelled';
@@ -876,6 +877,7 @@ setPublicCache(Astro.response.headers);
             website: normalizeUrl((document.getElementById('editEventWebsite') as HTMLInputElement)?.value),
             registration_link: normalizeUrl((document.getElementById('editEventRegistrationLink') as HTMLInputElement)?.value),
             external_image_url: normalizeUrl((document.getElementById('editEventExternalImageUrl') as HTMLInputElement)?.value),
+            image_display: window.eventImageFraming?.getValue(),
             cost: (document.getElementById('editEventCost') as HTMLInputElement)?.value || null,
             primary_tag_id: primaryTag,
             secondary_tag_id: (document.getElementById('editEventSecondaryTag') as HTMLSelectElement)?.value || null,

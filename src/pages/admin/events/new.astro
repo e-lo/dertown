@@ -232,6 +232,7 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventWebsite').value = '';
     document.getElementById('editEventRegistrationLink').value = '';
     document.getElementById('editEventExternalImageUrl').value = '';
+    window.eventImageFraming?.setValue(null);
     document.getElementById('editEventCost').value = '';
     document.getElementById('editEventPrimaryTag').value = '';
     document.getElementById('editEventSecondaryTag').value = '';
@@ -282,6 +283,7 @@ const userEmail = session.user?.email || 'Admin';
       website: normalizeUrl(document.getElementById('editEventWebsite').value),
       registration_link: normalizeUrl(document.getElementById('editEventRegistrationLink').value),
       external_image_url: normalizeUrl(document.getElementById('editEventExternalImageUrl').value),
+      image_display: window.eventImageFraming?.getValue(),
       cost: document.getElementById('editEventCost').value || null,
       primary_tag_id: document.getElementById('editEventPrimaryTag').value || null,
       secondary_tag_id: document.getElementById('editEventSecondaryTag').value || null,
