@@ -18,6 +18,7 @@ const getFieldValue = (field: string, defaultValue: string = ''): string => {
 <script>
   // Client-side validation using Zod
   import { eventFormSchema } from '../lib/validation';
+  import { describeValidationIssues, describeSubmitFailure } from '../lib/form-errors';
 
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('event-form');
@@ -28,34 +29,29 @@ const getFieldValue = (field: string, defaultValue: string = ''): string => {
         const formData = new FormData(form as HTMLFormElement);
         const data = Object.fromEntries(formData.entries());
 
+        const validation = eventFormSchema.safeParse(data);
+        if (!validation.success) {
+          alert(`Please fix the following:\n${describeValidationIssues(validation.error.issues)}`);
+          return;
+        }
+
         try {
-          // Validate form data
-          const validatedData = eventFormSchema.parse(data);
-          // Submit form
           const response = await fetch((form as HTMLFormElement).action, {
             method: (form as HTMLFormElement).method,
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(validatedData),
+            body: JSON.stringify(validation.data),
           });
 
           if (response.ok) {
-            // Redirect to thank you page
             window.location.href = '/submit/thank-you';
           } else {
-            // Show error message
-            const error = await response.json();
-            alert(`Error: ${error.message || 'Failed to submit event'}`);
+            const body = await response.json().catch(() => null);
+            alert(`Error: ${describeSubmitFailure(body)}`);
           }
-        } catch (error) {
-          // Show validation error
-          if (error && typeof error === 'object' && 'errors' in error) {
-            const errorMessage = (error.errors as Array<{message: string}>).map(err => err.message).join('\n');
-            alert(`Validation errors:\n${errorMessage}`);
-          } else {
-            alert('An unexpected error occurred');
-          }
+        } catch {
+          alert('Could not reach the server. Please check your connection and try again.');
         }
       });
     }
