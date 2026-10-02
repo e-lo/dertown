@@ -39,9 +39,19 @@ export function renderMarkdown(markdown: string | null | undefined): string {
   }
 }
 
+const HTML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&#039;': "'",
+};
+
 /**
- * Renders markdown for truncated/preview contexts
- * Strips HTML tags and returns plain text with preserved line breaks
+ * Renders markdown as a single line of plain text for card previews.
+ * Link URLs, heading/list markers and raw HTML are dropped; block boundaries
+ * become spaces. The result is unescaped text, so render it as text, not HTML.
  * @param markdown - Markdown text to render
  * @param maxLength - Maximum length of the preview
  * @returns Plain text preview
@@ -54,21 +64,18 @@ export function renderMarkdownPreview(
     return '';
   }
 
-  // Remove markdown syntax for preview
-  let plain = markdown
-    .replace(/#{1,6}\s+/g, '') // Remove headers
-    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
-    .replace(/\*([^*]+)\*/g, '$1') // Remove italic
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links, keep text
-    .replace(/`([^`]+)`/g, '$1') // Remove inline code
-    .replace(/^\s*[-*+]\s+/gm, '') // Remove list markers
-    .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered list markers
+  const html = marked.parse(markdown, { async: false }) as string;
+  const plain = html
+    .replace(/<\/(p|h[1-6]|li|blockquote|pre|td|th)>|<br\s*\/?>|<hr\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(amp|lt|gt|quot|#0?39);/g, (entity) => HTML_ENTITIES[entity])
+    .replace(/\s+/g, ' ')
     .trim();
 
-  // Truncate if needed
-  if (plain.length > maxLength) {
-    plain = plain.substring(0, maxLength).trim() + '...';
+  if (plain.length <= maxLength) {
+    return plain;
   }
-
-  return plain;
+  const cut = plain.slice(0, maxLength - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd() + '…';
 }
