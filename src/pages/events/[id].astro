@@ -164,8 +164,9 @@ if (parentEventId) {
 }
 
 // Optimized image URLs for the detail hero
-const detailFraming = event.external_image_url
-  ? resolveFraming(event.external_image_url, event.image_display, 'detail')
+const detailImageSrc: string | null = event.external_image_url || null;
+const detailFraming = detailImageSrc
+  ? resolveFraming(detailImageSrc, event.image_display, 'detail')
   : null;
 const sideLayout = detailFraming?.layout === 'side';
 const ogImageUrl = event.external_image_url
@@ -199,11 +200,11 @@ setPublicCache(Astro.response.headers);
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
       <div class:list={['bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative', { 'md:flex md:items-start': sideLayout }]}>
-        {detailFraming && (
+        {detailImageSrc && detailFraming && (
           sideLayout ? (
             <div class="event-detail-side-image">
               <EventImage
-                rawSrc={event.external_image_url}
+                rawSrc={detailImageSrc}
                 width={900}
                 alt={String(event.image_alt_text ?? 'Event image')}
                 framing={detailFraming}
@@ -213,7 +214,7 @@ setPublicCache(Astro.response.headers);
           ) : (
             <div class="overflow-hidden rounded-t-lg w-full">
               <EventImage
-                rawSrc={event.external_image_url}
+                rawSrc={detailImageSrc}
                 width={1200}
                 alt={String(event.image_alt_text ?? 'Event image')}
                 framing={detailFraming}
