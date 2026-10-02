@@ -35,7 +35,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-// supabaseAdmin is created LAZILY via a Proxy: the real client (which requires
+// supabaseAdmin is the service-role client: it bypasses RLS and must only be
+// used server-side. "Admin" names the privilege level, not the caller — public
+// API routes use it too once they've validated their input.
+//
+// It is created LAZILY via a Proxy: the real client (which requires
 // the service-role key) is only built the first time it's actually used. This
 // prevents a missing/blank SUPABASE_SERVICE_ROLE_KEY from throwing at module
 // import and taking down the entire public site — admin features fail with a
@@ -298,14 +302,17 @@ export const db = {
   },
 
   // Events Staged
+  // Staging tables have no anon policies (RLS is admin-only), so public
+  // submissions are written server-side with the service role after the API
+  // route's honeypot, rate-limit and validation checks.
   eventsStaged: {
     create: (data: Database['public']['Tables']['events_staged']['Insert']) =>
-      supabase.from('events_staged').insert(data),
-    getAll: () => supabase.from('events_staged').select('*'),
-    getById: (id: string) => supabase.from('events_staged').select('*').eq('id', id).single(),
+      supabaseAdmin.from('events_staged').insert(data),
+    getAll: () => supabaseAdmin.from('events_staged').select('*'),
+    getById: (id: string) => supabaseAdmin.from('events_staged').select('*').eq('id', id).single(),
     update: (id: string, data: Database['public']['Tables']['events_staged']['Update']) =>
-      supabase.from('events_staged').update(data).eq('id', id),
-    delete: (id: string) => supabase.from('events_staged').delete().eq('id', id),
+      supabaseAdmin.from('events_staged').update(data).eq('id', id),
+    delete: (id: string) => supabaseAdmin.from('events_staged').delete().eq('id', id),
   },
 
   // Locations
@@ -353,15 +360,16 @@ export const db = {
   },
 
   // Announcements Staged
+  // Service role for the same reason as eventsStaged.
   announcementsStaged: {
     create: (data: Database['public']['Tables']['announcements_staged']['Insert']) =>
-      supabase.from('announcements_staged').insert(data),
-    getAll: () => supabase.from('announcements_staged').select('*'),
+      supabaseAdmin.from('announcements_staged').insert(data),
+    getAll: () => supabaseAdmin.from('announcements_staged').select('*'),
     getById: (id: string) =>
-      supabase.from('announcements_staged').select('*').eq('id', id).single(),
+      supabaseAdmin.from('announcements_staged').select('*').eq('id', id).single(),
     update: (id: string, data: Database['public']['Tables']['announcements_staged']['Update']) =>
-      supabase.from('announcements_staged').update(data).eq('id', id),
-    delete: (id: string) => supabase.from('announcements_staged').delete().eq('id', id),
+      supabaseAdmin.from('announcements_staged').update(data).eq('id', id),
+    delete: (id: string) => supabaseAdmin.from('announcements_staged').delete().eq('id', id),
   },
 
   // Source Sites

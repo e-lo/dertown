@@ -32,6 +32,15 @@ const urlField = () =>
     z.string().url('Invalid URL format').optional().or(z.literal(''))
   );
 
+// A checked checkbox submits its value attribute as a string ("on" by default,
+// "true" on the event form); an unchecked one is omitted. Real booleans pass
+// through so already-parsed data still validates.
+const checkboxField = () =>
+  z.preprocess(
+    (value) => (value === 'true' || value === 'on' ? true : value === 'false' ? false : value),
+    z.boolean().optional()
+  );
+
 export const eventFormSchema = z.object({
   title: z.string().min(1, 'Title is required').max(MAX_TITLE, `Title must be less than ${MAX_TITLE} characters`),
   description: z.string().max(MAX_DESCRIPTION, `Description must be less than ${MAX_DESCRIPTION} characters`).optional(),
@@ -65,7 +74,7 @@ export const eventFormSchema = z.object({
     .or(z.literal('')),
   featured: z.boolean().optional(),
   exclude_from_calendar: z.boolean().optional(),
-  registration: z.boolean().optional(),
+  registration: checkboxField(),
   cost: z.string().max(MAX_COST, `Cost must be less than ${MAX_COST} characters`).optional(),
   comments: z
     .string()
