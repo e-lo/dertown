@@ -139,9 +139,10 @@ if (parentEventId) {
     const isBlank = (v: any) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
     if (isBlank(event.description)) event.description = parent.description;
     if (isBlank(event.external_image_url)) {
-      // Image is a unit: url + alt text move together.
+      // Image is a unit: url, alt text and framing move together.
       event.external_image_url = parent.external_image_url;
       event.image_alt_text = parent.image_alt_text;
+      event.image_display = parent.image_display;
     }
     if (isBlank(event.cost)) event.cost = parent.cost;
     if (isBlank(event.registration_link)) event.registration_link = parent.registration_link;
