@@ -3,11 +3,13 @@ import Badge from './ui/Badge.astro';
 import { formatEventDate, formatTime, isToday, getEventUrl, getCategoryBadgeVariant } from '../lib/event-utils';
 import EventImage from './EventImage.astro';
 import { resolveFraming } from '../lib/image-display';
+import { renderMarkdownPreview } from '../lib/markdown-utils';
 
 const { event, tags, className = '' } = Astro.props;
 
 const { month: eventMonth, day: eventDay, dayOfWeek: eventDayOfWeek } = formatEventDate(event.start_date);
 const eventIsToday = isToday(event.start_date);
+const descriptionPreview = renderMarkdownPreview(event.description, 200);
 const cardFraming = event.external_image_url
   ? resolveFraming(event.external_image_url, event.image_display, 'card')
   : null;
@@ -44,7 +46,7 @@ const cardFraming = event.external_image_url
         )}
       </div>
       <h3 class="text-2xl font-bold text-gray-900 mb-2 line-clamp-2">{event.title}</h3>
-      <div class="text-base text-gray-700 mb-2 line-clamp-2">{event.description}</div>
+      <div class="text-base text-gray-700 mb-2 line-clamp-2 break-words">{descriptionPreview}</div>
       <div class="flex flex-wrap gap-2 mt-auto pt-2">
         {tags?.primary && (
           <Badge variant={getCategoryBadgeVariant(tags.primary)}>{tags.primary}</Badge>

@@ -1,11 +1,13 @@
 ---
 import Badge from './ui/Badge.astro';
 import { formatEventDate, formatTime, isToday, getEventUrl } from '../lib/event-utils';
+import { renderMarkdownPreview } from '../lib/markdown-utils';
 
 const { event, tags } = Astro.props;
 
 const { month: eventMonth, day: eventDay, dayOfWeek: eventDayOfWeek } = formatEventDate(event.start_date);
 const eventIsToday = isToday(event.start_date);
+const descriptionPreview = renderMarkdownPreview(event.description, 300);
 
 // Always sanitize tag and provide a fallback
 function toKebabCase(str: string) {
@@ -27,7 +29,7 @@ const textClass = 'text-white';
     <p class="text-5xl font-extrabold leading-tight">{eventDay}</p>
   </div>
 
-  <div class="relative grow p-4 pr-10">
+  <div class={`relative grow min-w-0 p-4 ${event.featured ? 'pr-10' : ''}`}>
     <!-- Star for featured events -->
     {
       event.featured && (
@@ -41,13 +43,13 @@ const textClass = 'text-white';
 
     <!-- Main content -->
     <div class="relative z-0">
-      <h3 class="text-xl font-bold mb-1 line-clamp-2">{event.title}</h3>
+      <h3 class="text-xl font-bold mb-1 line-clamp-2 break-words" data-fit-title>{event.title}</h3>
       <p class="text-sm opacity-90 mb-2">
         <span class="font-semibold">{eventDayOfWeek}</span>
         {event.start_time ? ` · ${formatTime(event.start_time)}` : ''}
         {event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
       </p>
-      {event.description && <p class="text-sm opacity-70 line-clamp-3">{event.description}</p>}
+      {descriptionPreview && <p class="text-sm opacity-70 line-clamp-3 break-words">{descriptionPreview}</p>}
 
       <!-- Tags -->
       <div class="flex flex-wrap gap-2 mt-3">
@@ -67,3 +69,33 @@ const textClass = 'text-white';
     </div>
   </div>
 </article>
+
+<script>
+  // Step each title down until it fits its line clamp; the longest titles also
+  // get a third line. Re-fits whenever a card's width changes (resize, filter).
+  const FIT_STEPS = [
+    { fontSize: '1.25rem', lines: '2' },
+    { fontSize: '1.125rem', lines: '2' },
+    { fontSize: '1rem', lines: '2' },
+    { fontSize: '1rem', lines: '3' },
+    { fontSize: '0.875rem', lines: '3' },
+  ];
+
+  const fittedWidths = new WeakMap<HTMLElement, number>();
+
+  function fitTitle(title: HTMLElement) {
+    const width = title.clientWidth;
+    if (width === 0 || fittedWidths.get(title) === width) return;
+    fittedWidths.set(title, width);
+    for (const step of FIT_STEPS) {
+      title.style.fontSize = step.fontSize;
+      title.style.webkitLineClamp = step.lines;
+      if (title.scrollHeight <= title.clientHeight + 1) return;
+    }
+  }
+
+  const observer = new ResizeObserver((entries) => {
+    for (const entry of entries) fitTitle(entry.target as HTMLElement);
+  });
+  document.querySelectorAll<HTMLElement>('[data-fit-title]').forEach((title) => observer.observe(title));
+</script>
