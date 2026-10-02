@@ -447,6 +447,7 @@ export type Database = {
           featured: boolean | null;
           id: string;
           image_alt_text: string | null;
+          image_display: Json | null;
           image_id: string | null;
           location_id: string | null;
           organization_id: string | null;
@@ -478,6 +479,7 @@ export type Database = {
           featured?: boolean | null;
           id?: string;
           image_alt_text?: string | null;
+          image_display?: Json | null;
           image_id?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
@@ -509,6 +511,7 @@ export type Database = {
           featured?: boolean | null;
           id?: string;
           image_alt_text?: string | null;
+          image_display?: Json | null;
           image_id?: string | null;
           location_id?: string | null;
           organization_id?: string | null;
@@ -1179,6 +1182,7 @@ export type Database = {
           featured: boolean | null;
           id: string | null;
           image_alt_text: string | null;
+          image_display: Json | null;
           location_id: string | null;
           organization_id: string | null;
           parent_event_id: string | null;
