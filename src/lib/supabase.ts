@@ -150,7 +150,7 @@ export const db = {
         .from('events')
         .select(
           `
-      description, external_image_url, image_alt_text, cost,
+      description, external_image_url, image_alt_text, image_display, cost,
       registration_link, website, registration, location_id, organization_id,
       location:locations!events_location_id_fkey(id, name, address, latitude, longitude),
       organization:organizations!events_organization_id_fkey(name)

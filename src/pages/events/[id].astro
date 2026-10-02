@@ -17,6 +17,8 @@ import EventListCard from '../../components/EventListCard.astro';
 import MapboxMap from '../../components/MapboxMap.astro';
 import { checkAdminAccess } from '../../lib/session';
 import { optimizedImageUrl } from '../../lib/image';
+import EventImage from '../../components/EventImage.astro';
+import { resolveFraming } from '../../lib/image-display';
 import '../../styles/admin.css';
 import { setPublicCache } from '@/lib/cache';
 
@@ -139,9 +141,10 @@ if (parentEventId) {
     const isBlank = (v: any) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
     if (isBlank(event.description)) event.description = parent.description;
     if (isBlank(event.external_image_url)) {
-      // Image is a unit: url + alt text move together.
+      // Image is a unit: url, alt text and framing move together.
       event.external_image_url = parent.external_image_url;
       event.image_alt_text = parent.image_alt_text;
+      event.image_display = parent.image_display;
     }
     if (isBlank(event.cost)) event.cost = parent.cost;
     if (isBlank(event.registration_link)) event.registration_link = parent.registration_link;
@@ -161,9 +164,11 @@ if (parentEventId) {
 }
 
 // Optimized image URLs for the detail hero
-const detailImageUrl = event.external_image_url
-  ? optimizedImageUrl(event.external_image_url, { width: 1200 })
+const detailImageSrc: string | null = event.external_image_url || null;
+const detailFraming = detailImageSrc
+  ? resolveFraming(detailImageSrc, event.image_display, 'detail')
   : null;
+const sideLayout = detailFraming?.layout === 'side';
 const ogImageUrl = event.external_image_url
   ? optimizedImageUrl(event.external_image_url, { width: 1200 })
   : null;
@@ -194,22 +199,32 @@ setPublicCache(Astro.response.headers);
   <main class="min-h-screen bg-gradient-blues-bold py-4 sm:py-8">
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
-      <div class="bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative">
-        {detailImageUrl && (
-          <div class="overflow-hidden rounded-t-lg w-full">
-            <div class="event-detail-image-wrapper">
-              <img
-                src={detailImageUrl}
+      <div class:list={['bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative', { 'md:flex md:items-start': sideLayout }]}>
+        {detailImageSrc && detailFraming && (
+          sideLayout ? (
+            <div class="event-detail-side-image">
+              <EventImage
+                rawSrc={detailImageSrc}
+                width={900}
                 alt={String(event.image_alt_text ?? 'Event image')}
-                class="event-detail-image"
+                framing={detailFraming}
                 loading="eager"
-                decoding="async"
-                onerror="this.parentElement.style.display='none'"
               />
             </div>
-          </div>
+          ) : (
+            <div class="overflow-hidden rounded-t-lg w-full">
+              <EventImage
+                rawSrc={detailImageSrc}
+                width={1200}
+                alt={String(event.image_alt_text ?? 'Event image')}
+                framing={detailFraming}
+                loading="eager"
+                class="event-detail-image-wrapper"
+              />
+            </div>
+          )
         )}
-        <div class="p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative">
+        <div class:list={['p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative', { 'md:flex-1 md:min-w-0': sideLayout }]}>
           <!-- Share Button in top-right -->
           <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
             {event.id && (
@@ -736,6 +751,7 @@ setPublicCache(Astro.response.headers);
         set('editEventTitle', event.title); set('editEventDescription', event.description); set('editEventStartDate', event.start_date); set('editEventEndDate', event.end_date);
         set('editEventStartTime', event.start_time); set('editEventEndTime', event.end_time); set('editEventEmail', event.email); set('editEventWebsite', event.website);
         set('editEventRegistrationLink', event.registration_link); set('editEventExternalImageUrl', event.external_image_url); set('editEventCost', event.cost);
+        window.eventImageFraming?.setValue(event.image_display);
         set('editEventPrimaryTag', event.primary_tag_id); set('editEventSecondaryTag', event.secondary_tag_id); set('editEventComments', event.comments);
         setCheck('editEventRegistration', event.registration); setCheck('editEventExcludeFromCalendar', event.exclude_from_calendar); setCheck('editEventFeatured', event.featured);
         const isCancelled = event.status === 'cancelled';
@@ -862,6 +878,7 @@ setPublicCache(Astro.response.headers);
             website: normalizeUrl((document.getElementById('editEventWebsite') as HTMLInputElement)?.value),
             registration_link: normalizeUrl((document.getElementById('editEventRegistrationLink') as HTMLInputElement)?.value),
             external_image_url: normalizeUrl((document.getElementById('editEventExternalImageUrl') as HTMLInputElement)?.value),
+            image_display: window.eventImageFraming?.getValue(),
             cost: (document.getElementById('editEventCost') as HTMLInputElement)?.value || null,
             primary_tag_id: primaryTag,
             secondary_tag_id: (document.getElementById('editEventSecondaryTag') as HTMLSelectElement)?.value || null,
@@ -923,15 +940,19 @@ setPublicCache(Astro.response.headers);
   width: 100%;
   aspect-ratio: 16 / 9;
   max-height: 450px;
-  overflow: hidden;
-  position: relative;
 }
-.event-detail-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  vertical-align: top;
+.event-detail-side-image {
+  border-radius: 0.5rem 0.5rem 0 0;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .event-detail-side-image {
+    width: 40%;
+    flex-shrink: 0;
+    border-radius: 0.5rem 0 0 0.5rem;
+  }
 }
 </style>

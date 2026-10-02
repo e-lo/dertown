@@ -2064,6 +2064,7 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
         document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
         window.refreshEventImagePreview?.();
+        window.eventImageFraming?.disable();
         document.getElementById('editEventCost').value = event.cost || '';
         document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
         document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
@@ -2171,6 +2172,7 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
         document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
         window.refreshEventImagePreview?.();
+        window.eventImageFraming?.setValue(event.image_display);
         document.getElementById('editEventCost').value = event.cost || '';
         document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
         document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
@@ -2301,6 +2303,7 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventRegistrationLink').value = event.registration_link || '';
       document.getElementById('editEventExternalImageUrl').value = event.external_image_url || '';
       window.refreshEventImagePreview?.();
+      window.eventImageFraming?.setValue(event.image_display);
       document.getElementById('editEventCost').value = event.cost || '';
       document.getElementById('editEventPrimaryTag').value = event.primary_tag_id || '';
       document.getElementById('editEventSecondaryTag').value = event.secondary_tag_id || '';
@@ -3700,6 +3703,7 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventRegistrationLink').value = '';
       document.getElementById('editEventExternalImageUrl').value = '';
       window.refreshEventImagePreview?.();
+      window.eventImageFraming?.setValue(null);
       document.getElementById('editEventCost').value = '';
       document.getElementById('editEventPrimaryTag').value = '';
       document.getElementById('editEventSecondaryTag').value = '';
@@ -3791,6 +3795,7 @@ const userEmail = session.user?.email || 'Admin';
           website: normalizeUrl(document.getElementById('editEventWebsite').value),
           registration_link: normalizeUrl(document.getElementById('editEventRegistrationLink').value),
           external_image_url: normalizeUrl(document.getElementById('editEventExternalImageUrl').value),
+          image_display: window.eventImageFraming?.getValue(),
           cost: document.getElementById('editEventCost').value || null,
           primary_tag_id: document.getElementById('editEventPrimaryTag').value || null,
           secondary_tag_id: document.getElementById('editEventSecondaryTag').value || null,
@@ -3902,6 +3907,10 @@ const userEmail = session.user?.email || 'Admin';
       // Handle parent event
       const parentEventId = document.getElementById('editEventParentEventId').value;
       formData.parent_event_id = parentEventId || null;
+      if (currentEditType === 'existing-event') {
+        // Staged events have no image_display column; only real events send framing.
+        Object.assign(formData, { image_display: window.eventImageFraming?.getValue() });
+      }
       
       try {
         let endpoint = '';
