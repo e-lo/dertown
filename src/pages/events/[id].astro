@@ -17,6 +17,8 @@ import EventListCard from '../../components/EventListCard.astro';
 import MapboxMap from '../../components/MapboxMap.astro';
 import { checkAdminAccess } from '../../lib/session';
 import { optimizedImageUrl } from '../../lib/image';
+import EventImage from '../../components/EventImage.astro';
+import { resolveFraming } from '../../lib/image-display';
 import '../../styles/admin.css';
 import { setPublicCache } from '@/lib/cache';
 
@@ -162,9 +164,10 @@ if (parentEventId) {
 }
 
 // Optimized image URLs for the detail hero
-const detailImageUrl = event.external_image_url
-  ? optimizedImageUrl(event.external_image_url, { width: 1200 })
+const detailFraming = event.external_image_url
+  ? resolveFraming(event.external_image_url, event.image_display, 'detail')
   : null;
+const sideLayout = detailFraming?.layout === 'side';
 const ogImageUrl = event.external_image_url
   ? optimizedImageUrl(event.external_image_url, { width: 1200 })
   : null;
@@ -195,22 +198,32 @@ setPublicCache(Astro.response.headers);
   <main class="min-h-screen bg-gradient-blues-bold py-4 sm:py-8">
     <div class="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
       <!-- Event Header -->
-      <div class="bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative">
-        {detailImageUrl && (
-          <div class="overflow-hidden rounded-t-lg w-full">
-            <div class="event-detail-image-wrapper">
-              <img
-                src={detailImageUrl}
+      <div class:list={['bg-white rounded-lg shadow-lg mb-6 sm:mb-8 relative', { 'md:flex md:items-start': sideLayout }]}>
+        {detailFraming && (
+          sideLayout ? (
+            <div class="event-detail-side-image">
+              <EventImage
+                rawSrc={event.external_image_url}
+                width={900}
                 alt={String(event.image_alt_text ?? 'Event image')}
-                class="event-detail-image"
+                framing={detailFraming}
                 loading="eager"
-                decoding="async"
-                onerror="this.parentElement.style.display='none'"
               />
             </div>
-          </div>
+          ) : (
+            <div class="overflow-hidden rounded-t-lg w-full">
+              <EventImage
+                rawSrc={event.external_image_url}
+                width={1200}
+                alt={String(event.image_alt_text ?? 'Event image')}
+                framing={detailFraming}
+                loading="eager"
+                class="event-detail-image-wrapper"
+              />
+            </div>
+          )
         )}
-        <div class="p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative">
+        <div class:list={['p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 relative', { 'md:flex-1 md:min-w-0': sideLayout }]}>
           <!-- Share Button in top-right -->
           <div class="absolute top-4 sm:top-6 right-4 sm:right-6 flex gap-2 z-20">
             {event.id && (
@@ -924,15 +937,19 @@ setPublicCache(Astro.response.headers);
   width: 100%;
   aspect-ratio: 16 / 9;
   max-height: 450px;
-  overflow: hidden;
-  position: relative;
 }
-.event-detail-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  vertical-align: top;
+.event-detail-side-image {
+  border-radius: 0.5rem 0.5rem 0 0;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .event-detail-side-image {
+    width: 40%;
+    flex-shrink: 0;
+    border-radius: 0.5rem 0 0 0.5rem;
+  }
 }
 </style>

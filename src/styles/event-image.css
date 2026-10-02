@@ -30,6 +30,7 @@
 }
 /* Side-by-side detail layout: no fixed window, whole image at natural shape. */
 .event-image--side {
+  width: 100%;
   background: transparent;
 }
 .event-image--side .event-image__main {
