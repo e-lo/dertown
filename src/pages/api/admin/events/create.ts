@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { normalizeImageDisplayInput } from '@/lib/image-display';
 
 export const prerender = false;
 
@@ -17,6 +18,15 @@ export const POST = withAdminAuth(async ({ request, auth }) => {
   // Validate required fields
   if (!eventData.title || !eventData.start_date) {
     return jsonError('Title and start date are required', 400);
+  }
+
+  if ('image_display' in eventData) {
+    const framing = normalizeImageDisplayInput(
+      eventData.image_display,
+      eventData.external_image_url || null
+    );
+    if (!framing.ok) return jsonError('Invalid image framing settings', 400);
+    eventData.image_display = framing.value;
   }
 
   // Org editors can only create events for their assigned organizations.

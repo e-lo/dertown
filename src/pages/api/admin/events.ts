@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
 import { findEventDuplicateHint } from '@/lib/event-duplicate';
+import { normalizeImageDisplayInput } from '@/lib/image-display';
 
 export const prerender = false;
 
@@ -54,7 +55,9 @@ export const GET = withAdminAuth(async ({ url, auth }) => {
 
   const { data: approvedEvents, error: approvedError } = await supabaseAdmin
     .from('events')
-    .select('id, title, start_date, start_time, location_id, organization_id, parent_event_id, source_id')
+    .select(
+      'id, title, start_date, start_time, location_id, organization_id, parent_event_id, source_id'
+    )
     .eq('status', 'approved');
 
   if (approvedError) {
@@ -82,6 +85,14 @@ export const PUT = withAdminAuth(async ({ request, auth }) => {
 
   if (!id) {
     return jsonError('Event ID is required', 400);
+  }
+
+  if ('image_display' in updateData) {
+    const imageUrl =
+      'external_image_url' in updateData ? updateData.external_image_url || null : undefined;
+    const framing = normalizeImageDisplayInput(updateData.image_display, imageUrl);
+    if (!framing.ok) return jsonError('Invalid image framing settings', 400);
+    updateData.image_display = framing.value;
   }
 
   // Org editors can only update events belonging to their organizations
@@ -137,7 +148,7 @@ export const PUT = withAdminAuth(async ({ request, auth }) => {
   const cleanedData: any = {};
   for (const [key, value] of Object.entries(updateData)) {
     if (key === 'location_added' || key === 'organization_added') continue;
-    cleanedData[key] = (value === '' || value === null || value === undefined) ? null : value;
+    cleanedData[key] = value === '' || value === null || value === undefined ? null : value;
   }
 
   const { data, error } = await supabaseAdmin
