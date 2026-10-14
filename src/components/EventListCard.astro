@@ -71,31 +71,13 @@ const textClass = 'text-white';
 </article>
 
 <script>
-  // Step each title down until it fits its line clamp; the longest titles also
-  // get a third line. Re-fits whenever a card's width changes (resize, filter).
-  const FIT_STEPS = [
+  import { fitTitles } from '../scripts/fit-card-text';
+
+  fitTitles('[data-fit-title]', [
     { fontSize: '1.25rem', lines: '2' },
     { fontSize: '1.125rem', lines: '2' },
     { fontSize: '1rem', lines: '2' },
     { fontSize: '1rem', lines: '3' },
     { fontSize: '0.875rem', lines: '3' },
-  ];
-
-  const fittedWidths = new WeakMap<HTMLElement, number>();
-
-  function fitTitle(title: HTMLElement) {
-    const width = title.clientWidth;
-    if (width === 0 || fittedWidths.get(title) === width) return;
-    fittedWidths.set(title, width);
-    for (const step of FIT_STEPS) {
-      title.style.fontSize = step.fontSize;
-      title.style.webkitLineClamp = step.lines;
-      if (title.scrollHeight <= title.clientHeight + 1) return;
-    }
-  }
-
-  const observer = new ResizeObserver((entries) => {
-    for (const entry of entries) fitTitle(entry.target as HTMLElement);
-  });
-  document.querySelectorAll<HTMLElement>('[data-fit-title]').forEach((title) => observer.observe(title));
+  ]);
 </script>
