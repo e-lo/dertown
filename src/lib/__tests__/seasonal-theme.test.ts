@@ -22,10 +22,18 @@ function check(label: string, cond: boolean) {
 console.log('🧪 Testing seasonal palettes\n');
 
 const expectedByMonth: Record<number, string> = {
-  1: 'ski', 2: 'ski', 3: 'ski',
-  4: 'wildflower', 5: 'wildflower', 6: 'wildflower', 7: 'wildflower', 8: 'wildflower',
-  9: 'fall', 10: 'fall',
-  11: 'holiday', 12: 'holiday',
+  1: 'ski',
+  2: 'ski',
+  3: 'ski',
+  4: 'wildflower',
+  5: 'wildflower',
+  6: 'wildflower',
+  7: 'wildflower',
+  8: 'wildflower',
+  9: 'fall',
+  10: 'fall',
+  11: 'holiday',
+  12: 'holiday',
 };
 for (const [month, season] of Object.entries(expectedByMonth)) {
   check(`month ${month} is ${season}`, getSeasonForMonth(Number(month)) === season);
@@ -75,17 +83,40 @@ function seasonBlock(id: string): string {
 for (const id of SEASON_IDS) {
   check(`css has a ${id} block`, seasonBlock(id) !== '');
 }
-check('fall sports card is oxblood', seasonBlock('fall').includes('--color-category-sports: #6a010f;'));
-check('holiday family card takes dark text', seasonBlock('holiday').includes('--color-category-family-text: #111111;'));
-check('wildflower family card takes white text', seasonBlock('wildflower').includes('--color-category-family-text: #ffffff;'));
-check('fall announcement band is amber', seasonBlock('fall').includes('--color-announcement-bg: #ff9b0c;'));
-check('wildflower announcement band is balsamroot', seasonBlock('wildflower').includes('--color-announcement-bg: #f0b62b;'));
-check('fall highlight text is white (pumpkin)', seasonBlock('fall').includes('--color-secondary-text: #ffffff;'));
+check(
+  'fall sports card is oxblood',
+  seasonBlock('fall').includes('--color-category-sports: #6a010f;')
+);
+check(
+  'holiday family card takes dark text',
+  seasonBlock('holiday').includes('--color-category-family-text: #111111;')
+);
+check(
+  'wildflower family card takes white text',
+  seasonBlock('wildflower').includes('--color-category-family-text: #ffffff;')
+);
+check(
+  'fall announcement band is amber',
+  seasonBlock('fall').includes('--color-announcement-bg: #ff9b0c;')
+);
+check(
+  'wildflower announcement band is balsamroot',
+  seasonBlock('wildflower').includes('--color-announcement-bg: #f0b62b;')
+);
+check(
+  'fall highlight text is white (pumpkin)',
+  seasonBlock('fall').includes('--color-secondary-text: #ffffff;')
+);
 check('css styles untagged events', css.includes('.bg-event-default'));
 check('css styles give-back events', css.includes('.bg-event-give-back'));
-check('event cards take their text color from the season', css.includes('color: var(--color-category-give-back-text) !important'));
+check(
+  'event cards take their text color from the season',
+  css.includes('color: var(--color-category-give-back-text) !important')
+);
 check('old indigo is gone', !css.includes('#4740cb'));
 check('old canary is gone', !css.includes('#ffe600'));
 
-console.log(failures === 0 ? '\n✅ All seasonal palette tests passed' : `\n❌ ${failures} failure(s)`);
+console.log(
+  failures === 0 ? '\n✅ All seasonal palette tests passed' : `\n❌ ${failures} failure(s)`
+);
 process.exit(failures === 0 ? 0 : 1);

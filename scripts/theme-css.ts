@@ -8,22 +8,44 @@
  * - `.bg-event-*` rules give each category its season's background and the
  *   readable text color for it (white or near-black, by WCAG contrast).
  */
-import { CATEGORY_SLOTS, COLORS, SEASON_IDS, SEASON_PALETTES, TYPOGRAPHY, type SeasonId } from '../src/lib/config';
+import {
+  CATEGORY_SLOTS,
+  COLORS,
+  SEASON_IDS,
+  SEASON_PALETTES,
+  TYPOGRAPHY,
+  type SeasonId,
+} from '../src/lib/config';
 import { readableTextOn } from '../src/lib/color-contrast';
 
 /** camelCase / key → kebab-case CSS token name */
 const kebab = (s: string) =>
-  s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/_/g, '-').toLowerCase();
+  s
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
 
 /** Blend `hex` toward `toward` by `amount` (0–1). */
 function mix(hex: string, toward: string, amount: number): string {
-  const channels = (h: string) => [0, 2, 4].map((i) => parseInt(h.replace('#', '').slice(i, i + 2), 16));
+  const channels = (h: string) =>
+    [0, 2, 4].map((i) => parseInt(h.replace('#', '').slice(i, i + 2), 16));
   const [from, to] = [channels(hex), channels(toward)];
-  return '#' + from.map((c, i) => Math.round(c + (to[i] - c) * amount).toString(16).padStart(2, '0')).join('');
+  return (
+    '#' +
+    from
+      .map((c, i) =>
+        Math.round(c + (to[i] - c) * amount)
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')
+  );
 }
 
 const lines = (vars: Record<string, string>) =>
-  Object.entries(vars).map(([name, value]) => `  --${name}: ${value};`).join('\n');
+  Object.entries(vars)
+    .map(([name, value]) => `  --${name}: ${value};`)
+    .join('\n');
 
 /** Seasonal tokens that Tailwind turns into utilities. */
 function utilityVars(id: SeasonId): Record<string, string> {
@@ -69,7 +91,15 @@ const LEGACY_PALETTE: Record<string, string> = {
   'dark-slate-gray': 'var(--color-category-civic)',
 };
 
-const FIXED_KEYS = ['surfaceLight', 'textSecondary', 'textDark', 'muted', 'mutedDark', 'border', 'link'] as const;
+const FIXED_KEYS = [
+  'surfaceLight',
+  'textSecondary',
+  'textDark',
+  'muted',
+  'mutedDark',
+  'border',
+  'link',
+] as const;
 
 /** Background + readable text for an event category class, including FullCalendar parts. */
 function eventRule(name: string, background: string, text: string): string {
@@ -89,9 +119,15 @@ ${cls} .fc-event-time {
 export function buildThemeCss(): string {
   const defaultSeason = SEASON_IDS[0];
   const fixedVars = Object.fromEntries(FIXED_KEYS.map((k) => [`color-${kebab(k)}`, COLORS[k]]));
-  const legacyVars = Object.fromEntries(Object.entries(LEGACY_PALETTE).map(([k, v]) => [`color-${k}`, v]));
-  const paletteAliases = Object.fromEntries(Object.keys(LEGACY_PALETTE).map((k) => [`palette-${k}`, `var(--color-${k})`]));
-  const fontVars = Object.fromEntries(Object.entries(TYPOGRAPHY.fontFamilies).map(([k, v]) => [`font-${kebab(k)}`, v]));
+  const legacyVars = Object.fromEntries(
+    Object.entries(LEGACY_PALETTE).map(([k, v]) => [`color-${k}`, v])
+  );
+  const paletteAliases = Object.fromEntries(
+    Object.keys(LEGACY_PALETTE).map((k) => [`palette-${k}`, `var(--color-${k})`])
+  );
+  const fontVars = Object.fromEntries(
+    Object.entries(TYPOGRAPHY.fontFamilies).map(([k, v]) => [`font-${kebab(k)}`, v])
+  );
   const n = COLORS.notifications;
   const notificationVars = {
     'color-error-text': n.error.text,
