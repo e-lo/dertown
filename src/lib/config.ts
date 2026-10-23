@@ -74,11 +74,17 @@ export const MAP_STYLES = {
     url: 'mapbox://styles/mapbox/light-v11',
     defaultZoom: 11,
   },
-  /** Style for modals and embedded maps (Leaflet/Carto) */
+  /**
+   * Raster tiles for Leaflet maps (modals, organization pages). Leaflet fills
+   * {accessToken} from the tile layer options; pass PUBLIC_MAPBOX_TOKEN there.
+   */
   embedded: {
-    name: 'Carto Light',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    name: 'Mapbox Light',
+    url: 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/512/{z}/{x}/{y}{r}?access_token={accessToken}',
+    tileSize: 512,
+    zoomOffset: -1,
+    attribution:
+      '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
 };
 

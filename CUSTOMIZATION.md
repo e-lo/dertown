@@ -110,13 +110,15 @@ eventList: {
 }
 ```
 
-#### 3. Modal Maps (Leaflet/Carto)
-Used in the Add Location modal:
+#### 3. Leaflet Maps (Mapbox raster tiles)
+Used in the Add Location modal and organization pages. Uses the same `PUBLIC_MAPBOX_TOKEN`, which Leaflet substitutes for `{accessToken}`:
 ```typescript
 embedded: {
-  name: 'Carto Light',
-  url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  name: 'Mapbox Light',
+  url: 'https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/512/{z}/{x}/{y}{r}?access_token={accessToken}',
+  tileSize: 512,
+  zoomOffset: -1,
+  attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }
 ```
 

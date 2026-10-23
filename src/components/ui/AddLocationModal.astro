@@ -73,7 +73,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-<script define:vars={{ defaultLocationCoords: DEFAULT_LOCATION.coordinates, defaultLocationName: DEFAULT_LOCATION.name, embeddedMapUrl: MAP_STYLES.embedded.url }}>
+<script define:vars={{ defaultLocationCoords: DEFAULT_LOCATION.coordinates, defaultLocationName: DEFAULT_LOCATION.name, embeddedMap: MAP_STYLES.embedded, mapboxToken: import.meta.env.PUBLIC_MAPBOX_TOKEN || '' }}>
   /* global L */
   (function() {
     const DEFAULT_MAP_CENTER = defaultLocationCoords;
@@ -175,9 +175,11 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
       const hasCoords = lat != null && lon != null && !isNaN(lat) && !isNaN(lon);
       const center = hasCoords ? [Number(lat), Number(lon)] : DEFAULT_MAP_CENTER;
       locationMap = L.map('addLocationMap').setView(center, hasCoords ? 15 : 12);
-      L.tileLayer(embeddedMapUrl, {
-        subdomains: 'abcd',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      L.tileLayer(embeddedMap.url, {
+        tileSize: embeddedMap.tileSize,
+        zoomOffset: embeddedMap.zoomOffset,
+        attribution: embeddedMap.attribution,
+        accessToken: mapboxToken,
       }).addTo(locationMap);
       if (hasCoords) {
         locationMarker = L.marker(center, { icon: selectionIcon }).addTo(locationMap);

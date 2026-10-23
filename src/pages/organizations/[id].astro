@@ -9,6 +9,7 @@ import { supabase, filterCurrentAndFutureEvents } from '../../lib/supabase';
 import { checkAdminAccess } from '../../lib/session';
 import '../../styles/admin.css';
 import { setPublicCache } from '@/lib/cache';
+import { MAP_STYLES } from '@/lib/config';
 
 const { id } = Astro.params;
 const cookieHeader = Astro.request.headers.get('cookie') || '';
@@ -230,7 +231,7 @@ setPublicCache(Astro.response.headers);
       </div>
     </div>
   </section>
-  <script define:vars={{ hasMap }}>
+  <script define:vars={{ hasMap, embeddedMap: MAP_STYLES.embedded, mapboxToken: import.meta.env.PUBLIC_MAPBOX_TOKEN || '' }}>
     document.addEventListener('DOMContentLoaded', function() {
       window.shareEvent = function(ev) {
         const button = (ev && ev.target && ev.target.closest('button')) || document.querySelector('[data-share-url]');
@@ -283,9 +284,11 @@ setPublicCache(Astro.response.headers);
             });
           }
           const map = L.map('organization-map').setView(center, zoom);
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          L.tileLayer(embeddedMap.url, {
+            tileSize: embeddedMap.tileSize,
+            zoomOffset: embeddedMap.zoomOffset,
+            attribution: embeddedMap.attribution,
+            accessToken: mapboxToken,
           }).addTo(map);
           markers.forEach(function(m) {
             const marker = L.marker([m.lat, m.lon]).addTo(map);
