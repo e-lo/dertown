@@ -1,0 +1,124 @@
+# Cards for the "Seasonal Activities" section on the Things to Do page.
+#
+# The page shows the list for the current season:
+#   winter: Dec–Feb   spring: Mar–May   summer: Jun–Aug   fall: Sep–Nov
+# A season with no activities hides the section.
+#
+# Each activity needs a title, text, and icon (a Material Symbols name, see
+# https://fonts.google.com/icons). Give it either one `link` (the whole card is
+# clickable) or several `links` (shown as inline links, e.g. outfitters).
+# `subtext` is an optional small gray line for dates, prices, etc.
+#
+# Cards used in more than one season are defined once with &name and reused
+# with *name.
+
+winter:
+  activities:
+    - title: Skiing at Leavenworth Ski Hill
+      text: Downhill skiing, snowboarding, and Nordic trails right above town, run by the Leavenworth Winter Sports Club.
+      link: https://skileavenworth.com/activities
+      icon: downhill_skiing
+
+    - title: Snowshoeing
+      text: Dedicated snowshoe trails at Ski Hill and the Leavenworth Golf Course, maintained by the Leavenworth Winter Sports Club.
+      link: https://skileavenworth.com/activities/snowshoe
+      icon: snowshoeing
+
+    - title: Fat Biking
+      text: Ride the Ski Hill snowshoe trails, plus the lighted Nordic trails in the evening. Fat bike rentals available from Eastside Cycleworks.
+      subtext: Nordic trails open to bikes 5–10pm · Day ticket or season pass required
+      link: https://skileavenworth.com/activities/fat-biking
+      icon: pedal_bike
+
+    - title: Plain Valley Adventure Women (PVAW) Winter
+      text: Classic and skate ski sessions, wax clinics, a snowshoe group, and community ski days at Plain Valley Ski Trails.
+      link: https://www.skiplain.com/pvaw-winter
+      icon: downhill_skiing
+
+spring:
+  activities:
+    - title: Maifest
+      text: Celebrate spring with maypole dancing, Bavarian music, and the Grand March on Front Street.
+      subtext: Mother's Day weekend in May · Free
+      link: https://leavenworth.org/maifest/
+      icon: celebration
+
+    - title: Spring Bird Fest
+      text: Birding field trips, workshops, and talks for all ages and skill levels, hosted by the Wenatchee River Institute during spring migration.
+      subtext: Mid-May
+      link: https://wenatcheeriverinstitute.org/bird-fest/
+      icon: flutter_dash
+
+    - title: Rafting & Kayaking
+      text: "Snowmelt brings the big water of the year to the Wenatchee River. Book a guided trip or rent a boat:"
+      links:
+        - label: Orion Expeditions
+          url: https://www.orionexp.com/
+        - label: River Rider
+          url: https://www.riverrider.com/
+        - label: Leavenworth Outdoor Center
+          url: https://leavenworthoutdoorcenter.com/reservations
+      icon: kayaking
+
+    - title: Wildflower Hikes
+      text: Balsamroot and lupine cover the hillsides in April and May. Icicle Ridge is a local favorite for the bloom.
+      link: https://www.wta.org/go-hiking/hikes/icicle-ridge
+      icon: local_florist
+
+    - &mountain_biking
+      title: Mountain Biking
+      text: Explore trails in the Leavenworth area. Central Washington Evergreen MTB maintains and maps local singletrack.
+      link: https://cwevergreenmtb.org/trails
+      icon: pedal_bike
+
+    # PVAW has dedicated summer and winter pages; spring and fall use the overview.
+    - &pvaw_overview
+      title: Plain Valley Adventure Women (PVAW)
+      text: Women's outdoor group with volunteer-led programs and community groups for hiking, biking, and skiing. All proceeds support Plain Valley's youth ski education programs.
+      link: https://www.skiplain.com/pvaw
+      icon: groups
+
+summer:
+  activities:
+    - title: Leavenworth Pool
+      text: Cool off at the Leavenworth community pool. Check the calendar for open swim, lap swim, and other aquatic programs.
+      link: https://leavenworthwa.recdesk.com/Community/Calendar?facilityId=1
+      icon: pool
+
+    - title: Raft the Wenatchee
+      text: "Guided whitewater rafting on the Wenatchee River. Choose from two local outfitters:"
+      links:
+        - label: Orion Expeditions
+          url: https://www.orionexp.com/
+        - label: River Rider
+          url: https://www.riverrider.com/
+      icon: kayaking
+
+    - title: Flatwater SUP, Kayak & Tubing
+      text: Paddle or float the Icicle and Wenatchee Rivers. Rentals and reservations available through Leavenworth Outdoor Center.
+      link: https://leavenworthoutdoorcenter.com/reservations
+      icon: rowing
+
+    - *mountain_biking
+
+    - title: Plain Valley Adventure Women (PVAW) Summer
+      text: Volunteer-led summer program for women featuring weekly e-bike rides, mountain biking, and hiking. All proceeds support Plain Valley's youth ski education programs.
+      subtext: May–August · $200 for the full program · Easy to moderate, all fitness levels welcome
+      link: https://www.skiplain.com/pvawsummer
+      icon: directions_run
+
+fall:
+  activities:
+    - title: Salmon Viewing at the Fish Hatchery
+      text: Watch chinook salmon return to Icicle Creek at the Leavenworth National Fish Hatchery. An easy interpretive trail loops along the creek.
+      subtext: Best viewing September–October · Free
+      link: https://www.fws.gov/fish-hatchery/leavenworth
+      icon: phishing
+
+    - title: Fall Color Hikes
+      text: Catch the fall colors on easy local trails like the Icicle Gorge loop, Waterfront Park, and the Fish Hatchery trail.
+      link: https://www.wta.org/go-hiking/hikes/icicle-gorge-loop
+      icon: hiking
+
+    - *mountain_biking
+    - *pvaw_overview
