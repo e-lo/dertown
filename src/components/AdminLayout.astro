@@ -1,4 +1,6 @@
 ---
+import SeasonScript from './SeasonScript.astro';
+import { getSeasonForMonth } from '../lib/config';
 import AdminAuthRefresh from './AdminAuthRefresh.astro';
 import '../styles/global.css';
 import '../styles/admin.css';
@@ -10,11 +12,14 @@ interface Props {
 }
 
 const { title, showBack = true, userEmail = 'Admin' } = Astro.props;
+
+const season = getSeasonForMonth(new Date().getMonth() + 1);
 ---
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-season={season}>
 <head>
+  <SeasonScript />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title} - Admin - Der Town</title>
