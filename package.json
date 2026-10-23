@@ -43,7 +43,8 @@
     "test:entity-merge": "tsx src/lib/__tests__/entity-merge-fields.test.ts",
     "test:newsletter-dates": "tsx src/lib/__tests__/newsletter-dates.test.ts",
     "test:newsletter-token": "tsx src/lib/__tests__/newsletter-token.test.ts",
-    "test:newsletter-select": "tsx src/lib/__tests__/newsletter-select.test.ts"
+    "test:newsletter-select": "tsx src/lib/__tests__/newsletter-select.test.ts",
+    "test:newsletter-render": "tsx src/lib/__tests__/newsletter-render.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
