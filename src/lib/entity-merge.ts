@@ -214,7 +214,7 @@ export async function deleteEntity(type: MergeEntityType, id: string): Promise<v
   if (inUse.length > 0) {
     const usage = inUse.map(({ count, label }) => `${count} ${label}`).join(', ');
     throw new MergeError(
-      `This ${spec.noun} is still used by ${usage}. Use "Merge with…" to move them to another ${spec.noun} instead.`,
+      `This ${spec.noun} is still used by ${usage}. Open the ${spec.noun} you want to keep and use Merge to fold this one into it.`,
       409
     );
   }

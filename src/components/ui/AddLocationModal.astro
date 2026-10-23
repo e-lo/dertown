@@ -3,7 +3,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
 
 // Modal to add or edit a location. Used from event form (pop-out) and from admin locations page.
 // Dispatches 'admin:location-created' or 'admin:location-updated' with { location } on success.
-// superAdminTools adds Delete and "Merge with…" when editing (super-admin pages only).
+// superAdminTools adds a Merge button when editing (super-admin pages only).
 interface Props {
   superAdminTools?: boolean;
 }
@@ -78,16 +78,11 @@ const { superAdminTools = false } = Astro.props;
           <p class="text-xs text-gray-500 mt-1">You'll review both side by side before anything changes. This location is kept.</p>
         </div>
       )}
-      <div class="form-actions">
+      <div class="form-actions flex items-center justify-end">
         {superAdminTools && (
-          <button type="button" id="addLocationDeleteBtn" class="icon-btn btn-reject hidden" style="padding: 0.5rem; min-width: auto;" aria-label="Delete location">
-            <span class="material-symbols-outlined" style="font-size: 1.25rem;">delete</span>
-            <span class="tooltip">Delete location</span>
-          </button>
-        )}
-        {superAdminTools && (
-          <button type="button" id="addLocationMergeToggle" class="btn-cancel hidden" style="margin-right: auto;">
-            <span class="material-symbols-outlined text-base align-middle">merge</span> Merge with…
+          <button type="button" id="addLocationMergeToggle" class="icon-btn btn-edit hidden" style="padding: 0.5rem; min-width: auto; margin-right: auto;" aria-label="Merge">
+            <span class="material-symbols-outlined" style="font-size: 1.25rem;">merge</span>
+            <span class="tooltip">Merge</span>
           </button>
         )}
         <button type="button" onclick="window.closeAddLocationModal?.()" class="btn-cancel">Cancel</button>
@@ -119,7 +114,6 @@ const { superAdminTools = false } = Astro.props;
     const mapEl = document.getElementById('addLocationMap');
     const mapHelpText = document.getElementById('mapHelpText');
     const mergeToggle = document.getElementById('addLocationMergeToggle');
-    const deleteBtn = document.getElementById('addLocationDeleteBtn');
     const mergePanel = document.getElementById('addLocationMergePanel');
     const mergeSearch = document.getElementById('addLocationMergeSearch');
     const mergeDropdown = document.getElementById('addLocationMergeDropdown');
@@ -200,7 +194,6 @@ const { superAdminTools = false } = Astro.props;
         const q = mergeSearch.value.toLowerCase().trim();
         const matches = q
           ? locationParentList
-              .filter(loc => loc.status !== 'archived' && loc.status !== 'duplicate')
               .filter(loc => displayParentLoc(loc).toLowerCase().includes(q))
               .slice(0, 10)
           : [];
@@ -210,7 +203,7 @@ const { superAdminTools = false } = Astro.props;
         }
         mergeDropdown.innerHTML = matches.map(loc =>
           '<div class="autocomplete-dropdown-item" data-id="' + loc.id + '">' + displayParentLoc(loc).replace(/</g, '&lt;') +
-          (loc.status === 'pending' ? ' <span class="text-gray-400 italic">(pending)</span>' : '') + '</div>'
+          (loc.status && loc.status !== 'approved' ? ' <span class="text-gray-400 italic">(' + loc.status + ')</span>' : '') + '</div>'
         ).join('');
         mergeDropdown.classList.remove('hidden');
         mergeDropdown.classList.add('block');
@@ -278,7 +271,6 @@ const { superAdminTools = false } = Astro.props;
       if (parentSearch) parentSearch.value = '';
       await loadLocationParentList(editId || undefined);
       mergeToggle?.classList.toggle('hidden', !editId);
-      deleteBtn?.classList.toggle('hidden', !editId);
       mergePanel?.classList.add('hidden');
       if (mergeSearch) mergeSearch.value = '';
 
@@ -307,20 +299,6 @@ const { superAdminTools = false } = Astro.props;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     };
-
-    deleteBtn?.addEventListener('click', async () => {
-      const id = idInput.value;
-      const name = document.getElementById('addLocationName').value;
-      if (!id || !confirm(`Delete "${name}"? This can't be undone.`)) return;
-      const res = await fetch(`/api/admin/locations/${id}`, { method: 'DELETE', credentials: 'include' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to delete location');
-        return;
-      }
-      window.closeAddLocationModal();
-      window.dispatchEvent(new CustomEvent('admin:location-deleted', { detail: { id } }));
-    });
 
     window.closeAddLocationModal = function() {
       if (locationMap) {

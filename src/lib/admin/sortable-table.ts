@@ -258,13 +258,14 @@ export function derivedColumn<T>(
 export function actionsColumn<T extends { id: string }>(
   key: string,
   getViewHref: (row: T) => string,
-  getEditAction: (row: T) => { href?: string; onclick?: string }
+  getEditAction: (row: T) => { href?: string; onclick?: string },
+  getDeleteOnclick?: (row: T) => string
 ): SortableTableColumn<T> {
   return {
     key,
     label: '',
     sortable: false,
-    headerClass: 'w-24',
+    headerClass: getDeleteOnclick ? 'w-32' : 'w-24',
     render: (row) => {
       const viewHref = getViewHref(row);
       const edit = getEditAction(row);
@@ -275,7 +276,10 @@ export function actionsColumn<T extends { id: string }>(
       } else {
         editEl = `<button type="button" onclick="${escapeHtml(edit.onclick ?? '')}" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span><span class="tooltip">Edit</span></button>`;
       }
-      return { html: `<span style="white-space:nowrap;">${viewLink}${editEl}</span>` };
+      const deleteEl = getDeleteOnclick
+        ? `<button type="button" onclick="${escapeHtml(getDeleteOnclick(row))}" class="icon-btn btn-reject" style="padding:0.5rem;min-width:auto;margin-left:0.25rem;" aria-label="Delete"><span class="material-symbols-outlined" style="font-size:1.25rem;">delete</span><span class="tooltip">Delete</span></button>`
+        : '';
+      return { html: `<span style="white-space:nowrap;">${viewLink}${editEl}${deleteEl}</span>` };
     },
   };
 }

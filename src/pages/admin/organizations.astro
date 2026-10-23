@@ -25,7 +25,7 @@ const { role } = await checkAdminAccess(Astro.cookies);
   </Fragment>
 
   <div id="organizations-loading" class="loading">Loading organizations...</div>
-  <div id="organizations-container"></div>
+  <div id="organizations-container" data-can-delete={role === 'super_admin' ? 'true' : undefined}></div>
 </AdminLayout>
 
 <script>
@@ -37,8 +37,11 @@ const { role } = await checkAdminAccess(Astro.cookies);
     iconBadgeColumn,
     actionsColumn,
   } from '../../lib/admin/sortable-table';
+  import { confirmAndDelete } from '../../lib/admin/delete-entity';
 
   type OrganizationRow = { id: string; name?: string; status?: string; website?: string; updated_at?: string };
+
+  const canDelete = document.getElementById('organizations-container')?.dataset.canDelete === 'true';
 
   const ORG_COLUMNS = [
     textColumn<OrganizationRow>('name', 'Name', 'name'),
@@ -61,7 +64,8 @@ const { role } = await checkAdminAccess(Astro.cookies);
     actionsColumn<OrganizationRow>(
       'actions',
       (org) => `/organizations/${org.id}`,
-      (org) => ({ onclick: `editOrganization('${org.id}')` })
+      (org) => ({ onclick: `editOrganization('${org.id}')` }),
+      canDelete ? (org) => `deleteOrganization('${org.id}')` : undefined
     ),
   ];
 
@@ -100,9 +104,13 @@ const { role } = await checkAdminAccess(Astro.cookies);
     window.openAddOrganizationModal?.(id);
   };
 
+  window.deleteOrganization = async function(id: string) {
+    const name = organizations.find((r) => r.id === id)?.name || 'this organization';
+    if (await confirmAndDelete('organizations', id, name)) loadOrganizations();
+  };
+
   window.addEventListener('admin:organization-created', () => loadOrganizations());
   window.addEventListener('admin:organization-updated', () => loadOrganizations());
-  window.addEventListener('admin:organization-deleted', () => loadOrganizations());
 
   document.addEventListener('DOMContentLoaded', async () => {
     await loadOrganizations();

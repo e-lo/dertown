@@ -21,8 +21,10 @@ declare global {
     openAddOrganizationModal: GlobalHandler;
     closeAddOrganizationModal: GlobalHandler;
     editOrganization: GlobalHandler;
+    deleteOrganization: GlobalHandler;
     openAddLocationModal: GlobalHandler;
     editLocation: GlobalHandler;
+    deleteLocation: GlobalHandler;
     openOrgUserModal: GlobalHandler;
 
     // admin: series & occurrences
