@@ -1,6 +1,11 @@
 ---
 // Modal to add or edit an organization. Used from event form (pop-out) and from admin organizations page.
 // Dispatches 'admin:organization-created' or 'admin:organization-updated' with { organization } on success.
+// allowMerge adds a "Merge with…" search when editing (super-admin pages only).
+interface Props {
+  allowMerge?: boolean;
+}
+const { allowMerge = false } = Astro.props;
 ---
 
 <div id="addOrganizationModal" class="modal-overlay hidden" style="z-index: 1001;">
@@ -59,7 +64,22 @@
           <option value="pending">Pending</option>
         </select>
       </div>
+      {allowMerge && (
+        <div id="addOrganizationMergePanel" class="form-field hidden">
+          <label class="form-label" for="addOrganizationMergeSearch">Merge a duplicate into this organization</label>
+          <div class="autocomplete-container">
+            <input type="text" id="addOrganizationMergeSearch" placeholder="Type to search for the duplicate..." autocomplete="off" class="form-input-base">
+            <div id="addOrganizationMergeDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">You'll review both side by side before anything changes. This organization is kept.</p>
+        </div>
+      )}
       <div class="form-actions">
+        {allowMerge && (
+          <button type="button" id="addOrganizationMergeToggle" class="btn-cancel hidden" style="margin-right: auto;">
+            <span class="material-symbols-outlined text-base align-middle">merge</span> Merge with…
+          </button>
+        )}
         <button type="button" onclick="window.closeAddOrganizationModal?.()" class="btn-cancel">Cancel</button>
         <button type="submit" class="btn-save">Save Organization</button>
       </div>
@@ -70,7 +90,7 @@
 <script>
   (function() {
     type LocationOption = { id: string; name?: string | null; address?: string | null };
-    type OrgOption = { id: string; name?: string | null };
+    type OrgOption = { id: string; name?: string | null; status?: string | null };
 
     let orgLocationList: LocationOption[] = [];
     let orgParentList: OrgOption[] = [];
@@ -89,6 +109,10 @@
     const parentSearch = document.getElementById('addOrganizationParentSearch') as HTMLInputElement;
     const parentIdHidden = document.getElementById('addOrganizationParentId') as HTMLInputElement;
     const parentDropdown = document.getElementById('addOrganizationParentDropdown');
+    const mergeToggle = document.getElementById('addOrganizationMergeToggle');
+    const mergePanel = document.getElementById('addOrganizationMergePanel');
+    const mergeSearch = document.getElementById('addOrganizationMergeSearch') as HTMLInputElement | null;
+    const mergeDropdown = document.getElementById('addOrganizationMergeDropdown');
 
     async function loadOrgLists(excludeOrgId?: string) {
       const [locRes, orgRes] = await Promise.all([
@@ -201,6 +225,49 @@
       });
     }
 
+    function setupMergeSearch() {
+      if (!mergeToggle || !mergePanel || !mergeSearch || !mergeDropdown) return;
+      const hideMergeDropdown = () => {
+        mergeDropdown.classList.add('hidden');
+        mergeDropdown.classList.remove('block');
+        mergeDropdown.innerHTML = '';
+      };
+      mergeToggle.addEventListener('click', () => {
+        mergePanel.classList.toggle('hidden');
+        if (!mergePanel.classList.contains('hidden')) mergeSearch.focus();
+      });
+      mergeSearch.addEventListener('input', () => {
+        const q = mergeSearch.value.toLowerCase().trim();
+        const matches = q
+          ? orgParentList
+              .filter(org => org.status !== 'archived' && org.status !== 'duplicate')
+              .filter(org => (org.name || '').toLowerCase().includes(q))
+              .slice(0, 10)
+          : [];
+        if (matches.length === 0) {
+          hideMergeDropdown();
+          return;
+        }
+        mergeDropdown.innerHTML = matches.map(org =>
+          '<div class="autocomplete-dropdown-item" data-id="' + org.id + '">' + (org.name || '').replace(/</g, '&lt;') +
+          (org.status === 'pending' ? ' <span class="text-gray-400 italic">(pending)</span>' : '') + '</div>'
+        ).join('');
+        mergeDropdown.classList.remove('hidden');
+        mergeDropdown.classList.add('block');
+        mergeDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+          el.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            const secondaryId = el.getAttribute('data-id');
+            const primaryId = idInput.value;
+            if (secondaryId && primaryId) {
+              window.location.href = '/admin/organizations/merge?primary=' + encodeURIComponent(primaryId) + '&secondary=' + encodeURIComponent(secondaryId);
+            }
+          });
+        });
+      });
+      mergeSearch.addEventListener('blur', () => setTimeout(hideMergeDropdown, 150));
+    }
+
     function applyCreatedLocation(location: Partial<LocationOption> | undefined) {
       if (!location?.id || !modal || !modal.classList.contains('flex')) return;
       orgLocationList = orgLocationList.some(l => l.id === location.id) ? orgLocationList : [...orgLocationList, { id: location.id, name: location.name || '', address: location.address || '' }];
@@ -219,6 +286,9 @@
       if (parentIdHidden) parentIdHidden.value = '';
       if (parentSearch) parentSearch.value = '';
       await loadOrgLists(editId || undefined);
+      mergeToggle?.classList.toggle('hidden', !editId);
+      mergePanel?.classList.add('hidden');
+      if (mergeSearch) mergeSearch.value = '';
 
       if (editId) {
         const res = await fetch(`/api/admin/organizations/${editId}`, { credentials: 'include' });
@@ -257,6 +327,7 @@
 
     setupLocationAutocomplete();
     setupParentAutocomplete();
+    setupMergeSearch();
     window.addEventListener('admin:location-created', (e) => applyCreatedLocation((e as CustomEvent).detail?.location));
 
     form?.addEventListener('submit', async (e) => {

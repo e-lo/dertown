@@ -1,7 +1,7 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
 import AddLocationModal from '../../components/ui/AddLocationModal.astro';
-import { getSessionFromCookies } from '../../lib/session';
+import { getSessionFromCookies, checkAdminAccess } from '../../lib/session';
 
 const { session } = await getSessionFromCookies(Astro.cookies);
 if (!session) {
@@ -9,6 +9,7 @@ if (!session) {
   return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
 }
 const userEmail = session.user?.email || 'Admin';
+const { role } = await checkAdminAccess(Astro.cookies);
 ---
 
 <AdminLayout title="Locations" userEmail={userEmail}>
@@ -20,7 +21,7 @@ const userEmail = session.user?.email || 'Admin';
   </Fragment>
 
   <Fragment slot="modals">
-    <AddLocationModal />
+    <AddLocationModal allowMerge={role === 'super_admin'} />
   </Fragment>
 
   <div id="locations-loading" class="loading">Loading locations...</div>

@@ -3,6 +3,11 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
 
 // Modal to add or edit a location. Used from event form (pop-out) and from admin locations page.
 // Dispatches 'admin:location-created' or 'admin:location-updated' with { location } on success.
+// allowMerge adds a "Merge with…" search when editing (super-admin pages only).
+interface Props {
+  allowMerge?: boolean;
+}
+const { allowMerge = false } = Astro.props;
 ---
 
 <div id="addLocationModal" class="modal-overlay hidden" style="z-index: 1002;">
@@ -63,7 +68,22 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
           <option value="pending">Pending</option>
         </select>
       </div>
+      {allowMerge && (
+        <div id="addLocationMergePanel" class="form-field hidden">
+          <label class="form-label" for="addLocationMergeSearch">Merge a duplicate into this location</label>
+          <div class="autocomplete-container">
+            <input type="text" id="addLocationMergeSearch" placeholder="Type to search for the duplicate..." autocomplete="off" class="form-input-base">
+            <div id="addLocationMergeDropdown" class="autocomplete-dropdown hidden"></div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">You'll review both side by side before anything changes. This location is kept.</p>
+        </div>
+      )}
       <div class="form-actions">
+        {allowMerge && (
+          <button type="button" id="addLocationMergeToggle" class="btn-cancel hidden" style="margin-right: auto;">
+            <span class="material-symbols-outlined text-base align-middle">merge</span> Merge with…
+          </button>
+        )}
         <button type="button" onclick="window.closeAddLocationModal?.()" class="btn-cancel">Cancel</button>
         <button type="submit" class="btn-save">Save Location</button>
       </div>
@@ -92,6 +112,10 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
     const lonInput = document.getElementById('addLocationLon');
     const mapEl = document.getElementById('addLocationMap');
     const mapHelpText = document.getElementById('mapHelpText');
+    const mergeToggle = document.getElementById('addLocationMergeToggle');
+    const mergePanel = document.getElementById('addLocationMergePanel');
+    const mergeSearch = document.getElementById('addLocationMergeSearch');
+    const mergeDropdown = document.getElementById('addLocationMergeDropdown');
 
     // Set help text with default location name
     if (mapHelpText) {
@@ -153,6 +177,50 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
       });
     }
 
+    function hideMergeDropdown() {
+      mergeDropdown.classList.add('hidden');
+      mergeDropdown.classList.remove('block');
+      mergeDropdown.innerHTML = '';
+    }
+
+    function setupMergeSearch() {
+      if (!mergeToggle || !mergePanel || !mergeSearch || !mergeDropdown) return;
+      mergeToggle.addEventListener('click', () => {
+        mergePanel.classList.toggle('hidden');
+        if (!mergePanel.classList.contains('hidden')) mergeSearch.focus();
+      });
+      mergeSearch.addEventListener('input', () => {
+        const q = mergeSearch.value.toLowerCase().trim();
+        const matches = q
+          ? locationParentList
+              .filter(loc => loc.status !== 'archived' && loc.status !== 'duplicate')
+              .filter(loc => displayParentLoc(loc).toLowerCase().includes(q))
+              .slice(0, 10)
+          : [];
+        if (matches.length === 0) {
+          hideMergeDropdown();
+          return;
+        }
+        mergeDropdown.innerHTML = matches.map(loc =>
+          '<div class="autocomplete-dropdown-item" data-id="' + loc.id + '">' + displayParentLoc(loc).replace(/</g, '&lt;') +
+          (loc.status === 'pending' ? ' <span class="text-gray-400 italic">(pending)</span>' : '') + '</div>'
+        ).join('');
+        mergeDropdown.classList.remove('hidden');
+        mergeDropdown.classList.add('block');
+        mergeDropdown.querySelectorAll('.autocomplete-dropdown-item').forEach(el => {
+          el.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            const secondaryId = el.getAttribute('data-id');
+            const primaryId = idInput.value;
+            if (secondaryId && primaryId) {
+              window.location.href = '/admin/locations/merge?primary=' + encodeURIComponent(primaryId) + '&secondary=' + encodeURIComponent(secondaryId);
+            }
+          });
+        });
+      });
+      mergeSearch.addEventListener('blur', () => setTimeout(hideMergeDropdown, 150));
+    }
+
     function initMap(lat, lon) {
       if (!mapEl || typeof L === 'undefined') return;
       if (locationMap) {
@@ -202,6 +270,9 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
       if (parentIdHidden) parentIdHidden.value = '';
       if (parentSearch) parentSearch.value = '';
       await loadLocationParentList(editId || undefined);
+      mergeToggle?.classList.toggle('hidden', !editId);
+      mergePanel?.classList.add('hidden');
+      if (mergeSearch) mergeSearch.value = '';
 
       if (editId) {
         const res = await fetch(`/api/admin/locations/${editId}`, { credentials: 'include' });
@@ -242,6 +313,7 @@ import { DEFAULT_LOCATION, MAP_STYLES } from '@/lib/config';
     };
 
     setupParentAutocomplete();
+    setupMergeSearch();
 
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();

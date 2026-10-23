@@ -1,0 +1,11 @@
+---
+export const prerender = false;
+
+import EntityMergePage from '../../../components/admin/EntityMergePage.astro';
+import { guardMergePage } from '../../../lib/admin/merge-page-guard';
+
+const guard = await guardMergePage(Astro, 'location');
+if (guard.redirect !== null) return Astro.redirect(guard.redirect);
+---
+
+<EntityMergePage type="location" primaryId={guard.primaryId} secondaryId={guard.secondaryId} userEmail={guard.userEmail} />

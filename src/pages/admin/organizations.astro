@@ -1,7 +1,7 @@
 ---
 import AdminLayout from '../../components/AdminLayout.astro';
 import AddOrganizationModal from '../../components/ui/AddOrganizationModal.astro';
-import { getSessionFromCookies } from '../../lib/session';
+import { getSessionFromCookies, checkAdminAccess } from '../../lib/session';
 
 const { session } = await getSessionFromCookies(Astro.cookies);
 if (!session) {
@@ -9,6 +9,7 @@ if (!session) {
   return Astro.redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
 }
 const userEmail = session.user?.email || 'Admin';
+const { role } = await checkAdminAccess(Astro.cookies);
 ---
 
 <AdminLayout title="Organizations" userEmail={userEmail}>
@@ -20,7 +21,7 @@ const userEmail = session.user?.email || 'Admin';
   </Fragment>
 
   <Fragment slot="modals">
-    <AddOrganizationModal />
+    <AddOrganizationModal allowMerge={role === 'super_admin'} />
   </Fragment>
 
   <div id="organizations-loading" class="loading">Loading organizations...</div>

@@ -1,0 +1,191 @@
+---
+// Field-by-field merge of two locations or two organizations, modeled on /admin/events/merge.
+// The primary is kept, the secondary archived. Auth and id validation happen in the page
+// (see guardMergePage), since only pages can redirect.
+import AdminLayout from '../AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase';
+import {
+  MERGE_SPECS,
+  defaultChoice,
+  type MergeEntityType,
+  type MergeFieldSpec,
+} from '../../lib/entity-merge-fields';
+
+interface Props {
+  type: MergeEntityType;
+  primaryId: string;
+  secondaryId: string;
+  userEmail: string;
+}
+
+const { type, primaryId, secondaryId, userEmail } = Astro.props;
+const spec = MERGE_SPECS[type];
+const listPath = `/admin/${spec.table}`;
+const title = type === 'location' ? 'Merge Locations' : 'Merge Organizations';
+
+type EntityRow = Record<string, unknown>;
+
+const { data: rows } = await supabaseAdmin.from(spec.table).select('*').in('id', [primaryId, secondaryId]);
+const primary = (rows ?? []).find((r) => r.id === primaryId) as EntityRow | undefined;
+const secondary = (rows ?? []).find((r) => r.id === secondaryId) as EntityRow | undefined;
+
+let errorMessage: string | null = null;
+if (!primary || !secondary) {
+  errorMessage = `One or both ${spec.noun}s could not be found. They may have been deleted.`;
+} else if (primary.status === 'archived' || primary.status === 'duplicate') {
+  errorMessage = `"${primary.name}" is archived. Choose a different ${spec.noun} to keep.`;
+}
+
+// Names for the id-valued fields (parent location/organization, organization's location).
+const LINKED_TABLES: Record<string, 'locations' | 'organizations'> = {
+  parent_location_id: 'locations',
+  location_id: 'locations',
+  parent_organization_id: 'organizations',
+};
+const linkedNames = new Map<string, string>();
+for (const [column, table] of Object.entries(LINKED_TABLES)) {
+  const ids = [primary?.[column], secondary?.[column]].filter((id): id is string => typeof id === 'string');
+  if (ids.length === 0) continue;
+  const { data } = await supabaseAdmin.from(table).select('id, name').in('id', ids);
+  for (const row of data ?? []) linkedNames.set(row.id, row.name);
+}
+
+function displayValue(field: MergeFieldSpec, row: EntityRow): string {
+  if (field.key === 'coordinates') {
+    return row.latitude == null || row.longitude == null ? '—' : `${row.latitude}, ${row.longitude}`;
+  }
+  const value = row[field.columns[0]];
+  if (value === null || value === undefined || value === '') return '—';
+  if (field.columns[0] in LINKED_TABLES) return linkedNames.get(String(value)) ?? String(value);
+  return String(value);
+}
+---
+
+<AdminLayout title={title} userEmail={userEmail}>
+  <div class="max-w-5xl mx-auto">
+    {errorMessage || !primary || !secondary ? (
+      <div class="max-w-lg mx-auto mt-16 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+        <span class="material-symbols-outlined text-5xl text-red-400 mb-4 block">error</span>
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Can't merge</h2>
+        <p class="text-sm text-gray-600 mb-6">{errorMessage}</p>
+        <a href={listPath} class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline">
+          <span class="material-symbols-outlined text-base">arrow_back</span>
+          Back
+        </a>
+      </div>
+    ) : (
+      <>
+        <p class="text-sm text-gray-500 mb-6">
+          For each field, select which value to keep. The <strong>Primary</strong> {spec.noun} is kept and everything
+          linked to the <strong>Secondary</strong> {spec.noun} moves to it; the secondary is then archived.
+        </p>
+
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+          Merging: <span class="text-indigo-700">{primary.name as string}</span>
+          <span class="text-gray-400 mx-2">&#8592;</span>
+          <span class="text-amber-700">{secondary.name as string}</span>
+        </h2>
+
+        <form id="mergeForm" data-type={spec.table} data-list-path={listPath} data-primary-id={primaryId} data-secondary-id={secondaryId}>
+          <div class="overflow-x-auto rounded-xl border border-gray-200 mb-8">
+            <table class="w-full text-sm">
+              <caption class="sr-only">Field-by-field comparison — select primary or secondary value for each field</caption>
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                  <th class="py-3 px-4 text-left font-semibold text-gray-700 w-36">Field</th>
+                  <th class="py-3 px-4 text-left font-semibold text-indigo-700 w-5/12">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="inline-block w-2 h-2 rounded-full bg-indigo-400"></span>
+                      Primary (keep) · <span class="font-normal text-gray-500">{String(primary.status ?? '')}</span>
+                    </span>
+                  </th>
+                  <th class="py-3 px-4 text-left font-semibold text-amber-700 w-5/12">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                      Secondary (archive) · <span class="font-normal text-gray-500">{String(secondary.status ?? '')}</span>
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                {spec.fields.map((field) => {
+                  const primaryVal = displayValue(field, primary);
+                  const secondaryVal = displayValue(field, secondary);
+                  const keepPrimary = defaultChoice(field, primary, secondary) === 'primary';
+                  return (
+                    <tr class="hover:bg-gray-50 transition-colors">
+                      <td class="py-3 px-4 font-medium text-gray-600 align-top">{field.label}</td>
+                      <td class="py-3 px-4 align-top">
+                        <label class="flex items-start gap-2 cursor-pointer">
+                          <input type="radio" name={`field_${field.key}`} value="primary" checked={keepPrimary} class="mt-0.5 accent-indigo-600" aria-label={`Use primary value for ${field.label}`} />
+                          <span class={`wrap-break-word ${primaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>{primaryVal}</span>
+                        </label>
+                      </td>
+                      <td class="py-3 px-4 align-top">
+                        <label class="flex items-start gap-2 cursor-pointer">
+                          <input type="radio" name={`field_${field.key}`} value="secondary" checked={!keepPrimary} class="mt-0.5 accent-amber-600" aria-label={`Use secondary value for ${field.label}`} />
+                          <span class={`wrap-break-word ${secondaryVal === '—' ? 'text-gray-400 italic' : 'text-gray-900'}`}>{secondaryVal}</span>
+                        </label>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 pb-8">
+            <a href={listPath} class="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline">Cancel</a>
+            <button
+              type="submit"
+              id="mergeSubmitBtn"
+              class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              <span class="material-symbols-outlined text-base">merge</span>
+              Merge &amp; Archive Duplicate
+            </button>
+          </div>
+        </form>
+      </>
+    )}
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('mergeForm') as HTMLFormElement | null;
+  const submitBtn = document.getElementById('mergeSubmitBtn') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const { type, listPath, primaryId, secondaryId } = form.dataset;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Merging…';
+    }
+
+    const mergedFields: Record<string, string> = {};
+    form.querySelectorAll<HTMLInputElement>('input[type="radio"]:checked').forEach((radio) => {
+      mergedFields[radio.name.replace(/^field_/, '')] = radio.value;
+    });
+
+    try {
+      const res = await fetch(`/api/admin/${type}/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ primaryId, secondaryId, mergedFields }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Merge failed');
+      }
+      window.location.href = listPath || '/admin';
+    } catch (err) {
+      alert('Error: ' + (err instanceof Error ? err.message : 'Merge failed'));
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Merge & Archive Duplicate';
+      }
+    }
+  });
+</script>

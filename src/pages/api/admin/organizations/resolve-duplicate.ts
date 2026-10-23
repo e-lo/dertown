@@ -1,35 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import type { Database } from '@/types/database';
 import { withSuperAdminAuth, jsonError, jsonResponse } from '@/lib/api-utils';
+import { mergeEntities, MergeError } from '@/lib/entity-merge';
 
 export const prerender = false;
 
-type TableName = keyof Database['public']['Tables'];
-
-async function repointOrganizationReferences(fromId: string, toId: string): Promise<void> {
-  const updates: Array<{ table: TableName; column: string }> = [
-    { table: 'events', column: 'organization_id' },
-    { table: 'events_staged', column: 'organization_id' },
-    { table: 'announcements', column: 'organization_id' },
-    { table: 'source_sites', column: 'organization_id' },
-    { table: 'activities', column: 'sponsoring_organization_id' },
-    { table: 'organizations', column: 'parent_organization_id' },
-  ];
-
-  for (const update of updates) {
-    const { error } = await supabaseAdmin
-      .from(update.table)
-      // Table and column are chosen at runtime from the list above, so the payload
-      // cannot be checked against a single table's Update type.
-      .update({ [update.column]: toId } as never)
-      .eq(update.column, fromId);
-
-    if (error) {
-      throw new Error(`Failed to update ${update.table}.${update.column}: ${error.message}`);
-    }
-  }
-}
-
+// Folds a pending duplicate into an approved canonical organization, keeping the canonical's values.
 export const POST = withSuperAdminAuth(async ({ request }) => {
   const body = await request.json().catch(() => ({}));
   const duplicateId = typeof body.duplicateId === 'string' ? body.duplicateId : '';
@@ -38,46 +13,20 @@ export const POST = withSuperAdminAuth(async ({ request }) => {
   if (!duplicateId || !canonicalId) {
     return jsonError('duplicateId and canonicalId are required', 400);
   }
-  if (duplicateId === canonicalId) {
-    return jsonError('duplicateId and canonicalId must be different', 400);
-  }
 
-  const { data: duplicate, error: duplicateError } = await supabaseAdmin
+  const { data: canonical } = await supabaseAdmin
     .from('organizations')
-    .select('id, status')
-    .eq('id', duplicateId)
-    .single();
-  if (duplicateError || !duplicate) {
-    return jsonError('Duplicate organization not found', 404);
-  }
-
-  const { data: canonical, error: canonicalError } = await supabaseAdmin
-    .from('organizations')
-    .select('id, status')
+    .select('status')
     .eq('id', canonicalId)
-    .single();
-  if (canonicalError || !canonical) {
-    return jsonError('Canonical organization not found', 404);
-  }
-  if (canonical.status !== 'approved') {
+    .maybeSingle();
+  if (canonical && canonical.status !== 'approved') {
     return jsonError('Canonical organization must be approved', 400);
   }
 
   try {
-    await repointOrganizationReferences(duplicateId, canonicalId);
-
-    const { error: archiveError } = await supabaseAdmin
-      .from('organizations')
-      .update({
-        status: 'archived',
-        parent_organization_id: canonicalId,
-      })
-      .eq('id', duplicateId);
-
-    if (archiveError) {
-      throw new Error(`Failed to archive duplicate organization: ${archiveError.message}`);
-    }
+    await mergeEntities('organization', canonicalId, duplicateId);
   } catch (error) {
+    if (error instanceof MergeError) return jsonError(error.message, error.status);
     const message =
       error instanceof Error ? error.message : 'Failed to resolve duplicate organization';
     return jsonError(message, 500);
