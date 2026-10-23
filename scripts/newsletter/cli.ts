@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { DateWindow } from '../../src/lib/newsletter/dates';
+import { NEWSLETTER_NAME } from '../../src/lib/newsletter/render';
 import type {
   IssueEvent,
   NewsletterAnnouncement,
@@ -78,6 +79,22 @@ export interface IssueSource {
 export interface SentRecord {
   broadcastId: string;
   scheduledAt: string | null;
+}
+
+export function broadcastName(sendDate: string): string {
+  return `${NEWSLETTER_NAME} ${sendDate}`;
+}
+
+/**
+ * The broadcast already created in Resend for this send date, if any. Checked
+ * before creating one so a crash after Resend accepted the broadcast (but
+ * before sent.json was written) can't schedule the issue twice.
+ */
+export function existingBroadcastFor<T extends { id: string; name: string | null }>(
+  broadcasts: T[],
+  sendDate: string
+): T | undefined {
+  return broadcasts.find((b) => b.name === broadcastName(sendDate));
 }
 
 export function issuePaths(dir: string, sendDate: string) {

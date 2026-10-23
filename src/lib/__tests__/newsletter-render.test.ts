@@ -129,6 +129,26 @@ function runTests(): boolean {
     check('text version has unsubscribe', text.includes('{{{RESEND_UNSUBSCRIBE_URL}}}'), true) &&
     allTestsPassed;
 
+  const seriesIssue: NewsletterIssue = {
+    ...issue,
+    featured: [],
+    thisWeek: [{ event: event({ id: 'parent-1', occurrenceIds: ['child-1', 'child-2'] }) }],
+    planAhead: [],
+  };
+  const seriesHtml = renderNewsletter(seriesIssue, opts);
+  allTestsPassed =
+    check(
+      'series links to its first public occurrence, not the hidden parent',
+      [seriesHtml.includes('/events/child-1"'), seriesHtml.includes('/events/parent-1"')],
+      [true, false]
+    ) && allTestsPassed;
+  allTestsPassed =
+    check(
+      'text version links series to first occurrence',
+      renderNewsletterText(seriesIssue, opts).includes('/events/child-1'),
+      true
+    ) && allTestsPassed;
+
   const confirm = renderConfirmEmail('https://dertown.org/newsletter/confirm?token=abc&x=1');
   allTestsPassed =
     check(

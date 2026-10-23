@@ -82,6 +82,12 @@ function runTests(): boolean {
   allTestsPassed =
     check('privacy page mentions the newsletter', /newsletter/i.test(privacy), true) &&
     allTestsPassed;
+  allTestsPassed =
+    check(
+      'confirm page subscribes only on POST (link scanners prefetch GETs)',
+      /Astro\.request\.method === 'POST'/.test(confirm) && /<form[^>]*method="post"/.test(confirm),
+      true
+    ) && allTestsPassed;
 
   return allTestsPassed;
 }

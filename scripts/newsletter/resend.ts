@@ -23,8 +23,10 @@ import {
 } from '../../src/lib/newsletter/render';
 import type { NewsletterIssue } from '../../src/lib/newsletter/types';
 import {
+  broadcastName,
   CliError,
   DEFAULT_FROM,
+  existingBroadcastFor,
   draftsDir,
   issuePaths,
   main,
@@ -213,10 +215,23 @@ async function schedule(args: ParsedArgs, sendDate: string): Promise<number> {
     return verified;
   }
 
+  const resend = resendClient();
+  const existing = existingBroadcastFor(
+    unwrap(await resend.broadcasts.list({ limit: 100 }), 'Listing broadcasts').data,
+    sendDate
+  );
+  if (existing) {
+    writeJson(paths.sent, { broadcastId: existing.id, scheduledAt: existing.scheduled_at });
+    throw new CliError(
+      `Resend already has a broadcast for ${sendDate} (${existing.id}, ${existing.status}). ` +
+        'Recorded it locally; check `status`, or `cancel` it before scheduling again.'
+    );
+  }
+
   const issue = readIssue(paths.draft);
   const broadcast = unwrap(
-    await resendClient().broadcasts.create({
-      name: `${NEWSLETTER_NAME} ${sendDate}`,
+    await resend.broadcasts.create({
+      name: broadcastName(sendDate),
       segmentId: requireEnv('RESEND_NEWSLETTER_SEGMENT_ID'),
       from: fromAddress(),
       subject: issue.subject,

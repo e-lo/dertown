@@ -7,6 +7,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { NewsletterIssue } from '../newsletter/types';
+import { existingBroadcastFor } from '../../../scripts/newsletter/cli';
 
 function check(name: string, actual: unknown, expected: unknown): boolean {
   const pass = JSON.stringify(actual) === JSON.stringify(expected);
@@ -91,6 +92,31 @@ function runTests(): boolean {
   allTestsPassed =
     check('render names the missing field', invalid.stderr.includes('subject'), true) &&
     allTestsPassed;
+
+  const broadcasts = [
+    { id: 'b-old', name: 'This Week in Der Town 2026-10-22', status: 'sent' },
+    { id: 'b-1', name: 'This Week in Der Town 2026-10-29', status: 'queued' },
+  ];
+  allTestsPassed =
+    check(
+      'finds an existing broadcast for the send date',
+      existingBroadcastFor(broadcasts, '2026-10-29')?.id,
+      'b-1'
+    ) && allTestsPassed;
+  allTestsPassed =
+    check(
+      'no broadcast for another date',
+      existingBroadcastFor(broadcasts, '2026-11-05'),
+      undefined
+    ) && allTestsPassed;
+  allTestsPassed =
+    check(
+      'schedule checks Resend for an existing broadcast before creating',
+      /existingBroadcastFor\([\s\S]*broadcasts\.create/.test(
+        readFileSync(resolve(process.cwd(), 'scripts/newsletter/resend.ts'), 'utf8')
+      ),
+      true
+    ) && allTestsPassed;
 
   return allTestsPassed;
 }

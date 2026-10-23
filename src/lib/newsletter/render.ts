@@ -96,8 +96,12 @@ function blurbFor(entry: IssueEntry): string | null {
   return entry.blurb?.trim() || plainSnippet(entry.event.description);
 }
 
+/**
+ * Link to the first listed occurrence: a collapsed series' `id` is its parent,
+ * which is usually excluded from the public calendar and has no public page.
+ */
 function eventUrl(event: IssueEvent, siteUrl: string): string {
-  return `${siteUrl}/events/${encodeURIComponent(event.id)}`;
+  return `${siteUrl}/events/${encodeURIComponent(event.occurrenceIds[0] ?? event.id)}`;
 }
 
 function whenWhere(event: IssueEvent): string {
