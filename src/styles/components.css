@@ -682,7 +682,8 @@ input[type='date'] {
 /* --- Month view grid --- */
 .cal-month-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* minmax(0, …) lets columns shrink so long titles truncate instead of widening their day */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 2px;
 }
 .cal-month-header { text-align: center; font-size: 10px; font-weight: 700; color: #6b7280; padding: 6px 0; text-transform: uppercase; letter-spacing: 0.06em; }

@@ -909,7 +909,7 @@ function renderMonthGrid(container) {
     const pills = evs.slice(0, 3).map(e => {
       const color = getCategoryColor(e.category);
       const text = getCategoryTextColor(e.category);
-      return `<span class="cal-month-pill" style="background:${color};color:${text}">${escapeHtml(e.title)}</span>`;
+      return `<span class="cal-month-pill" title="${escapeHtml(e.title)}" style="background:${color};color:${text}">${escapeHtml(e.title)}</span>`;
     }).join('');
     const more = evs.length > 3 ? `<div class="cal-month-more">+${evs.length - 3} more</div>` : '';
 
