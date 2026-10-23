@@ -89,72 +89,21 @@ export const MAP_STYLES = {
 };
 
 // ============================================================================
-// COLOR PALETTE - Base colors only
+// FIXED COLORS - the same in every season
 // ============================================================================
 
 /**
- * Base color palette - 9 primary colors used throughout the app.
- * These are referenced by COLOR_PALETTE below for assignment to specific uses.
- * Change these values to update the entire color scheme globally.
- */
-export const COLOR_PALETTE = {
-  palatinateBlue: '#4740cbff',
-  canary: '#ffe600ff',
-  pigmentGreen: '#4daa57ff',
-  blueGreen: '#219ebcff',
-  fandango: '#c0268cff',
-  calPolyGreen: '#14532dff',
-  darkSlateGray: '#2f4445ff',
-};
-
-// ============================================================================
-// COLOR ASSIGNMENTS - How palette colors are used
-// ============================================================================
-
-/**
- * Color assignments: maps palette colors to specific uses throughout the app.
- * These are the values referenced in CSS variables and components.
+ * Neutral and feedback colors that stay the same all year. The seasonal colors
+ * (page, hero, cards, announcement band) live in SEASON_PALETTES below.
  */
 export const COLORS = {
-  // Theme assignments
-  primary: COLOR_PALETTE.palatinateBlue,
-  primaryLight: '#eef2ff',
-  primaryDark: '#312e81',
-  secondary: COLOR_PALETTE.canary,
-  background: COLOR_PALETTE.palatinateBlue,
-  surface: '#f9fafb',
   surfaceLight: '#f3f4f6',
-  text: '#111827',
   textSecondary: '#374151',
   textDark: '#1f2937',
   muted: '#6b7280',
   mutedDark: '#4b5563',
   border: '#d1d5db',
   link: '#1d4ed8',
-
-  // Event category colors (must match tag names in database)
-  eventCategories: {
-    'arts-culture': COLOR_PALETTE.canary,
-    civic: COLOR_PALETTE.darkSlateGray,
-    family: COLOR_PALETTE.fandango,
-    'give-back': COLOR_PALETTE.pigmentGreen,
-    nature: COLOR_PALETTE.calPolyGreen,
-    recreation: COLOR_PALETTE.blueGreen,
-    outdoors: COLOR_PALETTE.blueGreen,
-    school: COLOR_PALETTE.darkSlateGray,
-    seniors: COLOR_PALETTE.fandango,
-    sports: COLOR_PALETTE.canary,
-    town: COLOR_PALETTE.palatinateBlue,
-    featured: COLOR_PALETTE.canary,
-  },
-
-  // Text colors for events (dark for light backgrounds, white for dark)
-  eventTextColors: {
-    'arts-culture': '#111111',
-    featured: '#111827',
-    sports: '#111111',
-    default: '#ffffff',
-  },
 
   // Notification/alert colors (user feedback)
   notifications: {
@@ -299,12 +248,14 @@ export function resolveSeason(requested: string | null, month: number): SeasonId
 // MAP MARKER COLORS
 // ============================================================================
 
+const markerPalette = SEASON_PALETTES.fall.colors;
+
 export const MARKER_COLORS = {
-  current: COLOR_PALETTE.palatinateBlue,
-  parent: COLOR_PALETTE.fandango,
+  current: markerPalette.hero,
+  parent: markerPalette.accent,
   sibling: COLORS.muted,
-  child: COLOR_PALETTE.pigmentGreen,
-  event: COLOR_PALETTE.palatinateBlue,
+  child: markerPalette.outdoors,
+  event: markerPalette.hero,
 };
 
 // ============================================================================
@@ -337,24 +288,6 @@ export const CONSTANTS = {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-/**
- * Get the color for an event category
- * Falls back to primary color if category not found
- */
-export function getEventCategoryColor(category: string): string {
-  const color = COLORS.eventCategories[category as keyof typeof COLORS.eventCategories];
-  return color || COLORS.primary; // fallback
-}
-
-/**
- * Get the text color for an event category
- * Returns dark text for light backgrounds, white for dark backgrounds
- */
-export function getEventTextColor(category: string): string {
-  const color = COLORS.eventTextColors[category as keyof typeof COLORS.eventTextColors];
-  return color || COLORS.eventTextColors.default;
-}
 
 /**
  * Get marker color by type
