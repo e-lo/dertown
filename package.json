@@ -40,7 +40,8 @@
     "test:duplicate-event-wiring": "tsx src/lib/__tests__/duplicate-event-wiring.test.ts",
     "test:autocomplete-wiring": "tsx src/lib/__tests__/autocomplete-dropdown-wiring.test.ts",
     "test:auth-cookies": "tsx src/lib/__tests__/auth-cookie-reading.test.ts",
-    "test:entity-merge": "tsx src/lib/__tests__/entity-merge-fields.test.ts"
+    "test:entity-merge": "tsx src/lib/__tests__/entity-merge-fields.test.ts",
+    "test:seasonal-theme": "tsx src/lib/__tests__/seasonal-theme.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
