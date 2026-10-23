@@ -129,8 +129,8 @@ async function fetchRecord(type: MergeEntityType, id: string, role: string) {
 
 /**
  * Folds the secondary location/organization into the primary: writes the chosen field values onto
- * the primary, re-points every reference to the secondary, and archives the secondary with its
- * parent set to the primary so the merge can be traced.
+ * the primary, re-points every reference to the secondary, then deletes the secondary. A foreign
+ * key missing from REFERENCES makes the delete fail rather than orphan rows.
  *
  * Not atomic: if a step fails midway, re-running the same merge finishes it.
  */
@@ -168,12 +168,12 @@ export async function mergeEntities(
     await repointMembership(membership, secondaryId, primaryId);
   }
 
-  const { error: archiveError } = await supabaseAdmin
+  const { error: deleteError } = await supabaseAdmin
     .from(spec.table)
-    .update({ status: 'archived', [spec.parentColumn]: primaryId } as never)
+    .delete()
     .eq('id', secondaryId);
-  if (archiveError)
-    throw new Error(`Failed to archive duplicate ${spec.noun}: ${archiveError.message}`);
+  if (deleteError)
+    throw new Error(`Failed to delete duplicate ${spec.noun}: ${deleteError.message}`);
 }
 
 function parseChoices(value: unknown): MergeChoices {

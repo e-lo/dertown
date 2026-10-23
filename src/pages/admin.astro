@@ -1249,7 +1249,7 @@ const userEmail = session.user?.email || 'Admin';
       : '/api/admin/organizations/resolve-duplicate';
 
     const confirmed = window.confirm(
-      `Mark this pending ${noun} as duplicate, re-point references to the canonical record, and archive the duplicate?`
+      `Mark this pending ${noun} as duplicate, re-point references to the canonical record, and delete the duplicate?`
     );
     if (!confirmed) return;
 
