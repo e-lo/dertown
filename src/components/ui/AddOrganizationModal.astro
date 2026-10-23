@@ -1,11 +1,11 @@
 ---
 // Modal to add or edit an organization. Used from event form (pop-out) and from admin organizations page.
 // Dispatches 'admin:organization-created' or 'admin:organization-updated' with { organization } on success.
-// allowMerge adds a "Merge with…" search when editing (super-admin pages only).
+// superAdminTools adds Delete and "Merge with…" when editing (super-admin pages only).
 interface Props {
-  allowMerge?: boolean;
+  superAdminTools?: boolean;
 }
-const { allowMerge = false } = Astro.props;
+const { superAdminTools = false } = Astro.props;
 ---
 
 <div id="addOrganizationModal" class="modal-overlay hidden" style="z-index: 1001;">
@@ -64,7 +64,7 @@ const { allowMerge = false } = Astro.props;
           <option value="pending">Pending</option>
         </select>
       </div>
-      {allowMerge && (
+      {superAdminTools && (
         <div id="addOrganizationMergePanel" class="form-field hidden">
           <label class="form-label" for="addOrganizationMergeSearch">Merge a duplicate into this organization</label>
           <div class="autocomplete-container">
@@ -75,7 +75,13 @@ const { allowMerge = false } = Astro.props;
         </div>
       )}
       <div class="form-actions">
-        {allowMerge && (
+        {superAdminTools && (
+          <button type="button" id="addOrganizationDeleteBtn" class="icon-btn btn-reject hidden" style="padding: 0.5rem; min-width: auto;" aria-label="Delete organization">
+            <span class="material-symbols-outlined" style="font-size: 1.25rem;">delete</span>
+            <span class="tooltip">Delete organization</span>
+          </button>
+        )}
+        {superAdminTools && (
           <button type="button" id="addOrganizationMergeToggle" class="btn-cancel hidden" style="margin-right: auto;">
             <span class="material-symbols-outlined text-base align-middle">merge</span> Merge with…
           </button>
@@ -110,6 +116,7 @@ const { allowMerge = false } = Astro.props;
     const parentIdHidden = document.getElementById('addOrganizationParentId') as HTMLInputElement;
     const parentDropdown = document.getElementById('addOrganizationParentDropdown');
     const mergeToggle = document.getElementById('addOrganizationMergeToggle');
+    const deleteBtn = document.getElementById('addOrganizationDeleteBtn');
     const mergePanel = document.getElementById('addOrganizationMergePanel');
     const mergeSearch = document.getElementById('addOrganizationMergeSearch') as HTMLInputElement | null;
     const mergeDropdown = document.getElementById('addOrganizationMergeDropdown');
@@ -287,6 +294,7 @@ const { allowMerge = false } = Astro.props;
       if (parentSearch) parentSearch.value = '';
       await loadOrgLists(editId || undefined);
       mergeToggle?.classList.toggle('hidden', !editId);
+      deleteBtn?.classList.toggle('hidden', !editId);
       mergePanel?.classList.add('hidden');
       if (mergeSearch) mergeSearch.value = '';
 
@@ -317,6 +325,20 @@ const { allowMerge = false } = Astro.props;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     };
+
+    deleteBtn?.addEventListener('click', async () => {
+      const id = idInput.value;
+      const name = (document.getElementById('addOrganizationName') as HTMLInputElement).value;
+      if (!id || !confirm(`Delete "${name}"? This can't be undone.`)) return;
+      const res = await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Failed to delete organization');
+        return;
+      }
+      window.closeAddOrganizationModal();
+      window.dispatchEvent(new CustomEvent('admin:organization-deleted', { detail: { id } }));
+    });
 
     window.closeAddOrganizationModal = function() {
       if (modal) {

@@ -21,7 +21,7 @@ const { role } = await checkAdminAccess(Astro.cookies);
   </Fragment>
 
   <Fragment slot="modals">
-    <AddLocationModal allowMerge={role === 'super_admin'} />
+    <AddLocationModal superAdminTools={role === 'super_admin'} />
   </Fragment>
 
   <div id="locations-loading" class="loading">Loading locations...</div>
@@ -98,6 +98,7 @@ const { role } = await checkAdminAccess(Astro.cookies);
 
   window.addEventListener('admin:location-created', () => loadLocations());
   window.addEventListener('admin:location-updated', () => loadLocations());
+  window.addEventListener('admin:location-deleted', () => loadLocations());
 
   document.addEventListener('DOMContentLoaded', async () => {
     await loadLocations();

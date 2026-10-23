@@ -13,6 +13,8 @@ type TableName = keyof Database['public']['Tables'];
 interface Reference {
   table: TableName;
   column: string;
+  // Plural noun used when a delete is refused, e.g. "still used by 3 events".
+  label: string;
 }
 
 // Join tables with a UNIQUE(<memberColumn>, organization_id) constraint: a member already linked
@@ -20,29 +22,30 @@ interface Reference {
 interface Membership {
   table: 'org_users' | 'allowlisted_org_emails';
   memberColumn: 'user_id' | 'email';
+  label: string;
 }
 
 const REFERENCES: Record<MergeEntityType, readonly Reference[]> = {
   location: [
-    { table: 'events', column: 'location_id' },
-    { table: 'events_staged', column: 'location_id' },
-    { table: 'organizations', column: 'location_id' },
-    { table: 'activities', column: 'location_id' },
+    { table: 'events', column: 'location_id', label: 'events' },
+    { table: 'events_staged', column: 'location_id', label: 'staged events' },
+    { table: 'organizations', column: 'location_id', label: 'organizations' },
+    { table: 'activities', column: 'location_id', label: 'activities' },
   ],
   organization: [
-    { table: 'events', column: 'organization_id' },
-    { table: 'events_staged', column: 'organization_id' },
-    { table: 'announcements', column: 'organization_id' },
-    { table: 'source_sites', column: 'organization_id' },
-    { table: 'activities', column: 'sponsoring_organization_id' },
+    { table: 'events', column: 'organization_id', label: 'events' },
+    { table: 'events_staged', column: 'organization_id', label: 'staged events' },
+    { table: 'announcements', column: 'organization_id', label: 'announcements' },
+    { table: 'source_sites', column: 'organization_id', label: 'scraper sources' },
+    { table: 'activities', column: 'sponsoring_organization_id', label: 'activities' },
   ],
 };
 
 const MEMBERSHIPS: Record<MergeEntityType, readonly Membership[]> = {
   location: [],
   organization: [
-    { table: 'org_users', memberColumn: 'user_id' },
-    { table: 'allowlisted_org_emails', memberColumn: 'email' },
+    { table: 'org_users', memberColumn: 'user_id', label: 'editors' },
+    { table: 'allowlisted_org_emails', memberColumn: 'email', label: 'approved emails' },
   ],
 };
 
@@ -176,6 +179,50 @@ export async function mergeEntities(
     throw new Error(`Failed to delete duplicate ${spec.noun}: ${deleteError.message}`);
 }
 
+async function countRows(table: TableName, column: string, id: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from(table)
+    .select('*', { count: 'exact', head: true })
+    // Column is chosen at runtime from REFERENCES/MEMBERSHIPS, so it is cast.
+    .eq(column as never, id);
+  if (error) throw new Error(`Failed to check ${table}.${column}: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * Deletes a location/organization that nothing uses. Refuses (409) while any events, children,
+ * editors, etc. still point at it, naming them so the admin can merge it away instead.
+ */
+export async function deleteEntity(type: MergeEntityType, id: string): Promise<void> {
+  const spec = MERGE_SPECS[type];
+  await fetchRecord(type, id, 'this');
+
+  const childLabel = type === 'location' ? 'sub-locations' : 'child organizations';
+  const checks = [
+    ...REFERENCES[type],
+    { table: spec.table, column: spec.parentColumn, label: childLabel },
+    ...MEMBERSHIPS[type].map((m) => ({
+      table: m.table,
+      column: 'organization_id',
+      label: m.label,
+    })),
+  ];
+  const counts = await Promise.all(checks.map((c) => countRows(c.table, c.column, id)));
+  const inUse = checks
+    .map((check, i) => ({ label: check.label, count: counts[i] }))
+    .filter(({ count }) => count > 0);
+  if (inUse.length > 0) {
+    const usage = inUse.map(({ count, label }) => `${count} ${label}`).join(', ');
+    throw new MergeError(
+      `This ${spec.noun} is still used by ${usage}. Use "Merge with…" to move them to another ${spec.noun} instead.`,
+      409
+    );
+  }
+
+  const { error } = await supabaseAdmin.from(spec.table).delete().eq('id', id);
+  if (error) throw new Error(`Failed to delete ${spec.noun}: ${error.message}`);
+}
+
 function parseChoices(value: unknown): MergeChoices {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return {};
   const choices: MergeChoices = {};
@@ -201,6 +248,21 @@ export function createMergeRoute(type: MergeEntityType) {
       if (error instanceof MergeError) return jsonError(error.message, error.status);
       console.error(`Error merging ${MERGE_SPECS[type].noun}:`, error);
       return jsonError(error instanceof Error ? error.message : 'Merge failed', 500);
+    }
+    return jsonResponse({ success: true });
+  });
+}
+
+/** DELETE /api/admin/<table>/<id> → deletes an unused location/organization (super-admin only). */
+export function createDeleteRoute(type: MergeEntityType) {
+  return withSuperAdminAuth(async ({ params }) => {
+    if (!params.id) return jsonError('Missing id', 400);
+    try {
+      await deleteEntity(type, params.id);
+    } catch (error) {
+      if (error instanceof MergeError) return jsonError(error.message, error.status);
+      console.error(`Error deleting ${MERGE_SPECS[type].noun}:`, error);
+      return jsonError(error instanceof Error ? error.message : 'Delete failed', 500);
     }
     return jsonResponse({ success: true });
   });

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 import { withAdminAuth, jsonResponse, jsonError } from '@/lib/api-utils';
+import { createDeleteRoute } from '@/lib/entity-merge';
 
 export const prerender = false;
 
@@ -72,3 +73,5 @@ export const PATCH = withAdminAuth(async ({ params, request, auth }) => {
 
   return jsonResponse(data);
 });
+
+export const DELETE = createDeleteRoute('organization');
