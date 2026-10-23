@@ -21,11 +21,17 @@ console.log('🧪 Calendar month grid\n');
 
 const css = read('src/styles/components.css');
 const grid = css.match(/\.cal-month-grid\s*\{[^}]*\}/)?.[0] ?? '';
-check('month columns can shrink below their content', /repeat\(7,\s*minmax\(0,\s*1fr\)\)/.test(grid));
+check(
+  'month columns can shrink below their content',
+  /repeat\(7,\s*minmax\(0,\s*1fr\)\)/.test(grid)
+);
 
 const calendar = read('public/calendar.js');
 const pill = calendar.match(/<span class="cal-month-pill"[^>]*>/)?.[0] ?? '';
-check('month pills show the full title on hover', /title="\$\{escapeHtml\(e\.title\)\}"/.test(pill));
+check(
+  'month pills show the full title on hover',
+  /title="\$\{escapeHtml\(e\.title\)\}"/.test(pill)
+);
 
 console.log(failures === 0 ? '\n✅ All month grid checks passed' : `\n❌ ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);

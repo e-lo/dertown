@@ -4,12 +4,15 @@ export const prerender = false;
 import Layout from '../components/Layout.astro';
 import EventHeroCarousel from '../components/EventHeroCarousel.astro';
 import AnnouncementMarquee from '../components/AnnouncementMarquee.astro';
-import { db, filterCurrentAndFutureEvents } from '../lib/supabase';
+import EventListCard from '../components/EventListCard.astro';
+import { db, filterCurrentAndFutureEvents, getTodayLocale } from '../lib/supabase';
+import { getThisWeekEvents } from '../lib/event-utils';
 import { setPublicCache } from '@/lib/cache';
 
 // Fetch all approved events and filter to current/future for carousel
 const { data: allEvents, error } = await db.events.getAll();
 const events = filterCurrentAndFutureEvents(allEvents || []);
+const thisWeek = getThisWeekEvents(events, getTodayLocale());
 
 if (error) {
   console.error('Error fetching events:', error);
@@ -44,7 +47,8 @@ setPublicCache(Astro.response.headers);
   description="Discover and share community events in Der Town. Connect with neighbors and build community through local events, activities, and announcements."
   image="/logo.svg"
 >
-  <main class="min-h-screen pb-8 md:pb-12" style="background: var(--gradient-hero);">
+  <main class="min-h-screen bg-surface">
+    <div class="pb-8 md:pb-12" style="background: var(--gradient-hero);">
   <!-- Announcement Marquee -->
     <AnnouncementMarquee announcements={announcements || []} />
 
@@ -66,6 +70,34 @@ setPublicCache(Astro.response.headers);
             <EventHeroCarousel events={events} />
           </div>
         </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- This Week -->
+    <section class="bg-surface py-10 md:py-12">
+      <div class="w-full md:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <h2 class="text-3xl font-bold text-text">This Week</h2>
+          <a href="/submit" class="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary-dark transition-colors">
+            Submit an event
+          </a>
+        </div>
+        {
+          thisWeek.length > 0 ? (
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {thisWeek.map((event) => (
+                <EventListCard
+                  event={event}
+                  tags={{ primary: event.primary_tag?.name ?? '', secondary: event.secondary_tag?.name ?? '' }}
+                />
+              ))}
+            </div>
+          ) : (
+            <p class="text-lg text-text">Nothing on the calendar this week yet. Know of something? Submit it above.</p>
+          )
+        }
+        <a href="/events" class="inline-block mt-6 font-semibold text-primary hover:underline">See all upcoming events →</a>
       </div>
     </section>
   </main>
