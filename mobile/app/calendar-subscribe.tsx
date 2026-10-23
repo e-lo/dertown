@@ -96,7 +96,7 @@ export default function CalendarSubscribeScreen() {
         {/* Icon + headline */}
         <View style={styles.heroRow}>
           <View style={styles.iconWrap}>
-            <Icon name="calendar" size={32} color={THEME.canary} />
+            <Icon name="calendar" size={32} color={THEME.accent} />
           </View>
           <Text style={styles.title}>{calendarName}</Text>
         </View>
@@ -105,7 +105,7 @@ export default function CalendarSubscribeScreen() {
 
         {/* Primary CTA */}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleSubscribe} activeOpacity={0.8}>
-          <Icon name="calendar" size={18} color="#111111" />
+          <Icon name="calendar" size={18} color={THEME.onAccent} />
           <Text style={styles.primaryBtnText}>
             {Platform.OS === 'android' ? 'Subscribe in Google Calendar' : 'Open in Calendar App'}
           </Text>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: THEME.canary,
+    backgroundColor: THEME.accent,
     borderRadius: 12,
     paddingVertical: 16,
     marginBottom: 12,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111111',
+    color: THEME.onAccent,
   },
   samsungNote: {
     fontSize: 13,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   howNum: {
     fontSize: 13,
     fontWeight: '800',
-    color: THEME.canary,
+    color: THEME.accent,
     width: 18,
     marginTop: 1,
   },
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   urlText: {
     fontSize: 12,
-    color: THEME.canary,
+    color: THEME.accent,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     lineHeight: 18,
   },

@@ -95,7 +95,7 @@ export default function EventDetailScreen() {
           <TouchableOpacity style={styles.centeredBackBtn} onPress={() => router.back()}>
             <Icon name="chevron-left" size={26} color={THEME.textPrimary} />
           </TouchableOpacity>
-          <ActivityIndicator color={THEME.canary} size="large" />
+          <ActivityIndicator color={THEME.accent} size="large" />
         </View>
       )}
 
@@ -177,7 +177,7 @@ export default function EventDetailScreen() {
                 onPress={() => openMaps(event.location!)}
                 activeOpacity={0.7}
               >
-                <Icon name="map" size={18} color={THEME.canary} />
+                <Icon name="map" size={18} color={THEME.accent} />
                 <View style={styles.detailText}>
                   <Text style={styles.detailLabel}>{event.location.name}</Text>
                   {event.location.address ? (
@@ -194,7 +194,7 @@ export default function EventDetailScreen() {
                 onPress={() => router.push(`/organization/${event.organization_id}` as never)}
                 activeOpacity={0.7}
               >
-                <Icon name="home" size={18} color={THEME.canary} />
+                <Icon name="home" size={18} color={THEME.accent} />
                 <Text style={[styles.detailLabel, { flex: 1 }]}>
                   {event.organization.name}
                 </Text>
@@ -204,7 +204,7 @@ export default function EventDetailScreen() {
 
             {event.cost ? (
               <View style={styles.detailRow}>
-                <Icon name="check" size={18} color={THEME.canary} />
+                <Icon name="check" size={18} color={THEME.accent} />
                 <Text style={[styles.detailLabel, { flex: 1 }]}>{event.cost}</Text>
               </View>
             ) : null}
@@ -244,8 +244,8 @@ export default function EventDetailScreen() {
                   }}
                 >
                   <View style={styles.actionBtnInner}>
-                    <Icon name="calendar" size={16} color={THEME.canary} />
-                    <Text style={[styles.actionBtnText, { color: THEME.canary }]}>
+                    <Icon name="calendar" size={16} color={THEME.accent} />
+                    <Text style={[styles.actionBtnText, { color: THEME.accent }]}>
                       View in Calendar
                     </Text>
                   </View>
@@ -321,7 +321,7 @@ export default function EventDetailScreen() {
                           size={13}
                           color={
                             starredSeriesIds.has(id ?? '')
-                              ? THEME.canary
+                              ? THEME.accent
                               : THEME.textMuted
                           }
                         />
@@ -373,7 +373,7 @@ export default function EventDetailScreen() {
                           <Icon
                             name="star"
                             size={12}
-                            color={starredSeriesIds.has(related.series.parent_id) ? THEME.canary : THEME.textMuted}
+                            color={starredSeriesIds.has(related.series.parent_id) ? THEME.accent : THEME.textMuted}
                           />
                           <Text
                             style={[
@@ -489,7 +489,7 @@ const markdownStyles = {
     fontStyle: 'italic' as const,
   },
   link: {
-    color: THEME.canary,
+    color: THEME.accent,
     textDecorationLine: 'underline' as const,
   },
   bullet_list: { marginVertical: 4 },
@@ -513,7 +513,7 @@ const markdownStyles = {
   blockquote: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderLeftWidth: 3,
-    borderLeftColor: THEME.canary,
+    borderLeftColor: THEME.accent,
     paddingLeft: 10,
     marginVertical: 6,
   },
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
   },
   seriesCalloutFollowBtnActive: {
-    backgroundColor: 'rgba(250,204,21,0.12)',
+    backgroundColor: THEME.accentTint,
   },
   seriesCalloutFollowText: {
     fontSize: 11,
@@ -729,12 +729,12 @@ const styles = StyleSheet.create({
     color: THEME.textMuted,
   },
   seriesCalloutFollowTextActive: {
-    color: THEME.canary,
+    color: THEME.accent,
   },
   seriesCalloutTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: THEME.canary,
+    color: THEME.accent,
     paddingHorizontal: 14,
     paddingBottom: 12,
     lineHeight: 22,
@@ -812,6 +812,6 @@ const styles = StyleSheet.create({
     color: THEME.textMuted,
   },
   seriesActionBtnActive: {
-    color: THEME.canary,
+    color: THEME.accent,
   },
 });

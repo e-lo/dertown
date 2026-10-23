@@ -42,7 +42,7 @@ function venuesToGeoJSON(venues: MapVenue[]): GeoJSON.FeatureCollection {
         id:         v.id,
         name:       v.name,
         eventCount: v.eventCount,
-        color: THEME.canary,
+        color: THEME.accent,
       },
     })),
   };
@@ -108,7 +108,7 @@ function VenueSheet({
             onPress={() => onSelectEvent(event)}
             activeOpacity={0.7}
           >
-            <View style={[styles.venueDot, { backgroundColor: THEME.canary }]} />
+            <View style={[styles.venueDot, { backgroundColor: THEME.accent }]} />
             <View style={styles.venueEventText}>
               <Text style={styles.venueEventTitle} numberOfLines={1}>{event.title}</Text>
               <Text style={styles.venueEventMeta}>
@@ -255,7 +255,7 @@ export default function MapScreen() {
       <View style={styles.mapWrapper}>
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator color={THEME.canary} size="large" />
+            <ActivityIndicator color={THEME.accent} size="large" />
           </View>
         )}
 
@@ -289,7 +289,7 @@ export default function MapScreen() {
                 filter={['has', 'point_count']}
                 style={{
                   circleRadius: 22,
-                  circleColor: THEME.canary,
+                  circleColor: THEME.accent,
                   circleOpacity: 0.92,
                   circleStrokeWidth: 2,
                   circleStrokeColor: 'rgba(255,255,255,0.4)',
@@ -301,7 +301,7 @@ export default function MapScreen() {
                 style={{
                   textField: ['get', 'point_count_abbreviated'],
                   textSize: 13,
-                  textColor: '#111111',
+                  textColor: THEME.onAccent,
                   textFont: ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
                   textAllowOverlap: true,
                 }}
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   segmentActive: {
-    backgroundColor: THEME.canary,
+    backgroundColor: THEME.accent,
   },
   segmentText: {
     fontSize: 12,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     color: THEME.textMuted,
   },
   segmentTextActive: {
-    color: '#111111',
+    color: THEME.onAccent,
   },
   countChip: {
     backgroundColor: 'rgba(15,23,42,0.88)',
@@ -460,11 +460,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   popupClose:   { position: 'absolute', top: 12, right: 12, padding: 4 },
-  popupTag:     { fontSize: 10, fontWeight: '700', color: THEME.canary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
+  popupTag:     { fontSize: 10, fontWeight: '700', color: THEME.accent, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
   popupTitle:   { fontSize: 16, fontWeight: '700', color: THEME.textPrimary, lineHeight: 22, marginBottom: 4, paddingRight: 24 },
   popupMeta:    { fontSize: 13, color: THEME.textSecondary, marginBottom: 12 },
-  popupBtn:     { backgroundColor: THEME.canary, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  popupBtnText: { fontSize: 14, fontWeight: '700', color: '#111111' },
+  popupBtn:     { backgroundColor: THEME.accent, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  popupBtnText: { fontSize: 14, fontWeight: '700', color: THEME.onAccent },
 
   // Multi-event venue sheet
   venueSheet: {

@@ -92,6 +92,8 @@ export function getStarColor(
 const seasonColors = SEASON_PALETTES[CURRENT_SEASON].colors;
 // The announcement color is the season's light accent, so it reads on the app's dark surfaces.
 const seasonAccent = seasonColors[SEASON_PALETTES[CURRENT_SEASON].announcement];
+const onSeasonAccent = readableTextOn(seasonAccent);
+const [accentR, accentG, accentB] = [1, 3, 5].map((i) => parseInt(seasonAccent.slice(i, i + 2), 16));
 
 // Core theme tokens — all 6-digit hex (no 8-digit, React Native safe)
 export const THEME = {
@@ -115,8 +117,12 @@ export const THEME = {
   starUnstarred:      'rgba(255,255,255,0.28)',
   starFilled:         seasonAccent,
 
-  // Accent (icons, links and highlights on dark screens)
-  canary:             seasonAccent,
+  // Accent (icons, links and highlights on dark screens; fills for buttons and
+  // selected states). Text drawn on an accent fill uses onAccent.
+  accent:             seasonAccent,
+  onAccent:           onSeasonAccent,
+  onAccentMuted:      onSeasonAccent === '#111111' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)',
+  accentTint:         `rgba(${accentR},${accentG},${accentB},0.12)`,
 
   // Semantic colors
   errorRed:           '#f87171',

@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: THEME.canary,
+    color: THEME.accent,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 10,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   link: {
-    color: THEME.canary,
+    color: THEME.accent,
   },
 
   bullet: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  bulletDot:  { fontSize: 15, color: THEME.canary, lineHeight: 22 },
+  bulletDot:  { fontSize: 15, color: THEME.accent, lineHeight: 22 },
   bulletText: { flex: 1, fontSize: 15, color: THEME.textSecondary, lineHeight: 22 },
 
   actionBtn: {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 14,
-    color: THEME.canary,
+    color: THEME.accent,
     fontWeight: '600',
   },
 });

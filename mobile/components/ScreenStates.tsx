@@ -11,7 +11,7 @@ import { THEME } from '../lib/theme';
 export function LoadingView() {
   return (
     <View style={styles.centered}>
-      <ActivityIndicator color={THEME.canary} size="large" />
+      <ActivityIndicator color={THEME.accent} size="large" />
     </View>
   );
 }
@@ -68,10 +68,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: THEME.canary,
+    backgroundColor: THEME.accent,
   },
   retryText: {
-    color: '#111827',
+    color: THEME.onAccent,
     fontWeight: '700',
   },
   emptyTitle: {

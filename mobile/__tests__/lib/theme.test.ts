@@ -1,4 +1,5 @@
 import { SEASON_PALETTES, getSeasonForMonth } from '../../../src/lib/config';
+import { readableTextOn } from '../../../src/lib/color-contrast';
 import {
   fixHex,
   getCategoryColor,
@@ -80,6 +81,15 @@ describe('THEME', () => {
   it('uses the current season hero for the header', () => {
     const season = getSeasonForMonth(new Date().getMonth() + 1);
     expect(THEME.headerBackground).toBe(SEASON_PALETTES[season].colors.hero);
+  });
+
+  it('pairs the accent with its readable text color', () => {
+    expect(THEME.onAccent).toBe(readableTextOn(THEME.accent));
+  });
+
+  it('tints the accent at 12% for icon wells', () => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(THEME.accent.slice(i, i + 2), 16));
+    expect(THEME.accentTint).toBe(`rgba(${r},${g},${b},0.12)`);
   });
 
   it('has no 8-digit hex colors (all values are 7-digit or non-hex)', () => {

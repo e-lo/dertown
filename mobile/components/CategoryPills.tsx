@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.25)',
   },
   pillActive: {
-    backgroundColor: THEME.canary,
-    borderColor: THEME.canary,
+    backgroundColor: THEME.accent,
+    borderColor: THEME.accent,
   },
   label: {
     fontSize: 12,
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     color: THEME.textSecondary,
   },
   labelActive: {
-    color: '#111827',
+    color: THEME.onAccent,
   },
 });
