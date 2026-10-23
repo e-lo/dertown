@@ -55,17 +55,15 @@ const { role } = await checkAdminAccess(Astro.cookies);
       'Has website',
       'No website'
     ),
-    actionsColumn<OrganizationRow>(
-      'users',
-      (org) => `/admin/organizations/${org.id}/users`,
-      () => ({})
-    ),
     lastEditedColumn<OrganizationRow>('lastEdited', 'Last edited'),
     actionsColumn<OrganizationRow>(
       'actions',
       (org) => `/organizations/${org.id}`,
       (org) => ({ onclick: `editOrganization('${org.id}')` }),
-      canDelete ? (org) => `deleteOrganization('${org.id}')` : undefined
+      {
+        getDeleteOnclick: canDelete ? (org) => `deleteOrganization('${org.id}')` : undefined,
+        extraLinks: [{ icon: 'group', label: 'Users', getHref: (org) => `/admin/organizations/${org.id}/users` }],
+      }
     ),
   ];
 

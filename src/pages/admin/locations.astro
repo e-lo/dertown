@@ -61,7 +61,7 @@ const { role } = await checkAdminAccess(Astro.cookies);
       'actions',
       (loc) => `/locations/${loc.id}`,
       (loc) => ({ onclick: `editLocation('${loc.id}')` }),
-      canDelete ? (loc) => `deleteLocation('${loc.id}')` : undefined
+      { getDeleteOnclick: canDelete ? (loc) => `deleteLocation('${loc.id}')` : undefined }
     ),
   ];
 
