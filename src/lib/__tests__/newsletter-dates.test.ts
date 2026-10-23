@@ -39,8 +39,11 @@ function runTests(): boolean {
       '2026-11-05T20:00:00.000Z'
     ) && allTestsPassed;
   allTestsPassed =
-    check('send date key is the pacific date', sendDateKey(new Date('2026-10-29T19:00:00Z')), '2026-10-29') &&
-    allTestsPassed;
+    check(
+      'send date key is the pacific date',
+      sendDateKey(new Date('2026-10-29T19:00:00Z')),
+      '2026-10-29'
+    ) && allTestsPassed;
   allTestsPassed =
     check('issue windows', issueWindows(new Date('2026-10-29T19:00:00Z')), {
       thisWeek: { start: '2026-10-30', end: '2026-11-05' },

@@ -13,7 +13,9 @@ function check(name: string, actual: unknown, expected: unknown): boolean {
 
 const W = { start: '2026-10-30', end: '2026-11-05' };
 
-function row(partial: Partial<NewsletterSourceEvent> & { id: string; start_date: string }): NewsletterSourceEvent {
+function row(
+  partial: Partial<NewsletterSourceEvent> & { id: string; start_date: string }
+): NewsletterSourceEvent {
   return {
     title: `Event ${partial.id}`,
     description: null,
@@ -38,13 +40,22 @@ function runTests(): boolean {
   let allTestsPassed = true;
 
   allTestsPassed =
-    check('event after the window is dropped', ids(selectIssueEvents([row({ id: 'a', start_date: '2026-11-06' })], W)), []) &&
-    allTestsPassed;
+    check(
+      'event after the window is dropped',
+      ids(selectIssueEvents([row({ id: 'a', start_date: '2026-11-06' })], W)),
+      []
+    ) && allTestsPassed;
   allTestsPassed =
-    check('event before the window is dropped', ids(selectIssueEvents([row({ id: 'a', start_date: '2026-10-29' })], W)), []) &&
-    allTestsPassed;
+    check(
+      'event before the window is dropped',
+      ids(selectIssueEvents([row({ id: 'a', start_date: '2026-10-29' })], W)),
+      []
+    ) && allTestsPassed;
 
-  const festival = selectIssueEvents([row({ id: 'f', start_date: '2026-10-29', end_date: '2026-11-01' })], W)[0];
+  const festival = selectIssueEvents(
+    [row({ id: 'f', start_date: '2026-10-29', end_date: '2026-11-01' })],
+    W
+  )[0];
   allTestsPassed =
     check(
       'multi-day event that started before the window is listed on the first day',
@@ -62,8 +73,20 @@ function runTests(): boolean {
   allTestsPassed =
     check(
       'series collapses into one entry',
-      series.map((e) => ({ id: e.id, displayDate: e.displayDate, whenLabel: e.whenLabel, occurrenceIds: e.occurrenceIds })),
-      [{ id: 'p', displayDate: '2026-11-03', whenLabel: 'Tuesdays & Thursdays · 6pm', occurrenceIds: ['p', 'c1'] }]
+      series.map((e) => ({
+        id: e.id,
+        displayDate: e.displayDate,
+        whenLabel: e.whenLabel,
+        occurrenceIds: e.occurrenceIds,
+      })),
+      [
+        {
+          id: 'p',
+          displayDate: '2026-11-03',
+          whenLabel: 'Tuesdays & Thursdays · 6pm',
+          occurrenceIds: ['p', 'c1'],
+        },
+      ]
     ) && allTestsPassed;
 
   const orphanChildren = selectIssueEvents(
@@ -84,13 +107,15 @@ function runTests(): boolean {
   allTestsPassed =
     check(
       'no start time shows All day',
-      selectIssueEvents([row({ id: 'n', start_date: '2026-10-31', start_time: null })], W)[0]?.whenLabel,
+      selectIssueEvents([row({ id: 'n', start_date: '2026-10-31', start_time: null })], W)[0]
+        ?.whenLabel,
       'Sat, Oct 31 · All day'
     ) && allTestsPassed;
   allTestsPassed =
     check(
       'minutes shown only when non-zero',
-      selectIssueEvents([row({ id: 'h', start_date: '2026-10-31', start_time: '19:30:00' })], W)[0]?.whenLabel,
+      selectIssueEvents([row({ id: 'h', start_date: '2026-10-31', start_time: '19:30:00' })], W)[0]
+        ?.whenLabel,
       'Sat, Oct 31 · 7:30pm'
     ) && allTestsPassed;
   allTestsPassed =

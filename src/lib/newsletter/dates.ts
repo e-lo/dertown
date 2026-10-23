@@ -24,8 +24,15 @@ const pacificParts = new Intl.DateTimeFormat('en-US', {
   hourCycle: 'h23',
 });
 
-function pacificWallClock(instant: Date): { date: string; hour: number; minute: number; second: number } {
-  const parts = Object.fromEntries(pacificParts.formatToParts(instant).map((p) => [p.type, p.value]));
+function pacificWallClock(instant: Date): {
+  date: string;
+  hour: number;
+  minute: number;
+  second: number;
+} {
+  const parts = Object.fromEntries(
+    pacificParts.formatToParts(instant).map((p) => [p.type, p.value])
+  );
   return {
     date: `${parts.year}-${parts.month}-${parts.day}`,
     hour: Number(parts.hour),
@@ -90,6 +97,9 @@ export function issueWindows(send: Date): { thisWeek: DateWindow; planAhead: Dat
   const key = sendDateKey(send);
   return {
     thisWeek: { start: addDays(key, 1), end: addDays(key, 7) },
-    planAhead: { start: addDays(key, PLAN_AHEAD_START_DAYS), end: addDays(key, PLAN_AHEAD_END_DAYS) },
+    planAhead: {
+      start: addDays(key, PLAN_AHEAD_START_DAYS),
+      end: addDays(key, PLAN_AHEAD_END_DAYS),
+    },
   };
 }

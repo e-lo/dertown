@@ -67,3 +67,44 @@ The event edit suggestion form now sends emails using:
 - **SMTP errors**: Make sure Inbucket SMTP port is enabled in `supabase/config.toml`
 
 
+
+## Newsletter: This Week in Der Town
+
+The weekly newsletter is drafted and scheduled from a Claude Code session with the
+`/newsletter` skill (`.claude/skills/newsletter/SKILL.md`). Signups use double opt-in:
+the footer form emails a confirmation link, and the address joins the Resend segment
+only after the link is opened (`/newsletter/confirm`).
+
+### Environment variables
+
+Set these in `.env.local` (for the skill) **and** in Netlify (for the signup form):
+
+| Variable | What it is |
+| --- | --- |
+| `RESEND_NEWSLETTER_API_KEY` | A **full-access** Resend key, used only for the newsletter. `RESEND_API_KEY` is left alone. |
+| `RESEND_NEWSLETTER_SEGMENT_ID` | The subscriber segment's id (see below). |
+| `NEWSLETTER_FROM_EMAIL` | Sender, e.g. `This Week in Der Town <news@dertown.org>`. Must be on a verified domain. |
+| `NEWSLETTER_SIGNING_SECRET` | Random secret for confirmation links: `openssl rand -base64 32`. Changing it invalidates unconfirmed links. |
+
+### One-time setup
+
+1. Check the sender domain is verified: Resend dashboard → **Domains** → `dertown.org` shows **Verified**,
+   or run `npm run newsletter -- check-setup`.
+2. Create the segment: `npm run newsletter -- create-segment`, then put the printed id in
+   `RESEND_NEWSLETTER_SEGMENT_ID` (both places).
+3. Deploy, subscribe from the site footer, click the confirmation link, and check the contact
+   appears in Resend → **Contacts**.
+
+### Weekly commands (the skill runs these)
+
+```
+npm run newsletter:fetch                         # pull next week's events → newsletters/<date>.source.json
+npm run newsletter:render -- <date>              # newsletters/<date>.json → .html / .txt preview
+npm run newsletter -- test-send <date> <email>   # send a [TEST] copy
+npm run newsletter -- verify <date>              # re-check events haven't changed
+npm run newsletter -- schedule <date> --approved # schedule the broadcast for Thursday noon PT
+npm run newsletter -- status <date>
+npm run newsletter -- cancel <date>              # only while still scheduled
+```
+
+Drafts live in `newsletters/` (git-ignored).

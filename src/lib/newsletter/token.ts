@@ -35,7 +35,10 @@ export function verifyConfirmToken(token: string, secret: string, now: Date): st
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
   try {
-    const { e, t } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { e?: unknown; t?: unknown };
+    const { e, t } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      e?: unknown;
+      t?: unknown;
+    };
     if (typeof e !== 'string' || typeof t !== 'number') return null;
     const age = now.getTime() - t;
     if (age < 0 || age > CONFIRM_TOKEN_TTL_MS) return null;

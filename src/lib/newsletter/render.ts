@@ -23,7 +23,20 @@ const MUTED = '#6b7280';
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 const MONTH_LONG = [
   'January',
   'February',
@@ -155,7 +168,10 @@ export function renderNewsletter(issue: NewsletterIssue, opts: { siteUrl: string
   const { siteUrl } = opts;
   const featured = issue.featured.map((e) => featuredCard(e, siteUrl)).join('\n');
   const thisWeek = groupByDay(issue.thisWeek)
-    .map(([date, entries]) => dayHeadingRow(date) + entries.map((e) => compactRow(e, siteUrl, false)).join('\n'))
+    .map(
+      ([date, entries]) =>
+        dayHeadingRow(date) + entries.map((e) => compactRow(e, siteUrl, false)).join('\n')
+    )
     .join('\n');
   const planAhead = issue.planAhead.map((e) => compactRow(e, siteUrl, true)).join('\n');
 
@@ -198,25 +214,38 @@ ${announcementRows(issue)}
 
 function textEntry(entry: IssueEntry, siteUrl: string, withBlurb: boolean): string {
   const blurb = withBlurb ? blurbFor(entry) : null;
-  return [`* ${entry.event.title}`, `  ${whenWhere(entry.event)}`, blurb ? `  ${blurb}` : null, `  ${eventUrl(entry.event, siteUrl)}`]
+  return [
+    `* ${entry.event.title}`,
+    `  ${whenWhere(entry.event)}`,
+    blurb ? `  ${blurb}` : null,
+    `  ${eventUrl(entry.event, siteUrl)}`,
+  ]
     .filter(Boolean)
     .join('\n');
 }
 
 export function renderNewsletterText(issue: NewsletterIssue, opts: { siteUrl: string }): string {
   const { siteUrl } = opts;
-  const sections: string[] = [`${NEWSLETTER_NAME} — ${issueDateLabel(issue.sendDate)}`, issue.intro];
+  const sections: string[] = [
+    `${NEWSLETTER_NAME} — ${issueDateLabel(issue.sendDate)}`,
+    issue.intro,
+  ];
   if (issue.featured.length) {
-    sections.push(`FEATURED\n\n${issue.featured.map((e) => textEntry(e, siteUrl, true)).join('\n\n')}`);
+    sections.push(
+      `FEATURED\n\n${issue.featured.map((e) => textEntry(e, siteUrl, true)).join('\n\n')}`
+    );
   }
   if (issue.thisWeek.length) {
     const days = groupByDay(issue.thisWeek).map(
-      ([date, entries]) => `${dayHeading(date)}\n${entries.map((e) => textEntry(e, siteUrl, false)).join('\n')}`
+      ([date, entries]) =>
+        `${dayHeading(date)}\n${entries.map((e) => textEntry(e, siteUrl, false)).join('\n')}`
     );
     sections.push(`THIS WEEK\n\n${days.join('\n\n')}`);
   }
   if (issue.planAhead.length) {
-    sections.push(`PLAN AHEAD\n\n${issue.planAhead.map((e) => textEntry(e, siteUrl, true)).join('\n\n')}`);
+    sections.push(
+      `PLAN AHEAD\n\n${issue.planAhead.map((e) => textEntry(e, siteUrl, true)).join('\n\n')}`
+    );
   }
   if (issue.announcements?.length) {
     sections.push(
@@ -231,7 +260,11 @@ export function renderNewsletterText(issue: NewsletterIssue, opts: { siteUrl: st
 // Confirmation email
 // ---------------------------------------------------------------------------
 
-export function renderConfirmEmail(confirmUrl: string): { subject: string; html: string; text: string } {
+export function renderConfirmEmail(confirmUrl: string): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const subject = `Confirm your subscription to ${NEWSLETTER_NAME}`;
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(subject)}</title></head>

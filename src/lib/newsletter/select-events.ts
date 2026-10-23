@@ -2,8 +2,29 @@ import type { DateWindow } from './dates';
 import type { IssueEvent, NewsletterSourceEvent } from './types';
 
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WEEKDAY_PLURAL = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAY_PLURAL = [
+  'Sundays',
+  'Mondays',
+  'Tuesdays',
+  'Wednesdays',
+  'Thursdays',
+  'Fridays',
+  'Saturdays',
+];
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 function parseDate(date: string): { weekday: number; month: number; day: number } {
   const d = new Date(`${date}T12:00:00Z`);
@@ -53,7 +74,10 @@ function overlaps(row: NewsletterSourceEvent, window: DateWindow): boolean {
 }
 
 function byStart(a: NewsletterSourceEvent, b: NewsletterSourceEvent): number {
-  return a.start_date.localeCompare(b.start_date) || (a.start_time ?? '').localeCompare(b.start_time ?? '');
+  return (
+    a.start_date.localeCompare(b.start_date) ||
+    (a.start_time ?? '').localeCompare(b.start_time ?? '')
+  );
 }
 
 /**
@@ -88,6 +112,10 @@ export function selectIssueEvents(rows: NewsletterSourceEvent[], window: DateWin
   });
 
   return entries
-    .sort((a, b) => a.event.displayDate.localeCompare(b.event.displayDate) || a.sortTime.localeCompare(b.sortTime))
+    .sort(
+      (a, b) =>
+        a.event.displayDate.localeCompare(b.event.displayDate) ||
+        a.sortTime.localeCompare(b.sortTime)
+    )
     .map((e) => e.event);
 }
