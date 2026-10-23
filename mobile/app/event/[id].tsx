@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted } from '../../lib/theme';
+import { THEME, getCategoryColor, getCategoryTextColor, getCategoryTextMuted, getStarColor } from '../../lib/theme';
 import { fetchEventById, fetchRelatedEvents } from '../../lib/api';
 import { formatTimeRange, formatDayHeader } from '../../lib/dateUtils';
 import { openMaps } from '../../lib/mapUtils';
@@ -66,10 +66,7 @@ export default function EventDetailScreen() {
   const bgColor  = getCategoryColor(category);
   const fgColor  = getCategoryTextColor(category);
   const fgMuted  = getCategoryTextMuted(category);
-  const isLightBg = category ? ['Arts+Culture','Sports','Featured'].includes(category) : false;
-  const starColor = isLightBg
-    ? (isStarred ? '#111111' : 'rgba(0,0,0,0.25)')
-    : (isStarred ? THEME.starFilled : THEME.starUnstarred);
+  const starColor = getStarColor(category, isStarred);
 
   const { dayOfWeek, dayNum, month } =
     event ? formatDayHeader(event.start_date) : { dayOfWeek: '', dayNum: '', month: '' };

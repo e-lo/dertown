@@ -2,6 +2,7 @@
 import Badge from './ui/Badge.astro';
 import { formatEventDate, formatTime, isToday, getEventUrl } from '../lib/event-utils';
 import { renderMarkdownPreview } from '../lib/markdown-utils';
+import { CATEGORY_SLOTS } from '../lib/config';
 
 const { event, tags } = Astro.props;
 
@@ -14,7 +15,8 @@ function toKebabCase(str: string) {
   return (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 const primaryTag = tags && tags.primary ? toKebabCase(tags.primary) : '';
-const bgClass = primaryTag ? `bg-event-${primaryTag}` : 'bg-event-default';
+// Tags with no seasonal color slot get the default card, not a transparent one.
+const bgClass = primaryTag in CATEGORY_SLOTS ? `bg-event-${primaryTag}` : 'bg-event-default';
 ---
 
 <article class={`event-list-card relative flex h-full transition-colors ${bgClass}`}>

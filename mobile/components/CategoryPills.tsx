@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { THEME, getCategoryColor } from '../lib/theme';
+import { THEME, getCategoryColor, getCategoryTextColor } from '../lib/theme';
 
 interface CategoryPillsProps {
   categories: string[];
@@ -35,7 +35,7 @@ export function CategoryPills({ categories, selected, onSelect }: CategoryPillsP
             ]}
             onPress={() => onSelect(isSelected ? null : cat)}
           >
-            <Text style={[styles.label, isSelected && styles.labelSelectedCat]}>{cat}</Text>
+            <Text style={[styles.label, isSelected && { color: getCategoryTextColor(cat) }]}>{cat}</Text>
           </TouchableOpacity>
         );
       })}
@@ -71,8 +71,5 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: '#111827',
-  },
-  labelSelectedCat: {
-    color: THEME.textPrimary,
   },
 });

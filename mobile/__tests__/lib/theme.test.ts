@@ -4,6 +4,7 @@ import {
   getCategoryColor,
   getCategoryTextColor,
   getCategoryTextMuted,
+  getStarColor,
   THEME,
   CATEGORY_COLORS,
 } from '../../lib/theme';
@@ -59,6 +60,19 @@ describe('getCategoryTextColor', () => {
   it('pairs a muted color with the text color', () => {
     expect(getCategoryTextMuted('Family', 'holiday')).toBe('rgba(0,0,0,0.6)');
     expect(getCategoryTextMuted('Family', 'wildflower')).toBe('rgba(255,255,255,0.7)');
+  });
+});
+
+describe('getStarColor', () => {
+  it('draws a starred star in the card text color, so it never matches the card', () => {
+    expect(getStarColor('Family', true, 'fall')).toBe('#111111');
+    expect(getStarColor('Family', true, 'holiday')).toBe('#111111');
+    expect(getStarColor('Sports', true, 'fall')).toBe('#ffffff');
+  });
+
+  it('draws an unstarred star as a faint outline that suits the card', () => {
+    expect(getStarColor('Family', false, 'fall')).toBe('rgba(0,0,0,0.25)');
+    expect(getStarColor('Sports', false, 'fall')).toBe('rgba(255,255,255,0.28)');
   });
 });
 

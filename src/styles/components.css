@@ -216,13 +216,6 @@
   @apply text-gray-500;
 }
 
-.text-primary {
-  @apply text-gray-900;
-}
-
-.text-secondary {
-  @apply text-gray-700;
-}
 
 /* Spacing utilities */
 .section-padding {
@@ -706,7 +699,7 @@ input[type='date'] {
   font-size: 9px; border-radius: 3px; padding: 1px 4px;
   margin-bottom: 1px; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
-  color: white; display: block;
+  display: block;
 }
 .cal-month-more { font-size: 9px; color: #9ca3af; }
 

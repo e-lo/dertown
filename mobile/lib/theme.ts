@@ -73,6 +73,22 @@ export function getCategoryTextMuted(
     : 'rgba(255,255,255,0.7)';
 }
 
+/**
+ * Star icon color on a category-colored card. A starred star uses the card's
+ * text color so it can't vanish into a card that shares the season accent.
+ */
+export function getStarColor(
+  category: string | null | undefined,
+  isStarred: boolean,
+  season: SeasonId = CURRENT_SEASON
+): string {
+  const text = getCategoryTextColor(category, season);
+  if (isStarred) return text;
+  return text === '#111111' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.28)';
+}
+
+// Season colors are read once at launch; an app left open across a season
+// boundary picks up the new season on its next start.
 const seasonColors = SEASON_PALETTES[CURRENT_SEASON].colors;
 // The announcement color is the season's light accent, so it reads on the app's dark surfaces.
 const seasonAccent = seasonColors[SEASON_PALETTES[CURRENT_SEASON].announcement];
