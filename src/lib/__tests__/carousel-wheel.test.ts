@@ -60,5 +60,7 @@ function setup() {
   check('sideways swipes over the carousel do not trigger browser back/forward', prevented() === 1);
 }
 
-console.log(failures === 0 ? '\n✅ All carousel wheel tests passed' : `\n❌ ${failures} failure(s)`);
+console.log(
+  failures === 0 ? '\n✅ All carousel wheel tests passed' : `\n❌ ${failures} failure(s)`
+);
 process.exit(failures === 0 ? 0 : 1);
