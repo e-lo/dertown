@@ -76,7 +76,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/js-yaml": "^4.0.9",
     "@types/marked": "^5.0.2",
-    "astro-eslint-parser": "^1.4.0",
+    "astro-eslint-parser": "^3.2.0",
     "autoprefixer": "^10.5.5",
     "domhandler": "^5.0.3",
     "dotenv": "^18.0.4",
