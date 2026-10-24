@@ -34,29 +34,27 @@ const US_HOLIDAYS = {
 };
 
 // ─── Category colours ───────────────────────────────────────
-const CATEGORY_COLORS = {
-  'arts & culture':        '#ffe600',
-  'civic':                 '#2f4445',
-  'family':                '#c0268c',
-  'give back':             '#4daa57',
-  'nature':                '#14532d',
-  'recreation & outdoors': '#219ebc',
-  'outdoors':              '#219ebc',
-  'sports':                '#ffe600',
-  'school':                '#2f4445',
-  'town':                  '#4740cb',
-};
+// Colours come from the seasonal theme (theme.generated.css), so they follow
+// the season set on <html data-season>, and each has a readable text colour.
 
-function getCategoryColor(category) {
-  return CATEGORY_COLORS[(category || '').toLowerCase()] || '#4740cb';
+/** Older combined tag names that map onto a current category. */
+const CATEGORY_ALIASES = { 'recreation-outdoors': 'outdoors' };
+
+function categorySlug(category) {
+  const slug = (category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return CATEGORY_ALIASES[slug] || slug;
 }
 
-/** Returns true if hex color is light enough to need dark text. */
-function isLightColor(hex) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 140;
+function themeVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function getCategoryColor(category) {
+  return themeVar(`--color-category-${categorySlug(category)}`) || themeVar('--color-primary');
+}
+
+function getCategoryTextColor(category) {
+  return themeVar(`--color-category-${categorySlug(category)}-text`) || themeVar('--color-primary-text');
 }
 
 // ─── Date utilities ─────────────────────────────────────────
@@ -168,7 +166,7 @@ function groupByDate(events) {
 
 function eventCardHTML(event, showTag) {
   const color = getCategoryColor(event.category);
-  const light = isLightColor(color);
+  const light = getCategoryTextColor(event.category) === '#111111';
   const textColor  = light ? '#111827' : '#ffffff';
   const timeColor  = light ? 'rgba(0,0,0,0.58)' : 'rgba(255,255,255,0.82)';
   const locColor   = light ? 'rgba(0,0,0,0.48)' : 'rgba(255,255,255,0.65)';
@@ -311,7 +309,7 @@ function buildTooltipHTML(event) {
     : '';
   const descRow = desc ? `<div class="cal-tooltip-desc">${desc}</div>` : '';
   const tagRow = event.category
-    ? `<span class="cal-tooltip-tag" style="background:${color}22;color:${color}">${escapeHtml(event.category)}</span>`
+    ? `<span class="cal-tooltip-tag" style="background:${color};color:${getCategoryTextColor(event.category)}">${escapeHtml(event.category)}</span>`
     : '';
 
   return `
@@ -910,7 +908,8 @@ function renderMonthGrid(container) {
 
     const pills = evs.slice(0, 3).map(e => {
       const color = getCategoryColor(e.category);
-      return `<span class="cal-month-pill" style="background:${color}">${escapeHtml(e.title)}</span>`;
+      const text = getCategoryTextColor(e.category);
+      return `<span class="cal-month-pill" title="${escapeHtml(e.title)}" style="background:${color};color:${text}">${escapeHtml(e.title)}</span>`;
     }).join('');
     const more = evs.length > 3 ? `<div class="cal-month-more">+${evs.length - 3} more</div>` : '';
 

@@ -40,7 +40,13 @@
     "test:duplicate-event-wiring": "tsx src/lib/__tests__/duplicate-event-wiring.test.ts",
     "test:autocomplete-wiring": "tsx src/lib/__tests__/autocomplete-dropdown-wiring.test.ts",
     "test:auth-cookies": "tsx src/lib/__tests__/auth-cookie-reading.test.ts",
-    "test:entity-merge": "tsx src/lib/__tests__/entity-merge-fields.test.ts"
+    "test:entity-merge": "tsx src/lib/__tests__/entity-merge-fields.test.ts",
+    "test:seasonal-theme": "tsx src/lib/__tests__/seasonal-theme.test.ts",
+    "test:seasonal-wiring": "tsx src/lib/__tests__/seasonal-theme-wiring.test.ts",
+    "test:calendar-month": "tsx src/lib/__tests__/calendar-month-grid.test.ts",
+    "test:this-week": "tsx src/lib/__tests__/this-week.test.ts",
+    "test:featured-star": "tsx src/lib/__tests__/featured-star.test.ts",
+    "test:carousel-wheel": "tsx src/lib/__tests__/carousel-wheel.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

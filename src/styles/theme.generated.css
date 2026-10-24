@@ -2,23 +2,28 @@
    Do not edit by hand — run `npm run theme:generate` after changing config.ts. */
 
 @theme {
-  /* Base palette */
-  --color-palatinate-blue: #4740cbff;
-  --color-canary: #ffe600ff;
-  --color-pigment-green: #4daa57ff;
-  --color-blue-green: #219ebcff;
-  --color-fandango: #c0268cff;
-  --color-cal-poly-green: #14532dff;
-  --color-dark-slate-gray: #2f4445ff;
+  /* Seasonal colors (defaults: ski; each season overrides them below) */
+  --color-primary: #3e5f78;
+  --color-primary-light: #eceff2;
+  --color-primary-dark: #253948;
+  --color-secondary: #a8aacc;
+  --color-surface: #f4f4f4;
+  --color-text: #1f2a33;
+  --color-category-town: #3e5f78;
+  --color-category-arts-culture: #3e5f78;
+  --color-category-featured: #a8aacc;
+  --color-category-sports: #9a5248;
+  --color-category-family: #deb0aa;
+  --color-category-seniors: #deb0aa;
+  --color-category-give-back: #deb0aa;
+  --color-category-nature: #909b99;
+  --color-category-recreation: #909b99;
+  --color-category-outdoors: #909b99;
+  --color-category-civic: #1f2a33;
+  --color-category-school: #1f2a33;
 
-  /* Semantic colors */
-  --color-primary: #4740cbff;
-  --color-primary-light: #eef2ff;
-  --color-primary-dark: #312e81;
-  --color-secondary: #ffe600ff;
-  --color-surface: #f9fafb;
+  /* Colors that stay the same all year */
   --color-surface-light: #f3f4f6;
-  --color-text: #111827;
   --color-text-secondary: #374151;
   --color-text-dark: #1f2937;
   --color-muted: #6b7280;
@@ -26,19 +31,18 @@
   --color-border: #d1d5db;
   --color-link: #1d4ed8;
 
-  /* Event category colors */
-  --color-category-arts-culture: #ffe600ff;
-  --color-category-civic: #2f4445ff;
-  --color-category-family: #c0268cff;
-  --color-category-give-back: #4daa57ff;
-  --color-category-nature: #14532dff;
-  --color-category-recreation: #219ebcff;
-  --color-category-outdoors: #219ebcff;
-  --color-category-school: #2f4445ff;
-  --color-category-seniors: #c0268cff;
-  --color-category-sports: #ffe600ff;
-  --color-category-town: #4740cbff;
-  --color-category-featured: #ffe600ff;
+  /* White is the season's off-white page color, so bg-white, text-white and
+     border-white match the rest of the page instead of standing out as pure white */
+  --color-white: var(--color-surface);
+
+  /* Old palette names, mapped onto the seasonal colors */
+  --color-palatinate-blue: var(--color-primary);
+  --color-canary: var(--color-secondary);
+  --color-fandango: var(--color-category-family);
+  --color-pigment-green: var(--color-category-nature);
+  --color-blue-green: var(--color-category-nature);
+  --color-cal-poly-green: var(--color-category-nature);
+  --color-dark-slate-gray: var(--color-category-civic);
 
   /* Typography */
   --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
@@ -47,12 +51,29 @@
 }
 
 :root {
-  /* Palette aliases for stylesheets/components that use var(--palette-*) */
+  --color-primary-text: #f4f4f4;
+  --color-secondary-text: #111111;
+  --color-announcement-bg: #deb0aa;
+  --color-announcement-text: #111111;
+  --color-category-town-text: #f4f4f4;
+  --color-category-arts-culture-text: #f4f4f4;
+  --color-category-featured-text: #111111;
+  --color-category-sports-text: #f4f4f4;
+  --color-category-family-text: #111111;
+  --color-category-seniors-text: #111111;
+  --color-category-give-back-text: #111111;
+  --color-category-nature-text: #111111;
+  --color-category-recreation-text: #111111;
+  --color-category-outdoors-text: #111111;
+  --color-category-civic-text: #f4f4f4;
+  --color-category-school-text: #f4f4f4;
+
+  /* Old var(--palette-*) names */
   --palette-palatinate-blue: var(--color-palatinate-blue);
   --palette-canary: var(--color-canary);
+  --palette-fandango: var(--color-fandango);
   --palette-pigment-green: var(--color-pigment-green);
   --palette-blue-green: var(--color-blue-green);
-  --palette-fandango: var(--color-fandango);
   --palette-cal-poly-green: var(--color-cal-poly-green);
   --palette-dark-slate-gray: var(--color-dark-slate-gray);
 
@@ -66,10 +87,314 @@
   --color-info-text: #1976d2;
   --color-info-bg: #e3f2fd;
 
-  /* Event text color for light category backgrounds */
-  --color-event-text-dark: #111111;
+  --gradient-hero: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  --gradient-blues-light: var(--gradient-hero);
+  --gradient-blues-bold: var(--gradient-hero);
+}
 
-  /* Gradients derived from the primary color */
-  --gradient-blues-light: linear-gradient(90deg, var(--color-primary) 0%, #6366f1 100%);
-  --gradient-blues-bold: linear-gradient(90deg, var(--color-primary) 0%, #818cf8 100%);
+/* Sapphire ash */
+:root[data-season="ski"] {
+  --color-primary: #3e5f78;
+  --color-primary-light: #eceff2;
+  --color-primary-dark: #253948;
+  --color-secondary: #a8aacc;
+  --color-surface: #f4f4f4;
+  --color-text: #1f2a33;
+  --color-category-town: #3e5f78;
+  --color-category-arts-culture: #3e5f78;
+  --color-category-featured: #a8aacc;
+  --color-category-sports: #9a5248;
+  --color-category-family: #deb0aa;
+  --color-category-seniors: #deb0aa;
+  --color-category-give-back: #deb0aa;
+  --color-category-nature: #909b99;
+  --color-category-recreation: #909b99;
+  --color-category-outdoors: #909b99;
+  --color-category-civic: #1f2a33;
+  --color-category-school: #1f2a33;
+  --color-primary-text: #f4f4f4;
+  --color-secondary-text: #111111;
+  --color-announcement-bg: #deb0aa;
+  --color-announcement-text: #111111;
+  --color-category-town-text: #f4f4f4;
+  --color-category-arts-culture-text: #f4f4f4;
+  --color-category-featured-text: #111111;
+  --color-category-sports-text: #f4f4f4;
+  --color-category-family-text: #111111;
+  --color-category-seniors-text: #111111;
+  --color-category-give-back-text: #111111;
+  --color-category-nature-text: #111111;
+  --color-category-recreation-text: #111111;
+  --color-category-outdoors-text: #111111;
+  --color-category-civic-text: #f4f4f4;
+  --color-category-school-text: #f4f4f4;
+}
+
+/* Wildflower */
+:root[data-season="wildflower"] {
+  --color-primary: #3f3478;
+  --color-primary-light: #ecebf2;
+  --color-primary-dark: #261f48;
+  --color-secondary: #f0b62b;
+  --color-surface: #f8f7f0;
+  --color-text: #1e2421;
+  --color-category-town: #3f3478;
+  --color-category-arts-culture: #3f3478;
+  --color-category-featured: #f0b62b;
+  --color-category-sports: #c8402a;
+  --color-category-family: #b23c7a;
+  --color-category-seniors: #b23c7a;
+  --color-category-give-back: #b23c7a;
+  --color-category-nature: #4f7a42;
+  --color-category-recreation: #4f7a42;
+  --color-category-outdoors: #4f7a42;
+  --color-category-civic: #1e2421;
+  --color-category-school: #1e2421;
+  --color-primary-text: #f8f7f0;
+  --color-secondary-text: #111111;
+  --color-announcement-bg: #f0b62b;
+  --color-announcement-text: #111111;
+  --color-category-town-text: #f8f7f0;
+  --color-category-arts-culture-text: #f8f7f0;
+  --color-category-featured-text: #111111;
+  --color-category-sports-text: #f8f7f0;
+  --color-category-family-text: #f8f7f0;
+  --color-category-seniors-text: #f8f7f0;
+  --color-category-give-back-text: #f8f7f0;
+  --color-category-nature-text: #f8f7f0;
+  --color-category-recreation-text: #f8f7f0;
+  --color-category-outdoors-text: #f8f7f0;
+  --color-category-civic-text: #f8f7f0;
+  --color-category-school-text: #f8f7f0;
+}
+
+/* Mountain sunset */
+:root[data-season="fall"] {
+  --color-primary: #2b4a33;
+  --color-primary-light: #eaedeb;
+  --color-primary-dark: #1a2c1f;
+  --color-secondary: #c43b00;
+  --color-surface: #f8f0e3;
+  --color-text: #422625;
+  --color-category-town: #2b4a33;
+  --color-category-arts-culture: #2b4a33;
+  --color-category-featured: #c43b00;
+  --color-category-sports: #6a010f;
+  --color-category-family: #ff9b0c;
+  --color-category-seniors: #ff9b0c;
+  --color-category-give-back: #ff9b0c;
+  --color-category-nature: #334963;
+  --color-category-recreation: #334963;
+  --color-category-outdoors: #334963;
+  --color-category-civic: #422625;
+  --color-category-school: #422625;
+  --color-primary-text: #f8f0e3;
+  --color-secondary-text: #f8f0e3;
+  --color-announcement-bg: #ff9b0c;
+  --color-announcement-text: #111111;
+  --color-category-town-text: #f8f0e3;
+  --color-category-arts-culture-text: #f8f0e3;
+  --color-category-featured-text: #f8f0e3;
+  --color-category-sports-text: #f8f0e3;
+  --color-category-family-text: #111111;
+  --color-category-seniors-text: #111111;
+  --color-category-give-back-text: #111111;
+  --color-category-nature-text: #f8f0e3;
+  --color-category-recreation-text: #f8f0e3;
+  --color-category-outdoors-text: #f8f0e3;
+  --color-category-civic-text: #f8f0e3;
+  --color-category-school-text: #f8f0e3;
+}
+
+/* Nordic */
+:root[data-season="holiday"] {
+  --color-primary: #2f5d55;
+  --color-primary-light: #eaefee;
+  --color-primary-dark: #1c3833;
+  --color-secondary: #d8c3a5;
+  --color-surface: #f6f5f2;
+  --color-text: #222a2e;
+  --color-category-town: #2f5d55;
+  --color-category-arts-culture: #2f5d55;
+  --color-category-featured: #d8c3a5;
+  --color-category-sports: #9b1b24;
+  --color-category-family: #c0ced7;
+  --color-category-seniors: #c0ced7;
+  --color-category-give-back: #c0ced7;
+  --color-category-nature: #6f8a6f;
+  --color-category-recreation: #6f8a6f;
+  --color-category-outdoors: #6f8a6f;
+  --color-category-civic: #222a2e;
+  --color-category-school: #222a2e;
+  --color-primary-text: #f6f5f2;
+  --color-secondary-text: #111111;
+  --color-announcement-bg: #c0ced7;
+  --color-announcement-text: #111111;
+  --color-category-town-text: #f6f5f2;
+  --color-category-arts-culture-text: #f6f5f2;
+  --color-category-featured-text: #111111;
+  --color-category-sports-text: #f6f5f2;
+  --color-category-family-text: #111111;
+  --color-category-seniors-text: #111111;
+  --color-category-give-back-text: #111111;
+  --color-category-nature-text: #111111;
+  --color-category-recreation-text: #111111;
+  --color-category-outdoors-text: #111111;
+  --color-category-civic-text: #f6f5f2;
+  --color-category-school-text: #f6f5f2;
+}
+
+/* Event category cards, pills, badges and calendar entries */
+.bg-event-town {
+  background-color: var(--color-category-town) !important;
+  --fc-event-text-color: var(--color-category-town-text) !important;
+}
+.bg-event-town,
+.bg-event-town .fc-event-main,
+.bg-event-town .fc-event-title,
+.bg-event-town .fc-event-time {
+  color: var(--color-category-town-text) !important;
+}
+
+.bg-event-arts-culture {
+  background-color: var(--color-category-arts-culture) !important;
+  --fc-event-text-color: var(--color-category-arts-culture-text) !important;
+}
+.bg-event-arts-culture,
+.bg-event-arts-culture .fc-event-main,
+.bg-event-arts-culture .fc-event-title,
+.bg-event-arts-culture .fc-event-time {
+  color: var(--color-category-arts-culture-text) !important;
+}
+
+.bg-event-featured {
+  background-color: var(--color-category-featured) !important;
+  --fc-event-text-color: var(--color-category-featured-text) !important;
+}
+.bg-event-featured,
+.bg-event-featured .fc-event-main,
+.bg-event-featured .fc-event-title,
+.bg-event-featured .fc-event-time {
+  color: var(--color-category-featured-text) !important;
+}
+
+.bg-event-sports {
+  background-color: var(--color-category-sports) !important;
+  --fc-event-text-color: var(--color-category-sports-text) !important;
+}
+.bg-event-sports,
+.bg-event-sports .fc-event-main,
+.bg-event-sports .fc-event-title,
+.bg-event-sports .fc-event-time {
+  color: var(--color-category-sports-text) !important;
+}
+
+.bg-event-family {
+  background-color: var(--color-category-family) !important;
+  --fc-event-text-color: var(--color-category-family-text) !important;
+}
+.bg-event-family,
+.bg-event-family .fc-event-main,
+.bg-event-family .fc-event-title,
+.bg-event-family .fc-event-time {
+  color: var(--color-category-family-text) !important;
+}
+
+.bg-event-seniors {
+  background-color: var(--color-category-seniors) !important;
+  --fc-event-text-color: var(--color-category-seniors-text) !important;
+}
+.bg-event-seniors,
+.bg-event-seniors .fc-event-main,
+.bg-event-seniors .fc-event-title,
+.bg-event-seniors .fc-event-time {
+  color: var(--color-category-seniors-text) !important;
+}
+
+.bg-event-give-back {
+  background-color: var(--color-category-give-back) !important;
+  --fc-event-text-color: var(--color-category-give-back-text) !important;
+}
+.bg-event-give-back,
+.bg-event-give-back .fc-event-main,
+.bg-event-give-back .fc-event-title,
+.bg-event-give-back .fc-event-time {
+  color: var(--color-category-give-back-text) !important;
+}
+
+.bg-event-nature {
+  background-color: var(--color-category-nature) !important;
+  --fc-event-text-color: var(--color-category-nature-text) !important;
+}
+.bg-event-nature,
+.bg-event-nature .fc-event-main,
+.bg-event-nature .fc-event-title,
+.bg-event-nature .fc-event-time {
+  color: var(--color-category-nature-text) !important;
+}
+
+.bg-event-recreation {
+  background-color: var(--color-category-recreation) !important;
+  --fc-event-text-color: var(--color-category-recreation-text) !important;
+}
+.bg-event-recreation,
+.bg-event-recreation .fc-event-main,
+.bg-event-recreation .fc-event-title,
+.bg-event-recreation .fc-event-time {
+  color: var(--color-category-recreation-text) !important;
+}
+
+.bg-event-outdoors {
+  background-color: var(--color-category-outdoors) !important;
+  --fc-event-text-color: var(--color-category-outdoors-text) !important;
+}
+.bg-event-outdoors,
+.bg-event-outdoors .fc-event-main,
+.bg-event-outdoors .fc-event-title,
+.bg-event-outdoors .fc-event-time {
+  color: var(--color-category-outdoors-text) !important;
+}
+
+.bg-event-civic {
+  background-color: var(--color-category-civic) !important;
+  --fc-event-text-color: var(--color-category-civic-text) !important;
+}
+.bg-event-civic,
+.bg-event-civic .fc-event-main,
+.bg-event-civic .fc-event-title,
+.bg-event-civic .fc-event-time {
+  color: var(--color-category-civic-text) !important;
+}
+
+.bg-event-school {
+  background-color: var(--color-category-school) !important;
+  --fc-event-text-color: var(--color-category-school-text) !important;
+}
+.bg-event-school,
+.bg-event-school .fc-event-main,
+.bg-event-school .fc-event-title,
+.bg-event-school .fc-event-time {
+  color: var(--color-category-school-text) !important;
+}
+
+.bg-event-today {
+  background-color: var(--color-category-nature) !important;
+  --fc-event-text-color: var(--color-category-nature-text) !important;
+}
+.bg-event-today,
+.bg-event-today .fc-event-main,
+.bg-event-today .fc-event-title,
+.bg-event-today .fc-event-time {
+  color: var(--color-category-nature-text) !important;
+}
+
+.bg-event-default {
+  background-color: var(--color-primary) !important;
+  --fc-event-text-color: var(--color-primary-text) !important;
+}
+.bg-event-default,
+.bg-event-default .fc-event-main,
+.bg-event-default .fc-event-title,
+.bg-event-default .fc-event-time {
+  color: var(--color-primary-text) !important;
 }

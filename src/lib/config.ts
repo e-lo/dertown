@@ -89,72 +89,21 @@ export const MAP_STYLES = {
 };
 
 // ============================================================================
-// COLOR PALETTE - Base colors only
+// FIXED COLORS - the same in every season
 // ============================================================================
 
 /**
- * Base color palette - 9 primary colors used throughout the app.
- * These are referenced by COLOR_PALETTE below for assignment to specific uses.
- * Change these values to update the entire color scheme globally.
- */
-export const COLOR_PALETTE = {
-  palatinateBlue: '#4740cbff',
-  canary: '#ffe600ff',
-  pigmentGreen: '#4daa57ff',
-  blueGreen: '#219ebcff',
-  fandango: '#c0268cff',
-  calPolyGreen: '#14532dff',
-  darkSlateGray: '#2f4445ff',
-};
-
-// ============================================================================
-// COLOR ASSIGNMENTS - How palette colors are used
-// ============================================================================
-
-/**
- * Color assignments: maps palette colors to specific uses throughout the app.
- * These are the values referenced in CSS variables and components.
+ * Neutral and feedback colors that stay the same all year. The seasonal colors
+ * (page, hero, cards, announcement band) live in SEASON_PALETTES below.
  */
 export const COLORS = {
-  // Theme assignments
-  primary: COLOR_PALETTE.palatinateBlue,
-  primaryLight: '#eef2ff',
-  primaryDark: '#312e81',
-  secondary: COLOR_PALETTE.canary,
-  background: COLOR_PALETTE.palatinateBlue,
-  surface: '#f9fafb',
   surfaceLight: '#f3f4f6',
-  text: '#111827',
   textSecondary: '#374151',
   textDark: '#1f2937',
   muted: '#6b7280',
   mutedDark: '#4b5563',
   border: '#d1d5db',
   link: '#1d4ed8',
-
-  // Event category colors (must match tag names in database)
-  eventCategories: {
-    'arts-culture': COLOR_PALETTE.canary,
-    civic: COLOR_PALETTE.darkSlateGray,
-    family: COLOR_PALETTE.fandango,
-    'give-back': COLOR_PALETTE.pigmentGreen,
-    nature: COLOR_PALETTE.calPolyGreen,
-    recreation: COLOR_PALETTE.blueGreen,
-    outdoors: COLOR_PALETTE.blueGreen,
-    school: COLOR_PALETTE.darkSlateGray,
-    seniors: COLOR_PALETTE.fandango,
-    sports: COLOR_PALETTE.canary,
-    town: COLOR_PALETTE.palatinateBlue,
-    featured: COLOR_PALETTE.canary,
-  },
-
-  // Text colors for events (dark for light backgrounds, white for dark)
-  eventTextColors: {
-    'arts-culture': '#111111',
-    featured: '#111827',
-    sports: '#111111',
-    default: '#ffffff',
-  },
 
   // Notification/alert colors (user feedback)
   notifications: {
@@ -178,15 +127,135 @@ export const TYPOGRAPHY = {
 };
 
 // ============================================================================
+// SEASONAL THEME
+// ============================================================================
+
+export type SeasonId = 'ski' | 'wildflower' | 'fall' | 'holiday';
+
+/**
+ * The seven color roles every season fills:
+ * - page: page background
+ * - ink: text, and the Civic/School cards
+ * - hero: hero band, buttons, links, and the Town/Arts cards
+ * - highlight: Featured
+ * - sports: Sports (always a red, for the Cascade Kodiaks)
+ * - accent: Family/Seniors/Give Back
+ * - outdoors: Nature/Recreation/Outdoors
+ */
+export type PaletteSlot = 'page' | 'ink' | 'hero' | 'highlight' | 'sports' | 'accent' | 'outdoors';
+
+export interface SeasonPalette {
+  label: string;
+  /** Calendar months (1–12) this season covers. */
+  months: number[];
+  /** Which slot fills the announcement band. */
+  announcement: 'highlight' | 'accent';
+  colors: Record<PaletteSlot, string>;
+}
+
+export const SEASON_IDS: SeasonId[] = ['ski', 'wildflower', 'fall', 'holiday'];
+
+/**
+ * Seasonal palettes. Every card color must reach 4.5:1 with white or #111 text;
+ * `npm run test:seasonal-theme` enforces it. See CUSTOMIZATION.md.
+ */
+export const SEASON_PALETTES: Record<SeasonId, SeasonPalette> = {
+  ski: {
+    label: 'Sapphire ash',
+    months: [1, 2, 3],
+    announcement: 'accent',
+    colors: {
+      page: '#f4f4f4',
+      ink: '#1f2a33',
+      hero: '#3e5f78',
+      highlight: '#a8aacc',
+      sports: '#9a5248',
+      accent: '#deb0aa',
+      outdoors: '#909b99',
+    },
+  },
+  wildflower: {
+    label: 'Wildflower',
+    months: [4, 5, 6, 7, 8],
+    announcement: 'highlight',
+    colors: {
+      page: '#f8f7f0',
+      ink: '#1e2421',
+      hero: '#3f3478',
+      highlight: '#f0b62b',
+      sports: '#c8402a',
+      accent: '#b23c7a',
+      outdoors: '#4f7a42',
+    },
+  },
+  fall: {
+    label: 'Mountain sunset',
+    months: [9, 10],
+    announcement: 'accent',
+    colors: {
+      page: '#f8f0e3',
+      ink: '#422625',
+      hero: '#2b4a33',
+      highlight: '#c43b00',
+      sports: '#6a010f',
+      accent: '#ff9b0c',
+      outdoors: '#334963',
+    },
+  },
+  holiday: {
+    label: 'Nordic',
+    months: [11, 12],
+    announcement: 'accent',
+    colors: {
+      page: '#f6f5f2',
+      ink: '#222a2e',
+      hero: '#2f5d55',
+      highlight: '#d8c3a5',
+      sports: '#9b1b24',
+      accent: '#c0ced7',
+      outdoors: '#6f8a6f',
+    },
+  },
+};
+
+/** Which palette slot each event category uses. Related categories share a color. */
+export const CATEGORY_SLOTS: Record<string, PaletteSlot> = {
+  town: 'hero',
+  'arts-culture': 'hero',
+  featured: 'highlight',
+  sports: 'sports',
+  family: 'accent',
+  seniors: 'accent',
+  'give-back': 'accent',
+  nature: 'outdoors',
+  recreation: 'outdoors',
+  outdoors: 'outdoors',
+  civic: 'ink',
+  school: 'ink',
+};
+
+/** The season for a calendar month (1–12). */
+export function getSeasonForMonth(month: number): SeasonId {
+  return SEASON_IDS.find((id) => SEASON_PALETTES[id].months.includes(month)) ?? 'fall';
+}
+
+/** A `?season=` preview value when it names a season, otherwise the season for `month`. */
+export function resolveSeason(requested: string | null, month: number): SeasonId {
+  return SEASON_IDS.find((id) => id === requested) ?? getSeasonForMonth(month);
+}
+
+// ============================================================================
 // MAP MARKER COLORS
 // ============================================================================
 
+const markerPalette = SEASON_PALETTES.fall.colors;
+
 export const MARKER_COLORS = {
-  current: COLOR_PALETTE.palatinateBlue,
-  parent: COLOR_PALETTE.fandango,
+  current: markerPalette.hero,
+  parent: markerPalette.accent,
   sibling: COLORS.muted,
-  child: COLOR_PALETTE.pigmentGreen,
-  event: COLOR_PALETTE.palatinateBlue,
+  child: markerPalette.outdoors,
+  event: markerPalette.hero,
 };
 
 // ============================================================================
@@ -219,24 +288,6 @@ export const CONSTANTS = {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-/**
- * Get the color for an event category
- * Falls back to primary color if category not found
- */
-export function getEventCategoryColor(category: string): string {
-  const color = COLORS.eventCategories[category as keyof typeof COLORS.eventCategories];
-  return color || COLORS.primary; // fallback
-}
-
-/**
- * Get the text color for an event category
- * Returns dark text for light backgrounds, white for dark backgrounds
- */
-export function getEventTextColor(category: string): string {
-  const color = COLORS.eventTextColors[category as keyof typeof COLORS.eventTextColors];
-  return color || COLORS.eventTextColors.default;
-}
 
 /**
  * Get marker color by type

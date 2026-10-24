@@ -27,6 +27,11 @@
 }
 
 /* Custom styles can be added below */
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
 html,
 body {
   width: 100vw;

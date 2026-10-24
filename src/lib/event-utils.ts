@@ -280,3 +280,27 @@ function calculateEndTime(startTime: string): string {
   const endMinutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${endHours}:${endMinutes}:00`;
 }
+
+/** Adds `days` to a YYYY-MM-DD date string. */
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Events happening from `today` through the next six days (dates are Pacific
+ * YYYY-MM-DD strings), including multi-day events already under way, ordered
+ * by date and start time and capped at `limit`.
+ */
+export function getThisWeekEvents<
+  T extends { start_date: string; start_time?: string | null; end_date?: string | null },
+>(events: T[], today: string, limit = 9): T[] {
+  const lastDay = addDays(today, 6);
+  return events
+    .filter((e) => e.start_date <= lastDay && (e.end_date || e.start_date) >= today)
+    .sort((a, b) =>
+      `${a.start_date} ${a.start_time ?? ''}`.localeCompare(`${b.start_date} ${b.start_time ?? ''}`)
+    )
+    .slice(0, limit);
+}
