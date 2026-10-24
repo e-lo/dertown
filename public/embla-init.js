@@ -1,4 +1,5 @@
-// No import needed; EmblaCarousel is loaded globally via CDN
+// EmblaCarousel is loaded globally via CDN
+import { createWheelPager } from '/carousel-wheel.js';
 
 document.addEventListener('DOMContentLoaded', function () {
   const emblaNode = document.querySelector('.embla');
@@ -15,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (prevBtn) prevBtn.addEventListener('click', () => embla.scrollPrev());
   if (nextBtn) nextBtn.addEventListener('click', () => embla.scrollNext());
+
+  // Two-finger trackpad swipes and sideways mouse wheels page the carousel
+  const handleWheel = createWheelPager({ onNext: () => embla.scrollNext(), onPrev: () => embla.scrollPrev() });
+  emblaNode.addEventListener('wheel', (e) => handleWheel(e), { passive: false });
 
   // Keyboard navigation: left/right arrow keys
   document.addEventListener('keydown', function (e) {
