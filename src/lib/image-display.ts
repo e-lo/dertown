@@ -151,7 +151,8 @@ export function resolveFraming(
 }
 
 export type ImageDisplayInput =
-  { ok: true; value: ImageDisplay | null | undefined } | { ok: false };
+  | { ok: true; value: ImageDisplay | null | undefined }
+  | { ok: false };
 
 /**
  * Validate `image_display` from an admin save request.

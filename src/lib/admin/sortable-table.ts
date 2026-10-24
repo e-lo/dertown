@@ -289,7 +289,9 @@ export function actionsColumn<T extends { id: string }>(
       const deleteEl = getDeleteOnclick
         ? `<button type="button" onclick="${escapeHtml(getDeleteOnclick(row))}" class="icon-btn btn-reject" style="padding:0.5rem;min-width:auto;margin-left:0.25rem;" aria-label="Delete"><span class="material-symbols-outlined" style="font-size:1.25rem;">delete</span><span class="tooltip">Delete</span></button>`
         : '';
-      return { html: `<span style="white-space:nowrap;">${extraEls}${viewLink}${editEl}${deleteEl}</span>` };
+      return {
+        html: `<span style="white-space:nowrap;">${extraEls}${viewLink}${editEl}${deleteEl}</span>`,
+      };
     },
   };
 }
