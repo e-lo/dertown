@@ -56,16 +56,19 @@ for (const category of [...CONSTANTS.tagCategories, 'featured']) {
 for (const id of SEASON_IDS) {
   const { colors, announcement } = SEASON_PALETTES[id];
   check(`${id} uses at most 7 colors`, new Set(Object.values(colors)).size <= 7);
-  check(`${id} hero reads with white text`, contrastRatio('#ffffff', colors.hero) >= 4.5);
+  // Light text is the season's off-white page color, not pure white.
+  const onColor = (bg: string) => readableTextOn(bg, colors.page);
+  check(`${id} hero reads with off-white text`, contrastRatio(colors.page, colors.hero) >= 4.5);
   const band = colors[announcement];
-  check(`${id} announcement band is readable`, contrastRatio(readableTextOn(band), band) >= 4.5);
+  check(`${id} announcement band is readable`, contrastRatio(onColor(band), band) >= 4.5);
   for (const [category, slot] of Object.entries(CATEGORY_SLOTS)) {
     const bg = colors[slot];
-    check(`${id} ${category} card is readable`, contrastRatio(readableTextOn(bg), bg) >= 4.5);
+    check(`${id} ${category} card is readable`, contrastRatio(onColor(bg), bg) >= 4.5);
   }
 }
 
-check('fall highlight is pumpkin', SEASON_PALETTES.fall.colors.highlight === '#d74100');
+check('fall highlight is deep pumpkin', SEASON_PALETTES.fall.colors.highlight === '#c43b00');
+check('light text can be an off-white', readableTextOn('#1d3150', '#f8f0e3') === '#f8f0e3');
 check('ski sports is rosewood', SEASON_PALETTES.ski.colors.sports === '#9a5248');
 check('white on black is 21:1', Math.abs(contrastRatio('#ffffff', '#000000') - 21) < 0.01);
 check('canary takes dark text', readableTextOn('#ffe600') === '#111111');
@@ -92,8 +95,8 @@ check(
   seasonBlock('holiday').includes('--color-category-family-text: #111111;')
 );
 check(
-  'wildflower family card takes white text',
-  seasonBlock('wildflower').includes('--color-category-family-text: #ffffff;')
+  'wildflower family card takes the off-white page color',
+  seasonBlock('wildflower').includes('--color-category-family-text: #f8f7f0;')
 );
 check(
   'fall announcement band is amber',
@@ -104,8 +107,12 @@ check(
   seasonBlock('wildflower').includes('--color-announcement-bg: #f0b62b;')
 );
 check(
-  'fall highlight text is white (pumpkin)',
-  seasonBlock('fall').includes('--color-secondary-text: #ffffff;')
+  'fall highlight text is cream (pumpkin)',
+  seasonBlock('fall').includes('--color-secondary-text: #f8f0e3;')
+);
+check(
+  'Tailwind white follows the season off-white',
+  css.includes('--color-white: var(--color-surface);')
 );
 check('css styles untagged events', css.includes('.bg-event-default'));
 check('css styles give-back events', css.includes('.bg-event-give-back'));

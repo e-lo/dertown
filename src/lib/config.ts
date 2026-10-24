@@ -196,7 +196,7 @@ export const SEASON_PALETTES: Record<SeasonId, SeasonPalette> = {
       page: '#f8f0e3',
       ink: '#422625',
       hero: '#2b4a33',
-      highlight: '#d74100',
+      highlight: '#c43b00',
       sports: '#6a010f',
       accent: '#ff9b0c',
       outdoors: '#334963',

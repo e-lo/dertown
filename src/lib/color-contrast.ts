@@ -19,7 +19,10 @@ export function contrastRatio(a: string, b: string): number {
   return (light + 0.05) / (dark + 0.05);
 }
 
-/** White or near-black, whichever reads better on `bg`. */
-export function readableTextOn(bg: string): typeof DARK_TEXT | typeof LIGHT_TEXT {
-  return contrastRatio(bg, LIGHT_TEXT) >= contrastRatio(bg, DARK_TEXT) ? LIGHT_TEXT : DARK_TEXT;
+/**
+ * The light color or near-black, whichever reads better on `bg`. The light
+ * color defaults to white; the website passes the season's off-white instead.
+ */
+export function readableTextOn(bg: string, light: string = LIGHT_TEXT): string {
+  return contrastRatio(bg, light) >= contrastRatio(bg, DARK_TEXT) ? light : DARK_TEXT;
 }

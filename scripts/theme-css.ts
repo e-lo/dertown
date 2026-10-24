@@ -69,13 +69,13 @@ function plainVars(id: SeasonId): Record<string, string> {
   const { colors, announcement } = SEASON_PALETTES[id];
   const band = colors[announcement];
   const vars: Record<string, string> = {
-    'color-primary-text': readableTextOn(colors.hero),
-    'color-secondary-text': readableTextOn(colors.highlight),
+    'color-primary-text': readableTextOn(colors.hero, colors.page),
+    'color-secondary-text': readableTextOn(colors.highlight, colors.page),
     'color-announcement-bg': band,
-    'color-announcement-text': readableTextOn(band),
+    'color-announcement-text': readableTextOn(band, colors.page),
   };
   for (const [category, slot] of Object.entries(CATEGORY_SLOTS)) {
-    vars[`color-category-${category}-text`] = readableTextOn(colors[slot]);
+    vars[`color-category-${category}-text`] = readableTextOn(colors[slot], colors.page);
   }
   return vars;
 }
@@ -164,6 +164,10 @@ ${lines(utilityVars(defaultSeason))}
 
   /* Colors that stay the same all year */
 ${lines(fixedVars)}
+
+  /* White is the season's off-white page color, so bg-white, text-white and
+     border-white match the rest of the page instead of standing out as pure white */
+  --color-white: var(--color-surface);
 
   /* Old palette names, mapped onto the seasonal colors */
 ${lines(legacyVars)}

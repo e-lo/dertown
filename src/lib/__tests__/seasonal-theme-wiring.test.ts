@@ -52,6 +52,15 @@ check('calendar.js no longer hardcodes canary', !calendar.toLowerCase().includes
 check('calendar.js no longer hardcodes indigo', !calendar.toLowerCase().includes('#4740cb'));
 check('calendar.js reads the seasonal category variables', calendar.includes('--color-category-'));
 
+const literalWhite = /(background(-color)?|color):\s*(white|#fff|#ffffff)\s*[;}]/;
+for (const p of [
+  'src/styles/components.css',
+  'src/components/MapboxMap.astro',
+  'src/pages/events/map.astro',
+]) {
+  check(`${p} uses the season off-white instead of pure white`, !literalWhite.test(read(p)));
+}
+
 console.log(
   failures === 0 ? '\n✅ All seasonal wiring checks passed' : `\n❌ ${failures} failure(s)`
 );
