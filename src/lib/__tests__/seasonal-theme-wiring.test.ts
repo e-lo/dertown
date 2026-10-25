@@ -61,6 +61,16 @@ for (const p of [
   check(`${p} uses the season off-white instead of pure white`, !literalWhite.test(read(p)));
 }
 
+const navbar = read('src/components/Navbar.astro');
+check('menu highlights are not light gray on off-white', !/hover:bg-gray-(50|100)\b/.test(navbar));
+check('menu highlights use the season primary', navbar.includes('hover:bg-primary'));
+
+const adminLayout = read('src/components/AdminLayout.astro');
+check(
+  'admin page background is the season dark primary',
+  /<body[^>]*\bbg-primary-dark\b/.test(adminLayout) && !/<body[^>]*from-gray-50/.test(adminLayout)
+);
+
 console.log(
   failures === 0 ? '\n✅ All seasonal wiring checks passed' : `\n❌ ${failures} failure(s)`
 );

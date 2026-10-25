@@ -57,6 +57,10 @@ function utilityVars(id: SeasonId): Record<string, string> {
     'color-secondary': colors.highlight,
     'color-surface': colors.page,
     'color-text': colors.ink,
+    // Light grays (hovers, panels, dashed boxes) are shades of the season's page
+    // color, so they read as deliberate rather than near-white on off-white.
+    'color-gray-50': mix(colors.page, colors.ink, 0.05),
+    'color-gray-100': mix(colors.page, colors.ink, 0.1),
   };
   for (const [category, slot] of Object.entries(CATEGORY_SLOTS)) {
     vars[`color-category-${category}`] = colors[slot];
