@@ -1,5 +1,6 @@
 ---
 import Badge from './ui/Badge.astro';
+import FeaturedStar from './ui/FeaturedStar.astro';
 import { formatEventDate, formatTime, isToday, getEventUrl, getCategoryBadgeVariant } from '../lib/event-utils';
 import EventImage from './EventImage.astro';
 import { resolveFraming } from '../lib/image-display';
@@ -26,10 +27,10 @@ const cardFraming = event.external_image_url
     />
   )}
 
-  <!-- Featured and Today Badges (top-right) -->
+  <!-- Featured star and Today badge (top-right) -->
   {(event.featured || eventIsToday) && (
     <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-      {event.featured && <Badge variant="featured">Featured Event</Badge>}
+      {event.featured && <FeaturedStar />}
       {eventIsToday && <Badge variant="today">Today</Badge>}
     </div>
   )}

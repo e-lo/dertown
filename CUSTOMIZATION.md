@@ -15,7 +15,7 @@ All **customizable settings** are centralized in two files:
 ### What's Customizable vs. Design System
 
 **Customizable** (in config.ts):
-- Colors: palette, category colors, notification colors
+- Colors: seasonal palettes, category grouping, notification colors
 - Fonts: font families
 - Location: default coordinates and map center
 - Map styles: basemap URLs and zoom levels
@@ -140,124 +140,102 @@ interface Props {
 
 ## Color Customization
 
-### Color Palette (Base Colors)
+### Seasonal palettes
 
-The base color palette is defined in `/src/lib/config.ts`. This contains 9 core colors that are reused throughout the application:
+The site changes palette with the season. The palettes live in `SEASON_PALETTES` in `/src/lib/config.ts`:
+
+| Season | Months | Palette |
+|---|---|---|
+| `ski` | January–March | Sapphire ash |
+| `wildflower` | April–August | Wildflower |
+| `fall` | September–October | Mountain sunset |
+| `holiday` | November–December | Nordic |
+
+Each season fills the same seven color roles ("slots"):
+
+| Slot | Used for |
+|---|---|
+| `page` | Page background |
+| `ink` | Body text, and the Civic and School cards |
+| `hero` | Hero band, buttons and links, and the Town and Arts & Culture cards |
+| `highlight` | Featured |
+| `sports` | Sports (always a red, for the Cascade Kodiaks) |
+| `accent` | Family, Seniors and Give Back |
+| `outdoors` | Nature, Recreation and Outdoors |
+
+`announcement` names the slot that fills the announcement band (`'highlight'` or `'accent'`):
 
 ```typescript
-export const COLOR_PALETTE = {
+fall: {
+  label: 'Mountain sunset',
+  months: [9, 10],
+  announcement: 'accent',
   colors: {
-    palatinateBlue: '#4740cbff',    // Primary blue
-    canary: '#ffe600ff',             // Yellow
-    pigmentGreen: '#4daa57ff',       // Green
-    blueGreen: '#219ebcff',          // Teal
-    fandango: '#c0268cff',           // Magenta
-    calPolyGreen: '#14532dff',       // Dark green
-    darkSlateGray: '#2f4445ff',      // Dark gray
-    brandeisBlue: '#2472fcff',       // Bright blue
-    neonBlue: '#5460f9ff',           // Neon blue
+    page: '#f8f0e3',
+    ink: '#422625',
+    hero: '#2b4a33',
+    highlight: '#d74100',
+    sports: '#6a010f',
+    accent: '#ff9b0c',
+    outdoors: '#334963',
   },
+},
+```
+
+**Rules the tests enforce** (`npm run test:seasonal-theme`):
+- Every month belongs to exactly one season.
+- A season uses at most seven distinct colors.
+- White text on `hero` reaches 4.5:1 contrast.
+- Every card color and the announcement band reach 4.5:1 with either white or `#111111` text. The generator picks whichever reads better, so pale colors get dark text automatically.
+
+### How the season is chosen
+
+`<html>` carries `data-season="…"`. A small inline script in the page head (`/src/components/SeasonScript.astro`) sets it from the visitor's date before the page draws. Because the date is checked in the browser, cached pages switch seasons on their own, with no cache purge.
+
+To preview a season, add `?season=fall` (or `holiday`, `ski`, `wildflower`) to any URL.
+
+### Event category colors
+
+Categories don't have their own colors. Each one points at a slot through `CATEGORY_SLOTS` in `config.ts`, and related categories share a slot:
+
+```typescript
+export const CATEGORY_SLOTS = {
+  town: 'hero',
+  'arts-culture': 'hero',
+  featured: 'highlight',
+  sports: 'sports',
+  family: 'accent',
+  seniors: 'accent',
+  'give-back': 'accent',
+  nature: 'outdoors',
+  recreation: 'outdoors',
+  outdoors: 'outdoors',
+  civic: 'ink',
+  school: 'ink',
 };
 ```
 
-These colors form the foundation. No new hex codes should be added elsewhere—instead, use colors from this palette.
+The generator turns each entry into a `.bg-event-<category>` class with the season's background and a readable text color. List cards, tag pills, badges and calendar entries all use these classes. Tags with no entry fall back to `.bg-event-default` (the hero color).
 
-### Color Assignments (How Palette Colors Are Used)
+### Fixed colors
 
-The `COLORS` object maps palette colors to specific uses:
+`COLORS` in `config.ts` holds colors that stay the same all year: neutral grays, the border and link colors, and the error/success/warning/info notification colors.
 
-```typescript
-export const COLORS = {
-  primary: COLOR_PALETTE.colors.palatinateBlue,
-  secondary: COLOR_PALETTE.colors.canary,
-  eventCategories: {
-    'arts-culture': COLOR_PALETTE.colors.canary,
-    'civic': COLOR_PALETTE.colors.darkSlateGray,
-    'family': COLOR_PALETTE.colors.fandango,
-    // ... etc
-  },
-  notifications: {
-    error: { text: '#d32f2f', bg: '#ffeaea' },
-    success: { text: '#388e3c', bg: '#e8f5e9' },
-    warning: { text: '#f57c00', bg: '#fef3c7' },
-    info: { text: '#1976d2', bg: '#e3f2fd' },
-  },
-};
-```
+### CSS variables & Tailwind tokens (generated)
 
-#### CSS variables & Tailwind tokens (generated)
+`config.ts` is the **single source of truth**. `npm run theme:generate` runs `/scripts/generate-theme.ts`, which writes `/src/styles/theme.generated.css`. Don't edit that file by hand. The generator also runs automatically on `npm run dev` via the `predev` hook. Commit the regenerated file, because the production build uses the committed copy.
 
-`config.ts` is the **single source of truth**. A build step generates
-`/src/styles/theme.generated.css` from it — you do **not** edit that file (or
-hand-maintain CSS variables) anymore.
+The generated file contains:
+- **A Tailwind `@theme` block** with the semantic colors (`primary`, `primary-light`, `primary-dark`, `secondary`, `surface`, `text`, `category-*`). These become utilities such as `bg-primary`, `text-primary` and `from-primary`.
+- **One `:root[data-season="…"]` block per season** that overrides those variables, plus the `*-text`, `--color-announcement-bg/-text` and `--gradient-hero` values.
+- **The `.bg-event-*` category rules.**
+- **Older names** (`--palette-canary`, `bg-fandango`, `bg-blue-green`, …), mapped onto the seasonal colors so existing markup keeps working.
 
-The generated file emits a Tailwind v4 `@theme` block, so every color/font
-becomes both a CSS variable **and** a real utility class automatically:
-
-```css
-@theme {
-  --color-fandango: #c0268cff;        /* → bg-fandango, text-fandango, border-fandango, … */
-  --color-category-family: #c0268cff; /* → bg-category-family, text-category-family, … */
-  --font-sans: 'Inter', …;            /* → font-sans */
-}
-:root {
-  --palette-fandango: var(--color-fandango);  /* back-compat alias */
-  --color-error-text: #d32f2f;                /* used via var() */
-}
-```
-
-**Key principle:** change a color in **`config.ts` only**, then run
-`npm run theme:generate` to refresh `theme.generated.css` and commit it (it also
-runs automatically on `npm run dev` via the `predev` hook). The committed
-generated file is what the production build uses, so the build itself doesn't
-depend on the generator. No more keeping two files in sync by hand.
-
-> `/src/styles/theme.css` now holds only component/FullCalendar styles that
-> aren't expressible as plain utilities — not color definitions.
-
-### Event Category Colors
-
-Each event category has its own color. The available categories are:
-- arts-culture, civic, family, nature, recreation, outdoors, school, seniors, sports, town
-
-**To customize category colors:**
-
-Edit `eventCategories` in the `COLORS` object in `/src/lib/config.ts`:
-
-```typescript
-eventCategories: {
-  'arts-culture': COLOR_PALETTE.colors.canary,        // References palette
-  'civic': COLOR_PALETTE.colors.darkSlateGray,
-  'family': COLOR_PALETTE.colors.fandango,
-  // ... more categories
-}
-```
-
-Then add corresponding CSS variables in `/src/styles/theme.css`:
-
-```css
---color-category-arts-culture: var(--palette-canary);
---color-category-civic: var(--palette-dark-slate-gray);
-/* ... etc */
-```
-
-**Best practice:** Always reference palette colors (not hex codes). This keeps the color palette single-sourced.
+Use the semantic utilities (`bg-primary`, `text-primary`, `bg-surface`) in new markup, not fixed Tailwind colors like `indigo-600`, so the page follows the season. Admin pages still use some fixed indigo classes.
 
 ### Map Marker Colors
 
-Marker colors for location hierarchies are configured in `/src/lib/config.ts`:
-
-```typescript
-export const MARKER_COLORS = {
-  current: COLORS.primary,              // Current location
-  parent: COLORS.eventCategories.family, // Parent in hierarchy
-  sibling: '#6b7280',                   // Related location (muted gray)
-  child: COLOR_PALETTE.colors.pigmentGreen, // Child location
-  event: COLORS.primary,                // Event marker
-};
-```
-
-Reference palette or color assignment colors (not raw hex codes) where possible.
+Marker colors for location hierarchies are in `MARKER_COLORS` in `config.ts`. They're drawn from the fall palette's slots (`hero`, `accent`, `outdoors`) plus the fixed muted gray.
 
 ---
 
@@ -314,7 +292,7 @@ Import and use config values directly:
 
 ```astro
 ---
-import { DEFAULT_LOCATION, MAP_STYLES, COLOR_PALETTE } from '@/lib/config';
+import { DEFAULT_LOCATION, MAP_STYLES, SEASON_PALETTES } from '@/lib/config';
 
 const coords = DEFAULT_LOCATION.coordinates;
 const mapStyle = MAP_STYLES.detail.url;
@@ -338,39 +316,27 @@ Use `define:vars` to pass config values to client scripts:
 
 ## Common Customization Tasks
 
-### Task: Change Primary Color (Brand Update)
+### Task: Change a Season's Colors
 
-1. **Update the palette** in `config.ts`:
-   ```typescript
-   export const COLOR_PALETTE = {
-     colors: {
-       palatinateBlue: '#your-new-brand-color',  // Change this
-       // ... other colors stay the same
-     }
-   };
-   ```
+1. **Edit the season** in `SEASON_PALETTES` in `config.ts`, for example `fall.colors.hero`.
+2. **Run the checks:** `npm run test:seasonal-theme` confirms every card and the announcement band stay readable and the season stays at seven colors or fewer.
+3. **Regenerate the CSS:** `npm run theme:generate`, then commit `src/styles/theme.generated.css`.
+4. **Preview it:** open any page with `?season=fall`.
 
-2. **Mirror the change in CSS** `/src/styles/theme.css`:
-   ```css
-   --palette-palatinate-blue: #your-new-brand-color;
-   ```
-
-3. All components using `--color-primary` will automatically update.
+To change which months a season covers, edit its `months`. Each month 1–12 must belong to exactly one season.
 
 ### Task: Add a New Event Category
 
-1. **Add the category to the database** (tags table) first
-2. **Add color mapping** in `config.ts`:
+1. **Add the category to the database** (tags table) first.
+2. **Pick a slot for it** in `CATEGORY_SLOTS` in `config.ts`:
    ```typescript
-   eventCategories: {
+   export const CATEGORY_SLOTS = {
      // ... existing categories
-     'workshop': COLOR_PALETTE.colors.neonBlue,  // Use palette color
-   }
+     workshop: 'accent',
+   };
    ```
-3. **Add CSS variable** in `/src/styles/theme.css`:
-   ```css
-   --color-category-workshop: var(--palette-neon-blue);
-   ```
+3. **Add it to `CONSTANTS.tagCategories`**, and to `TAG_SLUGS` in `mobile/lib/theme.ts` if the app should color it.
+4. **Regenerate the CSS:** `npm run theme:generate`. That creates `.bg-event-workshop` for every season.
 
 ### Task: Adjust Notification Colors
 
@@ -384,13 +350,7 @@ notifications: {
 }
 ```
 
-Then add corresponding CSS variables in `theme.css`:
-
-```css
---color-error-text: #your-error-text;
---color-error-bg: #your-error-bg;
-/* ... etc */
-```
+Then run `npm run theme:generate` to refresh the CSS variables.
 
 ### Task: Switch Map Provider
 
@@ -440,7 +400,7 @@ After modifying `config.ts`, check these areas to ensure your changes look corre
 ### Event colors appearing wrong
 - Verify hex color format is correct: `#RRGGBB` or `#RRGGBBAA`
 - Check text color for contrast with background
-- Ensure category name in `eventCategories` matches exactly with tag names in database
+- Ensure the category name in `CATEGORY_SLOTS` matches the tag name in the database exactly (kebab-case)
 
 ---
 

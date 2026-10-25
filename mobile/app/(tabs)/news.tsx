@@ -45,10 +45,10 @@ function isNew(item: MobileAnnouncement): boolean {
 
 function AnnouncementCard({ item }: { item: MobileAnnouncement }) {
   const fresh = isNew(item);
-  const bgColor = fresh ? THEME.canary : THEME.cardBackground;
-  // On canary yellow use near-black text (matches Arts+Culture cards); on dark card use white text
-  const textColor       = fresh ? '#111111' : THEME.textPrimary;
-  const textColorMuted  = fresh ? 'rgba(0,0,0,0.6)' : THEME.textSecondary;
+  const bgColor = fresh ? THEME.accent : THEME.cardBackground;
+  // New items sit on the season accent, so take its readable text color; older ones are dark cards
+  const textColor       = fresh ? THEME.onAccent : THEME.textPrimary;
+  const textColorMuted  = fresh ? THEME.onAccentMuted : THEME.textSecondary;
 
   const handlePress = () => {
     if (item.link) {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   submitBannerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: THEME.canary,
+    color: THEME.accent,
   },
   // Full-bleed row — matches EventRow visual rhythm
   row: {
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#ffe600',
+    color: THEME.accent,
     letterSpacing: 0.5,
   },
   message: {

@@ -34,7 +34,7 @@ function CalendarFeedBanner({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.banner} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.bannerIcon}>
-        <Icon name="calendar" size={20} color={THEME.canary} />
+        <Icon name="calendar" size={20} color={THEME.accent} />
       </View>
       <View style={styles.bannerText}>
         <Text style={styles.bannerTitle}>Subscribe to Calendar Feed</Text>
@@ -71,7 +71,7 @@ function FollowingRow({
     <View style={styles.followingRow}>
       <TouchableOpacity style={styles.followingMain} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.followingIconWrap}>
-          <Icon name={iconName} size={18} color={THEME.canary} />
+          <Icon name={iconName} size={18} color={THEME.accent} />
         </View>
         <View style={styles.followingText}>
           <Text style={styles.followingName} numberOfLines={1}>{item.entity.name}</Text>
@@ -87,7 +87,7 @@ function FollowingRow({
       ) : null}
       {/* Tap star again to unfollow */}
       <TouchableOpacity style={styles.followingStarBtn} onPress={onUnfollow}>
-        <Icon name="star" size={16} color={THEME.canary} />
+        <Icon name="star" size={16} color={THEME.accent} />
       </TouchableOpacity>
     </View>
   );
@@ -256,7 +256,7 @@ export default function StarredScreen() {
             />
           ) : !hasDisplayEvents && followedLoading ? (
             <View style={styles.followedLoading}>
-              <ActivityIndicator size="small" color={THEME.canary} />
+              <ActivityIndicator size="small" color={THEME.accent} />
               <Text style={styles.followedLoadingText}>Loading events…</Text>
             </View>
           ) : !hasDisplayEvents ? (
@@ -277,7 +277,7 @@ export default function StarredScreen() {
                   {followedLoading && (
                     <ActivityIndicator
                       size="small"
-                      color={THEME.canary}
+                      color={THEME.accent}
                       style={styles.refreshIndicator}
                     />
                   )}
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,230,0,0.12)',
+    backgroundColor: THEME.accentTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,230,0,0.1)',
+    backgroundColor: THEME.accentTint,
     alignItems: 'center',
     justifyContent: 'center',
   },

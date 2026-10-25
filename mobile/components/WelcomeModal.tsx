@@ -24,7 +24,7 @@ function MountainLogo() {
       <Path
         d="M10,60 L40,20 L60,40 L80,30 L90,40"
         fill="none"
-        stroke={THEME.canary}
+        stroke={THEME.accent}
         strokeWidth={4}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -32,7 +32,7 @@ function MountainLogo() {
       <Path
         d="M10,60 L40,20 L60,60"
         fill="none"
-        stroke={THEME.canary}
+        stroke={THEME.accent}
         strokeWidth={4}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: THEME.canary,
+    color: THEME.accent,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 10,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  bulletDot:  { fontSize: 15, color: THEME.canary, lineHeight: 22 },
+  bulletDot:  { fontSize: 15, color: THEME.accent, lineHeight: 22 },
   bulletText: { flex: 1, fontSize: 15, color: THEME.textSecondary, lineHeight: 22 },
 
   feature: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.1)',
   },
   ctaBtn: {
-    backgroundColor: THEME.canary,
+    backgroundColor: THEME.accent,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   ctaBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111111',
+    color: THEME.onAccent,
   },
   learnMoreBtn: {
     alignItems: 'center',

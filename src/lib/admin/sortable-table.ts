@@ -254,18 +254,29 @@ export function derivedColumn<T>(
   };
 }
 
-/** Helper: actions column (View + Edit links/buttons) */
+export type ExtraActionLink<T> = { icon: string; label: string; getHref: (row: T) => string };
+
+/** Helper: actions column (extra links + View + Edit + optional Delete) */
 export function actionsColumn<T extends { id: string }>(
   key: string,
   getViewHref: (row: T) => string,
-  getEditAction: (row: T) => { href?: string; onclick?: string }
+  getEditAction: (row: T) => { href?: string; onclick?: string },
+  options: { getDeleteOnclick?: (row: T) => string; extraLinks?: ExtraActionLink<T>[] } = {}
 ): SortableTableColumn<T> {
+  const { getDeleteOnclick, extraLinks = [] } = options;
+  const buttonCount = 2 + extraLinks.length + (getDeleteOnclick ? 1 : 0);
   return {
     key,
     label: '',
     sortable: false,
-    headerClass: 'w-24',
+    headerClass: buttonCount >= 4 ? 'w-40' : buttonCount === 3 ? 'w-32' : 'w-24',
     render: (row) => {
+      const extraEls = extraLinks
+        .map(
+          (link) =>
+            `<a href="${escapeHtml(link.getHref(row))}" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;text-decoration:none;" aria-label="${escapeHtml(link.label)}"><span class="material-symbols-outlined" style="font-size:1.25rem;">${escapeHtml(link.icon)}</span><span class="tooltip">${escapeHtml(link.label)}</span></a>`
+        )
+        .join('');
       const viewHref = getViewHref(row);
       const edit = getEditAction(row);
       const viewLink = `<a href="${escapeHtml(viewHref)}" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;margin-right:0.25rem;text-decoration:none;" target="_blank" aria-label="View"><span class="material-symbols-outlined" style="font-size:1.25rem;">visibility</span><span class="tooltip">View</span></a>`;
@@ -275,7 +286,12 @@ export function actionsColumn<T extends { id: string }>(
       } else {
         editEl = `<button type="button" onclick="${escapeHtml(edit.onclick ?? '')}" class="icon-btn btn-edit" style="padding:0.5rem;min-width:auto;" aria-label="Edit"><span class="material-symbols-outlined" style="font-size:1.25rem;">edit</span><span class="tooltip">Edit</span></button>`;
       }
-      return { html: `<span style="white-space:nowrap;">${viewLink}${editEl}</span>` };
+      const deleteEl = getDeleteOnclick
+        ? `<button type="button" onclick="${escapeHtml(getDeleteOnclick(row))}" class="icon-btn btn-reject" style="padding:0.5rem;min-width:auto;margin-left:0.25rem;" aria-label="Delete"><span class="material-symbols-outlined" style="font-size:1.25rem;">delete</span><span class="tooltip">Delete</span></button>`
+        : '';
+      return {
+        html: `<span style="white-space:nowrap;">${extraEls}${viewLink}${editEl}${deleteEl}</span>`,
+      };
     },
   };
 }

@@ -44,7 +44,7 @@ export default function WebViewScreen() {
           startInLoadingState
           renderLoading={() => (
             <View style={styles.loading}>
-              <ActivityIndicator color={THEME.canary} size="large" />
+              <ActivityIndicator color={THEME.accent} size="large" />
             </View>
           )}
         />

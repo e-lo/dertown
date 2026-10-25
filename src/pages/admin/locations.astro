@@ -21,11 +21,11 @@ const { role } = await checkAdminAccess(Astro.cookies);
   </Fragment>
 
   <Fragment slot="modals">
-    <AddLocationModal allowMerge={role === 'super_admin'} />
+    <AddLocationModal superAdminTools={role === 'super_admin'} />
   </Fragment>
 
   <div id="locations-loading" class="loading">Loading locations...</div>
-  <div id="locations-container"></div>
+  <div id="locations-container" data-can-delete={role === 'super_admin' ? 'true' : undefined}></div>
 </AdminLayout>
 
 <script>
@@ -37,8 +37,11 @@ const { role } = await checkAdminAccess(Astro.cookies);
     iconBadgeColumn,
     actionsColumn,
   } from '../../lib/admin/sortable-table';
+  import { confirmAndDelete } from '../../lib/admin/delete-entity';
 
   type LocationRow = { id: string; name?: string; address?: string; status?: string; latitude?: number; longitude?: number; updated_at?: string };
+
+  const canDelete = document.getElementById('locations-container')?.dataset.canDelete === 'true';
 
   const LOCATION_COLUMNS = [
     textColumn<LocationRow>('name', 'Name', 'name'),
@@ -57,7 +60,8 @@ const { role } = await checkAdminAccess(Astro.cookies);
     actionsColumn<LocationRow>(
       'actions',
       (loc) => `/locations/${loc.id}`,
-      (loc) => ({ onclick: `editLocation('${loc.id}')` })
+      (loc) => ({ onclick: `editLocation('${loc.id}')` }),
+      { getDeleteOnclick: canDelete ? (loc) => `deleteLocation('${loc.id}')` : undefined }
     ),
   ];
 
@@ -94,6 +98,11 @@ const { role } = await checkAdminAccess(Astro.cookies);
 
   window.editLocation = function(id) {
     window.openAddLocationModal?.(id);
+  };
+
+  window.deleteLocation = async function(id: string) {
+    const name = locations.find((r) => r.id === id)?.name || 'this location';
+    if (await confirmAndDelete('locations', id, name)) loadLocations();
   };
 
   window.addEventListener('admin:location-created', () => loadLocations());

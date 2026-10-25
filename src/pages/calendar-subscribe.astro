@@ -19,14 +19,14 @@ setPublicCache(Astro.response.headers);
   title="Subscribe to Calendar - Der Town"
   description="Subscribe to Der Town community events calendar. Get automatic updates for local events, activities, and community gatherings."
 >
-  <div class="min-h-screen bg-linear-to-br from-indigo-600 to-indigo-900 py-8">
+  <div class="min-h-screen bg-linear-to-br from-primary to-primary-dark py-8">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">
           Subscribe to Calendar
         </h1>
-        <p class="text-lg text-indigo-100">
+        <p class="text-lg text-primary-light">
           Stay up-to-date with Der Town events
         </p>
       </div>
@@ -59,7 +59,7 @@ setPublicCache(Astro.response.headers);
         <div id="subscription-link-section" class="mt-8 hidden">
           <div class="mb-4">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Live Calendar Subscription Link</h2>
-            <p class="text-sm text-gray-600 mb-2">This link is a live feed. Add it to your calendar app to always stay up to date. <span class="font-semibold text-indigo-700">Do not download as .ics for ongoing updates.</span></p>
+            <p class="text-sm text-gray-600 mb-2">This link is a live feed. Add it to your calendar app to always stay up to date. <span class="font-semibold text-primary">Do not download as .ics for ongoing updates.</span></p>
             <div class="flex items-center gap-2">
               <code id="subscription-link" class="bg-gray-100 px-3 py-2 rounded text-sm break-all"></code>
               <button id="copy-link-btn" type="button" class="btn btn-secondary btn-sm flex items-center" aria-label="Copy link">
@@ -89,7 +89,7 @@ setPublicCache(Astro.response.headers);
               </div>
               <ol class="list-decimal list-inside space-y-1 text-gray-700 text-sm ml-8">
                 <li>Copy the link above.</li>
-                <li>Go to <a href='https://calendar.google.com' target='_blank' class='text-indigo-700 underline'>Google Calendar</a> on desktop.</li>
+                <li>Go to <a href='https://calendar.google.com' target='_blank' class='text-primary underline'>Google Calendar</a> on desktop.</li>
                 <li>On the left, click "+" next to "Other calendars" → "From URL".</li>
                 <li>Paste the link and click "Add calendar". It will stay up to date automatically.</li>
               </ol>
@@ -101,7 +101,7 @@ setPublicCache(Astro.response.headers);
               </div>
               <ol class="list-decimal list-inside space-y-1 text-gray-700 text-sm ml-8">
                 <li>Copy the link above.</li>
-                <li>Go to <a href='https://outlook.live.com/calendar/' target='_blank' class='text-indigo-700 underline'>Outlook Calendar</a> on desktop.</li>
+                <li>Go to <a href='https://outlook.live.com/calendar/' target='_blank' class='text-primary underline'>Outlook Calendar</a> on desktop.</li>
                 <li>Click "Add calendar" → "Subscribe from web".</li>
                 <li>Paste the link and click "Import". It will stay up to date automatically.</li>
               </ol>

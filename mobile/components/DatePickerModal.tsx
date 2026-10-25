@@ -238,12 +238,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellSelected: {
-    backgroundColor: THEME.canary,
+    backgroundColor: THEME.accent,
     borderRadius: 100,
   },
   cellToday: {
     borderWidth: 1,
-    borderColor: THEME.canary,
+    borderColor: THEME.accent,
     borderRadius: 100,
   },
   dayNum: {
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     color: THEME.textPrimary,
   },
   dayNumSelected: {
-    color: '#111827',
+    color: THEME.onAccent,
     fontWeight: '700',
   },
 });

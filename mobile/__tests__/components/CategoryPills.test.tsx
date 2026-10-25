@@ -1,6 +1,8 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { CategoryPills } from '../../components/CategoryPills';
+import { getCategoryTextColor } from '../../lib/theme';
 
 const CATEGORIES = ['arts-culture', 'nature', 'family'];
 
@@ -53,5 +55,10 @@ describe('CategoryPills', () => {
       />
     );
     expect(screen.getByText('All')).toBeTruthy();
+  });
+
+  it('labels a selected pill in the readable text color for its background', () => {
+    render(<CategoryPills categories={['Family']} selected="Family" onSelect={jest.fn()} />);
+    expect(StyleSheet.flatten(screen.getByText('Family').props.style).color).toBe(getCategoryTextColor('Family'));
   });
 });

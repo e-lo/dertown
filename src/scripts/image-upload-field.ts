@@ -155,13 +155,13 @@ export function initImageDropZone(opts: ImageDropZoneOptions): void {
   ['dragenter', 'dragover'].forEach((evt) =>
     dropZone.addEventListener(evt, (e) => {
       e.preventDefault();
-      dropZone.classList.add('ring-2', 'ring-indigo-400');
+      dropZone.classList.add('ring-2', 'ring-primary');
     })
   );
   ['dragleave', 'drop'].forEach((evt) =>
     dropZone.addEventListener(evt, (e) => {
       e.preventDefault();
-      dropZone.classList.remove('ring-2', 'ring-indigo-400');
+      dropZone.classList.remove('ring-2', 'ring-primary');
     })
   );
   dropZone.addEventListener('drop', (e) => {

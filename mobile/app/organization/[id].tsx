@@ -63,7 +63,7 @@ export default function OrganizationScreen() {
           <TouchableOpacity style={styles.centeredBackBtn} onPress={() => router.back()}>
             <Icon name="chevron-left" size={26} color={THEME.textPrimary} />
           </TouchableOpacity>
-          <ActivityIndicator color={THEME.canary} size="large" />
+          <ActivityIndicator color={THEME.accent} size="large" />
         </View>
       )}
 
@@ -102,7 +102,7 @@ export default function OrganizationScreen() {
                 <Icon
                   name="star"
                   size={24}
-                  color={isStarred ? THEME.canary : 'rgba(255,255,255,0.3)'}
+                  color={isStarred ? THEME.accent : 'rgba(255,255,255,0.3)'}
                 />
               </TouchableOpacity>
             </View>
@@ -116,7 +116,7 @@ export default function OrganizationScreen() {
                 onPress={() => openMaps(org.location!)}
                 activeOpacity={0.7}
               >
-                <Icon name="map" size={18} color={THEME.canary} />
+                <Icon name="map" size={18} color={THEME.accent} />
                 <View style={styles.detailText}>
                   <Text style={styles.detailLabel}>{org.location.name}</Text>
                   {org.location.address ? (
@@ -133,7 +133,7 @@ export default function OrganizationScreen() {
                 onPress={() => WebBrowser.openBrowserAsync(org.website!)}
                 activeOpacity={0.7}
               >
-                <Icon name="external-link" size={18} color={THEME.canary} />
+                <Icon name="external-link" size={18} color={THEME.accent} />
                 <Text style={[styles.detailLabel, { flex: 1 }]} numberOfLines={1}>
                   {org.website.replace(/^https?:\/\//, '')}
                 </Text>
@@ -147,7 +147,7 @@ export default function OrganizationScreen() {
                 onPress={() => openTel(org.phone!)}
                 activeOpacity={0.7}
               >
-                <Icon name="phone" size={18} color={THEME.canary} />
+                <Icon name="phone" size={18} color={THEME.accent} />
                 <Text style={[styles.detailLabel, { flex: 1 }]}>{org.phone}</Text>
                 <Icon name="chevron-right" size={16} color={THEME.textMuted} />
               </TouchableOpacity>
@@ -159,7 +159,7 @@ export default function OrganizationScreen() {
                 onPress={() => openMailto(org.email!)}
                 activeOpacity={0.7}
               >
-                <Icon name="mail" size={18} color={THEME.canary} />
+                <Icon name="mail" size={18} color={THEME.accent} />
                 <Text style={[styles.detailLabel, { flex: 1 }]} numberOfLines={1}>
                   {org.email}
                 </Text>
@@ -191,7 +191,7 @@ export default function OrganizationScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.subscribeBtnInner}>
-                <Icon name="calendar" size={16} color={THEME.canary} />
+                <Icon name="calendar" size={16} color={THEME.accent} />
                 <Text style={styles.subscribeBtnText}>Subscribe to Calendar</Text>
               </View>
               <Icon name="chevron-right" size={16} color={THEME.textMuted} />
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: THEME.canary,
+    color: THEME.accent,
     letterSpacing: 1,
     marginBottom: 6,
   },

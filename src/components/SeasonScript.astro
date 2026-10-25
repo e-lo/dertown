@@ -1,0 +1,21 @@
+---
+/**
+ * Picks the seasonal palette before first paint. Pages are CDN-cached, so the
+ * server's `data-season` can be stale; this corrects it from the visitor's date.
+ * `?season=fall` (or holiday, ski, wildflower) previews a season.
+ *
+ * The inline script can't import, so it repeats resolveSeason() from config.ts:
+ * a known season name from the query wins, otherwise the month decides.
+ */
+import { SEASON_IDS, getSeasonForMonth } from '../lib/config';
+
+const seasonIds = SEASON_IDS;
+const byMonth = Array.from({ length: 12 }, (_, i) => getSeasonForMonth(i + 1));
+---
+
+<script is:inline define:vars={{ seasonIds, byMonth }}>
+  const requested = new URLSearchParams(location.search).get('season');
+  document.documentElement.dataset.season = seasonIds.includes(requested)
+    ? requested
+    : byMonth[new Date().getMonth()];
+</script>
