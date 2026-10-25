@@ -101,9 +101,37 @@ function runTests(): boolean {
     check(
       'children of a parent outside the window group under the parent id; mixed times omit the time',
       orphanChildren.map((e) => ({ id: e.id, whenLabel: e.whenLabel })),
-      [{ id: 'gone', whenLabel: 'Saturdays, Sundays & Mondays' }]
+      [{ id: 'gone', whenLabel: 'Mondays, Saturdays & Sundays' }]
     ) && allTestsPassed;
 
+  allTestsPassed =
+    check(
+      'series weekdays are listed Monday-first in calendar order',
+      selectIssueEvents(
+        [
+          row({
+            id: 'r1',
+            parent_event_id: 'rb',
+            start_date: '2026-10-30',
+            start_time: '19:00:00',
+          }),
+          row({
+            id: 'r2',
+            parent_event_id: 'rb',
+            start_date: '2026-11-03',
+            start_time: '19:00:00',
+          }),
+          row({
+            id: 'r3',
+            parent_event_id: 'rb',
+            start_date: '2026-11-05',
+            start_time: '19:00:00',
+          }),
+        ],
+        W
+      )[0]?.whenLabel,
+      'Tuesdays, Thursdays & Fridays · 7pm'
+    ) && allTestsPassed;
   allTestsPassed =
     check(
       'no start time shows All day',

@@ -118,6 +118,61 @@ function runTests(): boolean {
       true
     ) && allTestsPassed;
 
+  // Seasonal palette: the issue's send month picks the season, like the site.
+  allTestsPassed =
+    check(
+      'october issue uses the fall hero for the header',
+      html.includes('background:#2b4a33'),
+      true
+    ) && allTestsPassed;
+  allTestsPassed =
+    check('october issue uses the fall page color', html.includes('background:#f8f0e3'), true) &&
+    allTestsPassed;
+  allTestsPassed =
+    check('october issue has the fall highlight stripe', html.includes('#c43b00'), true) &&
+    allTestsPassed;
+  const novemberHtml = renderNewsletter({ ...issue, sendDate: '2026-11-05' }, opts);
+  allTestsPassed =
+    check(
+      'november issue switches to the holiday palette',
+      [novemberHtml.includes('background:#2f5d55'), novemberHtml.includes('background:#2b4a33')],
+      [true, false]
+    ) && allTestsPassed;
+  allTestsPassed =
+    check('no 8-digit hex colors', /#[0-9a-f]{8}\b/i.test(html + novemberHtml), false) &&
+    allTestsPassed;
+
+  const taggedHtml = renderNewsletter(
+    {
+      ...issue,
+      featured: [],
+      planAhead: [],
+      thisWeek: [
+        { event: event({ id: 'g', tag: 'Sports' }) },
+        { event: event({ id: 'a', tag: 'Arts & Culture' }) },
+      ],
+    },
+    opts
+  );
+  allTestsPassed =
+    check(
+      'sports tag chip uses the season sports color with readable text',
+      taggedHtml.includes('background:#6a010f;color:#ffffff'),
+      true
+    ) && allTestsPassed;
+  allTestsPassed =
+    check(
+      'arts & culture tag maps to the hero slot',
+      taggedHtml.includes('background:#2b4a33;color:#ffffff;'),
+      true
+    ) && allTestsPassed;
+  allTestsPassed =
+    check(
+      'tag chip shows the tag name escaped',
+      taggedHtml.includes('>Arts &amp; Culture<'),
+      true
+    ) && allTestsPassed;
+
   const text = renderNewsletterText(issue, opts);
   allTestsPassed =
     check('text version has links', text.includes('https://dertown.org/events/evt-1'), true) &&

@@ -61,7 +61,10 @@ function singleOccurrenceLabel(row: NewsletterSourceEvent): string {
 }
 
 function seriesLabel(occurrences: NewsletterSourceEvent[]): string {
-  const weekdays = [...new Set(occurrences.map((o) => parseDate(o.start_date).weekday))];
+  // Monday-first calendar order, regardless of which day the window starts on.
+  const weekdays = [...new Set(occurrences.map((o) => parseDate(o.start_date).weekday))].sort(
+    (a, b) => ((a + 6) % 7) - ((b + 6) % 7)
+  );
   const days = joinWithAmpersand(weekdays.map((w) => WEEKDAY_PLURAL[w]));
   const times = new Set(occurrences.map((o) => o.start_time));
   if (times.size !== 1) return days;
