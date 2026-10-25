@@ -123,6 +123,17 @@ check(
 check('old indigo is gone', !css.includes('#4740cb'));
 check('old canary is gone', !css.includes('#ffe600'));
 
+for (const id of SEASON_IDS) {
+  const page = SEASON_PALETTES[id].colors.page;
+  const block = seasonBlock(id);
+  const tint = (name: string) =>
+    block.match(new RegExp(`--color-${name}: (#[0-9a-f]{6});`))?.[1] ?? page;
+  check(
+    `${id} light gray panels are a visible shade of the page, not near-white`,
+    contrastRatio(page, tint('gray-50')) >= 1.05 && contrastRatio(page, tint('gray-100')) >= 1.1
+  );
+}
+
 console.log(
   failures === 0 ? '\n✅ All seasonal palette tests passed' : `\n❌ ${failures} failure(s)`
 );
