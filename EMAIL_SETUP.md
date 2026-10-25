@@ -83,7 +83,7 @@ Set these in `.env.local` (for the skill) **and** in Netlify (for the signup for
 | --- | --- |
 | `RESEND_NEWSLETTER_API_KEY` | A **full-access** Resend key, used only for the newsletter. `RESEND_API_KEY` is left alone. |
 | `RESEND_NEWSLETTER_SEGMENT_ID` | The subscriber segment's id (see below). |
-| `NEWSLETTER_FROM_EMAIL` | Sender, e.g. `This Week in Der Town <news@dertown.org>`. Must be on a verified domain. |
+| `NEWSLETTER_FROM_EMAIL` | Sender, e.g. `This Week in Der Town <hello@dertown.org>`. Must be on a verified domain. |
 | `NEWSLETTER_SIGNING_SECRET` | Random secret for confirmation links: `openssl rand -base64 32`. Changing it invalidates unconfirmed links. |
 
 ### One-time setup

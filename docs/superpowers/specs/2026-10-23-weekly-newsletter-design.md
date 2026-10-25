@@ -56,7 +56,7 @@ template and data-selection logic can move into the admin.
 ### 1. Subscriber list (Resend Audience)
 
 - Newsletter name: **This Week in Der Town**. Sender
-  `This Week in Der Town <news@dertown.org>` *(address is my call)*, env
+  `This Week in Der Town <hello@dertown.org>` *(editor chose this address)*, env
   `NEWSLETTER_FROM_EMAIL`.
 - One Resend segment/audience, "This Week in Der Town". Its id goes in env
   `RESEND_NEWSLETTER_SEGMENT_ID`.

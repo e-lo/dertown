@@ -9,7 +9,7 @@ import type {
   NewsletterIssue,
 } from '../../src/lib/newsletter/types';
 
-export const DEFAULT_FROM = 'This Week in Der Town <news@dertown.org>';
+export const DEFAULT_FROM = 'This Week in Der Town <hello@dertown.org>';
 export const DEFAULT_SITE_URL = 'https://dertown.org';
 
 export class CliError extends Error {}

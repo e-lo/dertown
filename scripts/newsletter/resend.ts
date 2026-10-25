@@ -46,12 +46,9 @@ import { fetchSnapshots, publicClient } from './supabase';
 const MIN_LEAD_MS = 60 * 60 * 1000;
 const VERIFY_CHANGED_EXIT = 2;
 const UNSUBSCRIBE_PLACEHOLDER = '{{{RESEND_UNSUBSCRIBE_URL}}}';
-const NEWSLETTER_ENV = [
-  'RESEND_NEWSLETTER_API_KEY',
-  'RESEND_NEWSLETTER_SEGMENT_ID',
-  'NEWSLETTER_FROM_EMAIL',
-  'NEWSLETTER_SIGNING_SECRET',
-];
+// What these local commands need. NEWSLETTER_FROM_EMAIL has a default, and
+// NEWSLETTER_SIGNING_SECRET is only used by the site (signup + confirm) on Netlify.
+const NEWSLETTER_ENV = ['RESEND_NEWSLETTER_API_KEY', 'RESEND_NEWSLETTER_SEGMENT_ID'];
 
 const resendClient = () => new Resend(requireEnv('RESEND_NEWSLETTER_API_KEY'));
 const fromAddress = () => process.env.NEWSLETTER_FROM_EMAIL || DEFAULT_FROM;
@@ -79,6 +76,7 @@ function allEntries(issue: NewsletterIssue) {
 async function checkSetup(): Promise<number> {
   const missing = NEWSLETTER_ENV.filter((name) => !process.env[name]);
   console.log(missing.length ? `Missing env vars: ${missing.join(', ')}` : 'Env vars: all set');
+  console.log(`Sender: ${fromAddress()}`);
   if (!process.env.RESEND_NEWSLETTER_API_KEY) return 1;
 
   const resend = resendClient();

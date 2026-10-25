@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Name: **This Week in Der Town**. Default sender `This Week in Der Town <news@dertown.org>`, overridable by env `NEWSLETTER_FROM_EMAIL`.
+- Name: **This Week in Der Town**. Default sender `This Week in Der Town <hello@dertown.org>`, overridable by env `NEWSLETTER_FROM_EMAIL`.
 - Env vars (new): `RESEND_NEWSLETTER_API_KEY` (full access), `RESEND_NEWSLETTER_SEGMENT_ID`, `NEWSLETTER_FROM_EMAIL`, `NEWSLETTER_SIGNING_SECRET`. Never touch or reuse `RESEND_API_KEY`.
 - Send time: Thursday 12:00 `America/Los_Angeles`, at least 1 hour in the future at run time.
 - "This week" window: the Friday after the send date through the following Thursday (7 days, inclusive). "Plan ahead": 14–42 days after the send date.

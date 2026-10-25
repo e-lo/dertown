@@ -15,7 +15,7 @@ import { SITE_URL } from '@/lib/site';
 
 export const prerender = false;
 
-const DEFAULT_FROM = 'This Week in Der Town <news@dertown.org>';
+const DEFAULT_FROM = 'This Week in Der Town <hello@dertown.org>';
 // Same reply whether or not the address is already subscribed, so the form
 // can't be used to probe who is on the list.
 const CHECK_INBOX = 'Check your inbox for a confirmation link.';
