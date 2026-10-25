@@ -42,7 +42,6 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
         <QuickNavItem title="Parks" link="#parks" icon="park" />
         <QuickNavItem title="Arts & Culture" link="#arts-culture" icon="brush" />
         <QuickNavItem title="Community" link="#community" icon="groups" />
-        <QuickNavItem title="Volunteering" link="#volunteering" icon="volunteer_activism" />
         <QuickNavItem title="Environmental" link="#environmental" icon="nature" />
         <QuickNavItem title="Winter Sports" link="#winter-sports" icon="downhill_skiing" />
       </div>
@@ -428,31 +427,6 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
         </div>
       </div>
     </div>
-    <!-- Volunteering Section -->
-    <div id="volunteering" class="bg-green py-8">
-      <div class="w-full px-4 sm:px-6 lg:px-8">
-        <SectionHeader
-          title="Volunteering"
-          icon="volunteer_activism"
-          text="Make a difference in your community through volunteer opportunities."
-        />
-        
-        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-          <span class="material-symbols-outlined text-5xl mb-4 block" style="color: #4daa57;">volunteer_activism</span>
-          <h3 class="text-xl font-semibold mb-2">Find ways to give back</h3>
-          <p class="text-gray-600 mb-4">Volunteer opportunities, fundraisers, food drives, and more — all in one place.</p>
-          <a
-            href="/do-good"
-            class="inline-flex items-center gap-2 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            style="background-color: #4daa57;"
-          >
-            <span class="material-symbols-outlined">volunteer_activism</span>
-            Do Good
-          </a>
-        </div>
-      </div>
-    </div>
-
     <!-- Environmental Organizations Section -->
     <div id="environmental" class="bg-blue-green py-8">
       <div class="w-full px-4 sm:px-6 lg:px-8">
