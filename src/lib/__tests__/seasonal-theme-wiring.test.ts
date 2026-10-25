@@ -88,12 +88,20 @@ check(
 );
 
 const mapPage = read('src/pages/events/map.astro');
-check('map panels are off-white, not translucent pure white', !/rgba\(\s*255,\s*255,\s*255/.test(mapPage));
+check(
+  'map panels are off-white, not translucent pure white',
+  !/rgba\(\s*255,\s*255,\s*255/.test(mapPage)
+);
 check(
   'map backgrounds drop the old palette tints and cool near-whites',
-  !/#edf6f5|#f7fafc|rgba\(\s*(255,\s*230,\s*0|33,\s*158,\s*188|71,\s*64,\s*203|237,\s*246,\s*245)/.test(mapPage)
+  !/#edf6f5|#f7fafc|rgba\(\s*(255,\s*230,\s*0|33,\s*158,\s*188|71,\s*64,\s*203|237,\s*246,\s*245)/.test(
+    mapPage
+  )
 );
-check('map page sits on the season dark primary', /\.map-view-shell\s*\{[^}]*var\(--color-primary-dark\)/.test(mapPage));
+check(
+  'map page sits on the season dark primary',
+  /\.map-view-shell\s*\{[^}]*var\(--color-primary-dark\)/.test(mapPage)
+);
 
 console.log(
   failures === 0 ? '\n✅ All seasonal wiring checks passed' : `\n❌ ${failures} failure(s)`
