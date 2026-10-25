@@ -71,29 +71,27 @@ The event edit suggestion form now sends emails using:
 ## Newsletter: This Week in Der Town
 
 The weekly newsletter is drafted and scheduled from a Claude Code session with the
-`/newsletter` skill (`.claude/skills/newsletter/SKILL.md`). Signups use double opt-in:
-the footer form emails a confirmation link, and the address joins the Resend segment
-only after the link is opened (`/newsletter/confirm`).
+`/newsletter` skill (`.claude/skills/newsletter/SKILL.md`). Subscribers live in a Resend
+segment. (The public signup form is not built yet; until it is, add contacts to the segment
+in the Resend dashboard.)
 
 ### Environment variables
 
-Set these in `.env.local` (for the skill) **and** in Netlify (for the signup form):
+Set these in `.env.local` (the skill runs locally):
 
 | Variable | What it is |
 | --- | --- |
 | `RESEND_NEWSLETTER_API_KEY` | A **full-access** Resend key, used only for the newsletter. `RESEND_API_KEY` is left alone. |
 | `RESEND_NEWSLETTER_SEGMENT_ID` | The subscriber segment's id (see below). |
 | `NEWSLETTER_FROM_EMAIL` | Sender, e.g. `This Week in Der Town <hello@dertown.org>`. Must be on a verified domain. |
-| `NEWSLETTER_SIGNING_SECRET` | Random secret for confirmation links: `openssl rand -base64 32`. Changing it invalidates unconfirmed links. |
 
 ### One-time setup
 
 1. Check the sender domain is verified: Resend dashboard → **Domains** → `dertown.org` shows **Verified**,
    or run `npm run newsletter -- check-setup`.
 2. Create the segment: `npm run newsletter -- create-segment`, then put the printed id in
-   `RESEND_NEWSLETTER_SEGMENT_ID` (both places).
-3. Deploy, subscribe from the site footer, click the confirmation link, and check the contact
-   appears in Resend → **Contacts**.
+   `RESEND_NEWSLETTER_SEGMENT_ID`.
+3. Add yourself to the segment in Resend → **Contacts**, then `test-send` an issue to check it.
 
 ### Weekly commands (the skill runs these)
 

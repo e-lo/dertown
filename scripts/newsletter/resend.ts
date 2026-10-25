@@ -47,7 +47,7 @@ const MIN_LEAD_MS = 60 * 60 * 1000;
 const VERIFY_CHANGED_EXIT = 2;
 const UNSUBSCRIBE_PLACEHOLDER = '{{{RESEND_UNSUBSCRIBE_URL}}}';
 // What these local commands need. NEWSLETTER_FROM_EMAIL has a default, and
-// NEWSLETTER_SIGNING_SECRET is only used by the site (signup + confirm) on Netlify.
+// newsletter signups (when built) run on the site, not here.
 const NEWSLETTER_ENV = ['RESEND_NEWSLETTER_API_KEY', 'RESEND_NEWSLETTER_SEGMENT_ID'];
 
 const resendClient = () => new Resend(requireEnv('RESEND_NEWSLETTER_API_KEY'));
