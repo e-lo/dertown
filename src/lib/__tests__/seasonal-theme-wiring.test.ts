@@ -71,6 +71,22 @@ check(
   /<body[^>]*\bbg-primary-dark\b/.test(adminLayout) && !/<body[^>]*from-gray-50/.test(adminLayout)
 );
 
+// The production CSS minifier shortens hex values (#111111 → #111), so the
+// calendar must use the season's text color as given, never compare it to a literal.
+check(
+  'calendar cards never compare a text color to a hex literal',
+  !/getCategoryTextColor\([^)]*\)\s*[!=]==?\s*'#/.test(calendar)
+);
+check(
+  'calendar card shades are made from the season text color',
+  /color-mix\(in srgb, \$\{text\}/.test(calendar)
+);
+
+check(
+  'calendar shading (weekends, holidays, today, hovers) follows the season, not fixed cool grays',
+  !/#(f9fafb|f3f4f6|e8eaed|eef2ff|f0f0fe|c7c4f5)\b/i.test(components)
+);
+
 console.log(
   failures === 0 ? '\n✅ All seasonal wiring checks passed' : `\n❌ ${failures} failure(s)`
 );
