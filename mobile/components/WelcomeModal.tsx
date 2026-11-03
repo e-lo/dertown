@@ -90,7 +90,7 @@ export function WelcomeModal({ visible, onDismiss }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What is Dertown?</Text>
             <Text style={styles.body}>
-              A community-powered calendar of events, announcements and helpful info for
+              A community-powered calendar of events, announcements and helpful info for{' '}
               {APP_CONFIG.townName} — built by locals, for locals.
             </Text>
           </View>
