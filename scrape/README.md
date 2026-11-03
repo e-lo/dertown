@@ -65,10 +65,13 @@ These are only needed when using `--remote`. Dry-run mode does not connect to th
 | `wenatchee-river-institute` | [WRI](https://wenatcheeriverinstitute.org/event-calendar.html) | HTML | Nature programs, hikes |
 | `ncw-libraries` | [NCW Libraries](https://ncwlibraries.libcal.com/calendar/leavenworth) | JSON API | Leavenworth + Peshastin library events |
 | `cascade-athletics` | [Cascade Kodiak Athletics](https://www.cascadekodiakathletics.com/schedule) | HTML (self-fetching) | Home varsity high school sports |
+| `river-valley-commons` | [River Valley Commons](https://www.rivervalleycommons.net/activities) | HTML (self-fetching) | Community center special events only |
 
 Source configurations live in [`scrape/sources.yaml`](sources.yaml).
 
-**Note on `cascade-athletics`:** This is a self-fetching source (PlayOn/VNN platform). Rather than scraping one URL, it discovers the season's varsity teams from the homepage and fetches each team's schedule page, keeping only **home** games (tagged `sports`, with the Kodiak logo as the default image). Each schedule page hard-caps at **10 events with no pagination**, so sports with long seasons (soccer, basketball) surface their later games only as earlier ones pass — run the scraper regularly during the season for full coverage. Self-fetching sources are registered in the `SELF_FETCHERS` map in [`src/lib/scraper/index.ts`](../src/lib/scraper/index.ts); the crawl/extraction logic lives in [`src/lib/scraper/parse-cascade.ts`](../src/lib/scraper/parse-cascade.ts).
+**Note on `cascade-athletics`:** This is a self-fetching source (PlayOn/VNN platform). Rather than scraping one URL, it discovers the season's varsity teams from the homepage and fetches each team's schedule page, keeping only **home** games (tagged `sports`, with the Kodiak logo as the default image). Each schedule page hard-caps at **10 events with no pagination**, so sports with long seasons (soccer, basketball) surface their later games only as earlier ones pass — run the scraper regularly during the season for full coverage. Once a team has nothing upcoming, its page falls back to the season's *first* 10 past games, so a finished sport looking frozen is normal. Self-fetching sources are registered in the `SELF_FETCHERS` map in [`src/lib/scraper/index.ts`](../src/lib/scraper/index.ts); the crawl/extraction logic lives in [`src/lib/scraper/parse-cascade.ts`](../src/lib/scraper/parse-cascade.ts).
+
+**Note on `river-valley-commons`:** This is a hand-edited Wix page, parsed in [`src/lib/scraper/parse-river-valley.ts`](../src/lib/scraper/parse-river-valley.ts). Only special events are kept: rows tagged `*Special Event*` in the calendar, plus anything under the page's "Special Events" heading. Routine activities like bingo and lunch are dropped on purpose. Each week of the calendar is a header plus parallel date, time and title columns. Numeric dates are often stale, so the weekday within the week's range decides the date; a detail block's stated time overrides the grid; and a week whose columns have different lengths is skipped with a `WARN` rather than mis-paired. The page only lists the current month, so scrape it again after each month's calendar goes up.
 
 ## Adding a New Source
 
@@ -231,6 +234,8 @@ src/lib/scraper/
   fetch.ts                  # HTTP fetching with retry logic
   parse-ical.ts             # iCal feed parser (node-ical)
   parse-html.ts             # HTML extractors per source (cheerio)
+  parse-cascade.ts          # Cascade Athletics self-fetching crawler
+  parse-river-valley.ts     # River Valley Commons calendar parser
   parse-json.ts             # JSON API parser (LibCal AJAX)
   normalize.ts              # Date/time/URL/cost normalization
   filter.ts                 # Geo and exclusion filtering

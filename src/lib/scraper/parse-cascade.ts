@@ -74,7 +74,7 @@ export function parseVarsityTeams(html: string): VarsityTeam[] {
 
 const BASE_URL = 'https://www.cascadekodiakathletics.com';
 
-const MONTHS: Record<string, number> = {
+export const MONTHS: Record<string, number> = {
   jan: 0,
   feb: 1,
   mar: 2,

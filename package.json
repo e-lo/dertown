@@ -37,6 +37,7 @@
     "test:group-series": "tsx src/lib/__tests__/group-series.test.ts",
     "test:scraper-cascade-discovery": "tsx src/lib/__tests__/scraper-cascade-discovery.test.ts",
     "test:scraper-cascade-cards": "tsx src/lib/__tests__/scraper-cascade-cards.test.ts",
+    "test:scraper-river-valley": "tsx src/lib/__tests__/scraper-river-valley.test.ts",
     "test:duplicate-event-wiring": "tsx src/lib/__tests__/duplicate-event-wiring.test.ts",
     "test:autocomplete-wiring": "tsx src/lib/__tests__/autocomplete-dropdown-wiring.test.ts",
     "test:auth-cookies": "tsx src/lib/__tests__/auth-cookie-reading.test.ts",
