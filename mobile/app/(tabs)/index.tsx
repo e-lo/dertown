@@ -67,6 +67,12 @@ export default function EventsScreen() {
     return items;
   }, [filteredEvents]);
 
+  // Closing search also clears it, so the list never stays filtered by a hidden query
+  function toggleSearch() {
+    if (searchExpanded) setSearchQuery('');
+    setSearchExpanded(!searchExpanded);
+  }
+
   function handleDateSelect(date: string) {
     setSelectedDate(date);
     const idx = listItems.findIndex(
@@ -99,8 +105,10 @@ export default function EventsScreen() {
               <Icon name="calendar" size={22} color={THEME.textPrimary} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setSearchExpanded((v) => !v)}
+              onPress={toggleSearch}
               style={styles.headerBtn}
+              accessibilityRole="button"
+              accessibilityLabel={searchExpanded ? 'Close search' : 'Search events'}
             >
               <Icon name={searchExpanded ? 'x' : 'search'} size={22} color={THEME.textPrimary} />
             </TouchableOpacity>
