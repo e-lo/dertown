@@ -296,3 +296,15 @@ sources:
     location_map:
       'Cascade Upper (Bus Garage)': 'Kodiak Field'
     geo_filter: null
+
+  - id: 'river-valley-commons'
+    name: 'River Valley Commons'
+    url: 'https://www.rivervalleycommons.net/activities'
+    type: 'html'
+    default_organization: 'River Valley Commons'
+    default_location: 'River Valley Commons'
+    default_tag: 'Seniors'
+    geo_filter: null
+    exclude:
+      title_keywords:
+        - 'medicare' # listed under Special Events, but it's by-appointment consulting

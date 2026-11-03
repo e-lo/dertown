@@ -19,6 +19,7 @@ import { writeScrapeLog } from './log';
 import { parseIcalFeed } from './parse-ical';
 import { parseHtml } from './parse-html';
 import { fetchCascadeAthletics } from './parse-cascade';
+import { fetchRiverValleyCommons } from './parse-river-valley';
 import { fetchLibCalEvents } from './parse-json';
 import { clampDescription } from './description';
 import { enrichDescriptionsFromDetailPages } from './enrich';
@@ -122,6 +123,7 @@ function resolveDbMode(args: CliArgs): DbMode {
 type SelfFetcher = (source: SourceConfig, verbose: boolean) => Promise<ScrapedEvent[]>;
 const SELF_FETCHERS: Record<string, SelfFetcher> = {
   'cascade-athletics': fetchCascadeAthletics,
+  'river-valley-commons': fetchRiverValleyCommons,
 };
 
 // ── Source scraping pipeline ──────────────────────────────────────────
