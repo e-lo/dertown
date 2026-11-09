@@ -42,14 +42,14 @@ setPublicCache(Astro.response.headers);
         <SectionHeader
           title="Community Assistance"
           icon="volunteer_activism"
-          text="Healthcare and food assistance resources for families in need."
+          text="Healthcare, food, and support resources for families in need."
         />
         
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <LinkBox
-              title="Free Weekly Medical Clinic"
-              text="Free walk-in health clinic for uninsured and underinsured people"
+              title="Free Weekly Medical & Dental Clinic"
+              text="Free walk-in medical and dental care for uninsured and underinsured people"
               subtext="Mondays 6:30-8:00 PM at Cascade Medical Center, Leavenworth"
               link="https://www.uvmend.org/free-clinic"
               icon="medical_services"
@@ -71,6 +71,38 @@ setPublicCache(Astro.response.headers);
               icon="account_balance"
               external={true}
             />
+            <LinkBox
+              title="Free Monthly Foot Clinic"
+              text="Free foot care from a registered nurse, offered by Upper Valley MEND"
+              subtext="One Saturday a month, 10 AM-noon at Faith Lutheran Church Fellowship Hall. See site for dates"
+              link="https://www.uvmend.org/free-clinic"
+              icon="healing"
+              external={true}
+            />
+            <LinkBox
+              title="Senior Lunch"
+              text="Nutritionally balanced lunch, with time to stay and play games afterward"
+              subtext="Wednesdays at noon at River Valley Commons, 423 Evans St. Reserve at 509-548-6666"
+              link="https://www.rivervalleycommons.net/activities"
+              icon="lunch_dining"
+              external={true}
+            />
+            <LinkBox
+              title="Caregivers Support Group"
+              text="Free group for anyone caring for someone, with advice from a medical professional"
+              subtext="Most Tuesdays at River Valley Commons, 423 Evans St. Times vary, so check their calendar"
+              link="https://www.rivervalleycommons.net/activities"
+              icon="diversity_1"
+              external={true}
+            />
+            <LinkBox
+              title="Alcoholics Anonymous"
+              text="Peer support for recovery from alcohol addiction. For people of any age, not just seniors, even though it meets at the former Senior Center"
+              subtext="Usually Sundays and Wednesdays at 7 PM at River Valley Commons, 423 Evans St. Check their calendar for changes"
+              link="https://www.rivervalleycommons.net/activities"
+              icon="handshake"
+              external={true}
+            />
           </div>
         </div>
       </div>
@@ -88,6 +120,14 @@ setPublicCache(Astro.response.headers);
         
         <div class="bg-white rounded-lg shadow-lg p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LinkBox
+              title="River Valley Commons"
+              text="Community center for adults of all ages, formerly the Leavenworth Senior Center, with weekly classes, bingo, and a free monthly film night"
+              subtext="423 Evans St, Leavenworth · 509-548-6666"
+              link="https://www.rivervalleycommons.net/"
+              icon="groups"
+              external={true}
+            />
             <LinkBox
               title="Mosquito Control"
               text="Leavenworth Mosquito Control District #2 information and services"

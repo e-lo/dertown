@@ -166,11 +166,13 @@ function groupByDate(events) {
 
 function eventCardHTML(event, showTag) {
   const color = getCategoryColor(event.category);
-  const light = getCategoryTextColor(event.category) === '#111111';
-  const textColor  = light ? '#111827' : '#ffffff';
-  const timeColor  = light ? 'rgba(0,0,0,0.58)' : 'rgba(255,255,255,0.82)';
-  const locColor   = light ? 'rgba(0,0,0,0.48)' : 'rgba(255,255,255,0.65)';
-  const tagBg      = light ? 'rgba(0,0,0,0.12)'  : 'rgba(255,255,255,0.22)';
+  // The season's readable text color for this card (dark on light cards,
+  // off-white on deep ones); the softer shades are translucent versions of it.
+  const text = getCategoryTextColor(event.category);
+  const textColor = text;
+  const timeColor = `color-mix(in srgb, ${text} 82%, transparent)`;
+  const locColor  = `color-mix(in srgb, ${text} 68%, transparent)`;
+  const tagBg     = `color-mix(in srgb, ${text} 16%, transparent)`;
 
   const timeStr = event.allDay
     ? 'All day'

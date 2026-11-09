@@ -109,7 +109,7 @@
   padding: 0.75rem 1rem;
   text-align: left;
   color: var(--color-muted);
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--color-gray-100);
   vertical-align: middle;
   line-height: 1.6;
 }
@@ -494,11 +494,11 @@ input[type='date'] {
 .cal-ac-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-gray-100);
   transition: background 0.1s;
 }
 .cal-ac-item:last-child { border-bottom: none; }
-.cal-ac-item:hover { background: #f9fafb; }
+.cal-ac-item:hover { background: var(--color-gray-50); }
 .cal-ac-bar { width: 3px; height: 32px; border-radius: 2px; flex-shrink: 0; }
 .cal-ac-title { font-size: 13px; font-weight: 600; color: #111827; }
 .cal-ac-title mark {
@@ -517,7 +517,7 @@ input[type='date'] {
   white-space: nowrap;
 }
 .cal-filter-btn:hover { border-color: var(--palette-palatinate-blue); color: var(--palette-palatinate-blue); }
-.cal-filter-btn.active { border-color: var(--palette-palatinate-blue); color: var(--palette-palatinate-blue); background: #f0f0fe; }
+.cal-filter-btn.active { border-color: var(--palette-palatinate-blue); color: var(--palette-palatinate-blue); background: var(--color-primary-light); }
 .cal-filter-count {
   background: var(--palette-palatinate-blue); color: var(--color-white);
   font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px;
@@ -532,7 +532,7 @@ input[type='date'] {
 .cal-filter-panel.visible { display: block; }
 .cal-filter-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px 8px; border-bottom: 1px solid #f3f4f6;
+  padding: 10px 14px 8px; border-bottom: 1px solid var(--color-gray-100);
 }
 .cal-filter-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
 .cal-filter-clear { font-size: 11px; font-weight: 600; color: var(--palette-palatinate-blue); background: none; border: none; cursor: pointer; font-family: inherit; }
@@ -540,11 +540,11 @@ input[type='date'] {
 .cal-filter-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 14px; cursor: pointer;
-  border-bottom: 1px solid #f9fafb;
+  border-bottom: 1px solid var(--color-gray-50);
   transition: background 0.1s;
 }
 .cal-filter-item:last-child { border-bottom: none; }
-.cal-filter-item:hover { background: #f9fafb; }
+.cal-filter-item:hover { background: var(--color-gray-50); }
 .cal-filter-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .cal-filter-name { flex: 1; font-size: 13px; color: #374151; }
 .cal-filter-cb {
@@ -575,8 +575,8 @@ input[type='date'] {
   border-right: 1px solid #e5e7eb;
 }
 .cal-day-col:last-child { border-right: none; }
-.cal-day-col.weekend { background: #f3f4f6; }
-.cal-day-col.holiday { background: #e8eaed; }
+.cal-day-col.weekend { background: var(--color-gray-100); }
+.cal-day-col.holiday { background: color-mix(in srgb, var(--color-surface) 84%, var(--color-text)); }
 
 .cal-day-header { padding: 8px 10px 4px; margin-bottom: 0; }
 .cal-day-name {
@@ -689,11 +689,11 @@ input[type='date'] {
 .cal-month-header { text-align: center; font-size: 10px; font-weight: 700; color: #6b7280; padding: 6px 0; text-transform: uppercase; letter-spacing: 0.06em; }
 .cal-month-cell {
   background: var(--color-white); border-radius: 4px; padding: 4px;
-  min-height: 72px; border: 1px solid #f3f4f6; cursor: pointer;
+  min-height: 72px; border: 1px solid var(--color-gray-100); cursor: pointer;
   transition: background 0.1s;
 }
-.cal-month-cell:hover { background: #f9fafb; }
-.cal-month-cell.today { background: #eef2ff; border-color: #c7c4f5; }
+.cal-month-cell:hover { background: var(--color-gray-50); }
+.cal-month-cell.today { background: var(--color-primary-light); border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-surface)); }
 .cal-month-cell.other-month .cal-month-day-num { color: #d1d5db; }
 .cal-month-day-num { font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 3px; }
 .cal-month-pill {
