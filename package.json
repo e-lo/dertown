@@ -47,7 +47,14 @@
     "test:calendar-month": "tsx src/lib/__tests__/calendar-month-grid.test.ts",
     "test:this-week": "tsx src/lib/__tests__/this-week.test.ts",
     "test:featured-star": "tsx src/lib/__tests__/featured-star.test.ts",
-    "test:carousel-wheel": "tsx src/lib/__tests__/carousel-wheel.test.ts"
+    "test:carousel-wheel": "tsx src/lib/__tests__/carousel-wheel.test.ts",
+    "test:newsletter-dates": "tsx src/lib/__tests__/newsletter-dates.test.ts",
+    "test:newsletter-select": "tsx src/lib/__tests__/newsletter-select.test.ts",
+    "test:newsletter-render": "tsx src/lib/__tests__/newsletter-render.test.ts",
+    "newsletter": "tsx --env-file=.env.local scripts/newsletter/resend.ts",
+    "newsletter:fetch": "tsx --env-file=.env.local scripts/newsletter/fetch.ts",
+    "newsletter:render": "tsx scripts/newsletter/render.ts",
+    "test:newsletter-cli": "tsx src/lib/__tests__/newsletter-cli.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

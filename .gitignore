@@ -64,3 +64,5 @@ db.sqlite3.*
 # Expo prebuild output (generated; builds run on EAS)
 mobile/ios/
 mobile/android/
+
+newsletters/
