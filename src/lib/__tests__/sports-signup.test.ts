@@ -40,6 +40,9 @@ check('next month name for spring in Nov', nextSignupMonthName(spring, NOV) === 
 check('no next month name when open', nextSignupMonthName(winter, NOV) === null);
 check('hint text', signupHint(fallSpring) === 'Signups usually: Spring Jan–Mar · Fall May–Sep');
 check('no hint for year-round only', signupHint(yearRound) === null);
+check('summer hint is just May', signupHint({ is_summer: true }) === 'Signups usually: Summer May');
+check('summer opens in May (Nov → 6 months)', monthsUntilSignup({ is_summer: true }, NOV) === 6);
+check('summer is "now" in May', signupGroup({ is_summer: true }, 5, false) === 'now');
 
 if (failures > 0) {
   console.log(`\n❌ ${failures} test(s) failed`);

@@ -16,7 +16,7 @@ type SeasonFlags = {
 /** Inclusive calendar months (1 = Jan) when signups for each season usually happen. */
 export const SIGNUP_WINDOWS: Record<Season, { start: number; end: number }> = {
   spring: { start: 1, end: 3 }, // Jan–Mar
-  summer: { start: 3, end: 5 }, // Mar–May
+  summer: { start: 5, end: 5 }, // early May
   fall: { start: 5, end: 9 }, // May–Sep
   winter: { start: 10, end: 12 }, // Oct–Dec
 };
@@ -70,7 +70,11 @@ export function signupHint(p: SeasonFlags): string | null {
   const parts = seasons.map((s) => {
     const w = SIGNUP_WINDOWS[s];
     const name = s[0].toUpperCase() + s.slice(1);
-    return `${name} ${MONTH_ABBR[w.start - 1]}–${MONTH_ABBR[w.end - 1]}`;
+    const months =
+      w.start === w.end
+        ? MONTH_ABBR[w.start - 1]
+        : `${MONTH_ABBR[w.start - 1]}–${MONTH_ABBR[w.end - 1]}`;
+    return `${name} ${months}`;
   });
   return `Signups usually: ${parts.join(' · ')}`;
 }
