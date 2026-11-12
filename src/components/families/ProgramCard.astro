@@ -12,8 +12,10 @@ import {
 interface Props {
   program: Program;
   signups?: SignupEntry[];
+  /** Optional one-line note under the badges, e.g. typical signup months. */
+  hint?: string | null;
 }
-const { program: p, signups } = Astro.props;
+const { program: p, signups, hint } = Astro.props;
 
 const regStatus = getRegStatus(signups);
 const ageLabel = formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade);
@@ -69,6 +71,13 @@ const fmt = p.program_format ? FORMAT_LABELS[p.program_format] : null;
       <div class="mb-2">
         <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
       </div>
+    )}
+
+    {hint && (
+      <p class="text-xs text-gray-500 flex items-center gap-1">
+        <span class="material-symbols-outlined text-sm">event_available</span>
+        {hint}
+      </p>
     )}
   </div>
 

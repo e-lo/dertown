@@ -4,10 +4,8 @@ import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import ProgramCard from '../../components/families/ProgramCard.astro';
-import SignupsCallout from '../../components/families/SignupsCallout.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
-import { getCurrentSeason, type Season } from '@/lib/season-utils';
 import {
   AGE_OPTIONS,
   PROGRAM_SELECT,
@@ -16,6 +14,13 @@ import {
   matchesAge,
   type Program,
 } from '@/lib/program-listing';
+import {
+  monthsUntilSignup,
+  nextSignupMonthName,
+  signupGroup,
+  signupHint,
+  type SignupGroupId,
+} from '@/lib/sports-signup';
 
 // --- URL params ---
 const sportParam = Astro.url.searchParams.get('sport') ?? ''; // a `sport` value, or 'other'
@@ -58,32 +63,36 @@ if (sportParam) filtered = filtered.filter((p) => sportKey(p).toLowerCase() === 
 if (SEASON_FLAG[seasonParam]) filtered = filtered.filter((p) => p[SEASON_FLAG[seasonParam]]);
 if (ageParam) filtered = filtered.filter((p) => matchesAge(p, ageParam));
 
-// --- Browse groups: what's happening now, what's next, the rest ---
-const SEASON_ORDER: Season[] = ['fall', 'winter', 'spring', 'summer'];
-const SEASON_NAMES: Record<Season, string> = { fall: 'fall', winter: 'winter', spring: 'spring', summer: 'summer' };
-const currentSeason = getCurrentSeason();
-const nextSeason = SEASON_ORDER[(SEASON_ORDER.indexOf(currentSeason) + 1) % 4];
-const inSeason = (p: Program, s: Season) => !!p[SEASON_FLAG[s]];
-const hasAnySeason = (p: Program) => SEASON_ORDER.some((s) => inSeason(p, s)) || !!p.is_ongoing;
-
-type Group = { id: string; title: string; icon: string; programs: Program[] };
-let groups: Group[];
-if (seasonParam) {
-  groups = [{ id: 'results', title: '', icon: '', programs: filtered }];
-} else {
-  const now = filtered.filter((p) => inSeason(p, currentSeason) || p.is_ongoing);
-  const next = filtered.filter((p) => !now.includes(p) && inSeason(p, nextSeason));
-  const later = filtered.filter((p) => !now.includes(p) && !next.includes(p) && hasAnySeason(p));
-  const unknown = filtered.filter((p) => !hasAnySeason(p));
-  groups = [
-    { id: 'now', title: `In season now (${SEASON_NAMES[currentSeason]} & year-round)`, icon: 'play_circle', programs: now },
-    { id: 'next', title: `Coming up this ${SEASON_NAMES[nextSeason]}`, icon: 'upcoming', programs: next },
-    { id: 'later', title: 'Later in the year', icon: 'event', programs: later },
-    { id: 'unknown', title: 'Season not listed', icon: 'help', programs: unknown },
-  ].filter((g) => g.programs.length > 0);
-}
-
+// --- Browse groups: what parents can act on now comes first ---
+// Real registration dates win; otherwise fall back to the usual signup window
+// for the program's season(s) (see lib/sports-signup.ts).
 const signups = await loadSignups(filtered);
+const month = new Date().getMonth() + 1;
+const hasOpenSignup = (p: Program) =>
+  (signups.byProgram[p.id] ?? []).some((e) => e.state === 'open');
+
+type Group = { id: SignupGroupId; title: string; blurb: string; icon: string; programs: Program[] };
+const GROUPS: Omit<Group, 'programs'>[] = [
+  { id: 'now', title: 'Sign up now', blurb: 'Registration is open or this is the usual signup window.', icon: 'how_to_reg' },
+  { id: 'anytime', title: 'Year-round — join anytime', blurb: '', icon: 'all_inclusive' },
+  { id: 'soon', title: 'Signups opening soon', blurb: 'Usually opens in the next few months.', icon: 'upcoming' },
+  { id: 'later', title: 'Later in the year', blurb: '', icon: 'event' },
+  { id: 'unknown', title: 'Season not listed', blurb: 'Check with the organization for signup dates.', icon: 'help' },
+];
+const groups: Group[] = GROUPS.map((g) => ({
+  ...g,
+  programs: filtered
+    .filter((p) => signupGroup(p, month, hasOpenSignup(p)) === g.id)
+    // Soonest window first within a group
+    .sort((a, b) => (monthsUntilSignup(a, month) ?? 99) - (monthsUntilSignup(b, month) ?? 99)),
+})).filter((g) => g.programs.length > 0);
+
+function hintFor(p: Program): string | null {
+  const opens = nextSignupMonthName(p, month);
+  const usual = signupHint(p);
+  if (!usual) return null;
+  return opens ? `${usual} (next opens ${opens})` : usual;
+}
 
 // --- Filter chip config ---
 const seasons = [
@@ -127,7 +136,7 @@ setPublicCache(Astro.response.headers);
       <SectionHeader
         title="Sports & Leagues"
         icon="sports_soccer"
-        text="Youth sports teams, leagues, and lessons for Leavenworth-area kids. Browse what's in season, or narrow it down by sport, season, or age."
+        text="Youth sports teams, leagues, and lessons for Leavenworth-area kids. What you can sign up for now is at the top; narrow it down by sport, season, or age."
       />
       <p class="text-gray-400 text-center text-sm mt-1">
         Also see <a href="/families/after-school-activities" class="underline">After-School Activities</a> (including school ski club)
@@ -135,8 +144,6 @@ setPublicCache(Astro.response.headers);
         Data is maintained by community volunteers — <a href="mailto:dertownleavenworth@gmail.com" class="underline">let us know</a> if something is missing.
       </p>
     </div>
-
-    <SignupsCallout open={signups.open} upcoming={signups.upcoming} />
 
     <!-- Filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
@@ -199,15 +206,15 @@ setPublicCache(Astro.response.headers);
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 space-y-8">
       {groups.map((g) => (
         <section id={g.id}>
-          {g.title && (
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-gray-500">{g.icon}</span>
-              {g.title}
-              <span class="text-sm font-normal text-gray-500">({g.programs.length})</span>
-            </h2>
-          )}
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span class="material-symbols-outlined text-gray-500">{g.icon}</span>
+            {g.title}
+            <span class="text-sm font-normal text-gray-500">({g.programs.length})</span>
+          </h2>
+          {g.blurb && <p class="text-sm text-gray-500 mb-3">{g.blurb}</p>}
+          {!g.blurb && <div class="mb-3"></div>}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {g.programs.map((p) => <ProgramCard program={p} signups={signups.byProgram[p.id]} />)}
+            {g.programs.map((p) => <ProgramCard program={p} signups={signups.byProgram[p.id]} hint={hintFor(p)} />)}
           </div>
         </section>
       ))}
