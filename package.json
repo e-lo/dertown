@@ -57,6 +57,7 @@
     "newsletter:fetch": "tsx --env-file=.env.local scripts/newsletter/fetch.ts",
     "newsletter:render": "tsx scripts/newsletter/render.ts",
     "test:newsletter-cli": "tsx src/lib/__tests__/newsletter-cli.test.ts",
+    "test:cache-vary": "tsx src/lib/__tests__/cache-vary.test.ts",
     "test:sports-signup": "tsx src/lib/__tests__/sports-signup.test.ts"
   },
   "dependencies": {
