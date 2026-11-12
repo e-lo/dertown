@@ -307,3 +307,41 @@ export function renderNewsletterText(issue: NewsletterIssue, opts: { siteUrl: st
   sections.push(`See every event at ${siteUrl}\nUnsubscribe: ${UNSUBSCRIBE_PLACEHOLDER}`);
   return `${sections.join('\n\n')}\n`;
 }
+
+// ---------------------------------------------------------------------------
+// Confirmation email
+// ---------------------------------------------------------------------------
+
+/**
+ * The double opt-in email. Styled with the seasonal palette for `sentOn`
+ * (YYYY-MM-DD, default today), like an issue sent that day.
+ */
+export function renderConfirmEmail(
+  confirmUrl: string,
+  sentOn: string = new Date().toISOString().slice(0, 10)
+): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const theme = themeFor(sentOn);
+  const subject = `Confirm your subscription to ${NEWSLETTER_NAME}`;
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:24px 12px;background:${theme.page};">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="width:100%;max-width:600px;background:${CARD};border-radius:12px;">
+<tr><td style="padding:20px 24px 14px;background:${theme.hero};border-radius:12px 12px 0 0;border-bottom:6px solid ${theme.highlight};">
+<p style="margin:0;font-family:${FONT};font-size:22px;font-weight:800;color:${theme.heroText};">${escapeHtml(NEWSLETTER_NAME)}</p>
+</td></tr>
+<tr><td style="padding:24px 24px 28px;font-family:${FONT};font-size:16px;line-height:1.6;color:${theme.ink};">
+<p style="margin:0 0 12px;font-size:20px;font-weight:700;">One click to confirm</p>
+<p style="margin:0 0 20px;">Confirm your email to get ${escapeHtml(NEWSLETTER_NAME)} — next week's events in your inbox every Thursday.</p>
+<p style="margin:0 0 20px;"><a href="${escapeHtml(confirmUrl)}" style="display:inline-block;padding:12px 20px;background:${theme.hero};color:${theme.heroText};text-decoration:none;border-radius:8px;font-weight:600;">Confirm subscription</a></p>
+<p style="margin:0;font-size:13px;color:${theme.muted};">If you didn't sign up, ignore this email and you won't hear from us. The link expires in 7 days.</p>
+</td></tr>
+</table>
+</body></html>
+`;
+  const text = `Confirm your email to get ${NEWSLETTER_NAME} — next week's events in your inbox every Thursday.\n\n${confirmUrl}\n\nIf you didn't sign up, ignore this email. The link expires in 7 days.\n`;
+  return { subject, html, text };
+}

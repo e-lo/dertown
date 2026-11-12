@@ -1,0 +1,100 @@
+---
+// Double opt-in landing page. Opening the emailed link (GET) only shows a
+// Confirm button; the subscription happens on its POST. Mail scanners such as
+// Microsoft Safe Links prefetch every link in incoming mail, so subscribing on
+// GET would confirm (or resubscribe) addresses without a human ever clicking.
+export const prerender = false;
+import { Resend } from 'resend';
+import Layout from '../../components/Layout.astro';
+import { addConfirmedSubscriber } from '@/lib/newsletter/resend-client';
+import { verifyConfirmToken } from '@/lib/newsletter/token';
+
+// Personal, one-time response: never let the CDN cache it.
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+type Outcome = 'ready' | 'subscribed' | 'invalid' | 'error';
+
+const secret = import.meta.env.NEWSLETTER_SIGNING_SECRET;
+const apiKey = import.meta.env.RESEND_NEWSLETTER_API_KEY;
+const segmentId = import.meta.env.RESEND_NEWSLETTER_SEGMENT_ID;
+
+async function readToken(): Promise<string> {
+  if (Astro.request.method === 'POST') {
+    const form = await Astro.request.formData().catch(() => null);
+    const value = form?.get('token');
+    return typeof value === 'string' ? value : '';
+  }
+  return Astro.url.searchParams.get('token') ?? '';
+}
+
+async function confirm(token: string): Promise<Outcome> {
+  if (!secret || !apiKey || !segmentId) {
+    console.error('[NEWSLETTER] Confirm page is missing newsletter env vars');
+    return 'error';
+  }
+
+  const email = verifyConfirmToken(token, secret, new Date());
+  if (!email) return 'invalid';
+  if (Astro.request.method !== 'POST') return 'ready';
+
+  try {
+    await addConfirmedSubscriber(new Resend(apiKey), segmentId, email);
+    return 'subscribed';
+  } catch (err) {
+    console.error('[NEWSLETTER] Failed to add subscriber:', err);
+    return 'error';
+  }
+}
+
+const token = await readToken();
+const outcome = await confirm(token);
+
+const copy: Record<Outcome, { title: string; body: string }> = {
+  ready: {
+    title: 'Confirm your subscription',
+    body: "One more click and you'll get This Week in Der Town — next week's events in your inbox every Thursday.",
+  },
+  subscribed: {
+    title: "You're subscribed to This Week in Der Town",
+    body: "Look for next week's events in your inbox on Thursday. You can unsubscribe any time from the link at the bottom of every email.",
+  },
+  invalid: {
+    title: 'That link has expired or is invalid',
+    body: 'Confirmation links work for 7 days. Sign up again from the form at the bottom of any page and we’ll send a fresh one.',
+  },
+  error: {
+    title: 'Something went wrong',
+    body: 'We couldn’t finish your subscription. Please try the link again in a few minutes.',
+  },
+};
+const { title, body } = copy[outcome];
+---
+
+<Layout title={title} description="This Week in Der Town newsletter subscription">
+  <main class="min-h-[60vh] flex items-center justify-center py-12 px-4">
+    <div class="bg-white rounded-lg shadow max-w-lg w-full p-8 text-center">
+      <h1 class="text-2xl font-bold text-gray-900 mb-4">{title}</h1>
+      <p class="text-gray-700 mb-6">{body}</p>
+      {
+        outcome === 'ready' ? (
+          <form method="post" action="/newsletter/confirm">
+            <input type="hidden" name="token" value={token} />
+            <button
+              type="submit"
+              class="inline-block px-5 py-2 rounded-md bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
+            >
+              Confirm subscription
+            </button>
+          </form>
+        ) : (
+          <a
+            href="/"
+            class="inline-block px-5 py-2 rounded-md bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
+          >
+            See this week's events
+          </a>
+        )
+      }
+    </div>
+  </main>
+</Layout>

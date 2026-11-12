@@ -66,10 +66,7 @@ template and data-selection logic can move into the admin.
 - Resend owns unsubscribe: the template includes
   `{{{RESEND_UNSUBSCRIBE_URL}}}`.
 
-### 2. Signup form (site) — follow-up PR
-
-*Split out on 2026-10-24 at the editor's request: the template and skill ship first;
-the signup form, subscribe endpoint, confirm page, and privacy note come in a later PR.*
+### 2. Signup form (site)
 
 - **Double opt-in, no new DB table.** `POST /api/newsletter/subscribe` —
   body `{ email }` — validates the email and sends a "confirm your
