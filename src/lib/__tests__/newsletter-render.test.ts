@@ -1,4 +1,4 @@
-import { renderNewsletter, renderNewsletterText } from '../newsletter/render';
+import { renderConfirmEmail, renderNewsletter, renderNewsletterText } from '../newsletter/render';
 import type { IssueEvent, NewsletterIssue } from '../newsletter/types';
 
 function check(name: string, actual: unknown, expected: unknown): boolean {
@@ -203,6 +203,24 @@ function runTests(): boolean {
       renderNewsletterText(seriesIssue, opts).includes('/events/child-1'),
       true
     ) && allTestsPassed;
+
+  const confirm = renderConfirmEmail('https://dertown.org/newsletter/confirm?token=abc&x=1');
+  allTestsPassed =
+    check(
+      'confirm subject',
+      confirm.subject,
+      'Confirm your subscription to This Week in Der Town'
+    ) && allTestsPassed;
+  allTestsPassed =
+    check('confirm html has escaped url', confirm.html.includes('token=abc&amp;x=1'), true) &&
+    allTestsPassed;
+  allTestsPassed =
+    check('confirm text has url', confirm.text.includes('token=abc&x=1'), true) && allTestsPassed;
+  const winterConfirm = renderConfirmEmail('https://dertown.org/c', '2026-01-15');
+  const summerConfirm = renderConfirmEmail('https://dertown.org/c', '2026-07-15');
+  allTestsPassed =
+    check('confirm email follows the season', winterConfirm.html !== summerConfirm.html, true) &&
+    allTestsPassed;
 
   return allTestsPassed;
 }
