@@ -52,15 +52,28 @@ export function cdnCacheHeaders(tags: string[] = []): Record<string, string> {
  * Mark a public page as CDN-cacheable. Call at the end of the page's
  * frontmatter so early redirects and error paths stay uncached.
  *
+ * Netlify's cache key ignores the query string unless told otherwise, so a
+ * page that renders differently per URL parameter (filters) MUST list those
+ * parameters in `varyQuery` — otherwise the first visitor's filtered page is
+ * served for every URL. Only the listed params are keyed, so tracking params
+ * like `fbclid` / `utm_*` don't fragment the cache.
+ *
  * @param headers `Astro.response.headers` for the page being rendered.
  * @param tags Extra cache tags for targeted purges, e.g. `['events']`.
+ * @param varyQuery Query parameters the page reads, e.g. `['season', 'age']`.
  */
-export function setPublicCache(headers: Headers, tags: string[] = []): void {
+export function setPublicCache(
+  headers: Headers,
+  tags: string[] = [],
+  varyQuery: string[] = []
+): void {
   for (const [name, value] of Object.entries(cdnCacheHeaders(tags))) {
     headers.set(name, value);
   }
 
-  headers.set('Netlify-Vary', `cookie=${SESSION_COOKIE}`);
+  const vary = [`cookie=${SESSION_COOKIE}`];
+  if (varyQuery.length > 0) vary.unshift(`query=${varyQuery.join('|')}`);
+  headers.set('Netlify-Vary', vary.join(','));
 
   // Browsers revalidate against the CDN rather than holding their own copy, so a
   // purge reaches returning visitors immediately. Revalidation hits the edge, not

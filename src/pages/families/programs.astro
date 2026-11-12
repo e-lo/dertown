@@ -110,7 +110,7 @@ const ages = AGE_OPTIONS;
 
 // Public, anonymous content: let the CDN serve repeat requests so each view
 // doesn't cost a function invocation. Purge from the admin header after edits.
-setPublicCache(Astro.response.headers);
+setPublicCache(Astro.response.headers, [], ['format', 'season', 'type', 'age']);
 ---
 
 <Layout title="Programs - Families | Der Town" description="Find leagues, classes, and workshops for kids of all ages in the Leavenworth area.">

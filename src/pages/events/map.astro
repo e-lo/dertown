@@ -50,7 +50,7 @@ const payload = JSON.stringify({
 
 // Public, anonymous content: let the CDN serve repeat requests so each view
 // doesn't cost a function invocation. Purge from the admin header after edits.
-setPublicCache(Astro.response.headers);
+setPublicCache(Astro.response.headers, [], ['loc']);
 ---
 
 <Layout
