@@ -5,6 +5,7 @@ import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
+import { matchesActivityType } from '@/lib/activity-types';
 
 // --- URL params ---
 const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|class|workshop
@@ -93,9 +94,7 @@ if (seasonParam === 'summer')  filtered = filtered.filter(p => p.is_summer);
 if (seasonParam === 'ongoing') filtered = filtered.filter(p => p.is_ongoing);
 
 if (typeParam) {
-  filtered = filtered.filter(p =>
-    (p.activity_type ?? '').toLowerCase() === typeParam.toLowerCase()
-  );
+  filtered = filtered.filter(p => matchesActivityType(p.activity_type, typeParam));
 }
 
 // Age: overlapping ranges
