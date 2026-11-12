@@ -3,9 +3,19 @@ import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
+import ProgramCard from '../../components/families/ProgramCard.astro';
+import SignupsCallout from '../../components/families/SignupsCallout.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
-import { matchesActivityType } from '@/lib/activity-types';
+import {
+  AGE_OPTIONS,
+  PROGRAM_SELECT,
+  formatAge,
+  getProgramIcon,
+  loadSignups,
+  matchesAge,
+  type Program,
+} from '@/lib/program-listing';
 
 // --- URL params ---
 const formatParam = Astro.url.searchParams.get('format')  ?? ''; // league|class|workshop
@@ -13,133 +23,39 @@ const seasonParam = Astro.url.searchParams.get('season')  ?? ''; // fall|winter|
 const typeParam   = Astro.url.searchParams.get('type')    ?? ''; // sports|arts|dance|music|outdoor|academic|other
 const ageParam    = Astro.url.searchParams.get('age')     ?? ''; // little-kids|elementary|middle|teen
 
+// Sports have their own browse page.
+if (typeParam === 'sports') {
+  const p = new URLSearchParams();
+  if (seasonParam) p.set('season', seasonParam);
+  if (ageParam) p.set('age', ageParam);
+  return Astro.redirect('/families/sports' + (p.toString() ? '?' + p.toString() : ''), 301);
+}
+
 // --- Supabase query ---
 // Shows league, class, workshop programs (not camps).
 // NULL program_format entries are included as uncategorized catch-all.
-// Try with program_format (requires migration 20260526120000 to be applied).
-// Falls back gracefully if the column doesn't exist yet (error 42703).
-const baseSelect = `
-  id, name, description, activity_type,
-  is_fall, is_winter, is_spring, is_summer, is_ongoing,
-  min_age, max_age, min_grade, max_grade,
-  cost, cost_assistance_available,
-  registration_link, registration_required,
-  registration_opens, registration_closes,
-  waitlist_status, featured, website,
-  sponsoring_organization:organizations!sponsoring_organization_id(name, website)
-`;
-
-let result = await (supabase as any)
+const { data: allPrograms, error } = await (supabase as any)
   .from('public_activities')
-  .select(`program_format, ${baseSelect}`)
+  .select(PROGRAM_SELECT)
   .eq('activity_hierarchy_type', 'PROGRAM')
   .eq('status', 'approved')
   // Exclude camps; include NULL (uncategorized) — PostgREST neq drops NULLs, so use OR
   .or('program_format.neq.camp,program_format.is.null')
   .order('name');
 
-let hasFormatColumn = true;
-
-// Fallback: column doesn't exist yet — show all approved programs (migration pending)
-if (result.error?.code === '42703') {
-  hasFormatColumn = false;
-  result = await (supabase as any)
-    .from('public_activities')
-    .select(baseSelect)
-    .eq('activity_hierarchy_type', 'PROGRAM')
-    .eq('status', 'approved')
-    .order('name');
-}
-
-const { data: allPrograms, error } = result;
-
-type Program = {
-  id: string;
-  name: string;
-  description?: string | null;
-  activity_type?: string | null;
-  program_format?: string | null;
-  is_fall?: boolean | null;
-  is_winter?: boolean | null;
-  is_spring?: boolean | null;
-  is_summer?: boolean | null;
-  is_ongoing?: boolean | null;
-  min_age?: number | null;
-  max_age?: number | null;
-  min_grade?: string | null;
-  max_grade?: string | null;
-  cost?: string | null;
-  cost_assistance_available?: boolean | null;
-  registration_link?: string | null;
-  registration_required?: boolean | null;
-  registration_opens?: string | null;
-  registration_closes?: string | null;
-  waitlist_status?: string | null;
-  featured?: boolean | null;
-  website?: string | null;
-  sponsoring_organization?: { name?: string | null; website?: string | null } | null;
-};
-
 // --- In-memory filtering ---
 let filtered: Program[] = allPrograms ?? [];
 
-// Format filter only applies when the column exists (post-migration)
-if (formatParam && hasFormatColumn) {
-  filtered = filtered.filter(p => (p.program_format ?? '') === formatParam);
-}
+if (formatParam) filtered = filtered.filter(p => (p.program_format ?? '') === formatParam);
 if (seasonParam === 'fall')    filtered = filtered.filter(p => p.is_fall);
 if (seasonParam === 'winter')  filtered = filtered.filter(p => p.is_winter);
 if (seasonParam === 'spring')  filtered = filtered.filter(p => p.is_spring);
 if (seasonParam === 'summer')  filtered = filtered.filter(p => p.is_summer);
 if (seasonParam === 'ongoing') filtered = filtered.filter(p => p.is_ongoing);
-
 if (typeParam) {
-  filtered = filtered.filter(p => matchesActivityType(p.activity_type, typeParam));
+  filtered = filtered.filter(p => (p.activity_type ?? '').toLowerCase() === typeParam.toLowerCase());
 }
-
-// Age: overlapping ranges
-if (ageParam === 'little-kids')  filtered = filtered.filter(p => (p.min_age ?? 0) <= 6);
-if (ageParam === 'elementary')   filtered = filtered.filter(p => (p.max_age ?? 99) >= 5  && (p.min_age ?? 0) <= 11);
-if (ageParam === 'middle')       filtered = filtered.filter(p => (p.max_age ?? 99) >= 11 && (p.min_age ?? 0) <= 14);
-if (ageParam === 'teen')         filtered = filtered.filter(p => (p.max_age ?? 99) >= 13);
-
-// --- Helper functions ---
-function formatAge(min: number | null | undefined, max: number | null | undefined,
-                   minGrade?: string | null, maxGrade?: string | null): string {
-  if (min != null && max != null) return `Ages ${min}–${max}`;
-  if (min != null) return `Ages ${min}+`;
-  if (max != null) return `Up to age ${max}`;
-  if (minGrade || maxGrade) {
-    return `${minGrade ?? ''}${minGrade && maxGrade ? '–' : ''}${maxGrade ?? ''}`;
-  }
-  return 'All ages';
-}
-
-// registration_* are DATE columns. Parse date-only strings as local midnight so
-// they don't shift to the previous evening (UTC parse) in Pacific time.
-function parseDate(iso: string): Date {
-  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso);
-}
-function endOfDay(iso: string): Date {
-  const d = parseDate(iso);
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-const shortDate = (iso: string) =>
-  parseDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-const longDate = (iso: string) =>
-  parseDate(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-
-function getCategoryIcon(type: string | null | undefined): string {
-  const map: Record<string, string> = {
-    gymnastics: 'fitness_center', sports: 'sports_soccer',
-    'martial arts': 'sports_martial_arts', arts: 'palette',
-    music: 'music_note', dance: 'music_note', theater: 'theater_comedy',
-    stem: 'science', outdoor: 'hiking', academic: 'school',
-    social: 'groups', scouting: 'camping', recreation: 'park', other: 'category',
-  };
-  return map[(type ?? '').toLowerCase()] ?? 'category';
-}
+if (ageParam) filtered = filtered.filter(p => matchesAge(p, ageParam));
 
 function buildUrl(overrides: Record<string, string>): string {
   const p = new URLSearchParams();
@@ -156,100 +72,7 @@ function buildUrl(overrides: Record<string, string>): string {
 
 const hasFilters = !!(formatParam || seasonParam || typeParam || ageParam);
 
-// --- Sessions ---
-// Registration info almost always lives on a program's SESSION children, not
-// on the program row itself. RLS limits anon reads to approved sessions.
-type Session = {
-  id: string;
-  name: string;
-  parent_activity_id: string;
-  registration_opens?: string | null;
-  registration_closes?: string | null;
-  registration_link?: string | null;
-  waitlist_status?: string | null;
-};
-type Registrable = Pick<Session, 'registration_opens' | 'registration_closes' | 'registration_link' | 'waitlist_status'>;
-
-const programIds = (allPrograms ?? []).map((p: Program) => p.id);
-const sessionsByProgram: Record<string, Session[]> = {};
-if (programIds.length > 0) {
-  const { data: sessionData } = await (supabase as any)
-    .from('activities')
-    .select('id, name, parent_activity_id, registration_opens, registration_closes, registration_link, waitlist_status')
-    .eq('activity_hierarchy_type', 'SESSION')
-    .in('parent_activity_id', programIds)
-    .order('registration_opens', { ascending: true });
-  for (const sess of (sessionData ?? []) as Session[]) {
-    (sessionsByProgram[sess.parent_activity_id] ??= []).push(sess);
-  }
-}
-
-// --- Signup state ---
-// "Open now" without a close date is only trusted for 90 days after it opened,
-// so a stale open date from a past season doesn't sit in the callout forever.
-const DAY_MS = 24 * 60 * 60 * 1000;
-const now = new Date();
-const soon = new Date(now.getTime() + 60 * DAY_MS);
-const staleAfter = new Date(now.getTime() - 90 * DAY_MS);
-
-type SignupState = 'open' | 'upcoming';
-function hasRegDates(r: Registrable): boolean {
-  return !!(r.registration_opens || r.registration_closes || r.waitlist_status);
-}
-function getSignupState(r: Registrable): SignupState | null {
-  const opens  = r.registration_opens  ? parseDate(r.registration_opens)  : null;
-  const closes = r.registration_closes ? endOfDay(r.registration_closes) : null;
-  if (closes && closes < now) return null;
-  if (opens && opens > now) return opens <= soon ? 'upcoming' : null;
-  if (r.waitlist_status) return 'open';
-  if (closes) return 'open';
-  if (opens && opens >= staleAfter) return 'open';
-  return null;
-}
-
-type SignupEntry = { program: Program; session: Session | null; reg: Registrable; state: SignupState };
-const signupsByProgram: Record<string, SignupEntry[]> = {};
-for (const program of (allPrograms ?? []) as Program[]) {
-  const sessions = (sessionsByProgram[program.id] ?? []).filter(hasRegDates);
-  // Program-level dates are only a fallback for programs with no dated sessions
-  const candidates: { session: Session | null; reg: Registrable }[] = sessions.length > 0
-    ? sessions.map(sess => ({ session: sess, reg: sess }))
-    : [{ session: null, reg: program }];
-  for (const c of candidates) {
-    const state = getSignupState(c.reg);
-    if (state) (signupsByProgram[program.id] ??= []).push({ program, ...c, state });
-  }
-}
-const allSignups: SignupEntry[] = Object.values(signupsByProgram).flat();
-const byDate = (key: 'registration_opens' | 'registration_closes') => (a: SignupEntry, b: SignupEntry) =>
-  (a.reg[key] ?? '9999').localeCompare(b.reg[key] ?? '9999');
-// Open now: soonest deadline first. Opening soon: soonest opening first.
-const openSignups     = allSignups.filter(e => e.state === 'open').sort(byDate('registration_closes'));
-const upcomingSignups = allSignups.filter(e => e.state === 'upcoming').sort(byDate('registration_opens'));
-
-function signupLink(e: SignupEntry): string | null {
-  return e.reg.registration_link ?? e.program.registration_link ?? null;
-}
-function signupLabel(e: SignupEntry): string {
-  const sessionName = e.session?.name;
-  return sessionName && sessionName !== e.program.name ? `${e.program.name} · ${sessionName}` : e.program.name;
-}
-
-// Card badge: best signup state across the program's sessions
-function getRegStatus(p: Program): { label: string; color: string } | null {
-  const entries = signupsByProgram[p.id] ?? [];
-  const open = entries.find(e => e.state === 'open');
-  if (open) {
-    if (open.reg.waitlist_status) return { label: 'Waitlist open', color: 'orange' };
-    const closes = open.reg.registration_closes;
-    return { label: closes ? `Registration open · closes ${shortDate(closes)}` : 'Registration open', color: 'green' };
-  }
-  const upcoming = entries.find(e => e.state === 'upcoming');
-  if (upcoming?.reg.registration_opens) {
-    return { label: `Registration opens ${shortDate(upcoming.reg.registration_opens)}`, color: 'yellow' };
-  }
-  return null;
-}
+const signups = await loadSignups(allPrograms ?? []);
 
 // Featured programs (only shown when no filters are active)
 const featuredPrograms: Program[] = (allPrograms ?? []).filter((p: Program) => p.featured);
@@ -262,13 +85,6 @@ const formats = [
   { value: 'workshop', label: 'Workshop' },
 ];
 
-// Format label helpers for cards
-const formatLabels: Record<string, { label: string; color: string }> = {
-  league:   { label: 'League',   color: 'blue'   },
-  class:    { label: 'Class',    color: 'purple' },
-  workshop: { label: 'Workshop', color: 'green'  },
-};
-
 const seasons = [
   { value: '', label: 'All seasons' },
   { value: 'fall',    label: 'Fall'       },
@@ -278,9 +94,9 @@ const seasons = [
   { value: 'ongoing', label: 'Year-round' },
 ];
 
+// "Sports" links out to /families/sports rather than filtering here.
 const types = [
   { value: '', label: 'All types' },
-  { value: 'sports',    label: 'Sports'    },
   { value: 'arts',      label: 'Arts'      },
   { value: 'dance',     label: 'Dance'     },
   { value: 'music',     label: 'Music'     },
@@ -290,21 +106,7 @@ const types = [
   { value: 'other',     label: 'Other'     },
 ];
 
-const ages = [
-  { value: '', label: 'All ages' },
-  { value: 'little-kids', label: 'Little Kids (0–5)' },
-  { value: 'elementary',  label: 'Elementary'        },
-  { value: 'middle',      label: 'Middle School'      },
-  { value: 'teen',        label: 'Teen'              },
-];
-
-const seasonBadges = [
-  { key: 'is_fall',    label: 'Fall',       color: 'yellow' },
-  { key: 'is_winter',  label: 'Winter',     color: 'blue'   },
-  { key: 'is_spring',  label: 'Spring',     color: 'green'  },
-  { key: 'is_summer',  label: 'Summer',     color: 'orange' },
-  { key: 'is_ongoing', label: 'Year-round', color: 'gray'   },
-] as const;
+const ages = AGE_OPTIONS;
 
 // Public, anonymous content: let the CDN serve repeat requests so each view
 // doesn't cost a function invocation. Purge from the admin header after edits.
@@ -316,68 +118,20 @@ setPublicCache(Astro.response.headers);
 
     <!-- Hero -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-      <Breadcrumb items={[{ label: 'Activities', href: '/families/activities' }, { label: 'Programs, Classes & Leagues' }]} />
+      <Breadcrumb items={[{ label: 'Activities', href: '/families/activities' }, { label: 'Programs & Classes' }]} />
       <SectionHeader
         title="Programs"
         icon="emoji_events"
         text="Leagues, classes, and workshops for kids of all ages in the Leavenworth area. Filter by format, season, type, or age group."
       />
       <p class="text-gray-400 text-center text-sm mt-1">
-        Looking for camps? Visit <a href="/families/camps" class="underline">Camps &amp; Classes</a>.
+        Looking for sports? See <a href="/families/sports" class="underline">Sports &amp; Leagues</a>. Camps are on <a href="/families/camps" class="underline">Camps</a>.
         Data is maintained by community volunteers — <a href="mailto:dertownleavenworth@gmail.com" class="underline">let us know</a> if something is missing.
       </p>
     </div>
 
     <!-- Open & upcoming signups callout -->
-    {(openSignups.length > 0 || upcomingSignups.length > 0) && (
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
-          <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-3">
-            <span class="material-symbols-outlined">calendar_month</span>
-            Open &amp; Upcoming Signups
-          </h3>
-          {openSignups.length > 0 && (
-            <div class="mb-3 last:mb-0">
-              <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Open now</p>
-              <ul class="space-y-1.5 text-sm text-amber-800">
-                {openSignups.map((e: SignupEntry) => (
-                  <li class="flex items-start gap-2">
-                    <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(e.program.activity_type)}</span>
-                    <span>
-                      <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
-                      {e.reg.waitlist_status && !e.reg.registration_closes && <> — waitlist open</>}
-                      {e.reg.registration_closes && <> — closes {longDate(e.reg.registration_closes)}</>}
-                      {signupLink(e) && (
-                        <> · <a href={signupLink(e)} target="_blank" class="underline">{e.reg.waitlist_status ? 'Join waitlist' : 'Register'}</a></>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {upcomingSignups.length > 0 && (
-            <div>
-              <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Opening soon</p>
-              <ul class="space-y-1.5 text-sm text-amber-800">
-                {upcomingSignups.map((e: SignupEntry) => (
-                  <li class="flex items-start gap-2">
-                    <span class="material-symbols-outlined text-base mt-0.5">{getCategoryIcon(e.program.activity_type)}</span>
-                    <span>
-                      <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
-                      {e.reg.registration_opens && <> — opens {longDate(e.reg.registration_opens)}</>}
-                      {signupLink(e) && (
-                        <> · <a href={signupLink(e)} target="_blank" class="underline">Register</a></>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
-    )}
+    <SignupsCallout open={signups.open} upcoming={signups.upcoming} />
 
     <!-- Filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
@@ -484,7 +238,7 @@ setPublicCache(Astro.response.headers);
                 class="flex items-start gap-3 bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
               >
                 <span class="material-symbols-outlined text-amber-600 text-2xl shrink-0 mt-0.5">
-                  {getCategoryIcon(p.activity_type)}
+                  {getProgramIcon(p)}
                 </span>
                 <div class="min-w-0">
                   <p class="font-medium text-gray-900 truncate">{p.name}</p>
@@ -503,88 +257,7 @@ setPublicCache(Astro.response.headers);
       <!-- Program grid -->
       {filtered.length > 0 ? (
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((p: Program) => {
-            const regStatus = getRegStatus(p);
-            const ageLabel  = formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade);
-            const icon      = getCategoryIcon(p.activity_type);
-            const orgName   = p.sponsoring_organization?.name;
-            const fmt       = p.program_format ? formatLabels[p.program_format] : null;
-
-            return (
-              <div class={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow flex flex-col ${p.featured ? 'border-amber-300' : 'border-gray-200'}`}>
-                <div class="p-4 flex-1">
-                  <!-- Header row -->
-                  <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="flex items-start gap-2 min-w-0">
-                      <span class="material-symbols-outlined text-gray-500 text-xl shrink-0 mt-0.5">{icon}</span>
-                      <div class="min-w-0">
-                        <h3 class="font-semibold text-gray-900 leading-snug">{p.name}</h3>
-                        <p class="text-sm text-gray-500">
-                          {orgName && <>{orgName} · </>}{ageLabel}
-                        </p>
-                      </div>
-                    </div>
-                    <!-- Format + season badges -->
-                    <div class="flex flex-wrap gap-1 shrink-0">
-                      {fmt && (
-                        <span class={`status-badge status-badge--${fmt.color} status-badge--sm`}>{fmt.label}</span>
-                      )}
-                      {seasonBadges.map(sb => (
-                        p[sb.key as keyof Program] && (
-                          <span class={`status-badge status-badge--${sb.color} status-badge--sm`}>{sb.label}</span>
-                        )
-                      ))}
-                    </div>
-                  </div>
-
-                  <!-- Description -->
-                  {p.description && (
-                    <p class="text-sm text-gray-600 line-clamp-3 mb-3">{p.description}</p>
-                  )}
-
-                  <!-- Cost + assistance -->
-                  {(p.cost || p.cost_assistance_available) && (
-                    <div class="flex flex-wrap gap-2 items-center mb-2">
-                      {p.cost && (
-                        <span class="text-sm text-gray-700 font-medium">{p.cost}</span>
-                      )}
-                      {p.cost_assistance_available && (
-                        <span class="status-badge status-badge--green status-badge--sm">Financial assistance available</span>
-                      )}
-                    </div>
-                  )}
-
-                  <!-- Registration status badge -->
-                  {regStatus && (
-                    <div class="mb-2">
-                      <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
-                    </div>
-                  )}
-                </div>
-
-                <!-- CTA buttons -->
-                <div class="px-4 pb-4 flex gap-2 flex-wrap">
-                  <a
-                    href={`/families/programs/${p.id}`}
-                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="material-symbols-outlined text-sm">info</span>
-                    View details
-                  </a>
-                  {p.registration_link && (
-                    <a
-                      href={p.registration_link}
-                      target="_blank"
-                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      <span class="material-symbols-outlined text-sm">how_to_reg</span>
-                      Register Now
-                    </a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map((p) => <ProgramCard program={p} signups={signups.byProgram[p.id]} />)}
         </div>
       ) : !error && (
         <div class="text-center py-16 text-gray-400">

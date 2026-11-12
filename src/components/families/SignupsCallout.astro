@@ -1,0 +1,65 @@
+---
+import {
+  getProgramIcon,
+  longDate,
+  signupLabel,
+  signupLink,
+  type SignupEntry,
+} from '../../lib/program-listing';
+
+interface Props {
+  open: SignupEntry[];
+  upcoming: SignupEntry[];
+}
+const { open, upcoming } = Astro.props;
+---
+
+{(open.length > 0 || upcoming.length > 0) && (
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+      <h3 class="font-semibold text-amber-900 flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Open &amp; Upcoming Signups
+      </h3>
+      {open.length > 0 && (
+        <div class="mb-3 last:mb-0">
+          <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Open now</p>
+          <ul class="space-y-1.5 text-sm text-amber-800">
+            {open.map((e) => (
+              <li class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-base mt-0.5">{getProgramIcon(e.program)}</span>
+                <span>
+                  <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
+                  {e.reg.waitlist_status && !e.reg.registration_closes && <> — waitlist open</>}
+                  {e.reg.registration_closes && <> — closes {longDate(e.reg.registration_closes)}</>}
+                  {signupLink(e) && (
+                    <> · <a href={signupLink(e)} target="_blank" class="underline">{e.reg.waitlist_status ? 'Join waitlist' : 'Register'}</a></>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {upcoming.length > 0 && (
+        <div>
+          <p class="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-1.5">Opening soon</p>
+          <ul class="space-y-1.5 text-sm text-amber-800">
+            {upcoming.map((e) => (
+              <li class="flex items-start gap-2">
+                <span class="material-symbols-outlined text-base mt-0.5">{getProgramIcon(e.program)}</span>
+                <span>
+                  <a href={`/families/programs/${e.program.id}`} class="font-semibold hover:underline">{signupLabel(e)}</a>
+                  {e.reg.registration_opens && <> — opens {longDate(e.reg.registration_opens)}</>}
+                  {signupLink(e) && (
+                    <> · <a href={signupLink(e)} target="_blank" class="underline">Register</a></>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </div>
+)}

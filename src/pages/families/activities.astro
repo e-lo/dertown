@@ -5,7 +5,6 @@ import Calendar from '../../components/Calendar.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
-import { matchesActivityType } from '@/lib/activity-types';
 
 // --- Counts for the category blocks (best-effort) ---
 let campCount: number | null = null;
@@ -28,17 +27,14 @@ try {
     .or('program_format.neq.camp,program_format.is.null');
   programCount = programs ?? null;
 
-  const { data: programTypes } = await (supabase as any)
+  const { count: sports } = await (supabase as any)
     .from('public_activities')
-    .select('activity_type')
+    .select('id', { count: 'exact', head: true })
     .eq('activity_hierarchy_type', 'PROGRAM')
     .eq('status', 'approved')
+    .eq('activity_type', 'sports')
     .or('program_format.neq.camp,program_format.is.null');
-  sportsCount = programTypes
-    ? (programTypes as { activity_type: string | null }[]).filter((r) =>
-        matchesActivityType(r.activity_type, 'sports'),
-      ).length
-    : null;
+  sportsCount = sports ?? null;
 } catch {
   // counts are optional
 }
@@ -105,11 +101,11 @@ const blocks = [
     sub: programSub,
   },
   {
-    href: '/families/programs?type=sports',
+    href: '/families/sports',
     cls: 'bg-green',
     icon: 'sports_soccer',
     title: 'Sports & Leagues',
-    text: 'Youth sports teams, leagues, and lessons, by season.',
+    text: "Youth sports teams, leagues, and lessons. See what's in season and when signups open.",
     sub: sportsSub,
   },
   {
