@@ -52,6 +52,7 @@
     "test:newsletter-token": "tsx src/lib/__tests__/newsletter-token.test.ts",
     "test:newsletter-select": "tsx src/lib/__tests__/newsletter-select.test.ts",
     "test:newsletter-render": "tsx src/lib/__tests__/newsletter-render.test.ts",
+    "test:newsletter-inherit": "tsx src/lib/__tests__/newsletter-inherit.test.ts",
     "test:newsletter-subscribe-wiring": "tsx src/lib/__tests__/newsletter-subscribe-wiring.test.ts",
     "newsletter": "tsx --env-file=.env.local scripts/newsletter/resend.ts",
     "newsletter:fetch": "tsx --env-file=.env.local scripts/newsletter/fetch.ts",
