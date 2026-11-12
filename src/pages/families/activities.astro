@@ -9,6 +9,7 @@ import { setPublicCache } from '@/lib/cache';
 // --- Counts for the category blocks (best-effort) ---
 let campCount: number | null = null;
 let programCount: number | null = null;
+let sportsCount: number | null = null;
 try {
   const { count: camps } = await (supabase as any)
     .from('public_activities')
@@ -25,11 +26,21 @@ try {
     .eq('status', 'approved')
     .or('program_format.neq.camp,program_format.is.null');
   programCount = programs ?? null;
+
+  const { count: sports } = await (supabase as any)
+    .from('public_activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('activity_hierarchy_type', 'PROGRAM')
+    .eq('status', 'approved')
+    .eq('activity_type', 'sports')
+    .or('program_format.neq.camp,program_format.is.null');
+  sportsCount = sports ?? null;
 } catch {
   // counts are optional
 }
 const campSub = campCount != null ? `${campCount} listed` : '';
 const programSub = programCount != null ? `${programCount} listed` : '';
+const sportsSub = sportsCount != null ? `${sportsCount} listed` : '';
 
 // --- Registration windows for upcoming seasons (overlaid on the calendar) ---
 // One multi-day all-day event per activity, spanning registration open -> close.
@@ -85,13 +96,21 @@ const blocks = [
     href: '/families/programs',
     cls: 'bg-blue',
     icon: 'emoji_events',
-    title: 'Programs, Classes & Leagues',
+    title: 'Programs & Classes',
     text: 'Recurring programs, classes, lessons, and sports leagues that run through the year.',
     sub: programSub,
   },
   {
-    href: '/families/after-school-activities',
+    href: '/families/sports',
     cls: 'bg-green',
+    icon: 'sports_soccer',
+    title: 'Sports & Leagues',
+    text: "Youth sports teams, leagues, and lessons. See what's in season and when signups open.",
+    sub: sportsSub,
+  },
+  {
+    href: '/families/after-school-activities',
+    cls: 'bg-blue',
     icon: 'backpack',
     title: 'After-School Activities',
     text: 'Curated after-school programs and clubs, organized by school and grade level.',
@@ -117,7 +136,7 @@ setPublicCache(Astro.response.headers);
       />
     </div>
 
-    <!-- Three full-bleed category blocks -->
+    <!-- Full-bleed category blocks -->
     <div class="mt-6 space-y-1">
       {blocks.map((b) => (
         <a href={b.href} class={`${b.cls} block group transition-opacity hover:opacity-95`}>
