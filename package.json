@@ -54,7 +54,8 @@
     "newsletter": "tsx --env-file=.env.local scripts/newsletter/resend.ts",
     "newsletter:fetch": "tsx --env-file=.env.local scripts/newsletter/fetch.ts",
     "newsletter:render": "tsx scripts/newsletter/render.ts",
-    "test:newsletter-cli": "tsx src/lib/__tests__/newsletter-cli.test.ts"
+    "test:newsletter-cli": "tsx src/lib/__tests__/newsletter-cli.test.ts",
+    "test:sports-signup": "tsx src/lib/__tests__/sports-signup.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
