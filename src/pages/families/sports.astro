@@ -71,13 +71,20 @@ const month = new Date().getMonth() + 1;
 const hasOpenSignup = (p: Program) =>
   (signups.byProgram[p.id] ?? []).some((e) => e.state === 'open');
 
-type Group = { id: SignupGroupId; title: string; blurb: string; icon: string; programs: Program[] };
+type Group = {
+  id: SignupGroupId;
+  title: string;
+  blurb: string;
+  icon: string;
+  band: string;
+  programs: Program[];
+};
 const GROUPS: Omit<Group, 'programs'>[] = [
-  { id: 'now', title: 'Sign up now', blurb: 'Registration is open or this is the usual signup window.', icon: 'how_to_reg' },
-  { id: 'anytime', title: 'Year-round — join anytime', blurb: '', icon: 'all_inclusive' },
-  { id: 'soon', title: 'Signups opening soon', blurb: 'Usually opens in the next few months.', icon: 'upcoming' },
-  { id: 'later', title: 'Later in the year', blurb: '', icon: 'event' },
-  { id: 'unknown', title: 'Season not listed', blurb: 'Check with the organization for signup dates.', icon: 'help' },
+  { id: 'now', band: 'bg-blue', title: 'Sign up now', blurb: 'Registration is open or this is the usual signup window.', icon: 'how_to_reg' },
+  { id: 'anytime', band: 'bg-yellow', title: 'Year-round — join anytime', blurb: 'Clubs and gyms you can start any time of year.', icon: 'all_inclusive' },
+  { id: 'soon', band: 'bg-green', title: 'Signups opening soon', blurb: 'Usually opens in the next few months.', icon: 'upcoming' },
+  { id: 'later', band: 'bg-blue-green', title: 'Later in the year', blurb: 'Signups open further out — check back.', icon: 'event' },
+  { id: 'unknown', band: 'bg-fandango', title: 'Season not listed', blurb: 'Check with the organization for signup dates.', icon: 'help' },
 ];
 const groups: Group[] = GROUPS.map((g) => ({
   ...g,
@@ -116,9 +123,15 @@ function buildUrl(overrides: Record<string, string>): string {
 }
 const hasFilters = !!(sportParam || seasonParam || ageParam);
 
-const chipOn = 'status-badge status-badge--blue status-badge--md';
-const chipOff =
-  'inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors';
+// Same look as QuickNavItem (the pill nav on after-school / things-to-do).
+const chipBase =
+  'inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors';
+const chipOn = `${chipBase} bg-primary text-white border-primary`;
+const chipOff = `${chipBase} bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400`;
+const smallChipBase =
+  'inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border transition-colors';
+const smallOn = `${smallChipBase} bg-primary text-white border-primary`;
+const smallOff = `${smallChipBase} bg-white text-gray-600 border-gray-300 hover:bg-gray-50`;
 
 // Public, anonymous content: let the CDN serve repeat requests so each view
 // doesn't cost a function invocation. Purge from the admin header after edits.
@@ -145,56 +158,71 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       </p>
     </div>
 
-    <!-- Filters -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-      <div class="bg-gray-50 rounded-lg p-4 space-y-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Sport</span>
-          <a href={buildUrl({ sport: '' })} class={sportParam ? chipOff : chipOn}>All sports</a>
-          {sportChips.map((c) => (
+    <!-- Filters: sport pills like the site's quick nav, season/age below -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-8">
+      <!-- One swipeable row on phones; wrapped and centered from sm up -->
+      <div id="sport-pills" class="-mx-4 px-4 flex gap-2 overflow-x-auto pb-1 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center sm:overflow-visible">
+        <a href={buildUrl({ sport: '' })} class={sportParam ? chipOff : chipOn}>
+          <span class="material-symbols-outlined text-sm">sports</span>
+          All sports
+        </a>
+        {sportChips.map((c) => {
+          const on = sportParam.toLowerCase() === c.value.toLowerCase();
+          return (
             <a
-              href={buildUrl({ sport: sportParam.toLowerCase() === c.value.toLowerCase() ? '' : c.value })}
-              class={sportParam.toLowerCase() === c.value.toLowerCase() ? chipOn : chipOff}
+              href={buildUrl({ sport: on ? '' : c.value })}
+              class={on ? chipOn : chipOff}
+              data-active-sport={on ? '' : undefined}
             >
               {c.value !== OTHER && (
-                <span class="material-symbols-outlined text-sm">{getProgramIcon({ sport: c.value, activity_type: 'sports' })}</span>
+                <span class="material-symbols-outlined text-sm">
+                  {getProgramIcon({ sport: c.value, activity_type: 'sports' })}
+                </span>
               )}
-              {c.label} <span class="opacity-60">{c.count}</span>
+              {c.label}
             </a>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Season</span>
+      <div class="mt-4 flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
+        <div class="flex flex-wrap items-center justify-center gap-1.5">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Season</span>
           {seasons.map((s) => (
-            <a href={buildUrl({ season: seasonParam === s.value ? '' : s.value })} class={seasonParam === s.value ? chipOn : chipOff}>
+            <a
+              href={buildUrl({ season: seasonParam === s.value ? '' : s.value })}
+              class={seasonParam === s.value ? smallOn : smallOff}
+            >
               {s.label}
             </a>
           ))}
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 shrink-0">Age</span>
+        <div class="flex flex-wrap items-center justify-center gap-1.5">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Age</span>
           {AGE_OPTIONS.map((a) => (
-            <a href={buildUrl({ age: ageParam === a.value ? '' : a.value })} class={ageParam === a.value ? chipOn : chipOff}>
+            <a
+              href={buildUrl({ age: ageParam === a.value ? '' : a.value })}
+              class={ageParam === a.value ? smallOn : smallOff}
+            >
               {a.label}
             </a>
           ))}
         </div>
       </div>
 
-      <div class="flex items-center justify-between mt-3 mb-4">
-        <p class="text-sm text-gray-500">
-          {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
-        </p>
+      <p class="text-center text-sm text-gray-500 mt-4">
+        {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
         {hasFilters && (
-          <a href="/families/sports" class="text-sm text-blue-600 hover:underline">Clear filters</a>
+          <>
+            {' · '}
+            <a href="/families/sports" class="underline hover:text-gray-800">Clear filters</a>
+          </>
         )}
-      </div>
+      </p>
     </div>
 
     {error && (
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
           <span class="material-symbols-outlined text-base align-middle mr-1">error</span>
           Unable to load sports right now. Please try again shortly.
@@ -202,31 +230,31 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       </div>
     )}
 
-    <!-- Grouped listings -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 space-y-8">
-      {groups.map((g) => (
-        <section id={g.id}>
-          <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <span class="material-symbols-outlined text-gray-500">{g.icon}</span>
-            {g.title}
-            <span class="text-sm font-normal text-gray-500">({g.programs.length})</span>
-          </h2>
-          {g.blurb && <p class="text-sm text-gray-500 mb-3">{g.blurb}</p>}
-          {!g.blurb && <div class="mb-3"></div>}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {g.programs.map((p) => <ProgramCard program={p} signups={signups.byProgram[p.id]} hint={hintFor(p)} />)}
+    <!-- Grouped listings: one full-width palette band per group -->
+    {groups.map((g) => (
+      <section id={g.id} class={`${g.band} py-8`}>
+        <div class="w-full px-4 sm:px-6 lg:px-8">
+          <SectionHeader title={g.title} icon={g.icon} text={g.blurb} />
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {g.programs.map((p) => (
+                <ProgramCard program={p} signups={signups.byProgram[p.id]} hint={hintFor(p)} />
+              ))}
+            </div>
           </div>
-        </section>
-      ))}
-
-      {!error && filtered.length === 0 && (
-        <div class="text-center py-16 text-gray-400">
-          <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
-          <p class="text-lg font-medium text-gray-600 mb-1">No sports match those filters</p>
-          <p class="text-sm">Try a different season or age, or <a href="/families/sports" class="text-blue-600 underline">see all sports</a>.</p>
         </div>
-      )}
-    </div>
+      </section>
+    ))}
+
+    {!error && filtered.length === 0 && (
+      <div class="text-center py-16 text-gray-400">
+        <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
+        <p class="text-lg font-medium text-gray-600 mb-1">No sports match those filters</p>
+        <p class="text-sm">
+          Try a different season or age, or <a href="/families/sports" class="underline">see all sports</a>.
+        </p>
+      </div>
+    )}
 
     <Disclaimer />
 
@@ -240,4 +268,13 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       </div>
     </div>
   </div>
+
+  <script>
+    // On phones the sport pills are one scrolling row; keep the selected one visible.
+    const row = document.getElementById('sport-pills');
+    const active = row?.querySelector<HTMLElement>('[data-active-sport]');
+    if (row && active && row.scrollWidth > row.clientWidth) {
+      row.scrollLeft = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
+    }
+  </script>
 </Layout>

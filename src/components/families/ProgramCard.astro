@@ -1,4 +1,6 @@
 ---
+// Matches the site's LinkBox cards (after-school, things-to-do): icon, title,
+// short text, small subtext, and one status pill in the corner.
 import {
   FORMAT_LABELS,
   SEASON_BADGES,
@@ -12,92 +14,67 @@ import {
 interface Props {
   program: Program;
   signups?: SignupEntry[];
-  /** Optional one-line note under the badges, e.g. typical signup months. */
+  /** Optional one-line note, e.g. typical signup months. */
   hint?: string | null;
 }
 const { program: p, signups, hint } = Astro.props;
 
 const regStatus = getRegStatus(signups);
-const ageLabel = formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade);
-const orgName = p.sponsoring_organization?.name;
-const fmt = p.program_format ? FORMAT_LABELS[p.program_format] : null;
+const seasons = SEASON_BADGES.filter((sb) => p[sb.key]);
+// One corner pill, like the hand-curated pages: live signup status wins,
+// otherwise the season(s) it runs.
+const pill =
+  regStatus ??
+  (seasons.length > 0
+    ? { label: seasons.map((s) => s.label).join(' · '), color: seasons[0].color }
+    : null);
+const meta = [
+  p.program_format ? FORMAT_LABELS[p.program_format]?.label : null,
+  p.sponsoring_organization?.name,
+  formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade),
+]
+  .filter(Boolean)
+  .join(' · ');
+const detailsHref = `/families/programs/${p.id}`;
 ---
 
-<div class={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow flex flex-col ${p.featured ? 'border-amber-300' : 'border-gray-200'}`}>
-  <div class="p-4 flex-1">
-    <!-- Header row -->
-    <div class="flex items-start justify-between gap-2 mb-2">
-      <div class="flex items-start gap-2 min-w-0">
-        <span class="material-symbols-outlined text-gray-500 text-xl shrink-0 mt-0.5">{getProgramIcon(p)}</span>
-        <div class="min-w-0">
-          <h3 class="font-semibold text-gray-900 leading-snug">{p.name}</h3>
-          <p class="text-sm text-gray-500">
-            {orgName && <>{orgName} · </>}{ageLabel}
-          </p>
-        </div>
-      </div>
-      <!-- Format + season badges -->
-      <div class="flex flex-wrap gap-1 shrink-0">
-        {fmt && (
-          <span class={`status-badge status-badge--${fmt.color} status-badge--sm`}>{fmt.label}</span>
-        )}
-        {SEASON_BADGES.map((sb) => (
-          p[sb.key] && (
-            <span class={`status-badge status-badge--${sb.color} status-badge--sm`}>{sb.label}</span>
-          )
-        ))}
-      </div>
+<div
+  class={`group relative flex items-start p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${p.featured ? 'ring-2 ring-amber-300' : 'ring-1 ring-gray-100'}`}
+>
+  <span
+    class="material-symbols-outlined text-2xl mr-3 mt-0.5 text-gray-600 group-hover:scale-110 transition-transform"
+  >
+    {getProgramIcon(p)}
+  </span>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-start justify-between gap-2">
+      <h4 class="font-medium text-gray-900 leading-snug">
+        <a href={detailsHref} class="after:absolute after:inset-0">{p.name}</a>
+      </h4>
+      {pill && (
+        <span class={`status-badge status-badge--${pill.color} status-badge--md shrink-0`}>
+          {pill.label}
+        </span>
+      )}
     </div>
-
-    <!-- Description -->
-    {p.description && (
-      <p class="text-sm text-gray-600 line-clamp-3 mb-3">{p.description}</p>
-    )}
-
-    <!-- Cost + assistance -->
+    {meta && <p class="text-sm text-gray-500">{meta}</p>}
+    {p.description && <p class="text-sm text-gray-600 mt-1 line-clamp-2">{p.description}</p>}
     {(p.cost || p.cost_assistance_available) && (
-      <div class="flex flex-wrap gap-2 items-center mb-2">
-        {p.cost && (
-          <span class="text-sm text-gray-700 font-medium">{p.cost}</span>
-        )}
-        {p.cost_assistance_available && (
-          <span class="status-badge status-badge--green status-badge--sm">Financial assistance available</span>
-        )}
-      </div>
-    )}
-
-    <!-- Registration status badge -->
-    {regStatus && (
-      <div class="mb-2">
-        <span class={`status-badge status-badge--${regStatus.color} status-badge--sm`}>{regStatus.label}</span>
-      </div>
-    )}
-
-    {hint && (
-      <p class="text-xs text-gray-500 flex items-center gap-1">
-        <span class="material-symbols-outlined text-sm">event_available</span>
-        {hint}
+      <p class="text-xs text-gray-500 mt-1">
+        {p.cost}
+        {p.cost && p.cost_assistance_available && ' · '}
+        {p.cost_assistance_available && 'Financial assistance available'}
       </p>
     )}
-  </div>
-
-  <!-- CTA buttons -->
-  <div class="px-4 pb-4 flex gap-2 flex-wrap">
-    <a
-      href={`/families/programs/${p.id}`}
-      class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-    >
-      <span class="material-symbols-outlined text-sm">info</span>
-      View details
-    </a>
+    {hint && <p class="text-xs text-gray-500 mt-1">{hint}</p>}
     {p.registration_link && (
       <a
         href={p.registration_link}
         target="_blank"
-        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+        class="relative z-10 inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary hover:underline"
       >
-        <span class="material-symbols-outlined text-sm">how_to_reg</span>
-        Register Now
+        Register
+        <span class="material-symbols-outlined text-sm">open_in_new</span>
       </a>
     )}
   </div>
