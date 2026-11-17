@@ -688,11 +688,6 @@ setPublicCache(Astro.response.headers);
         if (intent === 'publish') return 'approved';
         return 'pending';
       }
-      function syncEventStatusControls() {
-        const c = document.getElementById('editEventCancelled') as HTMLInputElement;
-        const publishBtn = document.getElementById('editEventSavePublishBtn') as HTMLButtonElement | null;
-        if (publishBtn) publishBtn.disabled = !!(c && c.checked);
-      }
 
       async function loadReferenceData() {
         if (refDataLoaded) return;
@@ -758,7 +753,6 @@ setPublicCache(Astro.response.headers);
         setCheck('editEventRegistration', event.registration); setCheck('editEventExcludeFromCalendar', event.exclude_from_calendar); setCheck('editEventFeatured', event.featured);
         const isCancelled = event.status === 'cancelled';
         setCheck('editEventCancelled', isCancelled);
-        syncEventStatusControls();
         document.getElementById('editEventStagedQueueNote')?.classList.add('hidden');
         document.getElementById('editEventLiveCalendarNote')?.classList.remove('hidden');
         if (event.location_id && event.location) { set('editEventLocationId', event.location_id); (document.getElementById('editEventLocationSearch') as HTMLInputElement).value = event.location.name || ''; }
@@ -925,8 +919,6 @@ setPublicCache(Astro.response.headers);
         }
       }
 
-      const cancelledCheckbox = document.getElementById('editEventCancelled') as HTMLInputElement;
-      if (cancelledCheckbox) { cancelledCheckbox.addEventListener('change', syncEventStatusControls); syncEventStatusControls(); }
 
       // Pre-load reference data eagerly so it's ready when Edit is clicked
       loadReferenceData();

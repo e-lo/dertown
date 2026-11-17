@@ -270,14 +270,6 @@ const userEmail = session.user?.email || 'Admin';
     return 'pending';
   }
 
-  function syncEventStatusControls() {
-    const cancelledCheckbox = document.getElementById('editEventCancelled');
-    const publishBtn = document.getElementById('editEventSavePublishBtn');
-    if (publishBtn) {
-      publishBtn.disabled = !!(cancelledCheckbox && cancelledCheckbox.checked);
-    }
-  }
-
   /** Staged: show queue note. Live / new: show publish-vs-draft explainer. */
   function setEditEventModalStagedQueueUi(isStaged) {
     const stagedNote = document.getElementById('editEventStagedQueueNote');
@@ -1559,11 +1551,6 @@ const userEmail = session.user?.email || 'Admin';
         if (orgSearchEl) orgSearchEl.value = organization.name || '';
       });
 
-      const cancelledCheckbox = document.getElementById('editEventCancelled');
-      if (cancelledCheckbox) {
-        cancelledCheckbox.addEventListener('change', syncEventStatusControls);
-        syncEventStatusControls();
-      }
       
       // Wait a bit for Astro components to fully render
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -2075,7 +2062,6 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventFeatured').checked = event.featured || false;
         const isCancelled = event.status === 'cancelled';
         document.getElementById('editEventCancelled').checked = isCancelled;
-        syncEventStatusControls();
         
         // Set location
         if (event.location_id && event.location) {
@@ -2183,7 +2169,6 @@ const userEmail = session.user?.email || 'Admin';
         document.getElementById('editEventFeatured').checked = event.featured || false;
         const isCancelled = event.status === 'cancelled';
         document.getElementById('editEventCancelled').checked = isCancelled;
-        syncEventStatusControls();
         
         // Set location
         if (event.location_id && event.location) {
@@ -2313,7 +2298,6 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventExcludeFromCalendar').checked = event.exclude_from_calendar || false;
       document.getElementById('editEventFeatured').checked = event.featured || false;
       document.getElementById('editEventCancelled').checked = false;
-      syncEventStatusControls();
       
       // Set location
       if (event.location_id && event.location) {
@@ -2461,7 +2445,6 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
     document.getElementById('editEventFeatured').checked = eventData.featured || false;
     document.getElementById('editEventCancelled').checked = false;
-    syncEventStatusControls();
     
     // Set location (from current form)
     document.getElementById('editEventLocationSearch').value = eventData.location_name || '';
@@ -3720,7 +3703,6 @@ const userEmail = session.user?.email || 'Admin';
       document.getElementById('editEventExcludeFromCalendar').checked = false;
       document.getElementById('editEventFeatured').checked = false;
       document.getElementById('editEventCancelled').checked = false;
-      syncEventStatusControls();
       
       // Open modal
       const modal = document.getElementById('editEventModal');

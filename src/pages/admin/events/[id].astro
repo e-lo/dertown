@@ -137,10 +137,6 @@ const userEmail = session.user?.email || 'Admin';
     return 'pending';
   }
 
-  function syncEventStatusControls() {
-    // Cancelled state is handled in eventStatusFromSaveIntent; no UI controls need syncing
-  }
-
   let pendingEventSaveIntent = null;
 
   let allLocations = [];
@@ -322,7 +318,6 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventFeatured').checked = event.featured || false;
     const isCancelled = event.status === 'cancelled';
     document.getElementById('editEventCancelled').checked = isCancelled;
-    syncEventStatusControls();
     document.getElementById('editEventStagedQueueNote')?.classList.add('hidden');
     document.getElementById('editEventLiveCalendarNote')?.classList.remove('hidden');
 
@@ -564,7 +559,6 @@ const userEmail = session.user?.email || 'Admin';
     document.getElementById('editEventExcludeFromCalendar').checked = eventData.exclude_from_calendar || false;
     document.getElementById('editEventFeatured').checked = eventData.featured || false;
     document.getElementById('editEventCancelled').checked = false;
-    syncEventStatusControls();
 
     const locSearch = document.getElementById('editEventLocationSearch').value;
     const orgSearch = document.getElementById('editEventOrganizationSearch').value;
@@ -736,11 +730,6 @@ const userEmail = session.user?.email || 'Admin';
     window.addEventListener('admin:location-created', (e) => applyCreatedLocation(e.detail?.location));
     window.addEventListener('admin:organization-created', (e) => applyCreatedOrganization(e.detail?.organization));
 
-    const cancelledCheckbox = document.getElementById('editEventCancelled');
-    if (cancelledCheckbox) {
-      cancelledCheckbox.addEventListener('change', syncEventStatusControls);
-      syncEventStatusControls();
-    }
 
     if (eventId) {
       await loadEvent(eventId);
