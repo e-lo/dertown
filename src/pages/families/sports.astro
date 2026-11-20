@@ -3,24 +3,18 @@ import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
-import ProgramCard from '../../components/families/ProgramCard.astro';
+import SportTile from '../../components/families/SportTile.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
 import {
   AGE_OPTIONS,
   PROGRAM_SELECT,
-  getProgramIcon,
+  getRegStatus,
   loadSignups,
   matchesAge,
   type Program,
 } from '@/lib/program-listing';
-import {
-  monthsUntilSignup,
-  nextSignupMonthName,
-  signupGroup,
-  signupHint,
-  type SignupGroupId,
-} from '@/lib/sports-signup';
+import { describeSignup, type SignupGroupId, type SignupView } from '@/lib/sports-signup';
 
 // --- URL params ---
 const sportParam = Astro.url.searchParams.get('sport') ?? ''; // a `sport` value, or 'other'
@@ -37,17 +31,17 @@ const { data, error } = await (supabase as any)
   .order('name');
 const allSports: Program[] = data ?? [];
 
-// --- Sport chips: every sport that has at least one listing ---
+// --- Sport options: every sport that has at least one listing ---
 const OTHER = 'other';
 const sportKey = (p: Program) => (p.sport ?? '').trim() || OTHER;
 const sportCounts = new Map<string, number>();
 for (const p of allSports) sportCounts.set(sportKey(p), (sportCounts.get(sportKey(p)) ?? 0) + 1);
-const sportChips = [...sportCounts.entries()]
+const sportOptions = [...sportCounts.entries()]
   .filter(([key]) => key !== OTHER)
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([key, count]) => ({ value: key, label: key, count }));
 if (sportCounts.has(OTHER)) {
-  sportChips.push({ value: OTHER, label: 'Other', count: sportCounts.get(OTHER)! });
+  sportOptions.push({ value: OTHER, label: 'Other', count: sportCounts.get(OTHER)! });
 }
 
 // --- Filtering ---
@@ -63,75 +57,55 @@ if (sportParam) filtered = filtered.filter((p) => sportKey(p).toLowerCase() === 
 if (SEASON_FLAG[seasonParam]) filtered = filtered.filter((p) => p[SEASON_FLAG[seasonParam]]);
 if (ageParam) filtered = filtered.filter((p) => matchesAge(p, ageParam));
 
-// --- Browse groups: what parents can act on now comes first ---
-// Real registration dates win; otherwise fall back to the usual signup window
-// for the program's season(s) (see lib/sports-signup.ts).
+// --- Groups: what parents can act on comes first (see lib/sports-signup.ts) ---
 const signups = await loadSignups(filtered);
-const month = new Date().getMonth() + 1;
-const hasOpenSignup = (p: Program) =>
-  (signups.byProgram[p.id] ?? []).some((e) => e.state === 'open');
+const now = new Date();
+const month = now.getMonth() + 1;
 
-type Group = {
-  id: SignupGroupId;
-  title: string;
-  blurb: string;
-  icon: string;
-  band: string;
-  programs: Program[];
-};
-const GROUPS: Omit<Group, 'programs'>[] = [
-  { id: 'now', band: 'bg-blue', title: 'Sign up now', blurb: 'Registration is open or this is the usual signup window.', icon: 'how_to_reg' },
-  { id: 'anytime', band: 'bg-yellow', title: 'Year-round — join anytime', blurb: 'Clubs and gyms you can start any time of year.', icon: 'all_inclusive' },
-  { id: 'soon', band: 'bg-green', title: 'Signups opening soon', blurb: 'Usually opens in the next few months.', icon: 'upcoming' },
-  { id: 'later', band: 'bg-blue-green', title: 'Later in the year', blurb: 'Signups open further out — check back.', icon: 'event' },
-  { id: 'unknown', band: 'bg-fandango', title: 'Season not listed', blurb: 'Check with the organization for signup dates.', icon: 'help' },
+function viewFor(p: Program): SignupView {
+  const entries = signups.byProgram[p.id] ?? [];
+  const isOpen = entries.some((e) => e.state === 'open');
+  return describeSignup(p, now, {
+    openLabel: isOpen ? (getRegStatus(entries)?.label ?? 'Registration open') : null,
+    windows: (signups.datesByProgram[p.id] ?? []).map((r) => ({
+      opens: r.registration_opens ?? null,
+      closes: r.registration_closes ?? null,
+    })),
+  });
+}
+const views = new Map(filtered.map((p) => [p.id, viewFor(p)]));
+
+const GROUPS: { id: SignupGroupId; title: string; blurb: string; icon: string }[] = [
+  { id: 'now', title: 'Sign up now', blurb: 'Registration is open.', icon: 'how_to_reg' },
+  {
+    id: 'soon',
+    title: 'Opening soon',
+    blurb: 'Signups open in the next few months, or usually open now. Check with the team.',
+    icon: 'schedule',
+  },
+  { id: 'happening', title: 'Happening now', blurb: 'In season, or year-round clubs you can join anytime.', icon: 'sports' },
+  { id: 'later', title: 'Later in the year', blurb: '', icon: 'event' },
 ];
-const groups: Group[] = GROUPS.map((g) => ({
+const groups = GROUPS.map((g) => ({
   ...g,
   programs: filtered
-    .filter((p) => signupGroup(p, month, hasOpenSignup(p)) === g.id)
-    // Soonest window first within a group
-    .sort((a, b) => (monthsUntilSignup(a, month) ?? 99) - (monthsUntilSignup(b, month) ?? 99)),
+    .filter((p) => views.get(p.id)!.group === g.id)
+    .sort((a, b) => views.get(a.id)!.sortKey - views.get(b.id)!.sortKey || a.name.localeCompare(b.name)),
 })).filter((g) => g.programs.length > 0);
 
-function hintFor(p: Program): string | null {
-  const opens = nextSignupMonthName(p, month);
-  const usual = signupHint(p);
-  if (!usual) return null;
-  return opens ? `${usual} (next opens ${opens})` : usual;
-}
-
-// --- Filter chip config ---
+// --- Filter dropdown config ---
 const seasons = [
-  { value: '', label: 'All seasons' },
+  { value: '', label: 'Any season' },
   { value: 'fall', label: 'Fall' },
   { value: 'winter', label: 'Winter' },
   { value: 'spring', label: 'Spring' },
   { value: 'summer', label: 'Summer' },
   { value: 'ongoing', label: 'Year-round' },
 ];
-
-function buildUrl(overrides: Record<string, string>): string {
-  const p = new URLSearchParams();
-  const sp = 'sport' in overrides ? overrides.sport : sportParam;
-  const s = 'season' in overrides ? overrides.season : seasonParam;
-  const a = 'age' in overrides ? overrides.age : ageParam;
-  if (sp) p.set('sport', sp);
-  if (s) p.set('season', s);
-  if (a) p.set('age', a);
-  return '/families/sports' + (p.toString() ? '?' + p.toString() : '');
-}
+const ages = AGE_OPTIONS.map((a) => (a.value ? a : { ...a, label: 'Any age' }));
 const hasFilters = !!(sportParam || seasonParam || ageParam);
-
-// Same look as QuickNavItem (the pill nav on after-school / things-to-do).
-const chipBase =
-  'inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors';
-const chipOn = `${chipBase} bg-primary text-white border-primary`;
-const chipOff = `${chipBase} bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400`;
-const smallChipBase =
-  'inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border transition-colors';
-const smallOn = `${smallChipBase} bg-primary text-white border-primary`;
-const smallOff = `${smallChipBase} bg-white text-gray-600 border-gray-300 hover:bg-gray-50`;
+const selectClass =
+  'w-full min-w-0 sm:w-auto rounded-md border border-gray-300 bg-white py-2 pl-2 pr-6 sm:pl-3 sm:pr-8 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary';
 
 // Public, anonymous content: let the CDN serve repeat requests so each view
 // doesn't cost a function invocation. Purge from the admin header after edits.
@@ -140,7 +114,7 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
 
 <Layout
   title="Sports & Leagues - Families | Der Town"
-  description="Youth sports teams, leagues, and lessons in the Leavenworth area — what's in season now, what's coming up, and when signups open."
+  description="Youth sports teams, leagues, and lessons in the Leavenworth area — what you can sign up for now, what's opening soon, and what's in season."
 >
   <div class="bg-white min-h-screen">
     <!-- Hero -->
@@ -149,7 +123,7 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       <SectionHeader
         title="Sports & Leagues"
         icon="sports_soccer"
-        text="Youth sports teams, leagues, and lessons for Leavenworth-area kids. What you can sign up for now is at the top; narrow it down by sport, season, or age."
+        text="Youth sports teams, leagues, and lessons for Leavenworth-area kids, sorted by when you can sign up."
       />
       <p class="text-gray-400 text-center text-sm mt-1">
         Also see <a href="/families/after-school-activities" class="underline">After-School Activities</a> (including school ski club)
@@ -158,68 +132,43 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       </p>
     </div>
 
-    <!-- Filters: sport pills like the site's quick nav, season/age below -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-8">
-      <!-- One swipeable row on phones; wrapped and centered from sm up -->
-      <div id="sport-pills" class="-mx-4 px-4 flex gap-2 overflow-x-auto pb-1 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center sm:overflow-visible">
-        <a href={buildUrl({ sport: '' })} class={sportParam ? chipOff : chipOn}>
-          <span class="material-symbols-outlined text-sm">sports</span>
-          All sports
-        </a>
-        {sportChips.map((c) => {
-          const on = sportParam.toLowerCase() === c.value.toLowerCase();
-          return (
-            <a
-              href={buildUrl({ sport: on ? '' : c.value })}
-              class={on ? chipOn : chipOff}
-              data-active-sport={on ? '' : undefined}
-            >
-              {c.value !== OTHER && (
-                <span class="material-symbols-outlined text-sm">
-                  {getProgramIcon({ sport: c.value, activity_type: 'sports' })}
-                </span>
-              )}
-              {c.label}
-            </a>
-          );
-        })}
-      </div>
-
-      <div class="mt-4 flex flex-wrap justify-center items-center gap-x-6 gap-y-3">
-        <div class="flex flex-wrap items-center justify-center gap-1.5">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Season</span>
-          {seasons.map((s) => (
-            <a
-              href={buildUrl({ season: seasonParam === s.value ? '' : s.value })}
-              class={seasonParam === s.value ? smallOn : smallOff}
-            >
-              {s.label}
-            </a>
-          ))}
-        </div>
-        <div class="flex flex-wrap items-center justify-center gap-1.5">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Age</span>
-          {AGE_OPTIONS.map((a) => (
-            <a
-              href={buildUrl({ age: ageParam === a.value ? '' : a.value })}
-              class={ageParam === a.value ? smallOn : smallOff}
-            >
-              {a.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <p class="text-center text-sm text-gray-500 mt-4">
-        {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
-        {hasFilters && (
-          <>
-            {' · '}
-            <a href="/families/sports" class="underline hover:text-gray-800">Clear filters</a>
-          </>
-        )}
-      </p>
-    </div>
+    <!-- Filters: three dropdowns; picking one reloads with that filter -->
+    <form
+      id="sport-filters"
+      method="get"
+      action="/families/sports"
+      class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-3 gap-2 sm:flex sm:justify-center"
+    >
+      <label class="sr-only" for="f-sport">Sport</label>
+      <select id="f-sport" name="sport" class={selectClass}>
+        <option value="">All sports ({allSports.length})</option>
+        {sportOptions.map((o) => (
+          <option value={o.value} selected={sportParam.toLowerCase() === o.value.toLowerCase()}>
+            {o.label} ({o.count})
+          </option>
+        ))}
+      </select>
+      <label class="sr-only" for="f-season">Season</label>
+      <select id="f-season" name="season" class={selectClass}>
+        {seasons.map((s) => <option value={s.value} selected={seasonParam === s.value}>{s.label}</option>)}
+      </select>
+      <label class="sr-only" for="f-age">Age</label>
+      <select id="f-age" name="age" class={selectClass}>
+        {ages.map((a) => <option value={a.value} selected={ageParam === a.value}>{a.label}</option>)}
+      </select>
+      <noscript>
+        <button type="submit" class="rounded-md bg-primary text-white px-4 py-2 text-sm font-medium">Filter</button>
+      </noscript>
+    </form>
+    <p class="text-center text-sm text-gray-500 mt-3 mb-6">
+      {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
+      {hasFilters && (
+        <>
+          {' · '}
+          <a href="/families/sports" class="underline hover:text-gray-800">Clear filters</a>
+        </>
+      )}
+    </p>
 
     {error && (
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
@@ -230,38 +179,41 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
       </div>
     )}
 
-    <!-- Grouped listings: one full-width palette band per group -->
-    {groups.map((g) => (
-      <section id={g.id} class={`${g.band} py-8`}>
-        <div class="w-full px-4 sm:px-6 lg:px-8">
-          <SectionHeader title={g.title} icon={g.icon} text={g.blurb} />
-          <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {g.programs.map((p) => (
-                <ProgramCard program={p} signups={signups.byProgram[p.id]} hint={hintFor(p)} />
-              ))}
-            </div>
+    <!-- Grouped tiles -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+      {groups.map((g) => (
+        <section id={g.id} class="mt-8 first:mt-0">
+          <h2 class="text-2xl font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined" aria-hidden="true">{g.icon}</span>
+            {g.title}
+            <span class="text-base font-normal text-gray-500">({g.programs.length})</span>
+          </h2>
+          {g.blurb && <p class="text-sm text-gray-600 mt-1">{g.blurb}</p>}
+          <div class={`grid grid-cols-1 md:grid-cols-2 ${g.id === 'later' ? 'lg:grid-cols-3 gap-3' : 'gap-4'} mt-4`}>
+            {g.programs.map((p) => (
+              <SportTile program={p} view={views.get(p.id)!} signups={signups.byProgram[p.id]} month={month} />
+            ))}
           </div>
-        </div>
-      </section>
-    ))}
+        </section>
+      ))}
 
-    {!error && filtered.length === 0 && (
-      <div class="text-center py-16 text-gray-400">
-        <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
-        <p class="text-lg font-medium text-gray-600 mb-1">No sports match those filters</p>
-        <p class="text-sm">
-          Try a different season or age, or <a href="/families/sports" class="underline">see all sports</a>.
-        </p>
-      </div>
-    )}
+      {!error && filtered.length === 0 && (
+        <div class="text-center py-16 text-gray-400">
+          <span class="material-symbols-outlined text-5xl mb-3 block">search_off</span>
+          <p class="text-lg font-medium text-gray-600 mb-1">No sports match those filters</p>
+          <p class="text-sm">
+            Try a different season or age, or <a href="/families/sports" class="underline">see all sports</a>.
+          </p>
+        </div>
+      )}
+    </div>
 
     <Disclaimer />
 
     <div class="mt-4 text-center">
       <div class="bg-blue-green p-8">
         <h2 class="text-2xl font-semibold mb-2">Know of a team or league we're missing?</h2>
-        <p class="text-gray-600 mb-4 text-sm">Help us keep this list complete for Leavenworth families.</p>
+        <p class="mb-4 text-sm">Help us keep this list complete for Leavenworth families.</p>
         <a href="mailto:dertownleavenworth@gmail.com" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
           Let Us Know
         </a>
@@ -270,11 +222,15 @@ setPublicCache(Astro.response.headers, [], ['sport', 'season', 'age']);
   </div>
 
   <script>
-    // On phones the sport pills are one scrolling row; keep the selected one visible.
-    const row = document.getElementById('sport-pills');
-    const active = row?.querySelector<HTMLElement>('[data-active-sport]');
-    if (row && active && row.scrollWidth > row.clientWidth) {
-      row.scrollLeft = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
-    }
+    // Apply a filter as soon as a dropdown changes, leaving empty ones out of the URL.
+    const form = document.getElementById('sport-filters') as HTMLFormElement | null;
+    form?.addEventListener('change', () => {
+      const params = new URLSearchParams();
+      for (const select of form.querySelectorAll('select')) {
+        if (select.value) params.set(select.name, select.value);
+      }
+      const qs = params.toString();
+      window.location.href = form.action + (qs ? `?${qs}` : '');
+    });
   </script>
 </Layout>
