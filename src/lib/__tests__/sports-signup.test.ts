@@ -1,48 +1,95 @@
-import { monthsUntilSignup, nextSignupMonthName, signupGroup, signupHint } from '../sports-signup';
+import { describeSignup, type SignupFacts } from '../sports-signup';
 
 let failures = 0;
-function check(label: string, cond: boolean) {
-  if (cond) {
+function check(label: string, actual: unknown, expected: unknown) {
+  const ok = JSON.stringify(actual) === JSON.stringify(expected);
+  if (ok) {
     console.log(`✅ PASS: ${label}`);
   } else {
-    console.log(`❌ FAIL: ${label}`);
+    console.log(
+      `❌ FAIL: ${label}\n   expected ${JSON.stringify(expected)}\n   got      ${JSON.stringify(actual)}`
+    );
     failures++;
   }
 }
 
 console.log('🧪 Testing sports-signup\n');
 
-const NOV = 11;
-const winter = { is_winter: true };
-const fall = { is_fall: true };
-const spring = { is_spring: true };
-const fallSpring = { is_fall: true, is_spring: true };
-const yearRound = { is_ongoing: true };
-const none = {};
+const NOV_20 = new Date(2026, 10, 20);
+const JAN_15 = new Date(2027, 0, 15);
+const none: SignupFacts = { openLabel: null, windows: [] };
+const dated = (...windows: [string | null, string | null][]): SignupFacts => ({
+  openLabel: null,
+  windows: windows.map(([opens, closes]) => ({ opens, closes })),
+});
 
-// In November: winter signups (Oct–Dec) are open, spring (Jan–Mar) opens in 2 months
-check('winter is "now" in Nov', signupGroup(winter, NOV, false) === 'now');
-check('spring is "soon" in Nov', signupGroup(spring, NOV, false) === 'soon');
-check('fall is "later" in Nov (opens May)', signupGroup(fall, NOV, false) === 'later');
-check('fall+spring takes the nearest window', monthsUntilSignup(fallSpring, NOV) === 2);
-check('year-round is "anytime"', signupGroup(yearRound, NOV, false) === 'anytime');
-check('no season is "unknown"', signupGroup(none, NOV, false) === 'unknown');
-check('real open registration wins', signupGroup(fall, NOV, true) === 'now');
+// Sign up now: only when registration is actually open
+const open = describeSignup({ is_winter: true }, NOV_20, {
+  ...none,
+  openLabel: 'Registration open · closes Jan 31',
+});
+check('open registration → now', open.group, 'now');
+check('open registration pill', open.pill, 'Registration open · closes Jan 31');
 
-// Window edges
-check('fall window includes May', monthsUntilSignup(fall, 5) === 0);
-check('fall window includes Sep', monthsUntilSignup(fall, 9) === 0);
-check('fall closed in Oct, 7 months to May', monthsUntilSignup(fall, 10) === 7);
-check('winter wraps: Jan → 9 months to Oct', monthsUntilSignup(winter, 1) === 9);
-check('spring in Dec opens next month', monthsUntilSignup(spring, 12) === 1);
+// Real dates from a past cycle repeat next year
+const basketball = describeSignup({ is_winter: true }, NOV_20, dated(['2026-09-01', '2026-10-31']));
+check('basketball (closed Oct, winter not started) → later', basketball.group, 'later');
+check('basketball pill', basketball.pill, 'Signups usually open September');
+check('basketball strip', basketball.months, [9, 10]);
 
-check('next month name for spring in Nov', nextSignupMonthName(spring, NOV) === 'January');
-check('no next month name when open', nextSignupMonthName(winter, NOV) === null);
-check('hint text', signupHint(fallSpring) === 'Signups usually: Spring Jan–Mar · Fall May–Sep');
-check('no hint for year-round only', signupHint(yearRound) === null);
-check('summer hint is just May', signupHint({ is_summer: true }) === 'Signups usually: Summer May');
-check('summer opens in May (Nov → 6 months)', monthsUntilSignup({ is_summer: true }, NOV) === 6);
-check('summer is "now" in May', signupGroup({ is_summer: true }, 5, false) === 'now');
+const hockey = describeSignup(
+  { is_fall: true, is_winter: true },
+  NOV_20,
+  dated(['2026-08-01', '2026-11-02'])
+);
+check('hockey (closed, in season) → happening', hockey.group, 'happening');
+check('hockey pill', hockey.pill, 'In season · next signups August');
+
+const soccer = describeSignup(
+  { is_fall: true, is_spring: true },
+  NOV_20,
+  dated(['2026-01-01', '2026-02-28'], ['2026-03-01', '2026-06-30'])
+);
+check('soccer (last Jan 1) → soon', soccer.group, 'soon');
+check('soccer pill is an estimate', soccer.pill, 'Usually opens Jan 1');
+check('soccer strip', soccer.months, [1, 2, 3, 4, 5, 6]);
+
+const confirmed = describeSignup({ is_winter: true }, NOV_20, dated(['2026-12-15', null]));
+check('confirmed upcoming date → soon', confirmed.group, 'soon');
+check('confirmed upcoming pill', confirmed.pill, 'Opens Dec 15');
+
+// No dates: fall back to the usual season windows, without claiming "open"
+const alpine = describeSignup({ is_winter: true }, NOV_20, none);
+check('no dates, usual window now → soon', alpine.group, 'soon');
+check('no dates, usual window pill', alpine.pill, 'Usually open Oct–Dec · check with the team');
+check('winter strip', alpine.months, [10, 11, 12]);
+
+const lacrosse = describeSignup({ is_spring: true }, NOV_20, none);
+check('spring in Nov → soon', lacrosse.group, 'soon');
+check('spring pill', lacrosse.pill, 'Usually opens January');
+
+const swim = describeSignup({ is_summer: true }, NOV_20, none);
+check('summer in Nov → later', swim.group, 'later');
+check('summer pill', swim.pill, 'Signups usually open May');
+
+const fallOnly = describeSignup({ is_fall: true }, NOV_20, none);
+check('fall team in Nov → happening', fallOnly.group, 'happening');
+
+const winterInJan = describeSignup({ is_winter: true }, JAN_15, none);
+check('winter team in Jan → happening', winterInJan.group, 'happening');
+check('winter in Jan pill', winterInJan.pill, 'In season · next signups October');
+
+// Year-round and unknown
+const gym = describeSignup({ is_ongoing: true }, NOV_20, dated(['2025-06-23', null]));
+check('year-round → happening', gym.group, 'happening');
+check('year-round pill', gym.pill, 'Join anytime');
+
+const unknown = describeSignup({}, NOV_20, none);
+check('no season, no dates → later', unknown.group, 'later');
+check('unknown pill', unknown.pill, 'Check with the organization');
+
+// Sorting within a group: sooner signups first
+check('soccer sorts before lacrosse', soccer.sortKey < lacrosse.sortKey, true);
 
 if (failures > 0) {
   console.log(`\n❌ ${failures} test(s) failed`);

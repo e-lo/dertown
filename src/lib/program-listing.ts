@@ -89,6 +89,7 @@ const SPORT_ICONS: Record<string, string> = {
   climbing: 'landscape',
   gymnastics: 'sports_gymnastics',
   'martial arts': 'sports_martial_arts',
+  wrestling: 'sports_kabaddi',
 };
 const TYPE_ICONS: Record<string, string> = {
   sports: 'sports_soccer',
@@ -183,6 +184,8 @@ export type SignupEntry = {
 };
 export type Signups = {
   byProgram: Record<string, SignupEntry[]>;
+  /** Every dated registration window per program, past ones included. */
+  datesByProgram: Record<string, Registrable[]>;
   open: SignupEntry[];
   upcoming: SignupEntry[];
 };
@@ -229,6 +232,7 @@ function getSignupState(r: Registrable, now: Date): SignupState | null {
 export async function loadSignups(programs: Program[], now = new Date()): Promise<Signups> {
   const sessionsByProgram = await loadSessionsByProgram(programs.map((p) => p.id));
   const byProgram: Record<string, SignupEntry[]> = {};
+  const datesByProgram: Record<string, Registrable[]> = {};
   for (const program of programs) {
     const sessions = (sessionsByProgram[program.id] ?? []).filter(hasRegDates);
     // Program-level dates are only a fallback for programs with no dated sessions
@@ -236,6 +240,7 @@ export async function loadSignups(programs: Program[], now = new Date()): Promis
       sessions.length > 0
         ? sessions.map((sess) => ({ session: sess as Session | null, reg: sess as Registrable }))
         : [{ session: null, reg: program as Registrable }];
+    datesByProgram[program.id] = candidates.map((c) => c.reg).filter(hasRegDates);
     for (const c of candidates) {
       const state = getSignupState(c.reg, now);
       if (state) (byProgram[program.id] ??= []).push({ program, ...c, state });
@@ -247,6 +252,7 @@ export async function loadSignups(programs: Program[], now = new Date()): Promis
       (a.reg[key] ?? '9999').localeCompare(b.reg[key] ?? '9999');
   return {
     byProgram,
+    datesByProgram,
     // Open now: soonest deadline first. Opening soon: soonest opening first.
     open: all.filter((e) => e.state === 'open').sort(byDate('registration_closes')),
     upcoming: all.filter((e) => e.state === 'upcoming').sort(byDate('registration_opens')),

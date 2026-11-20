@@ -1,0 +1,94 @@
+---
+// A team on /families/sports, styled like the homepage event cards: a solid
+// seasonal color per signup group, a big sport icon where the event date
+// would be, and (for teams you can act on) a 12-month signup strip.
+import {
+  SEASON_BADGES,
+  formatAge,
+  getProgramIcon,
+  signupLink,
+  type Program,
+  type SignupEntry,
+} from '../../lib/program-listing';
+import type { SignupView } from '../../lib/sports-signup';
+
+interface Props {
+  program: Program;
+  view: SignupView;
+  signups?: SignupEntry[];
+  month: number;
+}
+const { program: p, view, signups = [], month } = Astro.props;
+
+const STYLES = {
+  now: { tile: 'bg-blue', icon: 'text-secondary', pill: 'bg-white text-primary' },
+  soon: { tile: 'bg-yellow', icon: 'text-primary', pill: 'bg-white text-gray-900' },
+  happening: { tile: 'bg-green', icon: '', pill: 'bg-white text-gray-900' },
+  later: { tile: 'bg-gray-50', icon: 'text-category-sports', pill: '' },
+} as const;
+const style = STYLES[view.group];
+const compact = view.group === 'later';
+const showStrip = view.group === 'now' || view.group === 'soon';
+
+const seasons = SEASON_BADGES.filter((sb) => p[sb.key] && sb.key !== 'is_ongoing').map((sb) => sb.label);
+const meta = [
+  p.is_ongoing ? 'Year-round' : seasons.join(', '),
+  formatAge(p.min_age, p.max_age, p.min_grade, p.max_grade),
+  compact ? null : p.cost,
+]
+  .filter(Boolean)
+  .join(' · ');
+
+const openEntry = signups.find((e) => e.state === 'open');
+const registerHref = view.group === 'now' ? ((openEntry && signupLink(openEntry)) ?? p.registration_link) : null;
+const detailsHref = `/families/programs/${p.id}`;
+const MONTH_LETTERS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+const monthName = (m: number) => new Date(2000, m - 1, 1).toLocaleDateString('en-US', { month: 'long' });
+---
+
+<article class={`relative flex gap-4 ${compact ? 'p-4' : 'p-5 min-h-36'} ${style.tile}`}>
+  <span
+    class={`material-symbols-outlined shrink-0 leading-none ${compact ? 'text-3xl!' : 'text-5xl!'} ${style.icon}`}
+    aria-hidden="true">{getProgramIcon(p)}</span
+  >
+  <div class="flex-1 min-w-0">
+    <h3 class={`font-bold leading-snug ${compact ? 'text-base' : 'text-lg'}`}>
+      <a href={detailsHref} class="after:absolute after:inset-0 hover:underline">{p.name}</a>
+    </h3>
+    {meta && <p class={`text-sm mt-1 ${compact ? 'opacity-70' : 'opacity-85'}`}>{meta}</p>}
+    {compact && <p class="text-sm opacity-70">{view.pill}</p>}
+
+    {showStrip && view.months.length > 0 && (
+      <div
+        class="flex gap-0.5 mt-3 max-w-sm"
+        role="img"
+        aria-label={`Signups usually: ${view.months.map(monthName).join(', ')}`}
+      >
+        {MONTH_LETTERS.map((letter, i) => (
+          <div class="flex-1 text-center" title={monthName(i + 1)}>
+            <div class={`h-2.5 ${view.months.includes(i + 1) ? 'bg-current' : 'bg-current/15'}`}></div>
+            <div class={`text-[10px] leading-4 ${i + 1 === month ? 'font-bold underline' : 'opacity-70'}`}>
+              {letter}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {!compact && (
+      registerHref ? (
+        <a
+          href={registerHref}
+          target="_blank"
+          rel="noopener"
+          class={`relative z-10 inline-flex items-center gap-1 mt-3 px-3 py-1 rounded-full text-xs font-semibold hover:opacity-90 ${style.pill}`}
+        >
+          {view.pill} · Register
+          <span class="material-symbols-outlined text-sm!" aria-hidden="true">open_in_new</span>
+        </a>
+      ) : (
+        <span class={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-semibold ${style.pill}`}>{view.pill}</span>
+      )
+    )}
+  </div>
+</article>
