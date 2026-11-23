@@ -10,6 +10,8 @@ import LinkListItem from '../components/ui/LinkListItem.astro';
 import LinkBox from '../components/ui/LinkBox.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import Accordian from '../components/ui/Accordian.astro';
+import LwscStudentMembershipCallout from '../components/LwscStudentMembershipCallout.astro';
+import StevensPassAepCallout from '../components/StevensPassAepCallout.astro';
 import { setPublicCache } from '@/lib/cache';
 import { getEntry } from 'astro:content';
 import { getCurrentSeason } from '@/lib/season-utils';
@@ -19,7 +21,10 @@ import { getCurrentSeason } from '@/lib/season-utils';
 // doesn't cost a function invocation. Purge from the admin header after edits.
 setPublicCache(Astro.response.headers);
 
-const season = getCurrentSeason();
+// Preview the next season's activities two weeks early, so e.g. winter
+// activities appear in late November as ski season opens.
+const SEASON_LEAD_MS = 14 * 24 * 60 * 60 * 1000;
+const season = getCurrentSeason(new Date(Date.now() + SEASON_LEAD_MS));
 const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.activities ?? [];
 ---
 
@@ -66,7 +71,7 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
                     <p class="text-sm text-gray-600">{activity.text}</p>
                     <div class="mt-2 flex gap-4">
                       {activity.links.map((link) => (
-                        <a href={link.url} target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a href={link.url} target="_blank" class="text-sm text-gray-400 hover:text-gray-600 hover:underline flex items-center gap-1">
                           {link.label} <span class="material-symbols-outlined text-xs">open_in_new</span>
                         </a>
                       ))}
@@ -492,7 +497,7 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
               text="Promote bird conservation and education through field trips, community science, and conservation programs"
               subtext="Bird watching, field trips, community science surveys, conservation advocacy"
               link="https://ncwaudubon.org/"
-              icon="bird"
+              icon="flutter_dash"
               external={true}
             />
           </div>
@@ -508,11 +513,16 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
           icon="downhill_skiing"
           text="Cross-country skiing, snowshoeing, and winter recreation in the Leavenworth area."
         />
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <LwscStudentMembershipCallout />
+          <StevensPassAepCallout />
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <LinkBox
             title="Leavenworth Winter Sports Club"
-            text="Cross-country skiing and winter sports club with groomed trails and youth programs"
-            subtext="Cross-country skiing, youth programs, trail passes, winter recreation"
+            text="Alpine and Nordic skiing, snowboarding, tubing, sledding, snowshoeing, and fat biking at Ski Hill, the Golf Course, and Icicle River Trails, plus youth ski teams"
+            subtext="Free 2026–27 annual membership for all Cascade School District students (registration required)"
             link="https://skileavenworth.com/"
             icon="downhill_skiing"
             external={true}

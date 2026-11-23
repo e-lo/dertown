@@ -14,26 +14,57 @@
 
 winter:
   activities:
-    - title: Skiing at Leavenworth Ski Hill
-      text: Downhill skiing, snowboarding, and Nordic trails right above town, run by the Leavenworth Winter Sports Club.
-      link: https://skileavenworth.com/activities
+    # One card per location. LWSC subtexts note the free 2026–27 Cascade SD
+    # student membership; drop that line after the season.
+    - title: Leavenworth Ski Hill
+      text: Alpine skiing and snowboarding served by two rope tows and a magic carpet, plus tubing, 8 km of Nordic trails (5 km lit until 10pm), snowshoeing, and fat biking, all under 2 miles from downtown. The historic Ski Hill Lodge serves food and drinks and hosts community gatherings and events.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/ski-hill
       icon: downhill_skiing
 
-    - title: Snowshoeing
-      text: Dedicated snowshoe trails at Ski Hill and the Leavenworth Golf Course, maintained by the Leavenworth Winter Sports Club.
-      link: https://skileavenworth.com/activities/snowshoe
+    - title: Leavenworth Golf Course
+      text: Family sledding hill (bring your own sled or rent a tube), 7 km of intermediate Nordic trails along the Wenatchee River, and an easy 3 km snowshoe trail. The Pub at the Club is steps away.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/golf-course
+      icon: sledding
+
+    - title: Icicle River Trails
+      text: The most beginner- and family-friendly Nordic trails, with 8 km winding through woods and meadows along the Icicle River, plus a 5 km snowshoe trail. Home of LWSC's Nordic lessons.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/icicle-river
       icon: snowshoeing
 
-    - title: Fat Biking
-      text: Ride the Ski Hill snowshoe trails, plus the lighted Nordic trails in the evening. Fat bike rentals available from Eastside Cycleworks.
-      subtext: Nordic trails open to bikes 5–10pm · Day ticket or season pass required
-      link: https://skileavenworth.com/activities/fat-biking
-      icon: pedal_bike
-
-    - title: Plain Valley Adventure Women (PVAW) Winter
-      text: Classic and skate ski sessions, wax clinics, a snowshoe group, and community ski days at Plain Valley Ski Trails.
-      link: https://www.skiplain.com/pvaw-winter
+    - title: Plain Valley Ski Trails
+      text: '25 km of groomed cross-country trails near Plain. The Valley Pass covers both Plain Valley and LWSC trails, and Plain Valley Adventure Women runs classic and skate sessions, wax clinics, and a snowshoe group:'
+      links:
+        - label: Plain Valley Ski Trails
+          url: https://www.skiplain.com/
+        - label: PVAW Winter
+          url: https://www.skiplain.com/pvaw-winter
       icon: downhill_skiing
+
+    - title: Snowshoe Routes & Winter Hikes
+      text: 'Local favorites on unplowed winter roads. Icicle River Road is gentle and good for all ages; check avalanche conditions before longer outings:'
+      links:
+        - label: Icicle River Road
+          url: https://www.wta.org/go-hiking/hikes/icicle-river-road-snowshoe
+        - label: Eightmile Creek
+          url: https://www.wta.org/go-hiking/hikes/eightmile-creek-snowshoe
+        - label: Little Wenatchee River Road
+          url: https://www.wta.org/go-hiking/hikes/little-wenatchee-river-road-snowshoe
+      icon: snowshoeing
+
+    - title: Stevens Pass Nordic Center & Snow Play
+      text: Free groomed sledding and tubing hill with free parking in Mill Valley, 5 miles east of the pass, plus Nordic and snowshoe trails, rentals, and lessons at the Cascade Depot lodge.
+      subtext: Plastic sleds and tubes only · Trail pass required for skiing and snowshoeing · Check stevenspass.com for hours
+      link: https://www.stevenspass.com/explore-the-resort/activities-and-events/nordic-center.aspx
+      icon: sledding
+
+    - title: Snowmobiling with the Bavarian Boondockers
+      text: Leavenworth's snowmobile club rides the backcountry, helps maintain trails, and hosts events. Meetings are open to all.
+      subtext: 1st Wednesday monthly, 6:30pm at Kristall's · $30/year individual or family membership, includes WSSA
+      link: https://www.bavarianboondockers.com/
+      icon: snowmobile
 
 spring:
   activities:
@@ -50,7 +81,7 @@ spring:
       icon: flutter_dash
 
     - title: Rafting & Kayaking
-      text: "Snowmelt brings the big water of the year to the Wenatchee River. Book a guided trip or rent a boat:"
+      text: 'Snowmelt brings the big water of the year to the Wenatchee River. Book a guided trip or rent a boat:'
       links:
         - label: Orion Expeditions
           url: https://www.orionexp.com/
@@ -86,7 +117,7 @@ summer:
       icon: pool
 
     - title: Raft the Wenatchee
-      text: "Guided whitewater rafting on the Wenatchee River. Choose from two local outfitters:"
+      text: 'Guided whitewater rafting on the Wenatchee River. Choose from two local outfitters:'
       links:
         - label: Orion Expeditions
           url: https://www.orionexp.com/
