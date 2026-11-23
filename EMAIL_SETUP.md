@@ -86,6 +86,10 @@ Set these in `.env.local` (for the skill) **and** in Netlify (for the signup for
 | `NEWSLETTER_FROM_EMAIL` | Sender, e.g. `This Week in Der Town <hello@dertown.org>`. Must be on a verified domain. |
 | `NEWSLETTER_SIGNING_SECRET` | Random secret for confirmation links: `openssl rand -base64 32`. Changing it invalidates unconfirmed links. |
 
+`newsletter:fetch` also reads `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`, read-only, to load series parents
+so recurring events inherit the parent's description, image, cost and location, as they do on the site. Without it,
+the fetch warns and those fields stay blank.
+
 ### One-time setup
 
 1. Check the sender domain is verified: Resend dashboard → **Domains** → `dertown.org` shows **Verified**,
