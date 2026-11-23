@@ -14,54 +14,33 @@
 
 winter:
   activities:
-    # Remove after the 2026–27 season.
-    - title: Free LWSC Season Pass for Cascade SD Students
-      text: Every K–12 Cascade School District student can get a free 2026–27 Leavenworth Winter Sports Club annual membership. A parent or guardian must register; passes are not issued through school.
-      subtext: Skiing, snowboarding, tubing, sledding, snowshoeing, and fat biking
-      link: https://skileavenworth.com/tickets/2026-2027-memberships
-      icon: card_membership
-
-    - title: Skiing at Leavenworth Ski Hill
-      text: Downhill skiing, snowboarding, and Nordic trails right above town, run by the Leavenworth Winter Sports Club.
-      link: https://skileavenworth.com/activities
+    # One card per location. LWSC subtexts note the free 2026–27 Cascade SD
+    # student membership; drop that line after the season.
+    - title: Leavenworth Ski Hill
+      text: Alpine skiing and snowboarding, the Lt. Michael Adams Tubing Park, ski jumping, 8 km of Nordic trails (5 km lit until 10pm), snowshoeing, and evening fat biking, all under 2 miles from downtown. Warm up at the historic Ski Hill Lodge.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/ski-hill
       icon: downhill_skiing
 
-    - title: Nordic Skiing
-      text: 26 km of groomed classic and skate trails at Icicle River (beginner-friendly), the Golf Course, and Ski Hill, including 5 km lit for night skiing until 10pm.
-      link: https://skileavenworth.com/activities/nordic-skiing
-      icon: nordic_walking
-
-    - title: Tubing at Ski Hill
-      text: Ride the rope tow up and glide down the 100-foot Lt. Michael Adams Tubing Park. No skill needed; tubes provided.
-      subtext: Tickets sold in person at the Ski Hill ticket booth · Ages ~5+, riders must tube on their own
-      link: https://skileavenworth.com/activities/lt-michael-adams-tubing-park
+    - title: Leavenworth Golf Course
+      text: Family sledding hill (bring your own sled or rent a tube), 7 km of intermediate Nordic trails along the Wenatchee River, and an easy 3 km snowshoe trail. The Pub at the Club is steps away.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/golf-course
       icon: sledding
 
-    - title: Sledding
-      text: A steep, groomed hill with a long run-out at the Leavenworth Golf Course, just steps from the Pub at the Club. Bring your own sled (no metal runners) or rent a tube on site.
-      subtext: Day pass, come and go all day · No dogs
-      link: https://skileavenworth.com/activities/sledding
-      icon: sledding
-
-    - title: Snowshoeing
-      text: Dedicated snowshoe trails at Ski Hill and the Leavenworth Golf Course, maintained by the Leavenworth Winter Sports Club.
-      link: https://skileavenworth.com/activities/snowshoe
+    - title: Icicle River Trails
+      text: The most beginner- and family-friendly Nordic trails, with 8 km winding through woods and meadows along the Icicle River, plus a 5 km snowshoe trail. Home of LWSC's Nordic lessons.
+      subtext: Leavenworth Winter Sports Club · Free for Cascade SD students with a 2026–27 membership (registration required)
+      link: https://skileavenworth.com/locations/winter-locations/icicle-river
       icon: snowshoeing
 
-    - title: Fat Biking
-      text: Ride the Ski Hill snowshoe trails, plus the lighted Nordic trails in the evening. Fat bike rentals available from Eastside Cycleworks.
-      subtext: Nordic trails open to bikes 5–10pm · Day ticket or season pass required
-      link: https://skileavenworth.com/activities/fat-biking
-      icon: pedal_bike
-
     - title: Plain Valley Ski Trails
-      text: Cross-country skiing on 25 km of groomed trails near Plain. The Valley Pass covers both Plain Valley and LWSC trails.
-      link: https://www.skiplain.com/
-      icon: downhill_skiing
-
-    - title: Plain Valley Adventure Women (PVAW) Winter
-      text: Classic and skate ski sessions, wax clinics, a snowshoe group, and community ski days at Plain Valley Ski Trails.
-      link: https://www.skiplain.com/pvaw-winter
+      text: '25 km of groomed cross-country trails near Plain. The Valley Pass covers both Plain Valley and LWSC trails, and Plain Valley Adventure Women runs classic and skate sessions, wax clinics, and a snowshoe group:'
+      links:
+        - label: Plain Valley Ski Trails
+          url: https://www.skiplain.com/
+        - label: PVAW Winter
+          url: https://www.skiplain.com/pvaw-winter
       icon: downhill_skiing
 
 spring:
