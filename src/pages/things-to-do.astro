@@ -71,7 +71,7 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
                     <p class="text-sm text-gray-600">{activity.text}</p>
                     <div class="mt-2 flex gap-4">
                       {activity.links.map((link) => (
-                        <a href={link.url} target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a href={link.url} target="_blank" class="text-sm text-gray-400 hover:text-gray-600 hover:underline flex items-center gap-1">
                           {link.label} <span class="material-symbols-outlined text-xs">open_in_new</span>
                         </a>
                       ))}
