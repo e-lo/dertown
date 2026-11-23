@@ -43,6 +43,29 @@ winter:
           url: https://www.skiplain.com/pvaw-winter
       icon: downhill_skiing
 
+    - title: Snowshoe Routes & Winter Hikes
+      text: 'Local favorites on unplowed winter roads. Icicle River Road is gentle and good for all ages; check avalanche conditions before longer outings:'
+      links:
+        - label: Icicle River Road
+          url: https://www.wta.org/go-hiking/hikes/icicle-river-road-snowshoe
+        - label: Eightmile Creek
+          url: https://www.wta.org/go-hiking/hikes/eightmile-creek-snowshoe
+        - label: Little Wenatchee River Road
+          url: https://www.wta.org/go-hiking/hikes/little-wenatchee-river-road-snowshoe
+      icon: snowshoeing
+
+    - title: Stevens Pass Nordic Center & Snow Play
+      text: Free groomed sledding and tubing hill with free parking in Mill Valley, 5 miles east of the pass, plus Nordic and snowshoe trails, rentals, and lessons at the Cascade Depot lodge.
+      subtext: Plastic sleds and tubes only · Trail pass required for skiing and snowshoeing · Check stevenspass.com for hours
+      link: https://www.stevenspass.com/explore-the-resort/activities-and-events/nordic-center.aspx
+      icon: sledding
+
+    - title: Snowmobiling with the Bavarian Boondockers
+      text: Leavenworth's snowmobile club rides the backcountry, helps maintain trails, and hosts events. Meetings are open to all.
+      subtext: 1st Wednesday monthly, 6:30pm at Kristall's · $30/year individual or family membership, includes WSSA
+      link: https://www.bavarianboondockers.com/
+      icon: snowmobile
+
 spring:
   activities:
     - title: Maifest
