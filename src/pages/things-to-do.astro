@@ -11,6 +11,7 @@ import LinkBox from '../components/ui/LinkBox.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import Accordian from '../components/ui/Accordian.astro';
 import LwscStudentMembershipCallout from '../components/LwscStudentMembershipCallout.astro';
+import StevensPassAepCallout from '../components/StevensPassAepCallout.astro';
 import { setPublicCache } from '@/lib/cache';
 import { getEntry } from 'astro:content';
 import { getCurrentSeason } from '@/lib/season-utils';
@@ -513,8 +514,9 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
           text="Cross-country skiing, snowshoeing, and winter recreation in the Leavenworth area."
         />
 
-        <div class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <LwscStudentMembershipCallout />
+          <StevensPassAepCallout />
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <LinkBox
