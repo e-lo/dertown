@@ -3,6 +3,7 @@ import Layout from '../../components/Layout.astro';
 import SectionHeader from '../../components/ui/SectionHeader.astro';
 import Calendar from '../../components/Calendar.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
+import LwscStudentMembershipCallout from '../../components/LwscStudentMembershipCallout.astro';
 import { supabase } from '../../lib/supabase';
 import { setPublicCache } from '@/lib/cache';
 
@@ -134,6 +135,9 @@ setPublicCache(Astro.response.headers);
         icon="sports_and_outdoors"
         text="Camps, programs, classes, leagues, and after-school activities for children of all ages in the Leavenworth area."
       />
+      <div class="mt-6">
+        <LwscStudentMembershipCallout />
+      </div>
     </div>
 
     <!-- Full-bleed category blocks -->

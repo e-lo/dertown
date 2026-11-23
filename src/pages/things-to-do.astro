@@ -10,6 +10,7 @@ import LinkListItem from '../components/ui/LinkListItem.astro';
 import LinkBox from '../components/ui/LinkBox.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import Accordian from '../components/ui/Accordian.astro';
+import LwscStudentMembershipCallout from '../components/LwscStudentMembershipCallout.astro';
 import { setPublicCache } from '@/lib/cache';
 import { getEntry } from 'astro:content';
 import { getCurrentSeason } from '@/lib/season-utils';
@@ -19,7 +20,10 @@ import { getCurrentSeason } from '@/lib/season-utils';
 // doesn't cost a function invocation. Purge from the admin header after edits.
 setPublicCache(Astro.response.headers);
 
-const season = getCurrentSeason();
+// Preview the next season's activities two weeks early, so e.g. winter
+// activities appear in late November as ski season opens.
+const SEASON_LEAD_MS = 14 * 24 * 60 * 60 * 1000;
+const season = getCurrentSeason(new Date(Date.now() + SEASON_LEAD_MS));
 const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.activities ?? [];
 ---
 
@@ -508,11 +512,15 @@ const seasonalActivities = (await getEntry('seasonalActivities', season))?.data.
           icon="downhill_skiing"
           text="Cross-country skiing, snowshoeing, and winter recreation in the Leavenworth area."
         />
+
+        <div class="mb-6">
+          <LwscStudentMembershipCallout />
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <LinkBox
             title="Leavenworth Winter Sports Club"
-            text="Cross-country skiing and winter sports club with groomed trails and youth programs"
-            subtext="Cross-country skiing, youth programs, trail passes, winter recreation"
+            text="Alpine and Nordic skiing, snowboarding, tubing, sledding, snowshoeing, and fat biking at Ski Hill, the Golf Course, and Icicle River Trails, plus youth ski teams"
+            subtext="Free 2026–27 annual membership for all Cascade School District students (registration required)"
             link="https://skileavenworth.com/"
             icon="downhill_skiing"
             external={true}
